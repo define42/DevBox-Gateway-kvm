@@ -56,8 +56,9 @@ only; gokvm runs the VMs.
 | `GATEWAY_LDAP_LOCAL` | `1` | Set to `0` to skip the bundled directory. |
 | `LDAP_PORT` | `1636` | Bundled directory's host port. |
 
-The Make variables configure this example; the executable itself takes CLI
-flags. To opt into a preconfigured protected default, for example:
+The executable reads [environment configuration](configuration.md). These Make
+variables remain helper aliases for the local setup; explicit `serve` flags
+override environment values. To opt into a preconfigured protected default, for example:
 
 ```bash
 make gateway GATEWAY_IMAGE=./.gokvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2
@@ -75,20 +76,20 @@ libraries, build directly and start LDAP separately:
 ```bash
 CGO_ENABLED=0 go build -o gokvm .
 make ldap
-./gokvm serve -state ./.gokvm-gateway \
-  -encoder software \
-  -ldap-url ldaps://127.0.0.1:1636 -ldap-base-dn dc=glauth,dc=com \
-  -ldap-domain example.com -ldap-filter '(mail=%s)' \
-  -ldap-username-attribute mail \
-  -ldap-required-group ou=team10_r,ou=groups,dc=glauth,dc=com \
-  -ldap-admin-group devbox-admins -ldap-ca ./testldap/.tls/cert.pem
+H264_ENCODER=software \
+LDAP_URL=ldaps://127.0.0.1:1636 LDAP_BASE_DN=dc=glauth,dc=com \
+LDAP_USER_DOMAIN=example.com LDAP_USER_FILTER='(mail=%s)' \
+LDAP_USERNAME_ATTRIBUTE=mail \
+LDAP_REQUIRED_GROUP=ou=team10_r,ou=groups,dc=glauth,dc=com \
+ADMIN_GROUP=devbox-admins LDAP_CA_FILE=./testldap/.tls/cert.pem \
+./gokvm serve
 ```
 
 Open the same **https://localhost:8443** page and use the demo accounts above.
 Sign in as `administrator` to upload the first template if the catalog is empty.
-The default OVMF paths must exist; override `-uefi` and `-uefi-vars-template` if
+The default OVMF paths must exist; set `UEFI_CODE` and `UEFI_VARS_TEMPLATE` if
 needed. `qemu-img` is still needed to prepare compressed images and for catalog
-imports that require conversion. `-encoder auto` also uses software encoding
+imports that require conversion. `H264_ENCODER=auto` also uses software encoding
 when the binary has no NVENC support. `make gateway` always rebuilds the NVENC
 target, so use the direct `serve` command to keep this build.
 
@@ -190,7 +191,7 @@ Upload and import requests default to a 30-minute timeout. To permit a larger
 file and a longer overall request:
 
 ```bash
-make gateway GATEWAY_ARGS="-image-upload-limit 42949672960 -image-upload-timeout 1h"
+IMAGE_UPLOAD_MAX_BYTES=42949672960 IMAGE_UPLOAD_TIMEOUT=1h make gateway
 ```
 
 Normalization by `qemu-img` has its own 30-minute cap, even when the overall
@@ -199,8 +200,8 @@ space for the upload, converted output, and guest clones; the per-file limit is
 not a total state-directory quota.
 
 Validated images become available to every allowed user in **Create DevBox**.
-If explicitly configured, the optional `-image` / `GATEWAY_IMAGE` template is
-marked **Default** and **Protected**; it cannot be removed through the UI.
+If explicitly configured, the optional `BASE_IMAGE` template (`GATEWAY_IMAGE` in
+the Make helper) is marked **Default** and **Protected**; it cannot be removed through the UI.
 Removing an uploaded image, including the last template, removes it from
 the catalog but preserves existing VMs, whose disks are independent. A
 filesystem reflink may initially share storage blocks without creating a QCOW2
@@ -208,20 +209,20 @@ backing-file dependency.
 
 ## Gateway certificates and ACME
 
-Without TLS flags, the gateway generates a self-signed certificate for the host
-in `-public-address` and persists it as `<state>/gateway.crt` and
+Without TLS settings, the gateway generates a self-signed certificate for the host
+in `PUBLIC_ADDRESS` and persists it as `<state>/gateway.crt` and
 `<state>/gateway.key`. This works on loopback and LAN listeners. Trust the
 certificate in your browser and RDP client before using it. A generated certificate
 is refreshed at startup when it expires or the public hostname changes, preserving
 its private key.
 
-Supply `-tls-cert /path/to/fullchain.pem -tls-key /path/to/key.pem` to use your
+Set `CERT_FILE=/path/to/fullchain.pem` and `KEY_FILE=/path/to/key.pem` to use your
 own matching PEM identity. The gateway reads these regular files without modifying
 them; symlinks are rejected. The private key must be owned by the gateway user
 with no group or other permissions (for example, mode `0600`).
 
-For automatic public certificates, use `-acme` with a public DNS hostname in
-`-public-address`. `-acme-email` sets the account contact address and `-acme-ca`
+For automatic public certificates, set `ACME_ENABLE=true` with a public DNS
+hostname in `PUBLIC_ADDRESS`. `ACME_EMAIL` sets the account contact address and `ACME_CA`
 selects `production` (the default), `staging`, or a custom ACME directory URL.
 Enabling ACME accepts the CA's subscriber agreement. ACME and supplied PEM files
 are mutually exclusive.
@@ -231,7 +232,7 @@ challenge. Port 80 is not required. Certificate management starts after the
 listener is bound; a self-signed certificate serves as fallback while initial
 issuance is pending or retrying. Certificates switch automatically after issuance
 and renew while the gateway is running. The hostname allowlist contains only
-`-public-address`'s hostname; RDP clients without SNI use that same identity.
+`PUBLIC_ADDRESS`'s hostname; RDP clients without SNI use that same identity.
 
 ACME accounts, cached certificates, and renewal state persist under
 `<state>/acme`. Keep that directory across restarts and include it in private
@@ -245,14 +246,15 @@ browsers and RDP clients. The host must have matching OVMF firmware. An administ
 image templates after startup:
 
 ```bash
-./gokvm serve -state /var/lib/gokvm \
-  -listen 0.0.0.0:8443 -public-address desktops.example.com:8443 \
-  -tls-cert /etc/gokvm/fullchain.pem -tls-key /etc/gokvm/key.pem \
-  -ldap-url ldaps://directory.example.com -ldap-base-dn dc=example,dc=com \
-  -ldap-domain example.com -ldap-username-attribute sAMAccountName \
-  -ldap-filter '(userPrincipalName=%s)' \
-  -ldap-required-group 'CN=Desktop Users,OU=Groups,DC=example,DC=com' \
-  -ldap-admin-group 'CN=Desktop Admins,OU=Groups,DC=example,DC=com'
+DATA_ROOT_DIR=/var/lib/gokvm \
+LISTEN_ADDR=0.0.0.0:8443 PUBLIC_ADDRESS=desktops.example.com:8443 \
+CERT_FILE=/etc/gokvm/fullchain.pem KEY_FILE=/etc/gokvm/key.pem \
+LDAP_URL=ldaps://directory.example.com LDAP_BASE_DN=dc=example,dc=com \
+LDAP_USER_DOMAIN=example.com LDAP_USERNAME_ATTRIBUTE=sAMAccountName \
+LDAP_USER_FILTER='(userPrincipalName=%s)' \
+LDAP_REQUIRED_GROUP='CN=Desktop Users,OU=Groups,DC=example,DC=com' \
+ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
+./gokvm serve
 ```
 
 Use the configured public hostname in the browser and downloaded RDP files.
@@ -265,11 +267,11 @@ The gateway binds to LDAP with the submitted username and password, appending
 `@domain` when configured. It then searches for exactly one matching entry. The
 filter contains one `%s` placeholder, filled with the escaped bind identifier.
 The canonical username attribute must contain one supported lowercase Linux
-account name, or an email address matching `-ldap-domain`; the local part then
+account name, or an email address matching `LDAP_USER_DOMAIN`; the local part then
 identifies the VM owner. Sign in with the bare account name.
 
-`-ldap-required-group` restricts login using direct `memberOf` membership.
-`-ldap-admin-group` grants the admin role using the same direct membership check.
+`LDAP_REQUIRED_GROUP` restricts login using direct `memberOf` membership.
+`ADMIN_GROUP` grants the admin role using the same direct membership check.
 Both accept a group name or full DN and compare case-insensitively. Nested groups
 are not expanded, and administrators must still satisfy the login restriction.
 An empty admin-group setting disables administrator access. An account named
@@ -281,8 +283,8 @@ login; plaintext LDAP passwords are not persisted. Existing guest passwords do
 not track subsequent directory changes.
 
 `ldaps://` negotiates verified TLS immediately. `ldap://` upgrades with StartTLS.
-Use `-ldap-ca` for a private CA; otherwise system trust is used. The explicit
-`-ldap-insecure-loopback` test option permits plaintext only for an `ldap://`
+Use `LDAP_CA_FILE` for a private CA; otherwise system trust is used. The explicit
+`LDAP_INSECURE_LOOPBACK=true` test option permits plaintext only for an `ldap://`
 URL with a loopback IP.
 
 The bundled setup requires `team10_r` and grants admin to `devbox-admins`. It uses
@@ -294,49 +296,18 @@ no generated-auth-file fallback. Old `auth.json` and
 
 ### `serve` options
 
-Exactly one of `-ldap-url` and `-auth-file` is required. There is no gateway
-configuration file; configure the executable with these flags.
+Exactly one of `LDAP_URL` and `AUTH_FILE` is required. All gateway settings are
+read from environment variables; explicit flags remain available as overrides.
+See the [configuration reference](configuration.md) for every variable, default,
+and corresponding flag, or run `./gokvm serve -help`.
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `-state` | `.gokvm-gateway` | Private persistent state directory. |
-| `-image` | Empty | Optional immutable raw or supported uncompressed QCOW2 default base. Omit it to use administrator-uploaded templates. Convert unsupported layouts before supplying this flag. |
-| `-uefi` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | OVMF CODE file. |
-| `-uefi-vars-template` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | Matching pristine variables template, copied per VM. |
-| `-encoder` | `auto` | `auto`, `nvenc`, or `software` H.264 encoding. |
-| `-keyboard` | `us` | Layout provisioned in newly created guests. |
-| `-cpus` | `2` | vCPUs per desktop, from 1 to 64. |
-| `-memory` | `4096` | MiB per desktop, from 256 to 1048576. |
-| `-memory-budget` | `0` (automatic) | Maximum total MiB reserved for starting and running desktops, including 256 MiB overhead per desktop. An explicit limit can lower the automatic budget. |
-| `-max-vms-per-user` | `3` | Desktop quota per account. |
-| `-max-running` | `4` | Global concurrently running desktop limit. |
-| `-image-upload-limit` | `21474836480` | Maximum bytes per uploaded or normalized catalog file; up to 1 TiB. |
-| `-image-upload-timeout` | `30m` | Overall upload/import timeout, from `1m` to `24h`. |
-| `-listen` | `127.0.0.1:8443` | Shared HTTPS/RDP TCP listener. |
-| `-public-address` | `localhost:8443` | Public hostname and port used by the gateway and RDP files. |
-| `-tls-cert`, `-tls-key` | Unset | Optional matching PEM certificate and key; otherwise use automatic self-signed TLS or ACME. |
-| `-acme` | `false` | Obtain and renew a public certificate through TLS-ALPN-01 on public port 443. |
-| `-acme-email` | Empty | ACME account contact email. |
-| `-acme-ca` | `production` | ACME directory: `production`/`prod`, `staging`, or custom URL. |
-| `-auth-file` | Unset | Private bcrypt JSON authentication file for loopback development; excludes LDAP and grants no admin role. |
-| `-ldap-url` | Unset | Directory URL, `ldaps://` or `ldap://`. |
-| `-ldap-base-dn` | Required with LDAP | Search base DN. |
-| `-ldap-domain` | Empty | Domain appended to the username for binding. |
-| `-ldap-filter` | `(uid=%s)`, or `(mail=%s)` with a domain | Directory search filter. |
-| `-ldap-username-attribute` | `uid` | Canonical VM-owner account attribute. |
-| `-ldap-required-group` | Empty | Optional login membership restriction. |
-| `-ldap-admin-group` | Empty | Optional administrator membership. |
-| `-ldap-ca` | System trust | Private CA PEM file, when needed. |
-| `-ldap-insecure-loopback` | `false` | Explicit plaintext LDAP test mode on a loopback IP. |
-
-Run `./gokvm serve -help` for the executable's option descriptions. CPU, RAM, and
-encoder settings apply when a VM process starts; they are gateway-wide settings,
-not per-image sizing. Quotas limit VM counts, not total allocated disk bytes.
+CPU, RAM, and encoder settings apply when a VM process starts; they are
+gateway-wide settings, not per-image sizing. Quotas limit VM counts, not total allocated disk bytes.
 
 Before starting the first desktop, the gateway sets its automatic memory budget
 from Linux `MemAvailable`, leaves 1 GiB for the host, and applies any smaller
-`-memory-budget` limit. Visible cgroup v1/v2 memory limits and usage also constrain
-available capacity, including ancestor limits. Each starting or running desktop
+`VM_MEMORY_BUDGET_MIB` limit. Visible cgroup v1/v2 memory limits and usage also
+constrain available capacity, including ancestor limits. Each starting or running desktop
 reserves its full configured RAM plus a 256 MiB allowance for runtime/device
 overhead, even when the guest has not touched all of its RAM yet. Concurrent
 starts share this budget; launch failure or child exit releases the reservation.
@@ -352,11 +323,11 @@ Insufficient capacity leaves the desktop stopped and displays a memory-specific
 error. If host memory cannot be measured, the start is refused. For example:
 
 ```bash
-make gateway GATEWAY_ARGS='-memory 4096 -memory-budget 10240'
+VM_MEMORY_MIB=4096 VM_MEMORY_BUDGET_MIB=10240 make gateway
 ```
 
 This caps desktop reservations at 10 GiB, allowing at most two 4 GiB desktops
-(each charged 4352 MiB), subject to available host memory and `-max-running`.
+(each charged 4352 MiB), subject to available host memory and `MAX_RUNNING_VMS`.
 These checks are admission control, not a hard memory limit or an OS reservation:
 other applications can allocate memory afterward, and actual process overhead
 can exceed the allowance. Guest RAM is fixed while running; there is no memory
@@ -370,10 +341,10 @@ For an explicit local-auth development setup:
 
 This creates a new bcrypt account file and a private
 `auth.json.credentials.json` with a generated password. Supply
-`-auth-file auth.json` instead of LDAP flags when starting `serve`. Existing
+`AUTH_FILE=auth.json` with `LDAP_URL` unset when starting `serve`. Existing
 output files are never overwritten. This mode requires a loopback listener and
 does not provide administrator accounts. Use an already populated image catalog
-or pass `-image /path/to/prepared.qcow2` with a supported uncompressed default
+or set `BASE_IMAGE=/path/to/prepared.qcow2` with a supported uncompressed default
 template; this mode cannot upload the first image through Admin.
 
 ## State, networking, and shutdown
@@ -382,7 +353,7 @@ The gateway requires state directories owned by its host account with no access
 for other users, normally mode 0700. State files are private regular files,
 normally mode 0600. Only one gateway may own a state directory at a time.
 
-| Path under `-state` | Contents |
+| Path under `DATA_ROOT_DIR` | Contents |
 | --- | --- |
 | `manager.lock` | Exclusive manager lock. |
 | `gateway.crt`, `gateway.key` | Persistent self-signed identity and ACME fallback. |
@@ -397,7 +368,7 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | `vms/<vm-id>/console.log` | Appended child-process diagnostics. |
 
 The `images` directory is created automatically and starts empty for a new
-state directory without `-image`. The Compose stack stores it at
+state directory without `BASE_IMAGE`. The Compose stack stores it at
 `/var/lib/gokvm/images` in its persistent `gateway-state` volume.
 
 Back up the state with the gateway and VMs stopped; include any optional base
@@ -411,14 +382,14 @@ TCP/UDP, while host loopback destinations are denied. This restriction does not
 make the guest network an offline environment or isolate all reachable host/LAN
 services.
 
-**Stop** requests the guest's ACPI power button and waits up to 30 seconds. If the
-guest needs confirmation or does not shut down, it remains running; use its
+**Stop** requests the guest's ACPI power button and waits up to `VM_STOP_TIMEOUT`
+(30 seconds by default). If the guest needs confirmation or does not shut down, it remains running; use its
 graphical power menu and refresh status. **Delete** requires a stopped VM and
 permanently removes its disk, firmware variables, seed, metadata, and log.
 
-Stopping the gateway requests ACPI shutdown of running VMs. After its 30-second
-wait it escalates to SIGTERM, then SIGKILL if necessary. Shut down desktops first
-when preserving guest application state matters. Restarting the gateway loads
+Stopping the gateway requests ACPI shutdown of running VMs. After its
+`VM_STOP_TIMEOUT` wait it escalates to SIGTERM, then SIGKILL if necessary. Shut
+down desktops first when preserving guest application state matters. Restarting the gateway loads
 saved VMs as stopped; it does not resume them automatically. Browser sessions and
 RDP grants are held in memory and do not survive a gateway restart.
 

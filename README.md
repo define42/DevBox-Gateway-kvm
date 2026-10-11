@@ -13,8 +13,10 @@ desktop runs in its own `gokvm` process using Linux KVM directly.
 
 The project is named **DevBox-Gateway-kvm** and uses the Go module path
 `github.com/define42/DevBox-Gateway-kvm`. The executable remains `gokvm`; existing
-command names, `GOKVM_*` environment variables, helper scripts, and
-`.gokvm-gateway/` state paths are unchanged.
+command names, runtime `GOKVM_*` environment variables, helper scripts, and
+`.gokvm-gateway/` state paths remain available. Gateway settings use the
+[environment configuration reference](docs/configuration.md), following
+DevBox-Gateway's centralized `config.go` design.
 
 **This is experimental software. Do not use it in production.**
 
@@ -198,7 +200,7 @@ The image catalog can be empty, including after removing its last template.
 Uploaded templates can be removed without deleting existing desktops because
 each desktop has its own disk. Deleting a stopped desktop permanently removes its disk and firmware
 state. The [gateway guide](docs/gateway.md) covers storage, image validation,
-configuration flags, shutdown behavior, and backups.
+environment configuration, shutdown behavior, and backups.
 
 ### How a connection works
 
@@ -265,8 +267,11 @@ and Sauron integrations have not been migrated.
 | `gokvm auth-user` | Create a local authentication file for explicit loopback development setups. |
 
 Run `./gokvm serve -help`, `./gokvm boot -help`, or `./gokvm seed -help` for the
-current flags. LDAP is the authentication path used by `make gateway`.
+current flags. `serve` reads configuration from environment variables; explicit
+flags override them. LDAP is the authentication path used by `make gateway`.
 
+- [Environment configuration](docs/configuration.md): all gateway variables,
+  defaults, flag overrides, and Compose migration.
 - [Gateway operations](docs/gateway.md): configuration, external LDAP/TLS, image
   management, connection tokens, state, and cloud-init.
 - [VM and remote-display reference](docs/runtime.md): standalone `make qcow2`,

@@ -45,10 +45,11 @@ compatible templates. These are public development credentials; the gateway is
 published only on host loopback by default, and LDAP has no published host port.
 
 The gateway manages its own certificate: by default it generates and persists a
-self-signed identity for `GATEWAY_HOST`. It can instead load a supplied PEM pair
-or obtain and renew an ACME certificate. See [TLS and ACME](#tls-and-acme) below.
-The generated certificate is refreshed at startup when it expires or `GATEWAY_HOST`
-changes, preserving its private key. There is no separate certificate-initialization
+self-signed identity for the hostname in `PUBLIC_ADDRESS` (by default,
+`GATEWAY_HOST`). It can instead load a supplied PEM pair or obtain and renew an
+ACME certificate. See [TLS and ACME](#tls-and-acme) below.
+The generated certificate is refreshed at startup when it expires or the
+configured public hostname changes, preserving its private key. There is no separate certificate-initialization
 service.
 
 LDAP generates its own private TLS identity before starting. Its public
@@ -79,10 +80,14 @@ ACME or TLS trusted by your clients, and set a reachable public hostname and bin
 address. The gateway's built-in self-signed mode also works on LAN addresses;
 clients must explicitly trust that certificate.
 
-The `.env` settings also control the encoder, vCPUs, guest memory, and maximum
-running desktops. Defaults are automatic encoding, 2 vCPUs, 4096 MiB per guest,
-and 4 running desktops. Allow enough host memory for guest RAM plus the overhead
-described below.
+All gateway settings are passed through environment variables from `.env` or
+the shell. Set `H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`, and
+`MAX_RUNNING_VMS` to change the defaults of automatic encoding, 2 vCPUs,
+4096 MiB per guest, and 4 running desktops. Allow enough host memory for guest
+RAM plus the overhead described below. See the
+[configuration reference](configuration.md) for every setting and the legacy Compose aliases retained for existing `.env`
+files. Canonical variables take precedence over legacy aliases. The native
+executable does not load `.env`; Compose passes these values into its environment.
 
 ```bash
 docker compose stop         # Stop the gateway and LDAP; retain containers and data
@@ -105,9 +110,9 @@ The gateway supports three certificate modes for both HTTPS and RDP:
 
 | Mode | Configuration | Persistence |
 | --- | --- | --- |
-| Automatic self-signed | Default; no TLS or ACME flags | `gateway.crt` and `gateway.key` in `gateway-state` |
-| Supplied certificate | `-tls-cert` and `-tls-key` together | Read from the supplied PEM paths |
-| ACME | `-acme`, optionally `-acme-email` and `-acme-ca` | Account, certificates, and renewal state under `gateway-state/acme` |
+| Automatic self-signed | Default; empty `CERT_FILE`/`KEY_FILE`, `ACME_ENABLE=false` | `gateway.crt` and `gateway.key` in `gateway-state` |
+| Supplied certificate | `CERT_FILE` and `KEY_FILE` together | Read from the supplied PEM paths |
+| ACME | `ACME_ENABLE=true`, optionally `ACME_EMAIL` and `ACME_CA` | Account, certificates, and renewal state under `gateway-state/acme` |
 
 To enable ACME in Compose, set these values in `.env`:
 
@@ -115,9 +120,9 @@ To enable ACME in Compose, set these values in `.env`:
 GATEWAY_HOST=desktops.example.com
 GATEWAY_BIND=0.0.0.0
 GATEWAY_PORT=443
-GATEWAY_ACME=true
-GATEWAY_ACME_EMAIL=admin@example.com
-GATEWAY_ACME_CA=production
+ACME_ENABLE=true
+ACME_EMAIL=admin@example.com
+ACME_CA=production
 ```
 
 Point the public hostname's DNS records to this host and allow public TCP **443**
@@ -134,10 +139,10 @@ switches to the issued certificate automatically. It renews certificates while
 running and reuses cached certificates after a restart. The managed public
 hostname is the only name eligible for issuance.
 
-For supplied certificates, mount your certificate and key read-only and pass
-`-tls-cert` and `-tls-key`, as shown in the standalone example below. Do not
-combine supplied certificates with `-acme`. Supplied identities are never
-modified. Keep the gateway state volume when rebuilding or restarting.
+For supplied certificates, mount your certificate and key read-only and set
+`CERT_FILE` and `KEY_FILE`, as shown in the standalone example below. Do not
+combine supplied certificates with `ACME_ENABLE=true`. Supplied identities are
+never modified. Keep the gateway state volume when rebuilding or restarting.
 
 When upgrading from the older three-service stack, use
 `docker compose up --build -d --remove-orphans` to remove the obsolete
@@ -203,11 +208,14 @@ From the repository root:
 
 ```bash
 docker build --platform linux/amd64 -t devbox-gateway-kvm:local .
-docker run --rm devbox-gateway-kvm:local
+docker run --rm devbox-gateway-kvm:local serve -help
 ```
 
-The default command prints `serve` help. The entrypoint is `gokvm`, so commands
-such as `serve`, `boot`, and `probe` follow the image name directly. Check KVM
+The default command starts `serve`, using environment configuration. It requires
+authentication settings; the command above explicitly requests help without
+starting a server. The image sets `DATA_ROOT_DIR=/var/lib/gokvm` and
+`LISTEN_ADDR=0.0.0.0:8443`. The entrypoint is `gokvm`, so commands such as
+`serve`, `boot`, and `probe` follow the image name directly. Check KVM
 access using the same device and supplementary group used by the gateway:
 
 ```bash
@@ -242,26 +250,24 @@ docker run -d --name devbox-gateway-kvm \
   --publish 8443:8443 \
   --mount type=volume,source=devbox-gateway-kvm-state,target=/var/lib/gokvm \
   --mount type=bind,source=/etc/devbox-gateway-kvm/tls,target=/etc/gokvm/tls,readonly \
-  devbox-gateway-kvm:local serve \
-    -state /var/lib/gokvm \
-    -listen 0.0.0.0:8443 \
-    -public-address desktops.example.com:8443 \
-    -tls-cert /etc/gokvm/tls/fullchain.pem \
-    -tls-key /etc/gokvm/tls/key.pem \
-    -ldap-url ldaps://directory.example.com \
-    -ldap-base-dn dc=example,dc=com \
-    -ldap-domain example.com \
-    -ldap-username-attribute sAMAccountName \
-    -ldap-filter '(userPrincipalName=%s)' \
-    -ldap-required-group 'CN=Desktop Users,OU=Groups,DC=example,DC=com' \
-    -ldap-admin-group 'CN=Desktop Admins,OU=Groups,DC=example,DC=com'
+  --env PUBLIC_ADDRESS=desktops.example.com:8443 \
+  --env CERT_FILE=/etc/gokvm/tls/fullchain.pem \
+  --env KEY_FILE=/etc/gokvm/tls/key.pem \
+  --env LDAP_URL=ldaps://directory.example.com \
+  --env LDAP_BASE_DN=dc=example,dc=com \
+  --env LDAP_USER_DOMAIN=example.com \
+  --env LDAP_USERNAME_ATTRIBUTE=sAMAccountName \
+  --env LDAP_USER_FILTER='(userPrincipalName=%s)' \
+  --env LDAP_REQUIRED_GROUP='CN=Desktop Users,OU=Groups,DC=example,DC=com' \
+  --env ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
+  devbox-gateway-kvm:local
 ```
 
 This LDAP example uses Active Directory attributes. Adjust them for your
 directory as described in [LDAP configuration](gateway.md#ldap-and-remote-access).
 For a private LDAP CA, also mount its PEM file read-only and pass its container
-path with `-ldap-ca`. The directory address must be reachable from the container;
-`127.0.0.1` refers to the container itself.
+path with `LDAP_CA_FILE`. The directory address must be reachable from the
+container; `127.0.0.1` refers to the container itself.
 
 Open **https://desktops.example.com:8443**, sign in with an account in the
 configured administrator group, and upload your first template under
@@ -278,9 +284,9 @@ If using a bind mount instead, create and assign ownership to the state director
 before starting the container. Back up the volume with the gateway stopped.
 
 For an optional preconfigured default image, mount an immutable standalone raw
-or supported uncompressed QCOW2 file read-only and pass its container path with
-`-image`. Such a template is protected from removal through the UI. This is an
-opt-in alternative; the Compose stack uses administrator uploads exclusively.
+or supported uncompressed QCOW2 file read-only and set its container path in
+`BASE_IMAGE`. Such a template is protected from removal through the UI. By default,
+the Compose stack starts with an empty catalog and uses administrator uploads.
 
 Managed guest networking uses `user-isolated`; it needs neither a TUN device nor
 `NET_ADMIN`. The container does not need `--privileged` or a Docker socket.
@@ -289,8 +295,8 @@ Defaults are 2 vCPUs and 4096 MiB per desktop. When setting Docker's `--memory`
 limit, allow for all running guest RAM, 256 MiB per guest, the gateway's 1 GiB
 headroom, and additional runtime usage. The gateway considers visible cgroup
 memory limits and can reject a VM start when capacity is insufficient. Use
-`-memory`, `-memory-budget`, and `-max-running` to control admission; see
-[memory limits](gateway.md#serve-options).
+`VM_MEMORY_MIB`, `VM_MEMORY_BUDGET_MIB`, and `MAX_RUNNING_VMS` to control
+admission; see [memory limits](gateway.md#serve-options).
 
 ## Enable NVIDIA NVENC
 
@@ -303,7 +309,7 @@ override:
 docker compose -f compose.yaml -f compose.nvidia.yaml up --build -d
 ```
 
-Set `GATEWAY_ENCODER=nvenc` in `.env` to require hardware encoding. Keep the same
+Set `H264_ENCODER=nvenc` in `.env` to require hardware encoding. Keep the same
 `-f compose.yaml -f compose.nvidia.yaml` options for subsequent Compose commands.
 
 For `docker run`, add these options before the image name:
@@ -317,9 +323,9 @@ enabled if overriding this variable; it exposes the driver libraries needed for
 NVENC. See NVIDIA's
 [driver capability reference](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/docker-specialized.html#driver-capabilities).
 
-The default `-encoder auto` falls back to software if NVENC cannot be initialized.
-Pass `-encoder nvenc` to require hardware encoding, or `-encoder software` to
-select software explicitly. This accelerates the gateway's desktop video
+The default `H264_ENCODER=auto` falls back to software if NVENC cannot be
+initialized. Set `H264_ENCODER=nvenc` to require hardware encoding, or `H264_ENCODER=software`
+to select software explicitly. This accelerates the gateway's desktop video
 encoding; it does not expose a GPU or 3D acceleration to the guest.
 
 For a hardware encoding probe, build the optional Debian-based `diagnostics`
@@ -350,7 +356,8 @@ docker start devbox-gateway-kvm
 
 Shut down desktops through their graphical session or the dashboard first when
 guest application state matters. Gateway shutdown requests ACPI power-off and
-allows 30 seconds before terminating remaining VM processes; the longer Docker
-timeout gives that cleanup time to finish. Saved desktops remain in the volume
-and load as stopped after restart. Removing the container does not delete the
-named volume; deleting the volume removes its saved desktops.
+allows `VM_STOP_TIMEOUT` (30 seconds by default) before terminating remaining VM
+processes; keep Docker's stop timeout longer than this setting to allow cleanup.
+Saved desktops remain in the volume and load as stopped after restart. Removing
+the container does not delete the named volume; deleting the volume removes its
+saved desktops.

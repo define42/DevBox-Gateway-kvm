@@ -39,14 +39,16 @@ COPY --from=build /out/gokvm /usr/local/bin/gokvm
 COPY LICENSE LICENSE-OpenH264 LICENSE-go.264 /usr/share/doc/devbox-gateway-kvm/
 
 # The NVIDIA Container Toolkit injects the host driver when --gpus is supplied.
-ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
+    DATA_ROOT_DIR=/var/lib/gokvm \
+    LISTEN_ADDR=0.0.0.0:8443
 
 USER 10001:10001
 WORKDIR /var/lib/gokvm
 EXPOSE 8443/tcp
 ENTRYPOINT ["/usr/local/bin/gokvm"]
 # Serving requires authentication configuration; see docs/docker.md.
-CMD ["serve", "-help"]
+CMD ["serve"]
 
 # Optional troubleshooting image; these tools stay out of the default image.
 FROM runtime-deps AS diagnostics
@@ -134,9 +136,11 @@ LABEL org.opencontainers.image.title="DevBox-Gateway-kvm" \
       org.opencontainers.image.source="https://github.com/define42/DevBox-Gateway-kvm" \
       org.opencontainers.image.description="Minimal KVM desktop gateway with optional NVIDIA NVENC encoding"
 ENV PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-    NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
+    DATA_ROOT_DIR=/var/lib/gokvm \
+    LISTEN_ADDR=0.0.0.0:8443
 USER 10001:10001
 WORKDIR /var/lib/gokvm
 EXPOSE 8443/tcp
 ENTRYPOINT ["/usr/local/bin/gokvm"]
-CMD ["serve", "-help"]
+CMD ["serve"]

@@ -23,6 +23,20 @@ GATEWAY_LDAP_ADMIN_GROUP ?= devbox-admins
 GATEWAY_LDAP_CA ?= ./testldap/.tls/cert.pem
 OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
+# Native gateway configuration uses the same ENV keys as the executable.
+# Retain the GATEWAY_* make variables as defaults for existing invocations.
+export DATA_ROOT_DIR ?= $(GATEWAY_STATE)
+export BASE_IMAGE ?= $(GATEWAY_IMAGE)
+export UEFI_CODE ?= $(OVMF_CODE)
+export UEFI_VARS_TEMPLATE ?= $(OVMF_VARS)
+export LDAP_URL ?= $(GATEWAY_LDAP_URL)
+export LDAP_BASE_DN ?= $(GATEWAY_LDAP_BASE_DN)
+export LDAP_USER_DOMAIN ?= $(GATEWAY_LDAP_DOMAIN)
+export LDAP_USER_FILTER ?= $(GATEWAY_LDAP_FILTER)
+export LDAP_USERNAME_ATTRIBUTE ?= $(GATEWAY_LDAP_USERNAME_ATTRIBUTE)
+export LDAP_REQUIRED_GROUP ?= $(GATEWAY_LDAP_REQUIRED_GROUP)
+export ADMIN_GROUP ?= $(GATEWAY_LDAP_ADMIN_GROUP)
+export LDAP_CA_FILE ?= $(GATEWAY_LDAP_CA)
 RDP_CLIENT ?= $(shell if [ -x ./tools/freerdp/bin/xfreerdp ]; then \
 	printf '%s\n' ./tools/freerdp/bin/xfreerdp; \
 	else command -v xfreerdp3 2>/dev/null || command -v xfreerdp 2>/dev/null; fi)
@@ -210,20 +224,14 @@ gateway: ldap
 endif
 gateway: generate
 	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
-	@set -eu; mkdir -p -m 700 "$(GATEWAY_STATE)"; \
-	if [ -n "$(GATEWAY_IMAGE)" ] && [ ! -e "$(GATEWAY_IMAGE)" ]; then \
+	@set -eu; mkdir -p -m 700 "$(DATA_ROOT_DIR)"; \
+	if [ -n "$(BASE_IMAGE)" ] && [ ! -e "$(BASE_IMAGE)" ]; then \
 		command -v qemu-img >/dev/null 2>&1 || { echo "Install qemu-utils for one-time image conversion." >&2; exit 1; }; \
 		test -r "$(QCOW2_IMAGE)" || { echo "Source disk not found: $(QCOW2_IMAGE)" >&2; exit 1; }; \
-		tmp=$$(mktemp "$(GATEWAY_IMAGE).tmp.XXXXXX"); \
+		tmp=$$(mktemp "$(BASE_IMAGE).tmp.XXXXXX"); \
 		trap 'rm -f -- "$$tmp"' EXIT; \
 		qemu-img convert -f qcow2 -O qcow2 "$(QCOW2_IMAGE)" "$$tmp"; \
-		ln -- "$$tmp" "$(GATEWAY_IMAGE)"; \
+		ln -- "$$tmp" "$(BASE_IMAGE)"; \
 	fi
 	@echo "Open https://localhost:8443 and sign in with your LDAP account. See testldap/README.md for local accounts."
-	./gokvm serve -state "$(GATEWAY_STATE)" $(if $(strip $(GATEWAY_IMAGE)),-image "$(GATEWAY_IMAGE)") \
-		-uefi "$(OVMF_CODE)" -uefi-vars-template "$(OVMF_VARS)" \
-		-ldap-url "$(GATEWAY_LDAP_URL)" -ldap-base-dn "$(GATEWAY_LDAP_BASE_DN)" \
-		-ldap-domain "$(GATEWAY_LDAP_DOMAIN)" -ldap-filter '$(GATEWAY_LDAP_FILTER)' \
-		-ldap-username-attribute "$(GATEWAY_LDAP_USERNAME_ATTRIBUTE)" \
-		-ldap-required-group "$(GATEWAY_LDAP_REQUIRED_GROUP)" \
-		-ldap-admin-group "$(GATEWAY_LDAP_ADMIN_GROUP)" -ldap-ca "$(GATEWAY_LDAP_CA)" $(GATEWAY_ARGS)
+	./gokvm serve $(GATEWAY_ARGS)

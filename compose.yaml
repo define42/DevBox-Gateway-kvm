@@ -31,43 +31,45 @@ services:
     volumes:
       - gateway-state:/var/lib/gokvm
       - ldap-ca:/etc/gokvm/ldap:ro
-    command:
-      - serve
-      - -state
-      - /var/lib/gokvm
-      - -listen
-      - 0.0.0.0:8443
-      - -public-address
-      - ${GATEWAY_HOST:-localhost}:${GATEWAY_PORT:-8443}
-      - -acme=${GATEWAY_ACME:-false}
-      - -acme-email
-      - "${GATEWAY_ACME_EMAIL:-}"
-      - -acme-ca
-      - "${GATEWAY_ACME_CA:-production}"
-      - -ldap-url
-      - ldaps://ldap:389
-      - -ldap-base-dn
-      - dc=glauth,dc=com
-      - -ldap-domain
-      - example.com
-      - -ldap-filter
-      - (mail=%s)
-      - -ldap-username-attribute
-      - mail
-      - -ldap-required-group
-      - ou=team10_r,ou=groups,dc=glauth,dc=com
-      - -ldap-admin-group
-      - devbox-admins
-      - -ldap-ca
-      - /etc/gokvm/ldap/cert.pem
-      - -encoder
-      - ${GATEWAY_ENCODER:-auto}
-      - -cpus
-      - "${GATEWAY_CPUS:-2}"
-      - -memory
-      - "${GATEWAY_MEMORY:-4096}"
-      - -max-running
-      - "${GATEWAY_MAX_RUNNING:-4}"
+    environment:
+      DATA_ROOT_DIR: "${DATA_ROOT_DIR-/var/lib/gokvm}"
+      BASE_IMAGE: "${BASE_IMAGE-}"
+      VM_BINARY: "${VM_BINARY-}"
+      UEFI_CODE: "${UEFI_CODE-/usr/share/OVMF/OVMF_CODE_4M.fd}"
+      UEFI_VARS_TEMPLATE: "${UEFI_VARS_TEMPLATE-/usr/share/OVMF/OVMF_VARS_4M.fd}"
+      H264_ENCODER: "${H264_ENCODER-${GATEWAY_ENCODER:-auto}}"
+      VM_KEYBOARD: "${VM_KEYBOARD-us}"
+      VM_VCPU_COUNT: "${VM_VCPU_COUNT-${GATEWAY_CPUS:-2}}"
+      VM_MEMORY_MIB: "${VM_MEMORY_MIB-${GATEWAY_MEMORY:-4096}}"
+      VM_MEMORY_BUDGET_MIB: "${VM_MEMORY_BUDGET_MIB-0}"
+      MAX_VDI_PER_USER: "${MAX_VDI_PER_USER-3}"
+      MAX_RUNNING_VMS: "${MAX_RUNNING_VMS-${GATEWAY_MAX_RUNNING:-4}}"
+      IMAGE_UPLOAD_MAX_BYTES: "${IMAGE_UPLOAD_MAX_BYTES-21474836480}"
+      IMAGE_UPLOAD_TIMEOUT: "${IMAGE_UPLOAD_TIMEOUT-30m}"
+      VM_START_TIMEOUT: "${VM_START_TIMEOUT-30s}"
+      VM_STOP_TIMEOUT: "${VM_STOP_TIMEOUT-30s}"
+      LISTEN_ADDR: "${LISTEN_ADDR-0.0.0.0:8443}"
+      PUBLIC_ADDRESS: "${PUBLIC_ADDRESS-${GATEWAY_HOST:-localhost}:${GATEWAY_PORT:-8443}}"
+      CERT_FILE: "${CERT_FILE-}"
+      KEY_FILE: "${KEY_FILE-}"
+      ACME_ENABLE: "${ACME_ENABLE-${GATEWAY_ACME:-false}}"
+      ACME_EMAIL: "${ACME_EMAIL-${GATEWAY_ACME_EMAIL:-}}"
+      ACME_CA: "${ACME_CA-${GATEWAY_ACME_CA:-production}}"
+      AUTH_FILE: "${AUTH_FILE-}"
+      LDAP_URL: "${LDAP_URL-ldaps://ldap:389}"
+      LDAP_BASE_DN: "${LDAP_BASE_DN-dc=glauth,dc=com}"
+      LDAP_USER_DOMAIN: "${LDAP_USER_DOMAIN-example.com}"
+      LDAP_USER_FILTER: "${LDAP_USER_FILTER-(mail=%s)}"
+      LDAP_USERNAME_ATTRIBUTE: "${LDAP_USERNAME_ATTRIBUTE-mail}"
+      LDAP_REQUIRED_GROUP: "${LDAP_REQUIRED_GROUP-ou=team10_r,ou=groups,dc=glauth,dc=com}"
+      ADMIN_GROUP: "${ADMIN_GROUP-devbox-admins}"
+      LDAP_CA_FILE: "${LDAP_CA_FILE-/etc/gokvm/ldap/cert.pem}"
+      LDAP_INSECURE_LOOPBACK: "${LDAP_INSECURE_LOOPBACK-false}"
+      LDAP_AUTH_TIMEOUT: "${LDAP_AUTH_TIMEOUT-10s}"
+      SESSION_TTL: "${SESSION_TTL-8h}"
+      MAX_SESSIONS: "${MAX_SESSIONS-1024}"
+      MAX_CONCURRENT_CONNECTIONS: "${MAX_CONCURRENT_CONNECTIONS-128}"
+    command: ["serve"]
 
 volumes:
   gateway-state:

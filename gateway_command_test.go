@@ -123,7 +123,7 @@ func TestPublishFailurePreservesExistingFiles(t *testing.T) {
 }
 
 func TestGatewayCommandRejectsUnsafeConfiguration(t *testing.T) {
-	t.Parallel()
+	clearServeEnvironment(t)
 	for _, args := range [][]string{
 		{},
 		{"-auth-file", "missing", "-ldap-url", "ldaps://example.com"},

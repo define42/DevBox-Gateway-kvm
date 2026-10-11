@@ -13,80 +13,20 @@ import (
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
+	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
 )
 
 var errCommandUsage = errors.New("invalid command arguments")
 
 func runServe(ctx context.Context, args []string, output io.Writer) (serveErr error) {
-	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
-	flags.SetOutput(output)
-	var manager gateway.ManagerConfig
-	var config gateway.Config
-	var ldap gateway.LDAPConfig
-	var certificates cert.Options
-	var authFile string
-	flags.StringVar(&manager.DataDir, "state", ".gokvm-gateway", "private persistent VM state directory")
-	flags.StringVar(&manager.BaseImage, "image", "",
-		"optional immutable raw or uncompressed qcow2 default image; otherwise use admin uploads")
-	flags.StringVar(&manager.Firmware, "uefi", "/usr/share/OVMF/OVMF_CODE_4M.fd", "OVMF CODE firmware")
-	flags.StringVar(&manager.VarsTemplate, "uefi-vars-template", "/usr/share/OVMF/OVMF_VARS_4M.fd",
-		"matching pristine OVMF variables template")
-	flags.StringVar(&manager.Encoder, "encoder", "auto", "H.264 encoder: auto, nvenc, software")
-	flags.StringVar(&manager.Keyboard, "keyboard", "us", "guest keyboard layout")
-	flags.IntVar(&manager.CPUs, "cpus", 2, "vCPUs per desktop")
-	flags.IntVar(&manager.MemoryMiB, "memory", 4096, "MiB per desktop")
-	flags.IntVar(&manager.MemoryBudgetMiB, "memory-budget", 0,
-		"maximum MiB reserved for running desktops including overhead (0: automatic)")
-	flags.IntVar(&manager.MaxVMsPerUser, "max-vms-per-user", 3, "desktop quota per account")
-	flags.IntVar(&manager.MaxRunning, "max-running", 4, "global running desktop limit")
-	flags.Int64Var(&manager.MaxImageUploadBytes, "image-upload-limit", gateway.DefaultMaxImageUploadBytes,
-		"maximum uploaded qcow2 file size in bytes")
-	flags.DurationVar(&config.UploadTimeout, "image-upload-timeout", 30*time.Minute,
-		"maximum image upload and import duration")
-	flags.StringVar(&config.ListenAddr, "listen", "127.0.0.1:8443", "shared HTTPS and RDP TCP listener")
-	flags.StringVar(&config.PublicAddress, "public-address", "localhost:8443",
-		"hostname:port written to downloaded RDP files")
-	flags.StringVar(
-		&config.CertFile, "tls-cert", "",
-		"optional PEM server certificate; otherwise generate a self-signed certificate or use ACME",
-	)
-	flags.StringVar(&config.KeyFile, "tls-key", "", "PEM private key matching -tls-cert")
-	flags.BoolVar(
-		&certificates.ACME, "acme", false,
-		"obtain and renew a certificate for the public hostname using ACME TLS-ALPN-01",
-	)
-	flags.StringVar(&certificates.ACMEEmail, "acme-email", "", "ACME account email address")
-	flags.StringVar(&certificates.ACMECA, "acme-ca", "production", "ACME CA: production, staging, or directory URL")
-	flags.StringVar(&authFile, "auth-file", "", "private bcrypt JSON file for loopback development; excludes LDAP")
-	flags.StringVar(&ldap.URL, "ldap-url", "", "LDAP URL; ldap:// upgrades with StartTLS")
-	flags.StringVar(&ldap.BaseDN, "ldap-base-dn", "", "LDAP search base DN")
-	flags.StringVar(&ldap.UserDomain, "ldap-domain", "", "optional UPN domain for user binding")
-	flags.StringVar(&ldap.UserFilter, "ldap-filter", "", "LDAP filter with one %s placeholder for the bind identifier")
-	flags.StringVar(&ldap.UsernameAttribute, "ldap-username-attribute", "uid",
-		"canonical account attribute: bare Linux name or name@ldap-domain")
-	flags.StringVar(&ldap.RequiredGroup, "ldap-required-group", "", "optional required memberOf group DN")
-	flags.StringVar(&ldap.AdminGroup, "ldap-admin-group", "",
-		"direct memberOf group name or DN granting administrator access; empty disables admins")
-	flags.StringVar(&ldap.CAFile, "ldap-ca", "", "private LDAP CA PEM file")
-	flags.BoolVar(&ldap.AllowInsecure, "ldap-insecure-loopback", false,
-		"allow plaintext LDAP only on a loopback IP for tests")
-	if err := parseCommand(flags, args); err != nil {
+	options, err := readServeOptions(args, output)
+	if err != nil {
 		return err
 	}
-	if (authFile == "") == (ldap.URL == "") {
-		return fmt.Errorf("choose either -ldap-url or -auth-file: %w", errCommandUsage)
-	}
-	if manager.BaseImage != "" {
-		config.DesktopImage = filepath.Base(manager.BaseImage)
-	}
-	config.DesktopCPUs, config.DesktopMemoryMiB = manager.CPUs, manager.MemoryMiB
-	config.MaxImageUploadBytes = manager.MaxImageUploadBytes
-	var err error
+	manager, config, ldap := options.manager, options.gateway, options.ldap
+	certificates, authFile := options.certificates, options.authFile
 	if authFile != "" {
-		if !loopbackAddress(config.ListenAddr) {
-			return fmt.Errorf("-auth-file is restricted to a loopback listener: %w", errCommandUsage)
-		}
 		config.Authenticator, err = gateway.NewStaticAuthenticator(authFile)
 	} else {
 		config.RequiredGroup = ldap.RequiredGroup
@@ -114,6 +54,107 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	return server.Serve(ctx)
 }
 
+// serveOptions keeps environment loading and argument parsing separate from startup I/O.
+type serveOptions struct {
+	manager      gateway.ManagerConfig
+	gateway      gateway.Config
+	ldap         gateway.LDAPConfig
+	certificates cert.Options
+	authFile     string
+}
+
+// readServeOptions applies defaults, then environment values, then explicit flags.
+func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
+	s := config.NewSettings(false)
+	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
+	flags.SetOutput(output)
+	flags.Usage = func() {
+		fmt.Fprintln(output, "Usage: gokvm serve [flags]")
+		fmt.Fprintln(output, "Configuration is read from environment variables; explicit flags override them.")
+		flags.PrintDefaults()
+	}
+	var options serveOptions
+	bindServeFlags(flags, s, &options)
+	if err := parseCommand(flags, args); err != nil {
+		return serveOptions{}, err
+	}
+	if (options.authFile == "") == (options.ldap.URL == "") {
+		return serveOptions{}, fmt.Errorf(
+			"choose either LDAP_URL (-ldap-url) or AUTH_FILE (-auth-file): %w", errCommandUsage,
+		)
+	}
+	if options.authFile != "" && !loopbackAddress(options.gateway.ListenAddr) {
+		return serveOptions{}, fmt.Errorf("AUTH_FILE (-auth-file) is restricted to a loopback listener: %w", errCommandUsage)
+	}
+	if options.manager.BaseImage != "" {
+		options.gateway.DesktopImage = filepath.Base(options.manager.BaseImage)
+	}
+	options.gateway.DesktopCPUs = options.manager.CPUs
+	options.gateway.DesktopMemoryMiB = options.manager.MemoryMiB
+	options.gateway.MaxImageUploadBytes = options.manager.MaxImageUploadBytes
+
+	return options, nil
+}
+
+// Keep legacy flags as overrides; defaults and descriptions live in internal/config.
+func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptions) {
+	description := func(key string) string { return s.Description(key) + " [" + key + "]" }
+	stringFlag := func(target *string, name, key string) {
+		flags.StringVar(target, name, s.Get(key), description(key))
+	}
+	intFlag := func(target *int, name, key string) {
+		flags.IntVar(target, name, s.Int(key), description(key))
+	}
+	boolFlag := func(target *bool, name, key string) {
+		flags.BoolVar(target, name, s.Bool(key), description(key))
+	}
+	durationFlag := func(target *time.Duration, name, key string) {
+		flags.DurationVar(target, name, s.Duration(key), description(key))
+	}
+	stringFlag(&options.manager.DataDir, "state", config.DATA_ROOT_DIR)
+	stringFlag(&options.manager.BaseImage, "image", config.BASE_IMAGE)
+	stringFlag(&options.manager.Binary, "vm-binary", config.VM_BINARY)
+	stringFlag(&options.manager.Firmware, "uefi", config.UEFI_CODE)
+	stringFlag(&options.manager.VarsTemplate, "uefi-vars-template", config.UEFI_VARS_TEMPLATE)
+	stringFlag(&options.manager.Encoder, "encoder", config.H264_ENCODER)
+	stringFlag(&options.manager.Keyboard, "keyboard", config.VM_KEYBOARD)
+	intFlag(&options.manager.CPUs, "cpus", config.VM_VCPU_COUNT)
+	intFlag(&options.manager.MemoryMiB, "memory", config.VM_MEMORY_MIB)
+	intFlag(&options.manager.MemoryBudgetMiB, "memory-budget", config.VM_MEMORY_BUDGET_MIB)
+	intFlag(&options.manager.MaxVMsPerUser, "max-vms-per-user", config.MAX_VDI_PER_USER)
+	intFlag(&options.manager.MaxRunning, "max-running", config.MAX_RUNNING_VMS)
+	flags.Int64Var(
+		&options.manager.MaxImageUploadBytes,
+		"image-upload-limit",
+		s.Int64(config.IMAGE_UPLOAD_MAX_BYTES),
+		description(config.IMAGE_UPLOAD_MAX_BYTES),
+	)
+	durationFlag(&options.manager.StartTimeout, "vm-start-timeout", config.VM_START_TIMEOUT)
+	durationFlag(&options.manager.StopTimeout, "vm-stop-timeout", config.VM_STOP_TIMEOUT)
+	durationFlag(&options.gateway.UploadTimeout, "image-upload-timeout", config.IMAGE_UPLOAD_TIMEOUT)
+	durationFlag(&options.gateway.SessionTTL, "session-ttl", config.SESSION_TTL)
+	intFlag(&options.gateway.MaxSessions, "max-sessions", config.MAX_SESSIONS)
+	intFlag(&options.gateway.MaxConnections, "max-connections", config.MAX_CONCURRENT_CONNECTIONS)
+	stringFlag(&options.gateway.ListenAddr, "listen", config.LISTEN_ADDR)
+	stringFlag(&options.gateway.PublicAddress, "public-address", config.PUBLIC_ADDRESS)
+	stringFlag(&options.gateway.CertFile, "tls-cert", config.CERT_FILE)
+	stringFlag(&options.gateway.KeyFile, "tls-key", config.KEY_FILE)
+	boolFlag(&options.certificates.ACME, "acme", config.ACME_ENABLE)
+	stringFlag(&options.certificates.ACMEEmail, "acme-email", config.ACME_EMAIL)
+	stringFlag(&options.certificates.ACMECA, "acme-ca", config.ACME_CA)
+	stringFlag(&options.authFile, "auth-file", config.AUTH_FILE)
+	stringFlag(&options.ldap.URL, "ldap-url", config.LDAP_URL)
+	stringFlag(&options.ldap.BaseDN, "ldap-base-dn", config.LDAP_BASE_DN)
+	stringFlag(&options.ldap.UserDomain, "ldap-domain", config.LDAP_USER_DOMAIN)
+	stringFlag(&options.ldap.UserFilter, "ldap-filter", config.LDAP_USER_FILTER)
+	stringFlag(&options.ldap.UsernameAttribute, "ldap-username-attribute", config.LDAP_USERNAME_ATTRIBUTE)
+	stringFlag(&options.ldap.RequiredGroup, "ldap-required-group", config.LDAP_REQUIRED_GROUP)
+	stringFlag(&options.ldap.AdminGroup, "ldap-admin-group", config.ADMIN_GROUP)
+	stringFlag(&options.ldap.CAFile, "ldap-ca", config.LDAP_CA_FILE)
+	boolFlag(&options.ldap.AllowInsecure, "ldap-insecure-loopback", config.LDAP_INSECURE_LOOPBACK)
+	durationFlag(&options.ldap.Timeout, "ldap-timeout", config.LDAP_AUTH_TIMEOUT)
+}
+
 func parseCommand(flags *flag.FlagSet, args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -137,7 +178,7 @@ func loopbackAddress(address string) bool {
 
 func serveIdentity(state string, c *gateway.Config, options cert.Options) error {
 	if (c.CertFile == "") != (c.KeyFile == "") {
-		return fmt.Errorf("-tls-cert and -tls-key must be supplied together: %w", errCommandUsage)
+		return fmt.Errorf("CERT_FILE (-tls-cert) and KEY_FILE (-tls-key) must be supplied together: %w", errCommandUsage)
 	}
 	if options.ACME && c.CertFile != "" {
 		return fmt.Errorf("choose ACME or a supplied TLS certificate/key pair: %w", errCommandUsage)
