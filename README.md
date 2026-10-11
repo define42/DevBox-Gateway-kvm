@@ -186,7 +186,7 @@ device address hole does not reduce it.
 To run the optional NetDesk desktop smoke test with a local image and `/dev/kvm`:
 
 ```bash
-GOKVM_NETDESK_UKI=/path/to/netdesk.efi go test -tags=integration ./vmm \
+GOKVM_NETDESK_UKI=/path/to/netdesk.efi go test -tags=integration ./internal/vmm \
   -run '^TestNetDeskUKIDesktopBoot$' -timeout 6m -v
 ```
 
@@ -902,11 +902,24 @@ samples are discarded to keep buffering bounded. VNC carries no audio.
 
 ### Go packages
 
-The [`kvm`](kvm) package provides wrappers for KVM ioctls; [`vmm`](vmm) combines
-them with guest boot and device setup. The bundled codec has a separate
-[H.264 API and usage guide](pkg/h264/README.md). Browse the
-[Go package reference](https://pkg.go.dev/github.com/define42/gokvm/kvm)
-for the published KVM API.
+The CLI remains at the repository root; `go build .` builds the application.
+The public library packages are [`kvm`](kvm), which provides wrappers for KVM
+ioctls, and the bundled codec in [`pkg/h264`](pkg/h264) and
+[`pkg/h264/api`](pkg/h264/api). See the
+[KVM package reference](https://pkg.go.dev/github.com/define42/gokvm/kvm) and
+[H.264 API and usage guide](pkg/h264/README.md).
+
+Application implementation packages live under [`internal`](internal), including
+VM orchestration in [`internal/vmm`](internal/vmm), guest setup in
+[`internal/machine`](internal/machine), devices in
+[`internal/virtio`](internal/virtio), and the desktop gateway in
+[`internal/gateway`](internal/gateway). Go prevents other modules from importing
+these packages.
+
+This is a breaking change for code that imported the former root application
+packages: paths such as `github.com/define42/gokvm/vmm` and
+`github.com/define42/gokvm/machine` have been removed without compatibility
+packages. The CLI commands and public KVM and H.264 import paths are unchanged.
 
 ## Contributing
 
@@ -917,7 +930,8 @@ changing CLI options or guest requirements.
 Run the RDP, graphics, input, and flag tests without booting a VM or enabling cgo:
 
 ```bash
-CGO_ENABLED=0 go test -short ./internal/rdp/... ./virtio ./vmm ./flag
+CGO_ENABLED=0 go test -short ./internal/rdp/... \
+  ./internal/virtio ./internal/vmm ./internal/flag
 ```
 
 With the NVENC build dependencies installed, check the tagged build and unit tests
@@ -925,7 +939,8 @@ without requiring an NVIDIA GPU:
 
 ```bash
 CGO_ENABLED=1 go build -tags nvenc ./...
-CGO_ENABLED=1 go test -short -tags nvenc ./internal/rdp/... ./virtio ./vmm ./flag
+CGO_ENABLED=1 go test -short -tags nvenc ./internal/rdp/... \
+  ./internal/virtio ./internal/vmm ./internal/flag
 ```
 
 To test actual NVIDIA encoding, install `ffmpeg` and run the opt-in hardware test:
@@ -941,7 +956,7 @@ sizes, full-range BT.709 metadata, and output buffer ownership.
 Check audio, networking, storage, ISO parsing, and the resize helper separately:
 
 ```bash
-go test ./internal/audio ./internal/usernet ./disk ./iso9660 ./scripts
+go test ./internal/audio ./internal/usernet ./internal/disk ./internal/iso9660 ./scripts
 ```
 
 The disk tests use `qemu-img` and `qemu-io` when available; the AVC interoperability
@@ -953,7 +968,8 @@ C compiler):
 
 ```bash
 go test -race ./internal/audio ./internal/rdp/...
-go test -race ./virtio ./vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror)'
+go test -race ./internal/virtio ./internal/vmm \
+  -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror)'
 ```
 
 `make golangci` runs code generation and the repository's pinned linter.

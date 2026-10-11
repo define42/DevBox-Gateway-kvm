@@ -1,0 +1,798 @@
+package machine_test
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+
+	"github.com/define42/gokvm/internal/machine"
+	"github.com/define42/gokvm/internal/pvh"
+	"github.com/define42/gokvm/kvm"
+	"golang.org/x/arch/x86/x86asm"
+)
+
+// syncBuf is a thread-safe bytes.Buffer for capturing
+// serial console output from the guest VM.
+type syncBuf struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+const guestNetworkTimeout = 5 * time.Minute
+
+func (b *syncBuf) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.Write(p)
+}
+
+func (b *syncBuf) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.String()
+}
+
+// waitForPing polls ping every 2s until it succeeds.
+func waitForPing(t *testing.T, ip string) {
+	t.Helper()
+
+	deadline := time.Now().Add(guestNetworkTimeout)
+
+	for {
+		out, err := exec.Command(
+			"ping", ip, "-c", "1", "-W", "1",
+		).CombinedOutput()
+
+		if err == nil {
+			t.Logf("ping succeeded: %s", out)
+
+			return
+		}
+
+		if time.Now().After(deadline) {
+			t.Fatalf("ping %s timed out after %s: %s",
+				ip, guestNetworkTimeout, out)
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+}
+
+// waitForHTTP polls curl every 2s until the response body equals expected.
+func waitForHTTP(
+	t *testing.T, url, expected string,
+) string {
+	t.Helper()
+
+	deadline := time.Now().Add(guestNetworkTimeout)
+
+	attempt := 0
+
+	for {
+		attempt++
+
+		out, err := exec.Command(
+			"curl", "-sSfL", url,
+		).CombinedOutput()
+
+		body := string(out)
+
+		if err == nil && body == expected {
+			t.Logf("curl matched on attempt %d", attempt)
+
+			return body
+		}
+
+		if err == nil {
+			t.Logf("curl attempt %d: unexpected body: %q",
+				attempt, body)
+		} else {
+			t.Logf("curl attempt %d: %s (%v)",
+				attempt, out, err)
+		}
+
+		if time.Now().After(deadline) {
+			t.Fatalf(
+				"curl %s timed out after %d attempts"+
+					" (%s): last body=%q err=%v",
+				url, attempt, guestNetworkTimeout, body, err)
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+}
+
+// skipIfTripleFault checks if the error indicates a VM triple fault (EXITSHUTDOWN)
+// and skips the test if so. This can happen due to kernel/KVM compatibility issues.
+func skipIfTripleFault(t *testing.T, err error, testMode string) {
+	t.Helper()
+
+	if err != nil && strings.Contains(err.Error(), "EXITSHUTDOWN") {
+		t.Skipf("Skipping test: VM triple faulted (EXITSHUTDOWN) - likely kernel/KVM compatibility issue with %s", testMode)
+	}
+}
+
+// copyVDAImg copies ../../vda.img to a temp file so each
+// test gets its own disk image, preventing cross-test
+// corruption.
+func copyVDAImg(t *testing.T) string {
+	t.Helper()
+
+	src, err := os.Open("../../vda.img")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer src.Close()
+
+	dst, err := os.CreateTemp("",
+		"vda-"+filepath.Base(t.Name())+"-*.img")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() { os.Remove(dst.Name()) })
+
+	if _, err := io.Copy(dst, src); err != nil {
+		dst.Close()
+		t.Fatal(err)
+	}
+
+	dst.Close()
+
+	return dst.Name()
+}
+
+func testNewAndLoadLinux(t *testing.T, kernel, tap, guestIPv4, hostIPv4, prefixLen string) { // nolint:thelper
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	m, err := machine.New("/dev/kvm", 1, 1<<29)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var serialBuf syncBuf
+
+	t.Cleanup(func() {
+		m.Close()
+		t.Logf("=== serial console output ===\n%s",
+			serialBuf.String())
+	})
+
+	if err := m.AddTapIf(tap); err != nil {
+		t.Fatal(err)
+	}
+
+	vdaPath := copyVDAImg(t)
+	if err := m.AddDisk(vdaPath); err != nil {
+		t.Fatal(err)
+	}
+
+	param := fmt.Sprintf(`console=ttyS0 earlyprintk=serial noapic noacpi nosmp `+
+		`lapic pci=realloc=off virtio_pci.force_legacy=1 `+
+		`rdinit=/init init=/init gokvm.ipv4_addr=%s/%s`, guestIPv4, prefixLen)
+
+	kern, err := os.Open(kernel)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	isPVH, err := pvh.CheckPVH(kern)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if isPVH {
+		param += " tsc=reliable"
+	}
+
+	initrd, err := os.Open("../../initrd")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if isPVH {
+		if err := m.LoadPVH(kern, initrd, param); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		if err = m.LoadLinux(kern, initrd, param); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	m.GetSerial().SetOutput(&serialBuf)
+	m.GetInputChan()
+
+	if err := m.InjectSerialIRQ(); err != nil {
+		t.Errorf("m.InjectSerialIRQ: %v != nil", err)
+	}
+
+	m.RunData()
+
+	// Deadline watchdog: if the test deadline is
+	// approaching (60s margin), log serial output and
+	// close the VM so we get diagnostics instead of
+	// a bare timeout panic.
+	if dl, ok := t.Deadline(); ok {
+		go func() {
+			margin := 60 * time.Second
+
+			timer := time.NewTimer(
+				time.Until(dl) - margin)
+			defer timer.Stop()
+
+			<-timer.C
+			t.Errorf("deadline watchdog fired "+
+				"(60s before %s)\nserial:\n%s",
+				dl.Format(time.RFC3339),
+				serialBuf.String())
+			m.Close()
+		}()
+	}
+
+	go func() {
+		if runErr := m.RunInfiniteLoop(0); runErr != nil {
+			fmt.Printf("RunInfiniteLoop: %v\n", runErr)
+		}
+	}()
+
+	if err := exec.Command("ip", "link", "set", tap, "up").Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := exec.Command("ip", "addr", "add", hostIPv4+"/"+prefixLen, "dev", tap).Run(); err != nil { //nolint:gosec
+		t.Fatal(err)
+	}
+
+	waitForPing(t, guestIPv4)
+	t.Logf("ping OK at %s", time.Now().Format(time.RFC3339))
+
+	const wantBody = "index.html: this message is " +
+		"from /dev/vda in guest\n"
+
+	output := waitForHTTP(t, fmt.Sprintf(
+		"http://%s/mnt/dev_vda/index.html", guestIPv4),
+		wantBody)
+
+	if output != wantBody {
+		t.Fatalf("unexpected response body: %q", output)
+	}
+}
+
+func TestNewAndLoadLinuxWithBzImage(t *testing.T) { // nolint:paralleltest
+	testNewAndLoadLinux(t, "../../bzImage", "tap0", "192.168.20.1", "192.168.20.2", "24")
+}
+
+func TestNewAndLoadLinuxWithVmlinux(t *testing.T) { // nolint:paralleltest
+	testNewAndLoadLinux(t, "../../vmlinux", "tap1", "192.168.30.1", "192.168.30.2", "24")
+}
+
+func TestNewAndLoadLinuxPVH(t *testing.T) { // nolint:paralleltest
+	testNewAndLoadLinux(t, "../../vmlinux_PVH", "tap2", "192.168.40.1", "192.168.40.2", "24")
+}
+
+func TestNewAndLoadEDK2PVH(t *testing.T) { // nolint:paralleltest
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	m, err := machine.New("/dev/kvm", 1, 1<<30)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() { m.Close() })
+
+	edk2, err := os.Open("../../CLOUDHV.fd")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.LoadPVH(edk2, nil, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	m.GetInputChan()
+
+	if err := m.InjectSerialIRQ(); err != nil {
+		t.Errorf("m.InjectSerialIRQ: %v != nil", err)
+	}
+
+	m.RunData()
+
+	go func() {
+		if runErr := m.RunInfiniteLoop(0); runErr != nil {
+			fmt.Printf("RunInfiniteLoop: %v\n", runErr)
+		}
+	}()
+
+	time.Sleep(15 * time.Second)
+}
+
+// TestHalt tries to run a Halt instruction in 64-bit mode.
+func TestHalt(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	if err := m.SetupRegs(0x1_00_000, 0x10_000, true); err != nil {
+		t.Fatalf("SetupRegs: got %v, want nil", err)
+	}
+
+	r, err := m.GetRegs(0)
+	if err != nil {
+		t.Errorf("GetRegs before RunOnce: %v != nil", err)
+	}
+
+	if r.RAX != 0 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RAX, 0)
+	}
+
+	if r.RIP != 0x1_00_000 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RIP, 0x1_00_000)
+	}
+
+	t.Logf("Registers %#x", r)
+
+	ok, err := m.RunOnce(0)
+	if err == nil {
+		t.Errorf("Run: got %v, %v, want nil", ok, err)
+	}
+
+	t.Logf("RunOnce: %v,%v", ok, err)
+
+	// Skip test if VM triple faults (EXITSHUTDOWN) on kernel 6.11+
+	skipIfTripleFault(t, err, "certain CPU modes")
+
+	if !errors.Is(err, kvm.ErrUnexpectedExitReason) {
+		t.Errorf("Run: RunOnce(0) exit is %v, not %v", err, kvm.ErrUnexpectedExitReason)
+	}
+
+	if s, err := m.GetSRegs(0); err != nil {
+		t.Errorf("Run: GetRegs(0) exit is %v, not nil", err)
+	} else {
+		t.Logf("GetSRegs: %#x", s)
+	}
+
+	if r, err = m.GetRegs(0); err != nil {
+		t.Errorf("Run: GetRegs(0) exit is %v, not nil", err)
+	}
+
+	if r.RAX != 0xcafebabe {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RAX, 0xcafebabe)
+	}
+
+	if r.RIP != 0x1_00_006 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RIP, 0x1_00_006)
+	}
+
+	for _, addr := range []uint64{0, 0x100_000, 0x400_000, 0x1_000_000, 0x1_0000_0000, 0x10_0000_0000} {
+		trs, err := m.Translate(addr)
+		if err != nil {
+			t.Errorf("Translate(%#x): %v != nil", addr, err)
+
+			continue
+		}
+
+		for i, tr := range trs {
+			// another golang-ci antipattern
+			t.Logf("Translate(%d, %#x): pa %#x, Valid %#x, Writeable %#x, Usermode %#x",
+				i, addr, tr.PhysicalAddress, tr.Valid, tr.Writeable, tr.Usermode)
+		}
+	}
+}
+
+func TestReadWriteAt(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	var (
+		b   [4]byte
+		off int64 = 0x1_000_000
+	)
+
+	if n, err := m.ReadAt(b[:], off); err != nil || n != len(b) {
+		t.Fatalf("ReedAt(b, %#x): (%d,%v) != (%d,nil)", off, n, err, len(b))
+	}
+
+	if !bytes.Equal(b[:], []byte(machine.Poison)[:4]) {
+		t.Fatalf("ReadAt(b, %#x): %#x != %#x", off, b, machine.Poison)
+	}
+
+	t.Logf("%#x found at %#x", b, off)
+
+	var zeros [8]byte
+	if n, err := m.WriteAt(zeros[:], off); err != nil || n != len(zeros) {
+		t.Fatalf("WriteAt(%#x, %#x): (%d, %v) != (%d, nil)", zeros, off, n, err, len(zeros))
+	}
+
+	if n, err := m.WriteAt(zeros[:], 1<<30); !errors.Is(err, syscall.EFBIG) {
+		t.Fatalf("WriteAt(_, 1<<30): (%d, %v) != (%d, %v)", n, err, 0, syscall.EFBIG)
+	}
+
+	var got [8]byte
+	if n, err := m.ReadAt(got[:], off); err != nil || n != len(got) {
+		t.Fatalf("ReedAt(got, %#x): (%d,%v) != (%d,nil)", off, n, err, len(got))
+	}
+
+	if !bytes.Equal(got[:], zeros[:]) {
+		t.Fatalf("ReadAt(b, %#x): %#x != %#x", off, got, zeros)
+	}
+}
+
+func TestSingleStepOffOn(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	if err := m.SingleStep(false); err != nil {
+		t.Errorf("SingleStep(false): got %v, want nil", err)
+	}
+
+	if err := m.SingleStep(true); err != nil {
+		t.Fatalf("SingleStep(true): got %v, want nil", err)
+	}
+
+	if err := m.SingleStep(false); err != nil {
+		t.Errorf("SingleStep(false): got %v, want nil", err)
+	}
+}
+
+func TestSetupGetSetRegs(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	if err := m.SetupRegs(0x1_000_000, 0x10_000, false); err != nil {
+		t.Fatalf("SetupRegs: got %v, want nil", err)
+	}
+
+	if _, err := m.GetRegs(1024); err == nil {
+		t.Errorf("GetRegs(1024): got nil, want err")
+	}
+
+	if _, err := m.GetSRegs(1024); err == nil {
+		t.Errorf("GetSRegs(1024): got nil, want err")
+	}
+
+	r, err := m.GetRegs(0)
+	if err != nil {
+		t.Fatalf("GetRegs: got %v, want nil", err)
+	}
+
+	if err := m.SetRegs(1024, nil); err == nil {
+		t.Errorf("SetRegs(1024, ...): got nil, want err")
+	}
+
+	if err := m.SetSRegs(1024, nil); err == nil {
+		t.Errorf("SetSRegs(1024): got nil, want err")
+	}
+
+	t.Logf("Regs %#x r.RIP %#x", r, r.RIP)
+
+	rip := r.RIP + 1
+	r.RIP = rip
+
+	var core int
+	if err := m.SetRegs(core, r); err != nil {
+		t.Fatalf("setregs: got %v, want nil", err)
+	}
+
+	r, err = m.GetRegs(0)
+	if err != nil {
+		t.Fatalf("GetRegs: got %v, want nil", err)
+	}
+
+	if r.RIP != rip {
+		t.Fatalf("TestRegs: r.RIP is %#x, want %#x", r.RIP, rip)
+	}
+
+	t.Logf("r.RIP %#x", r.RIP)
+}
+
+func TestSingleStep(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	if err := m.SetupRegs(0x1_00_000, 0x10_000, true); err != nil {
+		t.Fatalf("SetupRegs: got %v, want nil", err)
+	}
+
+	if err := m.SingleStep(true); err != nil {
+		t.Fatalf("SingleStep(true): got %v, want nil", err)
+	}
+
+	r, err := m.GetRegs(0)
+	if err != nil {
+		t.Errorf("GetRegs before RunOnce: %v != nil", err)
+	}
+
+	if r.RAX != 0 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RAX, 0)
+	}
+
+	if r.RIP != 0x1_00_000 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RIP, 0x1_00_000)
+	}
+
+	t.Logf("Before RunOnce, flags are %#x", r.RFLAGS)
+
+	ok, err := m.RunOnce(0)
+	if err == nil {
+		t.Errorf("Run: got %v, %v, want nil", ok, err)
+	}
+
+	t.Logf("Runonce: %v, %v", ok, err)
+
+	skipIfTripleFault(t, err, "64-bit single step")
+
+	if !errors.Is(err, kvm.ErrDebug) {
+		t.Errorf("Run: RunOnce(0) exit is %v, not %v", err, kvm.ErrDebug)
+	}
+
+	if r, err = m.GetRegs(0); err != nil {
+		t.Errorf("Run: GetRegs(0) exit is %v, not nil", err)
+	}
+
+	if r.RAX != 0xcafebabe {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RAX, 0xcafebabe)
+	}
+
+	if r.RIP != 0x1_00_005 {
+		t.Errorf("Run: RIP is %#x, not %#x", r.RIP, 0x1_00_005)
+	}
+
+	t.Logf("After RunOnce, flags are %#x", r.RFLAGS)
+
+	if err := m.SingleStep(true); err != nil {
+		t.Fatalf("SingleStep(true): got %v, want nil", err)
+	}
+
+	// It stepped once. See if it will step the NOP.
+	ok, err = m.RunOnce(0)
+	if err == nil {
+		t.Errorf("Run: got %v, %v, want nil", ok, err)
+	}
+
+	t.Logf("Runonce: %v, %v", ok, err)
+
+	skipIfTripleFault(t, err, "64-bit single step (NOP)")
+
+	if r, err = m.GetRegs(0); err != nil {
+		t.Errorf("Run: GetRegs(0) exit is %v, not nil", err)
+	}
+
+	if r.RIP != 0x1_00_006 {
+		t.Errorf("Run: RIP is %#x, not %#x", r.RIP, 0x1_00_006)
+	}
+}
+
+func TestTranslate32(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	if err := m.SetupRegs(0x1_00_000, 0x10_000, false); err != nil {
+		t.Fatalf("SetupRegs: got %v, want nil", err)
+	}
+
+	r, err := m.GetRegs(0)
+	if err != nil {
+		t.Errorf("GetRegs before RunOnce: %v != nil", err)
+	}
+
+	if r.RAX != 0 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RAX, 0)
+	}
+
+	if r.RIP != 0x1_00_000 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RIP, 0x1_00_000)
+	}
+
+	ok, err := m.RunOnce(0)
+	if err == nil {
+		t.Errorf("Run: got %v, %v, want nil", ok, err)
+	}
+
+	t.Logf("Runonce: %v, %v", ok, err)
+
+	// Skip test if VM triple faults (EXITSHUTDOWN) on kernel 6.11+
+	skipIfTripleFault(t, err, "32-bit protected mode")
+
+	if !errors.Is(err, kvm.ErrUnexpectedExitReason) {
+		t.Errorf("Run: RunOnce(0) exit is %v, not %v", err, kvm.ErrUnexpectedExitReason)
+	}
+
+	if r, err = m.GetRegs(0); err != nil {
+		t.Errorf("Run: GetRegs(0) exit is %v, not nil", err)
+	}
+
+	if r.RAX != 0xcafebabe {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RAX, 0xcafebabe)
+	}
+
+	if r.RIP != 0x1_00_006 {
+		t.Errorf("Run: RAX is %#x, not %#x", r.RIP, 0x1_00_006)
+	}
+
+	trs, err := m.Translate(0x100000)
+	if err != nil {
+		t.Errorf("Translate(0x100000): %v != nil", err)
+	}
+
+	for i, tr := range trs {
+		t.Logf("Translate(%d, 0x100000): pa %#x, Valid %#x, Writeable %#x, Usermode %#x",
+			i, tr.PhysicalAddress, tr.Valid, tr.Writeable, tr.Usermode)
+	}
+}
+
+func TestCPUtoFD(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	if _, err := m.CPUToFD(0); err != nil {
+		t.Errorf("m.CPUtoFD(0): got %v, want nil", err)
+	}
+
+	if _, err := m.CPUToFD(42); !errors.Is(err, machine.ErrBadCPU) {
+		t.Errorf("m.CPUtoFD(42): got nil, want %v", machine.ErrBadCPU)
+	}
+}
+
+func TestVtoP(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skipf("Skipping test since we are not root")
+	}
+
+	t.Parallel()
+
+	m, err := machine.New("/dev/kvm", 1, machine.MinMemSize)
+	if err != nil {
+		t.Fatalf("Open: got %v, want nil", err)
+	}
+
+	// Test a bad CPU
+	if _, err := m.VtoP(1024, 0); err == nil {
+		t.Errorf("m.VtoP(1024, 0): got nil, want err")
+	}
+
+	// Test a good address
+	pa, err := m.VtoP(0, 0)
+	if err != nil || pa != 0 {
+		t.Errorf("m.VtoP(0, 0): got (%#x, %v), want 0, nil", pa, err)
+	}
+
+	pa, err = m.VtoP(0, 0xf<<56)
+	if !errors.Is(err, machine.ErrBadVA) || pa != -1 {
+		t.Errorf("m.VtoP(0, 0xf<<56): got (%#x, %v), want -1, %v", pa, err, machine.ErrBadVA)
+	}
+}
+
+func TestMemTooSmall(t *testing.T) {
+	t.Parallel()
+
+	if _, err := machine.New("/dev/kvm", 1, 1<<16); !errors.Is(err, machine.ErrMemTooSmall) {
+		t.Fatalf(`machine.New("/dev/kvm", 1,  1<<16): got nil, want %v`, machine.ErrMemTooSmall)
+	}
+}
+
+func TestGetReg(t *testing.T) { // nolint:paralleltest
+	regs := []x86asm.Reg{
+		x86asm.RAX,
+		x86asm.RCX,
+		x86asm.RDX,
+		x86asm.RBX,
+		x86asm.RSP,
+		x86asm.RBP,
+		x86asm.RSI,
+		x86asm.RDI,
+		x86asm.R8,
+		x86asm.R9,
+		x86asm.R10,
+		x86asm.R11,
+		x86asm.R12,
+		x86asm.R13,
+		x86asm.R14,
+		x86asm.R15,
+		x86asm.RIP,
+	}
+	r := &kvm.Regs{
+		RAX: 1,
+		RCX: 2,
+		RDX: 3,
+		RBX: 4,
+		RSP: 5,
+		RBP: 6,
+		RSI: 7,
+		RDI: 8,
+		R8:  9,
+		R9:  10,
+		R10: 11,
+		R11: 12,
+		R12: 13,
+		R13: 14,
+		R14: 15,
+		R15: 16,
+		RIP: 17,
+	}
+
+	for i := range regs {
+		v, err := machine.GetReg(r, regs[i])
+		if err != nil {
+			t.Errorf("GetReg(r, %#x): got %v, want nil", regs[i], err)
+		}
+
+		if *v != uint64(i+1) {
+			t.Errorf("Reg %#x: got %#x, want %#x", i, *v, i+1)
+		}
+	}
+
+	if _, err := machine.GetReg(r, x86asm.AL); err == nil {
+		t.Errorf("GetReg(r, x86asm.AL): got nil, want err")
+	}
+}

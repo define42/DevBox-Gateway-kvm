@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/define42/gokvm/cloudinit"
-	"github.com/define42/gokvm/gateway"
+	"github.com/define42/gokvm/internal/cloudinit"
+	"github.com/define42/gokvm/internal/gateway"
 )
 
 func TestAuthUserPrivateAndUsable(t *testing.T) {

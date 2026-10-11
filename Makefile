@@ -43,7 +43,9 @@ $(GOPATH)/bin/u-root: $(GOPATH)/src/github.com/u-root/u-root
 	cd $(GOPATH)/src/github.com/u-root/u-root \
 	  && $(GO) install .
 
-gokvm: $(wildcard *.go) $(wildcard */*.go) $(wildcard gateway/*.html gateway/*.js gateway/static/* gateway/static/vendor/*/*/* gateway/static/vendor/*/*/fonts/*)
+# Let Go track nested package sources and embedded assets through its build cache.
+.PHONY: gokvm
+gokvm:
 	$(MAKE) generate
 	$(GO) build .
 
@@ -214,7 +216,7 @@ ldap-stop:
 gateway-ldap-test: ldap
 	GOKVM_TEST_LDAP_URL="ldaps://127.0.0.1:$(LDAP_PORT)" \
 		GOKVM_TEST_LDAP_CA="$(abspath testldap/.tls/cert.pem)" \
-		$(GO) test -race ./gateway -run '^TestBundledLDAP' -count=1
+		$(GO) test -race ./internal/gateway -run '^TestBundledLDAP' -count=1
 
 .PHONY: gateway
 ifeq ($(GATEWAY_LDAP_LOCAL),1)

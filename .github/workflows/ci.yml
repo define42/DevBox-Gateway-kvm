@@ -114,18 +114,18 @@ jobs:
     - name: Test bundled pure-Go AVC and RDP without cgo
       env:
         CGO_ENABLED: '0'
-      run: go test -short ./internal/rdp/... ./virtio ./vmm ./flag
+      run: go test -short ./internal/rdp/... ./internal/virtio ./internal/vmm ./internal/flag
     - name: Build and test optional NVENC backend without a GPU
       env:
         CGO_ENABLED: '1'
       run: |
         go build -tags nvenc ./...
-        go test -short -tags nvenc ./internal/rdp/... ./virtio ./vmm ./flag
+        go test -short -tags nvenc ./internal/rdp/... ./internal/virtio ./internal/vmm ./internal/flag
     - name: Check AVC and RDP concurrency
       run: |
         go test -race ./internal/audio
         go test -race ./internal/rdp/...
-        go test -race ./virtio ./vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror)'
+        go test -race ./internal/virtio ./internal/vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror)'
 
   deploy:
     runs-on: ubuntu-22.04
