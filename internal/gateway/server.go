@@ -72,15 +72,8 @@ func New(c Config) (*Server, error) {
 	if c.MaxSessions < 1 || c.MaxSessions > 10000 || c.MaxConnections < 1 || c.MaxConnections > 4096 {
 		return nil, fmt.Errorf("%w: invalid session/connection limit", ErrInvalid)
 	}
-	if c.MaxImageUploadBytes == 0 {
-		c.MaxImageUploadBytes = DefaultMaxImageUploadBytes
-	}
-	if c.UploadTimeout == 0 {
-		c.UploadTimeout = 30 * time.Minute
-	}
-	if c.MaxImageUploadBytes < 1 || c.MaxImageUploadBytes > 1<<40 ||
-		c.UploadTimeout < time.Minute || c.UploadTimeout > 24*time.Hour {
-		return nil, fmt.Errorf("%w: invalid image upload limit or timeout", ErrInvalid)
+	if err := validateProvisioningConfig(&c); err != nil {
+		return nil, err
 	}
 	tlsConfig, err := serverTLSConfig(c)
 	if err != nil {
@@ -367,4 +360,25 @@ func backendError(err error) (int, string) {
 	default:
 		return http.StatusInternalServerError, "The operation could not be completed."
 	}
+}
+
+func validateProvisioningConfig(c *Config) error {
+	if c.MaxImageUploadBytes == 0 {
+		c.MaxImageUploadBytes = DefaultMaxImageUploadBytes
+	}
+	if c.UploadTimeout == 0 {
+		c.UploadTimeout = 30 * time.Minute
+	}
+	if c.MaxImageUploadBytes < 1 || c.MaxImageUploadBytes > 1<<40 ||
+		c.UploadTimeout < time.Minute || c.UploadTimeout > 24*time.Hour {
+		return fmt.Errorf("%w: invalid image upload limit or timeout", ErrInvalid)
+	}
+	if c.CreationTimeout == 0 {
+		c.CreationTimeout = 30 * time.Minute
+	}
+	if c.CreationTimeout < time.Minute || c.CreationTimeout > 24*time.Hour {
+		return fmt.Errorf("%w: creation timeout must be one minute to 24 hours", ErrInvalid)
+	}
+
+	return nil
 }

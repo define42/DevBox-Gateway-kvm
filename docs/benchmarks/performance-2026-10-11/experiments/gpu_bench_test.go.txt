@@ -1,0 +1,30 @@
+package virtio
+
+import (
+    "fmt"
+    "testing"
+)
+
+func BenchmarkReviewGPUTransfer(b *testing.B) {
+    for _, size := range []struct{ width, height uint32 }{{1920, 1080}, {3840, 2160}} {
+        for _, partial := range []bool{false, true} {
+            name := "Full"
+            if partial { name = "Browser" }
+            b.Run(fmt.Sprintf("%dx%d/%s", size.width, size.height, name), func(b *testing.B) {
+                count := int(size.width*size.height*4)
+                mem := make([]byte, count)
+                resource := &gpuResource{width:size.width,height:size.height,format:gpuFormatB8G8R8X8,data:make([]byte,count)}
+                for offset:=0;offset<count;offset+=4096 {
+                    resource.backing=append(resource.backing,gpuMemEntry{addr:uint64(offset),length:uint32(min(4096,count-offset))})
+                }
+                gpu:=NewGPU(11,nil,mem,nil)
+                x,y,w,h:=uint32(0),uint32(0),size.width,size.height
+                if partial { x,y,w,h=32,100,size.width-64,size.height-128 }
+                offset:=uint64((y*size.width+x)*4)
+                b.SetBytes(int64(w*h*4))
+                b.ReportAllocs()
+                for b.Loop() { gpu.transferToHost2D(resource,x,y,w,h,offset) }
+            })
+        }
+    }
+}

@@ -15,12 +15,15 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 	"golang.org/x/sys/unix"
 )
+
+const defaultMaxCreations = 2
 
 // ManagerConfig supplies operator-controlled resources for managed UEFI guests.
 // BaseImage is optional; when set, it must be a standalone raw or uncompressed qcow2 image.
@@ -29,6 +32,7 @@ type ManagerConfig struct {
 	Encoder, Keyboard                                  string
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	MemoryBudgetMiB                                    int // Zero selects an automatic host-memory budget.
+	MaxCreations                                       int // Bounds provisioning I/O across all owners.
 	StartTimeout, StopTimeout                          time.Duration
 	MaxImageUploadBytes                                int64
 }
@@ -50,6 +54,7 @@ type Manager struct {
 	imageMu      sync.RWMutex
 	images       map[string]Image
 	imageImports chan struct{}
+	creations    chan struct{} // Bounds provisioning I/O across all owners.
 	//nolint:containedctx // Owns the manager lifetime; never stores a caller context.
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -58,9 +63,47 @@ type Manager struct {
 }
 
 type managedVM struct {
-	mu     sync.Mutex
+	mutation chan struct{} // Serializes lifecycle changes, including persistence.
+	record   VM
+	run      *managedProcess
+	view     atomic.Pointer[managedVMView]
+}
+
+// managedVMView is immutable once published. Readers never wait for lifecycle I/O.
+type managedVMView struct {
 	record VM
 	run    *managedProcess
+}
+
+func newManagedVM(record VM) *managedVM {
+	v := &managedVM{mutation: make(chan struct{}, 1), record: record}
+	v.publish()
+
+	return v
+}
+
+func (v *managedVM) lock(ctx context.Context) error {
+	select {
+	case v.mutation <- struct{}{}:
+		if err := ctx.Err(); err != nil {
+			<-v.mutation
+
+			return err
+		}
+
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (v *managedVM) publish() {
+	v.view.Store(&managedVMView{record: v.record, run: v.run})
+}
+
+func (v *managedVM) unlock() {
+	v.publish()
+	<-v.mutation
 }
 
 type managedProcess struct {
@@ -99,7 +142,7 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 		config: config, vms: make(map[string]*managedVM), images: make(map[string]Image),
 		imageImports: make(chan struct{}, 1), lock: lock, ctx: ctx, cancel: cancel,
 		readMemory: readHostMemory, readResident: readProcessMemory,
-		processes: make(map[*managedProcess]struct{}),
+		processes: make(map[*managedProcess]struct{}), creations: make(chan struct{}, config.MaxCreations),
 	}
 	if err := m.loadImages(); err != nil {
 		cancel()
@@ -180,6 +223,12 @@ func normalizeManagerLimits(c *ManagerConfig) error {
 	if c.MaxRunning == 0 {
 		c.MaxRunning = 4
 	}
+	if c.MaxCreations == 0 {
+		c.MaxCreations = defaultMaxCreations
+	}
+	if c.MaxCreations < 1 || c.MaxCreations > 64 {
+		return fmt.Errorf("concurrent creation limit must be between 1 and 64: %w", ErrInvalid)
+	}
 	if c.CPUs < 1 || c.CPUs > 64 || c.MemoryMiB < 256 || c.MemoryMiB > 1048576 || c.MaxVMsPerUser < 1 || c.MaxRunning < 1 {
 		return fmt.Errorf("invalid VM resource limits: %w", ErrInvalid)
 	}
@@ -259,7 +308,7 @@ func (m *Manager) load() error {
 		}
 		names[key] = true
 		record.State, record.Error = "stopped", ""
-		m.vms[record.ID] = &managedVM{record: record}
+		m.vms[record.ID] = newManagedVM(record)
 	}
 
 	return nil
@@ -304,7 +353,7 @@ func (m *Manager) lookup(owner, id string) (*managedVM, error) {
 		return nil, ErrNotFound
 	}
 	v := m.vms[id]
-	if v == nil || v.record.Owner != owner {
+	if v == nil || v.view.Load().record.Owner != owner {
 		return nil, ErrNotFound
 	}
 	if m.closed {
@@ -326,18 +375,16 @@ func (m *Manager) List(ctx context.Context, owner string) ([]VM, error) {
 		return nil, err
 	}
 	m.mu.Lock()
-	list := make([]*managedVM, 0, len(m.vms))
+	result := make([]VM, 0)
 	for _, v := range m.vms {
-		if v.record.Owner == owner {
-			list = append(list, v)
+		record := v.view.Load().record
+		if record.Owner == owner {
+			result = append(result, record)
 		}
 	}
 	m.mu.Unlock()
-	result := make([]VM, 0, len(list))
-	for _, v := range list {
-		v.mu.Lock()
-		result = append(result, v.record)
-		v.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	slices.SortFunc(result, func(a, b VM) int { return a.CreatedAt.Compare(b.CreatedAt) })
 
@@ -372,23 +419,24 @@ func (m *Manager) CreateWithProgress(
 	if err := ctx.Err(); err != nil {
 		return VM{}, err
 	}
-	m.imageMu.RLock()
-	defer m.imageMu.RUnlock()
-	image, imagePath, err := m.selectedImage(imageID)
+	image, imageFile, err := m.selectedImage(imageID)
 	if err != nil {
 		return VM{}, err
 	}
-	v := &managedVM{record: VM{
+	defer imageFile.Close()
+	v := newManagedVM(VM{
 		ImageID: image.ID, ImageName: image.Name,
 		ID: strings.ToLower(rand.Text()), Name: name, Owner: owner,
 		State: "creating", CreatedAt: time.Now().UTC(),
-	}}
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	})
+	if err := v.lock(ctx); err != nil {
+		return VM{}, err
+	}
+	defer v.unlock()
 	if err := m.reserveVM(v); err != nil {
 		return VM{}, err
 	}
-	if err := m.prepareImageWithProgress(ctx, v.record, passwordHash, imagePath, report); err != nil {
+	if err := m.prepareWithSlot(ctx, v.record, passwordHash, imageFile, report); err != nil {
 		m.mu.Lock()
 		delete(m.vms, v.record.ID)
 		m.mu.Unlock()
@@ -415,6 +463,20 @@ func (m *Manager) CreateWithProgress(
 	return v.record, nil
 }
 
+// prepareWithSlot queues provisioning without holding a catalog or readable state lock.
+func (m *Manager) prepareWithSlot(
+	ctx context.Context, record VM, passwordHash string, imageFile *os.File, report func(CreateProgress),
+) error {
+	select {
+	case m.creations <- struct{}{}:
+		defer func() { <-m.creations }()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	return m.prepareOpenImageWithProgress(ctx, record, passwordHash, imageFile, report)
+}
+
 func (m *Manager) reserveVM(v *managedVM) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -423,10 +485,11 @@ func (m *Manager) reserveVM(v *managedVM) error {
 	}
 	count := 0
 	for _, current := range m.vms {
-		if current.record.Owner != v.record.Owner {
+		record := current.view.Load().record
+		if record.Owner != v.record.Owner {
 			continue
 		}
-		if current.record.Name == v.record.Name {
+		if record.Name == v.record.Name {
 			return fmt.Errorf("a desktop with this name exists: %w", ErrConflict)
 		}
 		count++
@@ -463,8 +526,10 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 	if err != nil {
 		return err
 	}
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	if err := v.lock(ctx); err != nil {
+		return err
+	}
+	defer v.unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -499,6 +564,7 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 	m.mu.Unlock()
 	v.run = run
 	v.record.State, v.record.Error = "starting", ""
+	v.publish()
 	go m.watch(v, run)
 	if err := m.waitStarted(ctx, run); err != nil {
 		return m.failedStart(v, run, err)
@@ -608,8 +674,9 @@ func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	m.active--
 	m.mu.Unlock()
 	close(run.done)
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	// Cleanup must publish the final state even after manager cancellation.
+	v.mutation <- struct{}{}
+	defer v.unlock()
 	if v.run != run {
 		return
 	}
@@ -636,8 +703,10 @@ func (m *Manager) Stop(ctx context.Context, owner, id string) error {
 	if err != nil {
 		return err
 	}
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	if err := v.lock(ctx); err != nil {
+		return err
+	}
+	defer v.unlock()
 	if v.run == nil {
 		return nil
 	}
@@ -681,8 +750,10 @@ func (m *Manager) Delete(ctx context.Context, owner, id string) error {
 	if err != nil {
 		return err
 	}
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	if err := v.lock(ctx); err != nil {
+		return err
+	}
+	defer v.unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -715,20 +786,19 @@ func (m *Manager) RDP(ctx context.Context, owner, id string) (Endpoint, error) {
 	if err != nil {
 		return Endpoint{}, err
 	}
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	view := v.view.Load()
 	if err := ctx.Err(); err != nil {
 		return Endpoint{}, err
 	}
-	if v.run == nil || v.record.State != "running" {
+	if view.run == nil || view.record.State != "running" {
 		return Endpoint{}, ErrConflict
 	}
 	select {
-	case <-v.run.done:
+	case <-view.run.done:
 		return Endpoint{}, ErrConflict
 	default:
 	}
-	endpoint := v.run.endpoint
+	endpoint := view.run.endpoint
 	endpoint.CertificatePEM = slices.Clone(endpoint.CertificatePEM)
 
 	return endpoint, nil
@@ -804,9 +874,7 @@ func (m *Manager) Close() error {
 		errorsByVM := make([]error, len(list))
 		for i, v := range list {
 			closeWG.Go(func() {
-				v.mu.Lock()
-				run := v.run
-				v.mu.Unlock()
+				run := v.view.Load().run
 				if run == nil {
 					return
 				}
@@ -938,6 +1006,13 @@ func cloneFileWithProgress(
 		return err
 	}
 	defer input.Close()
+
+	return cloneOpenFileWithProgress(ctx, input, target, report)
+}
+
+func cloneOpenFileWithProgress(
+	ctx context.Context, input *os.File, target string, report func(CreateProgress),
+) (cloneErr error) {
 	info, err := input.Stat()
 	if err != nil {
 		return err

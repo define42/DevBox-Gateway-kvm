@@ -1,0 +1,62 @@
+{
+  "revision": "3decb2ff9b0684269eda0b1ebeabbe73414e5862",
+  "kernel": "7.0.0-38-generic",
+  "cpu": {
+    "Architecture": "x86_64",
+    "CPU(s)": "8",
+    "Model name": "Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz",
+    "Thread(s) per core": "2",
+    "Core(s) per socket": "4",
+    "Socket(s)": "1"
+  },
+  "go_toolchain": "go1.26.9",
+  "benchmark_gomaxprocs": 4,
+  "notes": [
+    "Shared interactive host; other desktop applications remained running.",
+    "No CPU frequency pinning, host cache dropping, or production VM load.",
+    "Microbenchmarks measure components, not end-to-end desktop capacity."
+  ],
+  "gpu": {
+    "model": "NVIDIA Quadro M2200",
+    "memory_MiB": 4096,
+    "driver": "580.178.04",
+    "forced_NVENC_cases_passed": true
+  },
+  "filesystem": {
+    "repository": "ext4 on /dev/nvme0n1p2",
+    "temporary_fixtures": "ext4 on /dev/nvme0n1p2"
+  },
+  "memory_snapshot_approx_GiB": {
+    "total": 15,
+    "available": 9.9,
+    "swap_total": 4,
+    "swap_used": 2.6
+  },
+  "sampling": {
+    "virtio": {
+      "repetitions": 6,
+      "benchtime": "500ms"
+    },
+    "gpu_transfer": {
+      "repetitions": 6,
+      "benchtime": "300ms"
+    },
+    "concurrent_encoders": {
+      "repetitions": 6,
+      "benchtime": "100x",
+      "build_tags": "nvenc",
+      "cgo": true
+    },
+    "idle_devices": {
+      "repetitions": 3,
+      "seconds_per_case": 3
+    },
+    "backpressure": {
+      "repetitions": 3
+    },
+    "gateway_experiments": {
+      "repetitions": 1
+    }
+  },
+  "profiles": "Separate attribution runs, not mixed into benchmark medians. Encoder CPU/allocation profiles include setup and calibration."
+}

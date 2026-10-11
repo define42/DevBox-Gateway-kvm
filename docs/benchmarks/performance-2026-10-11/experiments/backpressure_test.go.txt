@@ -1,0 +1,158 @@
+package rdp
+
+import (
+	"bytes"
+	"encoding/binary"
+	"net"
+	"sync"
+	"testing"
+	"time"
+)
+
+// This reproducer documents current behavior, not the desired behavior of a
+// future fix. No network, TLS, decoder, or scheduler load is needed: bytes for
+// a genuine graphics ACK and a keyboard event are immediately readable while
+// the transport blocks a real Session.WriteAVC420 call.
+func TestPerfGraphicsWriteBlocksKeyboardBehindACK(t *testing.T) {
+	for _, withACK := range []bool{false, true} {
+		name := "keyboard_without_ACK"
+		if withACK {
+			name = "ACK_then_keyboard"
+		}
+		t.Run(name, func(t *testing.T) {
+			keyboard := []byte{4, 4, 0, 0x1e} // Fast-path 'a' key down.
+			var ackWire []byte
+			if withACK {
+				ack := make([]byte, 12)
+				binary.LittleEndian.PutUint32(ack[4:], 1) // ACK a previously sent frame.
+				ackWire = graphicsInputFixture(append([]byte{0x30, 1}, graphicsPDU(0x0d, ack)...))
+			}
+			conn := &perfBlockedGraphicsConn{
+				incoming: bytes.NewReader(bytes.Join([][]byte{ackWire, keyboard}, nil)),
+				ackBytes: len(ackWire), ackConsumed: make(chan struct{}),
+				writeStarted: make(chan struct{}), releaseWrite: make(chan struct{}),
+			}
+			session := &Session{
+				Width: 1024, Height: 768, conn: conn,
+				joined: map[uint16]bool{1004: true},
+				dynamic: &dynamicState{
+					channel: 1004, phase: 2, graphics: dynamicEndpoint{phase: 3},
+				},
+				graphics: &graphicsState{
+					supported: true, ready: true, frameID: 1,
+					inFlight: []graphicsPendingFrame{{id: 1, sentAt: time.Now()}},
+				},
+			}
+			var workers sync.WaitGroup
+			t.Cleanup(func() {
+				conn.release()
+				workers.Wait()
+			})
+			writeResult := make(chan error, 1)
+			workers.Go(func() {
+				frame := make([]byte, 64<<10)
+				copy(frame, []byte{0, 0, 0, 1, 0x41})
+				_, err := session.WriteAVC420(frame)
+				writeResult <- err
+			})
+			select {
+			case <-conn.writeStarted:
+			case <-time.After(time.Second):
+				t.Fatal("graphics writer did not reach transport")
+			}
+
+			type inputResult struct {
+				events  []InputEvent
+				elapsed time.Duration
+				err     error
+			}
+			input := make(chan inputResult, 1)
+			workers.Go(func() {
+				started := time.Now()
+				data, fast, err := session.ReadPacket()
+				var events []InputEvent
+				if err == nil {
+					var decoder InputDecoder
+					events, err = decoder.Decode(data, fast)
+				}
+				input <- inputResult{events: events, elapsed: time.Since(started), err: err}
+			})
+
+			const hold = 150 * time.Millisecond
+			if withACK {
+				select {
+				case <-conn.ackConsumed:
+				case <-time.After(time.Second):
+					t.Fatal("reader did not consume the complete ACK from available bytes")
+				}
+				select {
+				case result := <-input:
+					t.Fatalf("current lock-stall reproduction changed: keyboard returned while writer blocked: %+v", result)
+				case <-time.After(hold):
+				}
+				conn.release()
+			}
+			select {
+			case result := <-input:
+				if result.err != nil || len(result.events) != 1 || result.events[0].Kind != InputKey ||
+					!result.events[0].Down || result.events[0].Key != 'a' {
+					t.Fatalf("keyboard result = %+v", result)
+				}
+				if withACK && result.elapsed < hold {
+					t.Fatalf("keyboard latency %s did not include the controlled %s write stall", result.elapsed, hold)
+				}
+				t.Logf("keyboard delivered in %s; ACK before keyboard=%v; controlled write hold=%s", result.elapsed, withACK, hold)
+			case <-time.After(time.Second):
+				t.Fatal("keyboard was not delivered after the permitted progress point")
+			}
+			if !withACK {
+				select {
+				case err := <-writeResult:
+					t.Fatalf("control keyboard was not received during a blocked write: %v", err)
+				default:
+				}
+				conn.release()
+			}
+			select {
+			case err := <-writeResult:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("graphics writer did not finish after transport release")
+			}
+		})
+	}
+}
+
+type perfBlockedGraphicsConn struct {
+	net.Conn
+	incoming     *bytes.Reader // Owned by the sole Session reader.
+	ackBytes     int
+	bytesRead    int
+	ackConsumed  chan struct{}
+	readOnce     sync.Once
+	writeStarted chan struct{}
+	writeOnce    sync.Once
+	releaseWrite chan struct{}
+	releaseOnce  sync.Once
+}
+
+func (c *perfBlockedGraphicsConn) Read(data []byte) (int, error) {
+	n, err := c.incoming.Read(data)
+	c.bytesRead += n
+	if c.ackBytes != 0 && c.bytesRead >= c.ackBytes {
+		c.readOnce.Do(func() { close(c.ackConsumed) })
+	}
+	return n, err
+}
+
+func (c *perfBlockedGraphicsConn) Write(data []byte) (int, error) {
+	c.writeOnce.Do(func() { close(c.writeStarted) })
+	<-c.releaseWrite
+	return len(data), nil
+}
+
+func (c *perfBlockedGraphicsConn) release() {
+	c.releaseOnce.Do(func() { close(c.releaseWrite) })
+}

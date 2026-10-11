@@ -51,9 +51,11 @@ Defaults below are for the native executable. The Docker image changes
 | `VM_MEMORY_MIB` | `4096` | `-memory` | MiB per desktop, from 256 to 1048576. |
 | `VM_MEMORY_BUDGET_MIB` | `0` | `-memory-budget` | Total desktop memory budget in MiB; 0 selects automatic capacity. An explicit value can lower that budget. |
 | `MAX_VDI_PER_USER` | `3` | `-max-vms-per-user` | Desktop quota per account. |
+| `MAX_CONCURRENT_CREATIONS` | `2` | `-max-creations` | Gateway-wide simultaneous desktop provisioning limit, from `1` to `64`. Further requests wait within `VM_CREATE_TIMEOUT`. |
 | `MAX_RUNNING_VMS` | `4` | `-max-running` | Global running desktop limit. |
 | `IMAGE_UPLOAD_MAX_BYTES` | `21474836480` | `-image-upload-limit` | Maximum bytes per uploaded or normalized catalog file (20 GiB), up to 1 TiB. |
 | `IMAGE_UPLOAD_TIMEOUT` | `30m` | `-image-upload-timeout` | Overall upload/import timeout, from `1m` to `24h`. |
+| `VM_CREATE_TIMEOUT` | `30m` | `-vm-create-timeout` | Overall desktop provisioning timeout including queue wait, from `1m` to `24h`. |
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Time allowed for managed VM shutdown. |
 

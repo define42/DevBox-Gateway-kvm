@@ -179,16 +179,19 @@ func (m *Manager) loadImage(id string) error {
 
 // Images returns a copy of the shared catalog, with the optional default template first.
 func (m *Manager) Images(ctx context.Context) ([]Image, error) {
-	_, finish, err := m.operation(ctx)
+	ctx, finish, err := m.operation(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer finish()
 	m.imageMu.RLock()
-	defer m.imageMu.RUnlock()
 	images := make([]Image, 0, len(m.images))
 	for _, image := range m.images {
 		images = append(images, image)
+	}
+	m.imageMu.RUnlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	slices.SortFunc(images, func(a, b Image) int {
 		if a.Default != b.Default {
@@ -310,8 +313,6 @@ func (m *Manager) publishImage(ctx context.Context, image Image, staging string)
 	if err := writeAtomic(staging, "image.json", data); err != nil {
 		return err
 	}
-	m.imageMu.Lock()
-	defer m.imageMu.Unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -324,7 +325,9 @@ func (m *Manager) publishImage(ctx context.Context, image Image, staging string)
 
 		return err
 	}
+	m.imageMu.Lock()
 	m.images[image.ID] = image
+	m.imageMu.Unlock()
 
 	return nil
 }
@@ -340,7 +343,7 @@ func syncImageDirectory(path string) error {
 }
 
 // DeleteImage removes an uploaded template. Existing VMs retain their independent
-// copies. Holding the catalog write lock lets any in-flight VM clone finish first.
+// copies, and in-flight clones retain an open descriptor for the selected inode.
 func (m *Manager) DeleteImage(ctx context.Context, id string) error {
 	ctx, finish, err := m.operation(ctx)
 	if err != nil {
@@ -354,53 +357,61 @@ func (m *Manager) DeleteImage(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	m.imageMu.Lock()
-	defer m.imageMu.Unlock()
 	if _, exists := m.images[id]; !exists {
+		m.imageMu.Unlock()
+
 		return ErrNotFound
 	}
 	if err := ctx.Err(); err != nil {
+		m.imageMu.Unlock()
+
 		return err
 	}
 	dir := m.imageDirectory(id)
 	if err := checkPrivateDirectory(dir); err != nil {
+		m.imageMu.Unlock()
+
 		return err
 	}
 	// Rename before cleanup so a crash cannot leave a partially deleted catalog entry.
 	staging := filepath.Join(filepath.Dir(dir), ".importing-"+id)
 	if err := unix.Renameat2(unix.AT_FDCWD, dir, unix.AT_FDCWD, staging, unix.RENAME_NOREPLACE); err != nil {
+		m.imageMu.Unlock()
+
 		return err
 	}
 	delete(m.images, id)
+	m.imageMu.Unlock()
+	// File deletion and durability must not delay unrelated catalog readers.
 	removeErr := os.RemoveAll(staging) //nolint:gosec // Validated generated ID in the private catalog.
 
 	return errors.Join(removeErr, syncImageDirectory(filepath.Dir(dir)))
 }
 
-// selectedImage requires imageMu to remain read-locked until the clone completes.
-func (m *Manager) selectedImage(id string) (Image, string, error) {
+// selectedImage pins the immutable image inode before releasing the catalog lock.
+// The caller owns the returned file, so catalog deletion cannot interrupt its clone.
+func (m *Manager) selectedImage(id string) (Image, *os.File, error) {
+	m.imageMu.RLock()
+	defer m.imageMu.RUnlock()
 	if id == "" {
 		id = DefaultImageID
 	}
 	image, exists := m.images[id]
 	if !exists {
-		return Image{}, "", fmt.Errorf("image not found: %w", ErrNotFound)
+		return Image{}, nil, fmt.Errorf("image not found: %w", ErrNotFound)
 	}
 	if image.Default {
-		return image, m.config.BaseImage, nil
-	}
-	path := filepath.Join(m.imageDirectory(id), "disk.qcow2")
-	if err := checkPrivateDirectory(m.imageDirectory(id)); err != nil {
-		return Image{}, "", err
-	}
-	file, err := openPrivateFile(path, os.O_RDONLY)
-	if err != nil {
-		return Image{}, "", err
-	}
-	if err := file.Close(); err != nil {
-		return Image{}, "", err
-	}
+		file, err := os.Open(m.config.BaseImage) //nolint:gosec // Operator-configured template.
 
-	return image, path, nil
+		return image, file, err
+	}
+	dir := m.imageDirectory(id)
+	if err := checkPrivateDirectory(dir); err != nil {
+		return Image{}, nil, err
+	}
+	file, err := openPrivateFile(filepath.Join(dir, "disk.qcow2"), os.O_RDONLY)
+
+	return image, file, err
 }
 
 // ListAll returns every owner's VMs; callers must already be authorized admins.
@@ -411,19 +422,13 @@ func (m *Manager) ListAll(ctx context.Context) ([]VM, error) {
 	}
 	defer finish()
 	m.mu.Lock()
-	list := make([]*managedVM, 0, len(m.vms))
+	result := make([]VM, 0, len(m.vms))
 	for _, vm := range m.vms {
-		list = append(list, vm)
+		result = append(result, vm.view.Load().record)
 	}
 	m.mu.Unlock()
-	result := make([]VM, 0, len(list))
-	for _, vm := range list {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		vm.mu.Lock()
-		result = append(result, vm.record)
-		vm.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	slices.SortFunc(result, func(a, b VM) int { return a.CreatedAt.Compare(b.CreatedAt) })
 
@@ -432,7 +437,7 @@ func (m *Manager) ListAll(ctx context.Context) ([]VM, error) {
 
 // GetAny resolves the actual owner of an administrator-selected VM.
 func (m *Manager) GetAny(ctx context.Context, id string) (VM, error) {
-	_, finish, err := m.operation(ctx)
+	ctx, finish, err := m.operation(ctx)
 	if err != nil {
 		return VM{}, err
 	}
@@ -440,11 +445,12 @@ func (m *Manager) GetAny(ctx context.Context, id string) (VM, error) {
 	m.mu.Lock()
 	vm := m.vms[id]
 	m.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return VM{}, err
+	}
 	if vm == nil {
 		return VM{}, ErrNotFound
 	}
-	vm.mu.Lock()
-	defer vm.mu.Unlock()
 
-	return vm.record, nil
+	return vm.view.Load().record, nil
 }

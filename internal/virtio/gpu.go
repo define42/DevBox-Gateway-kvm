@@ -277,11 +277,12 @@ func (g *GPU) QueueReady(idx int, q *SplitQueue) {
 	if !g.closed && idx >= 0 && idx < gpuNumQueues {
 		g.VirtQueue[idx] = q
 		g.LastAvailIdx[idx] = 0
+		g.Notify(idx)
 	}
 }
 
 func (g *GPU) Notify(idx int) {
-	// Non-blocking kick; the IO thread also polls on a ticker.
+	// Coalesced kicks remain pending while the worker drains the queues.
 	select {
 	case g.kick <- idx:
 	default:
@@ -291,22 +292,23 @@ func (g *GPU) Notify(idx int) {
 func (g *GPU) IOThreadEntry() {
 	log.Println("virtio-gpu: IOThreadEntry started")
 
-	// The ticker is a safety net for a missed kick and for re-injecting an
-	// unacknowledged interrupt; display updates are otherwise kick-driven.
-	ticker := time.NewTicker(16 * time.Millisecond)
-	defer ticker.Stop()
+	poll := newDevicePoll(16 * time.Millisecond)
+	defer poll.timer.Stop()
 
 	for {
+		active := true
 		select {
 		case <-g.done:
 			log.Println("virtio-gpu: IOThreadEntry received done signal")
 
 			return
 		case <-g.kick:
-			g.drain()
-		case <-ticker.C:
-			g.drain()
+		case <-poll.interruptWake(g.ModernTransport):
+		case <-poll.timer.C:
+			active = false
 		}
+		g.drain()
+		poll.reset(active || g.interruptPending())
 	}
 }
 
@@ -763,6 +765,9 @@ func (g *GPU) transferToHost2D(res *gpuResource, x, y, w, h uint32, offset uint6
 		return
 	}
 
+	// Rows advance monotonically through the backing. Retain the entry cursor
+	// so a partial rectangle does not rescan every preceding guest page per row.
+	reader := gpuBackingReader{entries: res.backing}
 	for row := uint32(0); row < h; row++ {
 		src := offset + uint64(stride)*uint64(row)
 		dst := int((y+row)*stride + x*bpp)
@@ -776,43 +781,44 @@ func (g *GPU) transferToHost2D(res *gpuResource, x, y, w, h uint32, offset uint6
 			n = len(res.data) - dst
 		}
 
-		g.backingRead(res, src, res.data[dst:dst+n])
+		reader.read(g.Mem, src, res.data[dst:dst+n])
 	}
 }
 
 // backingRead copies len(dst) bytes from the resource's scatter-gather guest
 // backing, starting at logical offset off, into dst.
 func (g *GPU) backingRead(res *gpuResource, off uint64, dst []byte) {
-	pos := uint64(0) // logical offset of the current entry's first byte
+	reader := gpuBackingReader{entries: res.backing}
+	reader.read(g.Mem, off, dst)
+}
 
-	for _, e := range res.backing {
-		if len(dst) == 0 {
-			return
+// gpuBackingReader retains a scatter-gather cursor for non-overlapping reads
+// at increasing logical offsets. It is local to one transfer, so changes to a
+// resource's backing cannot leave a stale cursor in subsequent transfers.
+type gpuBackingReader struct {
+	entries []gpuMemEntry
+	pos     uint64 // Logical offset of entries[0].
+}
+
+func (r *gpuBackingReader) read(mem []byte, off uint64, dst []byte) {
+	for len(r.entries) != 0 && len(dst) != 0 {
+		e := r.entries[0]
+		entryEnd := r.pos + uint64(e.length)
+		if off >= entryEnd {
+			r.entries = r.entries[1:]
+			r.pos = entryEnd
+
+			continue
 		}
 
-		entryEnd := pos + uint64(e.length)
-
-		if off < entryEnd {
-			skip := uint64(0)
-			if off > pos {
-				skip = off - pos
-			}
-
-			n := uint64(e.length) - skip
-			if n > uint64(len(dst)) {
-				n = uint64(len(dst))
-			}
-
-			src := e.addr + skip
-			if guestmem.ValidRange(g.Mem, src, n) {
-				copy(dst[:n], g.Mem[src:src+n])
-			}
-
-			dst = dst[n:]
-			off += n
+		skip := off - r.pos
+		n := min(uint64(e.length)-skip, uint64(len(dst)))
+		src := e.addr + skip
+		if guestmem.ValidRange(mem, src, n) {
+			copy(dst[:n], mem[src:src+n])
 		}
-
-		pos = entryEnd
+		dst = dst[n:]
+		off += n
 	}
 }
 

@@ -1,0 +1,37 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │
+                                      │                         sec/op                          │
+ReviewGPUTransfer/1920x1080/Full-4                                                 1.326m ±  4%
+ReviewGPUTransfer/1920x1080/Browser-4                                              1.773m ±  3%
+ReviewGPUTransfer/3840x2160/Full-4                                                 5.538m ± 28%
+ReviewGPUTransfer/3840x2160/Browser-4                                              10.88m ±  3%
+geomean                                                                            3.450m
+
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │
+                                      │                           B/s                           │
+ReviewGPUTransfer/1920x1080/Full-4                                                5.827Gi ±  4%
+ReviewGPUTransfer/1920x1080/Browser-4                                             3.712Gi ±  3%
+ReviewGPUTransfer/3840x2160/Full-4                                                5.579Gi ± 39%
+ReviewGPUTransfer/3840x2160/Browser-4                                             2.628Gi ±  3%
+geomean                                                                           4.220Gi
+
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │
+                                      │                          B/op                           │
+ReviewGPUTransfer/1920x1080/Full-4                                                 0.000 ± 0%
+ReviewGPUTransfer/1920x1080/Browser-4                                              0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Full-4                                                 0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Browser-4                                              0.000 ± 0%
+geomean                                                                                       ¹
+¹ summaries must be >0 to compute geomean
+
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │
+                                      │                        allocs/op                        │
+ReviewGPUTransfer/1920x1080/Full-4                                                 0.000 ± 0%
+ReviewGPUTransfer/1920x1080/Browser-4                                              0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Full-4                                                 0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Browser-4                                              0.000 ± 0%
+geomean                                                                                       ¹
+¹ summaries must be >0 to compute geomean

@@ -1,0 +1,260 @@
+=== RUN   TestPerfIdleGatewayDevices
+=== RUN   TestPerfIdleGatewayDevices/groups=0
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=0 gomaxprocs=4 elapsed_s=3.001825 cpu_ms=0.492 one_core_percent=0.016 goroutines_added=0 voluntary_context_switches=24 involuntary_context_switches=0
+=== RUN   TestPerfIdleGatewayDevices/groups=1
+2026/10/11 22:24:06 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:06 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:06 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:06 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:06 virtio-net: TxThreadEntry started
+2026/10/11 22:24:06 virtio-net: RxThreadEntry started
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=1 gomaxprocs=4 elapsed_s=3.000641 cpu_ms=10.491 one_core_percent=0.350 goroutines_added=6 voluntary_context_switches=182 involuntary_context_switches=0
+2026/10/11 22:24:09 virtio-blk: Close called
+2026/10/11 22:24:09 virtio-blk: Close called
+2026/10/11 22:24:09 virtio-net: Close called
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:09 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:09 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:09 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:09 virtio-gpu: IOThreadEntry received done signal
+=== RUN   TestPerfIdleGatewayDevices/groups=4
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: RxThreadEntry started
+2026/10/11 22:24:09 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: TxThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: RxThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: TxThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: RxThreadEntry started
+2026/10/11 22:24:09 virtio-net: TxThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:09 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: TxThreadEntry started
+2026/10/11 22:24:09 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:09 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:09 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:09 virtio-net: RxThreadEntry started
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=4 gomaxprocs=4 elapsed_s=3.000781 cpu_ms=13.268 one_core_percent=0.442 goroutines_added=24 voluntary_context_switches=194 involuntary_context_switches=1
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-net: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-net: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-net: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-blk: Close called
+2026/10/11 22:24:12 virtio-net: Close called
+2026/10/11 22:24:12 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:12 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:12 virtio-gpu: IOThreadEntry received done signal
+--- PASS: TestPerfIdleGatewayDevices (9.92s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=0 (3.31s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=1 (3.31s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=4 (3.31s)
+=== RUN   TestPerfIdleGatewayDevices
+=== RUN   TestPerfIdleGatewayDevices/groups=0
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=0 gomaxprocs=4 elapsed_s=3.001558 cpu_ms=0.896 one_core_percent=0.030 goroutines_added=0 voluntary_context_switches=12 involuntary_context_switches=0
+=== RUN   TestPerfIdleGatewayDevices/groups=1
+2026/10/11 22:24:16 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:16 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:16 virtio-net: TxThreadEntry started
+2026/10/11 22:24:16 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:16 virtio-net: RxThreadEntry started
+2026/10/11 22:24:16 virtio-gpu: IOThreadEntry started
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=1 gomaxprocs=4 elapsed_s=3.000577 cpu_ms=9.340 one_core_percent=0.311 goroutines_added=6 voluntary_context_switches=186 involuntary_context_switches=0
+2026/10/11 22:24:19 virtio-blk: Close called
+2026/10/11 22:24:19 virtio-blk: Close called
+2026/10/11 22:24:19 virtio-net: Close called
+2026/10/11 22:24:19 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:19 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:19 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:19 virtio-input: gokvm tablet IOThreadEntry received done signal
+=== RUN   TestPerfIdleGatewayDevices/groups=4
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: TxThreadEntry started
+2026/10/11 22:24:19 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: RxThreadEntry started
+2026/10/11 22:24:19 virtio-net: RxThreadEntry started
+2026/10/11 22:24:19 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:19 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: TxThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: RxThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: TxThreadEntry started
+2026/10/11 22:24:19 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: RxThreadEntry started
+2026/10/11 22:24:19 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:19 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:19 virtio-net: TxThreadEntry started
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=4 gomaxprocs=4 elapsed_s=3.000774 cpu_ms=13.201 one_core_percent=0.440 goroutines_added=24 voluntary_context_switches=192 involuntary_context_switches=1
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-net: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-net: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-net: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-blk: Close called
+2026/10/11 22:24:22 virtio-net: Close called
+2026/10/11 22:24:22 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:22 virtio-net: RxThreadEntry received done signal
+--- PASS: TestPerfIdleGatewayDevices (9.91s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=0 (3.30s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=1 (3.30s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=4 (3.30s)
+=== RUN   TestPerfIdleGatewayDevices
+=== RUN   TestPerfIdleGatewayDevices/groups=0
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=0 gomaxprocs=4 elapsed_s=3.001554 cpu_ms=0.520 one_core_percent=0.017 goroutines_added=0 voluntary_context_switches=8 involuntary_context_switches=0
+=== RUN   TestPerfIdleGatewayDevices/groups=1
+2026/10/11 22:24:26 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:26 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:26 virtio-net: RxThreadEntry started
+2026/10/11 22:24:26 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:26 virtio-net: TxThreadEntry started
+2026/10/11 22:24:26 virtio-gpu: IOThreadEntry started
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=1 gomaxprocs=4 elapsed_s=3.000646 cpu_ms=8.160 one_core_percent=0.272 goroutines_added=6 voluntary_context_switches=218 involuntary_context_switches=0
+2026/10/11 22:24:29 virtio-blk: Close called
+2026/10/11 22:24:29 virtio-blk: Close called
+2026/10/11 22:24:29 virtio-net: Close called
+2026/10/11 22:24:29 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:29 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:29 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:29 virtio-input: gokvm tablet IOThreadEntry received done signal
+=== RUN   TestPerfIdleGatewayDevices/groups=4
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-net: RxThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-net: TxThreadEntry started
+2026/10/11 22:24:29 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:29 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:29 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:29 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:29 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-net: TxThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-net: TxThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-net: RxThreadEntry started
+2026/10/11 22:24:29 virtio-net: TxThreadEntry started
+2026/10/11 22:24:29 virtio-net: RxThreadEntry started
+2026/10/11 22:24:29 virtio-blk: IOThreadEntry started
+2026/10/11 22:24:29 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:29 virtio-gpu: IOThreadEntry started
+2026/10/11 22:24:29 virtio-input: gokvm tablet IOThreadEntry started
+2026/10/11 22:24:29 virtio-net: RxThreadEntry started
+    perf_idle_test.go:77: SYNTHETIC_IDLE groups=4 gomaxprocs=4 elapsed_s=3.000644 cpu_ms=13.204 one_core_percent=0.440 goroutines_added=24 voluntary_context_switches=202 involuntary_context_switches=3
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-net: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-net: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-net: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-blk: Close called
+2026/10/11 22:24:32 virtio-net: Close called
+2026/10/11 22:24:32 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: RxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-net: TxThreadEntry received done signal
+2026/10/11 22:24:32 virtio-input: gokvm tablet IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-gpu: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-blk: IOThreadEntry received done signal
+2026/10/11 22:24:32 virtio-gpu: IOThreadEntry received done signal
+--- PASS: TestPerfIdleGatewayDevices (9.91s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=0 (3.30s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=1 (3.30s)
+    --- PASS: TestPerfIdleGatewayDevices/groups=4 (3.30s)
+PASS
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/virtio	29.744s

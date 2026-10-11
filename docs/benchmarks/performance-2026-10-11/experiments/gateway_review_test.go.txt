@@ -1,0 +1,293 @@
+package gateway
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+)
+
+// These review experiments intentionally demonstrate existing blocking behavior.
+// They are external overlays, not proposed regression expectations for the repo.
+func reviewPauseClone(t *testing.T, m *Manager) (func(), <-chan error) {
+	t.Helper()
+	paused := make(chan struct{})
+	released := make(chan struct{})
+	done := make(chan error, 1)
+	var once sync.Once
+	release := func() { once.Do(func() { close(released) }) }
+	t.Cleanup(release)
+	go func() {
+		_, err := m.CreateWithProgress(t.Context(), "alice", "copying-desktop",
+			"$6$testsalt$"+strings.Repeat("a", 85)+".", DefaultImageID,
+			func(progress CreateProgress) {
+				if progress.Phase == "copying" && progress.CopiedBytes == 0 {
+					select {
+					case <-paused:
+					default:
+						close(paused)
+					}
+					<-released
+				}
+			})
+		done <- err
+	}()
+	select {
+	case <-paused:
+	case err := <-done:
+		t.Fatalf("creation ended before copy pause: %v", err)
+	case <-time.After(3 * time.Second):
+		t.Fatal("creation did not reach copy phase")
+	}
+	return release, done
+}
+
+func reviewWaitUntil(t *testing.T, description string, ready func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for !ready() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", description)
+		}
+		runtime.Gosched()
+	}
+}
+
+func reviewBlockedCall(t *testing.T, method string, call func(context.Context) error) <-chan error {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	t.Cleanup(cancel)
+	done := make(chan error, 1)
+	started := time.Now()
+	go func() { done <- call(ctx) }()
+	buffer := make([]byte, 128<<10)
+	reviewWaitUntil(t, method+" mutex wait", func() bool {
+		select {
+		case err := <-done:
+			t.Fatalf("%s returned before clone released: %v", method, err)
+		default:
+		}
+		n := runtime.Stack(buffer, true)
+		for _, stack := range strings.Split(string(buffer[:n]), "\n\n") {
+			if strings.Contains(stack, "(*Manager)."+method+"(") &&
+				strings.Contains(stack, "[sync.") {
+				return true
+			}
+		}
+		return false
+	})
+	<-ctx.Done()
+	select {
+	case err := <-done:
+		t.Fatalf("%s responded to deadline while clone paused: %v", method, err)
+	default:
+		t.Logf("%s still blocked after context deadline at %s; held clone phase controls its latency",
+			method, time.Since(started).Round(time.Millisecond))
+	}
+	return done
+}
+
+func TestPerformanceReviewCreateBlocksOwnerList(t *testing.T) {
+	m := newTestManager(t, "graceful")
+	vm := createManagerVM(t, m, "alice", "already-running")
+	if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+		t.Fatal(err)
+	}
+	release, createDone := reviewPauseClone(t, m)
+	// Direct lookup of the existing VM is ready. RDP setup nevertheless calls
+	// List first and therefore waits for the unrelated new desktop's clone.
+	if _, err := m.RDP(t.Context(), vm.Owner, vm.ID); err != nil {
+		t.Fatalf("existing VM's direct RDP lookup: %v", err)
+	}
+	listDone := reviewBlockedCall(t, "List", func(ctx context.Context) error {
+		_, err := m.List(ctx, "alice")
+		return err
+	})
+	release()
+	if err := <-createDone; err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("List returned only after clone released; result after canceled context: %v", <-listDone)
+}
+
+func TestPerformanceReviewCatalogWriterBlocksUnrelatedReaders(t *testing.T) {
+	m := newTestManager(t, "graceful")
+	image, err := m.ImportImage(t.Context(), "unrelated-template", bytes.NewReader(catalogQCOW2("other")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	release, createDone := reviewPauseClone(t, m)
+	// Readers run while the clone holds RLock, until a distinct template's
+	// deletion queues a writer on the single catalog RWMutex.
+	if _, err := m.Images(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	deleteDone := make(chan error, 1)
+	go func() { deleteDone <- m.DeleteImage(t.Context(), image.ID) }()
+	reviewWaitUntil(t, "catalog writer queued", func() bool {
+		if m.imageMu.TryRLock() {
+			m.imageMu.RUnlock()
+			return false
+		}
+		return true
+	})
+	imagesDone := reviewBlockedCall(t, "Images", func(ctx context.Context) error {
+		_, err := m.Images(ctx)
+		return err
+	})
+	release()
+	if err := <-createDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-deleteDone; err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("Images returned only after unrelated clone and catalog writer completed; result after canceled context: %v",
+		<-imagesDone)
+}
+
+func TestPerformanceReviewSparseFallbackCopy(t *testing.T) {
+	const size = int64(64 << 20)
+	dir := t.TempDir()
+	input, err := os.Create(filepath.Join(dir, "sparse-source.raw"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	if err := input.Truncate(size); err != nil {
+		t.Fatal(err)
+	}
+	marker := []byte("office-desktop-sparse-copy-content")
+	for _, offset := range []int64{0, size - int64(len(marker))} {
+		if _, err := input.WriteAt(marker, offset); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := input.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	before, err := input.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeBlocks := before.Sys().(*syscall.Stat_t).Blocks
+	if beforeBlocks*512 >= size/2 {
+		t.Skipf("test filesystem did not create a sparse source: allocated=%d logical=%d", beforeBlocks*512, size)
+	}
+	output, err := os.Create(filepath.Join(dir, "copied-target.raw"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer output.Close()
+	// Call the production fallback directly so this experiment does not depend
+	// on whether the test filesystem supports FICLONE.
+	if err := copyFileWithProgress(t.Context(), input, output, size, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := output.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	after, err := output.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterBlocks := after.Sys().(*syscall.Stat_t).Blocks
+	if after.Size() != size {
+		t.Fatalf("target logical size=%d want=%d", after.Size(), size)
+	}
+	var sums [2][]byte
+	for index, file := range []*os.File{input, output} {
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
+		hash := sha256.New()
+		if n, err := io.Copy(hash, file); err != nil || n != size {
+			t.Fatalf("hash copied content: bytes=%d err=%v", n, err)
+		}
+		sums[index] = hash.Sum(nil)
+	}
+	if !bytes.Equal(sums[0], sums[1]) {
+		t.Fatal("copy changed source byte content")
+	}
+	t.Logf("64MiB forced fallback: source blocks=%d (%d bytes), target blocks=%d (%d bytes), physical expansion=%.0fx; complete SHA-256 content verified",
+		beforeBlocks, beforeBlocks*512, afterBlocks, afterBlocks*512, float64(afterBlocks)/float64(beforeBlocks))
+	if afterBlocks <= beforeBlocks {
+		t.Fatal("expected production byte-copy fallback to allocate source holes")
+	}
+}
+
+type reviewCreationWriteResult struct {
+	beforeFlush error
+	afterFlush  error
+}
+
+type reviewSlowCreationBackend struct {
+	delay time.Duration
+	done  chan reviewCreationWriteResult
+}
+
+func (backend *reviewSlowCreationBackend) CreateWithProgress(
+	ctx context.Context, owner, name, passwordHash, imageID string, report func(CreateProgress),
+) (VM, error) {
+	report(CreateProgress{Phase: "copying", TotalBytes: 64 << 20})
+	timer := time.NewTimer(backend.delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+	case <-timer.C:
+	}
+	before := ctx.Err()
+	// This is the next actual application progress update after the HTTP
+	// response write deadline has elapsed, analogous to a long image copy.
+	report(CreateProgress{Phase: "copying", CopiedBytes: 1 << 20, TotalBytes: 64 << 20})
+	after := ctx.Err()
+	backend.done <- reviewCreationWriteResult{beforeFlush: before, afterFlush: after}
+	return VM{}, after
+}
+
+func TestPerformanceReviewCreationWriteTimeoutCancelsBackend(t *testing.T) {
+	backend := &reviewSlowCreationBackend{delay: 100 * time.Millisecond, done: make(chan reviewCreationWriteResult, 1)}
+	gatewayServer := &Server{}
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gatewayServer.streamCreation(w, r, browserSession{owner: "alice"}, "office", backend)
+	}))
+	// Scale the production server's two-minute absolute response write timeout
+	// to 25ms; exercise the real streamCreation handler, including cancellation.
+	server.Config.WriteTimeout = 25 * time.Millisecond
+	server.Start()
+	defer server.Close()
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, server.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := server.Client().Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	_, readErr := io.Copy(io.Discard, response.Body)
+	select {
+	case result := <-backend.done:
+		if result.beforeFlush != nil {
+			t.Fatalf("backend canceled before the failing progress flush: %v", result.beforeFlush)
+		}
+		if !errors.Is(result.afterFlush, context.Canceled) {
+			t.Fatalf("real streamCreation did not cancel backend after deadline-triggered flush failure: %v", result.afterFlush)
+		}
+		t.Logf("real streamCreation with 25ms HTTP WriteTimeout and 100ms copy progress gap: backend before flush=%v, after flush=%v; client read=%v",
+			result.beforeFlush, result.afterFlush, readErr)
+	case <-time.After(time.Second):
+		t.Fatal("backend did not finish")
+	}
+}

@@ -268,6 +268,7 @@ func (d *InputDevice) QueueReady(idx int, q *SplitQueue) {
 	if idx == inputEventQueue {
 		_ = d.flushEvents()
 	}
+	d.Notify(idx)
 }
 
 func (d *InputDevice) Notify(idx int) {
@@ -280,20 +281,23 @@ func (d *InputDevice) Notify(idx int) {
 func (d *InputDevice) IOThreadEntry() {
 	log.Printf("virtio-input: %s IOThreadEntry started", d.name)
 
-	ticker := time.NewTicker(1 * time.Millisecond)
-	defer ticker.Stop()
+	poll := newDevicePoll(time.Millisecond)
+	defer poll.timer.Stop()
 
 	for {
+		active, idx := true, -1
 		select {
 		case <-d.done:
 			log.Printf("virtio-input: %s IOThreadEntry received done signal", d.name)
 
 			return
-		case idx := <-d.kick:
-			d.drain(idx)
-		case <-ticker.C:
-			d.drain(-1)
+		case idx = <-d.kick:
+		case <-poll.interruptWake(d.ModernTransport):
+		case <-poll.timer.C:
+			active = false
 		}
+		d.drain(idx)
+		poll.reset(active || d.interruptPending())
 	}
 }
 

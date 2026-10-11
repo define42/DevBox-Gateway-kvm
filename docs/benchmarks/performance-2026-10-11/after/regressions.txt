@@ -1,0 +1,402 @@
+=== RUN   TestCopySparseFilePreservesContentsAndHoles
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles
+=== RUN   TestCopySparseFileRejectsCancellationAndSizeChange
+=== PAUSE TestCopySparseFileRejectsCancellationAndSizeChange
+=== RUN   TestCreationProgressStreamsBeforeCompletion
+=== PAUSE TestCreationProgressStreamsBeforeCompletion
+=== RUN   TestCreationProgressEnforcesRequestSecurity
+=== PAUSE TestCreationProgressEnforcesRequestSecurity
+=== RUN   TestCreationProgressFailureDoesNotReportComplete
+=== PAUSE TestCreationProgressFailureDoesNotReportComplete
+=== RUN   TestCreationProgressBrokenStreamCancelsBackend
+=== PAUSE TestCreationProgressBrokenStreamCancelsBackend
+=== RUN   TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout
+=== PAUSE TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout
+=== RUN   TestCreationDeadlineCancelsBackend
+=== PAUSE TestCreationDeadlineCancelsBackend
+=== RUN   TestCreationRestoresDeadlineBetweenProgressWrites
+=== PAUSE TestCreationRestoresDeadlineBetweenProgressWrites
+=== RUN   TestManagerInventoryAndEndpointRemainAvailableDuringCreation
+=== PAUSE TestManagerInventoryAndEndpointRemainAvailableDuringCreation
+=== RUN   TestManagerLifecycleWaitHonorsCancellation
+=== PAUSE TestManagerLifecycleWaitHonorsCancellation
+=== RUN   TestManagerCreationLimit
+=== PAUSE TestManagerCreationLimit
+=== RUN   TestManagerCreationAdmissionBoundsWorkAndCancelsQueue
+=== PAUSE TestManagerCreationAdmissionBoundsWorkAndCancelsQueue
+=== RUN   TestManagerShutdownCancelsQueuedCreations
+=== PAUSE TestManagerShutdownCancelsQueuedCreations
+=== RUN   TestManagerImageDeletionPreservesPinnedClone
+=== PAUSE TestManagerImageDeletionPreservesPinnedClone
+=== CONT  TestCopySparseFilePreservesContentsAndHoles
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/all_holes
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/all_holes
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/leading_hole
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/leading_hole
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/trailing_hole
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/trailing_hole
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/all_holes
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/all_holes/extents
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/all_holes/extents
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/all_holes/zero_scan
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/all_holes/zero_scan
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/all_holes/extents
+=== CONT  TestManagerImageDeletionPreservesPinnedClone
+=== CONT  TestCreationProgressBrokenStreamCancelsBackend
+=== CONT  TestManagerShutdownCancelsQueuedCreations
+--- PASS: TestCreationProgressBrokenStreamCancelsBackend (0.00s)
+=== CONT  TestCreationProgressFailureDoesNotReportComplete
+--- PASS: TestCreationProgressFailureDoesNotReportComplete (0.00s)
+=== CONT  TestCreationProgressEnforcesRequestSecurity
+=== RUN   TestCreationProgressEnforcesRequestSecurity/missing_session
+=== PAUSE TestCreationProgressEnforcesRequestSecurity/missing_session
+=== RUN   TestCreationProgressEnforcesRequestSecurity/bad_csrf
+=== PAUSE TestCreationProgressEnforcesRequestSecurity/bad_csrf
+=== RUN   TestCreationProgressEnforcesRequestSecurity/cross_origin
+=== PAUSE TestCreationProgressEnforcesRequestSecurity/cross_origin
+=== CONT  TestCreationProgressStreamsBeforeCompletion
+--- PASS: TestManagerShutdownCancelsQueuedCreations (0.01s)
+=== CONT  TestCopySparseFileRejectsCancellationAndSizeChange
+--- PASS: TestCopySparseFileRejectsCancellationAndSizeChange (0.00s)
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/extents
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/extents
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/zero_scan
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/zero_scan
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/trailing_hole
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/trailing_hole/extents
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/trailing_hole/extents
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/trailing_hole/zero_scan
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/trailing_hole/zero_scan
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/leading_hole
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/leading_hole/extents
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/leading_hole/extents
+=== RUN   TestCopySparseFilePreservesContentsAndHoles/leading_hole/zero_scan
+=== PAUSE TestCopySparseFilePreservesContentsAndHoles/leading_hole/zero_scan
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/all_holes/zero_scan
+--- PASS: TestCreationProgressStreamsBeforeCompletion (0.01s)
+=== CONT  TestManagerCreationAdmissionBoundsWorkAndCancelsQueue
+--- PASS: TestManagerCreationAdmissionBoundsWorkAndCancelsQueue (0.00s)
+=== CONT  TestManagerCreationLimit
+=== RUN   TestManagerCreationLimit/default
+=== PAUSE TestManagerCreationLimit/default
+=== RUN   TestManagerCreationLimit/configured
+=== PAUSE TestManagerCreationLimit/configured
+=== RUN   TestManagerCreationLimit/negative
+=== PAUSE TestManagerCreationLimit/negative
+=== RUN   TestManagerCreationLimit/too_large
+=== PAUSE TestManagerCreationLimit/too_large
+=== CONT  TestManagerLifecycleWaitHonorsCancellation
+=== RUN   TestManagerLifecycleWaitHonorsCancellation/start
+=== PAUSE TestManagerLifecycleWaitHonorsCancellation/start
+=== RUN   TestManagerLifecycleWaitHonorsCancellation/stop
+=== PAUSE TestManagerLifecycleWaitHonorsCancellation/stop
+=== RUN   TestManagerLifecycleWaitHonorsCancellation/delete
+=== PAUSE TestManagerLifecycleWaitHonorsCancellation/delete
+=== CONT  TestManagerInventoryAndEndpointRemainAvailableDuringCreation
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/all_holes/extents
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=0 bytes, destination allocation=0 bytes
+=== CONT  TestCreationRestoresDeadlineBetweenProgressWrites
+--- PASS: TestCreationRestoresDeadlineBetweenProgressWrites (0.00s)
+=== CONT  TestCreationDeadlineCancelsBackend
+--- PASS: TestCreationDeadlineCancelsBackend (0.00s)
+=== CONT  TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/all_holes/zero_scan
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=0 bytes, destination allocation=0 bytes
+=== CONT  TestCreationProgressEnforcesRequestSecurity/missing_session
+=== CONT  TestCreationProgressEnforcesRequestSecurity/cross_origin
+=== CONT  TestCreationProgressEnforcesRequestSecurity/bad_csrf
+--- PASS: TestCreationProgressEnforcesRequestSecurity (0.00s)
+    --- PASS: TestCreationProgressEnforcesRequestSecurity/missing_session (0.00s)
+    --- PASS: TestCreationProgressEnforcesRequestSecurity/cross_origin (0.00s)
+    --- PASS: TestCreationProgressEnforcesRequestSecurity/bad_csrf (0.00s)
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/extents
+--- PASS: TestManagerImageDeletionPreservesPinnedClone (0.10s)
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/zero_scan
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/extents
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=12288 bytes, destination allocation=12288 bytes
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/trailing_hole/extents
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/zero_scan
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=12288 bytes, destination allocation=12288 bytes
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/trailing_hole/zero_scan
+--- PASS: TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout (0.10s)
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/leading_hole/extents
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/trailing_hole/extents
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=4096 bytes, destination allocation=4096 bytes
+=== CONT  TestCopySparseFilePreservesContentsAndHoles/leading_hole/zero_scan
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/trailing_hole/zero_scan
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=4096 bytes, destination allocation=4096 bytes
+=== CONT  TestManagerCreationLimit/default
+=== CONT  TestManagerCreationLimit/negative
+=== CONT  TestManagerCreationLimit/too_large
+=== CONT  TestManagerCreationLimit/configured
+--- PASS: TestManagerCreationLimit (0.00s)
+    --- PASS: TestManagerCreationLimit/default (0.00s)
+    --- PASS: TestManagerCreationLimit/negative (0.00s)
+    --- PASS: TestManagerCreationLimit/too_large (0.00s)
+    --- PASS: TestManagerCreationLimit/configured (0.00s)
+=== CONT  TestManagerLifecycleWaitHonorsCancellation/start
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/leading_hole/extents
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=4096 bytes, destination allocation=4096 bytes
+=== CONT  TestManagerLifecycleWaitHonorsCancellation/delete
+=== NAME  TestCopySparseFilePreservesContentsAndHoles/leading_hole/zero_scan
+    creation_sparse_test.go:62: logical=8388625 bytes, source allocation=4096 bytes, destination allocation=4096 bytes
+--- PASS: TestCopySparseFilePreservesContentsAndHoles (0.00s)
+    --- PASS: TestCopySparseFilePreservesContentsAndHoles/all_holes (0.00s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/all_holes/extents (0.06s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/all_holes/zero_scan (0.06s)
+    --- PASS: TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned (0.00s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/extents (0.05s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/fragmented_unaligned/zero_scan (0.05s)
+    --- PASS: TestCopySparseFilePreservesContentsAndHoles/trailing_hole (0.00s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/trailing_hole/extents (0.05s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/trailing_hole/zero_scan (0.05s)
+    --- PASS: TestCopySparseFilePreservesContentsAndHoles/leading_hole (0.00s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/leading_hole/extents (0.05s)
+        --- PASS: TestCopySparseFilePreservesContentsAndHoles/leading_hole/zero_scan (0.05s)
+=== CONT  TestManagerLifecycleWaitHonorsCancellation/stop
+--- PASS: TestManagerLifecycleWaitHonorsCancellation (0.00s)
+    --- PASS: TestManagerLifecycleWaitHonorsCancellation/start (0.02s)
+    --- PASS: TestManagerLifecycleWaitHonorsCancellation/delete (0.02s)
+    --- PASS: TestManagerLifecycleWaitHonorsCancellation/stop (0.02s)
+--- PASS: TestManagerInventoryAndEndpointRemainAvailableDuringCreation (0.23s)
+PASS
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/gateway	0.249s
+=== RUN   TestGraphicsInputDuringBlockedFrameWrite
+=== PAUSE TestGraphicsInputDuringBlockedFrameWrite
+=== RUN   TestGraphicsInputDuringBlockedResize
+=== PAUSE TestGraphicsInputDuringBlockedResize
+=== RUN   TestGraphicsFailedWriteRetiresReservation
+=== PAUSE TestGraphicsFailedWriteRetiresReservation
+=== RUN   TestGraphicsCloseDuringBlockedFrameWrite
+=== PAUSE TestGraphicsCloseDuringBlockedFrameWrite
+=== RUN   TestGraphicsChangesWakeWriter
+=== PAUSE TestGraphicsChangesWakeWriter
+=== RUN   TestGraphicsTransportBatchHandlesShortWrites
+=== PAUSE TestGraphicsTransportBatchHandlesShortWrites
+=== CONT  TestGraphicsInputDuringBlockedFrameWrite
+=== RUN   TestGraphicsInputDuringBlockedFrameWrite/keyboard
+=== PAUSE TestGraphicsInputDuringBlockedFrameWrite/keyboard
+=== RUN   TestGraphicsInputDuringBlockedFrameWrite/previous_frame_ACK
+=== PAUSE TestGraphicsInputDuringBlockedFrameWrite/previous_frame_ACK
+=== RUN   TestGraphicsInputDuringBlockedFrameWrite/current_frame_ACK
+=== PAUSE TestGraphicsInputDuringBlockedFrameWrite/current_frame_ACK
+=== RUN   TestGraphicsInputDuringBlockedFrameWrite/suspend_ACK
+=== PAUSE TestGraphicsInputDuringBlockedFrameWrite/suspend_ACK
+=== CONT  TestGraphicsInputDuringBlockedFrameWrite/keyboard
+=== CONT  TestGraphicsTransportBatchHandlesShortWrites
+--- PASS: TestGraphicsTransportBatchHandlesShortWrites (0.00s)
+=== CONT  TestGraphicsChangesWakeWriter
+--- PASS: TestGraphicsChangesWakeWriter (0.00s)
+=== CONT  TestGraphicsCloseDuringBlockedFrameWrite
+=== CONT  TestGraphicsFailedWriteRetiresReservation
+--- PASS: TestGraphicsFailedWriteRetiresReservation (0.00s)
+=== CONT  TestGraphicsInputDuringBlockedResize
+--- PASS: TestGraphicsInputDuringBlockedResize (0.00s)
+=== CONT  TestGraphicsInputDuringBlockedFrameWrite/suspend_ACK
+=== CONT  TestGraphicsInputDuringBlockedFrameWrite/current_frame_ACK
+=== CONT  TestGraphicsInputDuringBlockedFrameWrite/previous_frame_ACK
+--- PASS: TestGraphicsCloseDuringBlockedFrameWrite (0.00s)
+--- PASS: TestGraphicsInputDuringBlockedFrameWrite (0.00s)
+    --- PASS: TestGraphicsInputDuringBlockedFrameWrite/keyboard (0.00s)
+    --- PASS: TestGraphicsInputDuringBlockedFrameWrite/suspend_ACK (0.00s)
+    --- PASS: TestGraphicsInputDuringBlockedFrameWrite/previous_frame_ACK (0.00s)
+    --- PASS: TestGraphicsInputDuringBlockedFrameWrite/current_frame_ACK (0.00s)
+PASS
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/rdp	0.010s
+=== RUN   TestGPUTransferFragmentedBacking
+=== PAUSE TestGPUTransferFragmentedBacking
+=== RUN   TestGPUBackingReadInvalidAndMissingBytes
+=== PAUSE TestGPUBackingReadInvalidAndMissingBytes
+=== RUN   TestGPUTransferFullWidthPartialHeight
+=== PAUSE TestGPUTransferFullWidthPartialHeight
+=== RUN   TestGPURejectsUnboundedResourcesAndBacking
+=== PAUSE TestGPURejectsUnboundedResourcesAndBacking
+=== RUN   TestDeviceDMAGuestRAM
+=== PAUSE TestDeviceDMAGuestRAM
+=== RUN   TestDevicePollIdleWatchdog
+=== PAUSE TestDevicePollIdleWatchdog
+=== RUN   TestDeviceWorkersRecoverPendingInterrupt
+=== PAUSE TestDeviceWorkersRecoverPendingInterrupt
+=== RUN   TestDeviceWorkersProcessQueueReadyWithoutGuestKick
+=== PAUSE TestDeviceWorkersProcessQueueReadyWithoutGuestKick
+=== RUN   TestDeviceWatchdogRecoversMissedKick
+=== PAUSE TestDeviceWatchdogRecoversMissedKick
+=== RUN   TestDeviceWorkersCoalesceInterruptBurst
+=== PAUSE TestDeviceWorkersCoalesceInterruptBurst
+=== RUN   TestGPUCreateTransferFlush
+=== PAUSE TestGPUCreateTransferFlush
+=== CONT  TestGPUTransferFragmentedBacking
+=== RUN   TestGPUTransferFragmentedBacking/full
+=== PAUSE TestGPUTransferFragmentedBacking/full
+=== RUN   TestGPUTransferFragmentedBacking/partial
+=== PAUSE TestGPUTransferFragmentedBacking/partial
+=== CONT  TestDeviceWorkersRecoverPendingInterrupt
+=== RUN   TestDeviceWorkersRecoverPendingInterrupt/block
+=== CONT  TestGPUCreateTransferFlush
+=== CONT  TestDeviceWorkersCoalesceInterruptBurst
+=== RUN   TestDeviceWorkersCoalesceInterruptBurst/block
+=== PAUSE TestDeviceWorkersCoalesceInterruptBurst/block
+--- PASS: TestGPUCreateTransferFlush (0.00s)
+=== RUN   TestDeviceWorkersCoalesceInterruptBurst/network
+=== CONT  TestDeviceWatchdogRecoversMissedKick
+=== PAUSE TestDeviceWorkersCoalesceInterruptBurst/network
+=== RUN   TestGPUTransferFragmentedBacking/independent_offset
+=== PAUSE TestGPUTransferFragmentedBacking/independent_offset
+=== RUN   TestGPUTransferFragmentedBacking/same_entry_rows
+=== PAUSE TestGPUTransferFragmentedBacking/same_entry_rows
+=== RUN   TestDeviceWatchdogRecoversMissedKick/block
+=== RUN   TestGPUTransferFragmentedBacking/short_backing
+=== PAUSE TestGPUTransferFragmentedBacking/short_backing
+=== PAUSE TestDeviceWatchdogRecoversMissedKick/block
+=== RUN   TestDeviceWorkersCoalesceInterruptBurst/tablet
+=== PAUSE TestDeviceWorkersCoalesceInterruptBurst/tablet
+=== RUN   TestDeviceWatchdogRecoversMissedKick/network
+=== RUN   TestDeviceWorkersCoalesceInterruptBurst/gpu
+=== PAUSE TestDeviceWorkersCoalesceInterruptBurst/gpu
+=== PAUSE TestDeviceWatchdogRecoversMissedKick/network
+=== RUN   TestGPUTransferFragmentedBacking/past_backing
+=== PAUSE TestGPUTransferFragmentedBacking/past_backing
+=== RUN   TestGPUTransferFragmentedBacking/empty
+=== PAUSE TestGPUTransferFragmentedBacking/empty
+=== PAUSE TestDeviceWorkersRecoverPendingInterrupt/block
+=== RUN   TestDeviceWorkersRecoverPendingInterrupt/network
+=== PAUSE TestDeviceWorkersRecoverPendingInterrupt/network
+=== RUN   TestDeviceWorkersRecoverPendingInterrupt/tablet
+=== PAUSE TestDeviceWorkersRecoverPendingInterrupt/tablet
+=== RUN   TestDeviceWorkersRecoverPendingInterrupt/gpu
+=== PAUSE TestDeviceWorkersRecoverPendingInterrupt/gpu
+=== CONT  TestGPUBackingReadInvalidAndMissingBytes
+--- PASS: TestGPUBackingReadInvalidAndMissingBytes (0.00s)
+=== CONT  TestDevicePollIdleWatchdog
+--- PASS: TestDevicePollIdleWatchdog (0.00s)
+=== CONT  TestDeviceDMAGuestRAM
+=== RUN   TestDeviceDMAGuestRAM/low_RAM
+=== PAUSE TestDeviceDMAGuestRAM/low_RAM
+=== RUN   TestDeviceDMAGuestRAM/high_RAM
+=== PAUSE TestDeviceDMAGuestRAM/high_RAM
+=== RUN   TestDeviceDMAGuestRAM/MMIO_hole
+=== PAUSE TestDeviceDMAGuestRAM/MMIO_hole
+=== RUN   TestDeviceDMAGuestRAM/cross_MMIO_boundary
+=== PAUSE TestDeviceDMAGuestRAM/cross_MMIO_boundary
+=== CONT  TestDeviceWorkersProcessQueueReadyWithoutGuestKick
+=== RUN   TestDeviceWorkersProcessQueueReadyWithoutGuestKick/block
+=== PAUSE TestDeviceWorkersProcessQueueReadyWithoutGuestKick/block
+=== RUN   TestDeviceWorkersProcessQueueReadyWithoutGuestKick/network
+=== PAUSE TestDeviceWorkersProcessQueueReadyWithoutGuestKick/network
+=== RUN   TestDeviceWorkersProcessQueueReadyWithoutGuestKick/tablet
+=== PAUSE TestDeviceWorkersProcessQueueReadyWithoutGuestKick/tablet
+=== RUN   TestDeviceWorkersProcessQueueReadyWithoutGuestKick/gpu
+=== PAUSE TestDeviceWorkersProcessQueueReadyWithoutGuestKick/gpu
+=== CONT  TestGPUTransferFullWidthPartialHeight
+--- PASS: TestGPUTransferFullWidthPartialHeight (0.00s)
+=== CONT  TestDeviceWorkersCoalesceInterruptBurst/gpu
+2000/01/01 01:00:00 virtio-gpu: IOThreadEntry started
+=== CONT  TestGPURejectsUnboundedResourcesAndBacking
+--- PASS: TestGPURejectsUnboundedResourcesAndBacking (0.00s)
+=== CONT  TestDeviceWorkersCoalesceInterruptBurst/tablet
+2000/01/01 01:00:00 virtio-input: gokvm tablet IOThreadEntry started
+=== RUN   TestDeviceWatchdogRecoversMissedKick/tablet
+=== PAUSE TestDeviceWatchdogRecoversMissedKick/tablet
+=== RUN   TestDeviceWatchdogRecoversMissedKick/gpu
+=== PAUSE TestDeviceWatchdogRecoversMissedKick/gpu
+=== CONT  TestDeviceWorkersCoalesceInterruptBurst/block
+2000/01/01 01:00:00 virtio-blk: IOThreadEntry started
+2000/01/01 01:00:01 virtio-gpu: IOThreadEntry received done signal
+=== CONT  TestGPUTransferFragmentedBacking/full
+2000/01/01 01:00:01 virtio-input: gokvm tablet IOThreadEntry received done signal
+=== CONT  TestDeviceDMAGuestRAM/low_RAM
+=== CONT  TestDeviceWorkersCoalesceInterruptBurst/network
+2000/01/01 01:00:00 virtio-net: TxThreadEntry started
+2000/01/01 01:00:01 virtio-blk: Close called
+2000/01/01 01:00:01 virtio-blk: IOThreadEntry received done signal
+=== CONT  TestDeviceWorkersRecoverPendingInterrupt/block
+2000/01/01 01:00:00 virtio-blk: IOThreadEntry started
+=== CONT  TestGPUTransferFragmentedBacking/empty
+=== CONT  TestGPUTransferFragmentedBacking/short_backing
+=== CONT  TestGPUTransferFragmentedBacking/same_entry_rows
+=== CONT  TestGPUTransferFragmentedBacking/independent_offset
+=== CONT  TestGPUTransferFragmentedBacking/partial
+2000/01/01 01:00:01 virtio-net: Close called
+2000/01/01 01:00:01 virtio-net: TxThreadEntry received done signal
+--- PASS: TestDeviceWorkersCoalesceInterruptBurst (0.00s)
+    --- PASS: TestDeviceWorkersCoalesceInterruptBurst/gpu (0.00s)
+    --- PASS: TestDeviceWorkersCoalesceInterruptBurst/tablet (0.00s)
+    --- PASS: TestDeviceWorkersCoalesceInterruptBurst/block (0.00s)
+    --- PASS: TestDeviceWorkersCoalesceInterruptBurst/network (0.00s)
+=== CONT  TestGPUTransferFragmentedBacking/past_backing
+--- PASS: TestGPUTransferFragmentedBacking (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/full (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/empty (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/short_backing (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/same_entry_rows (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/independent_offset (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/partial (0.00s)
+    --- PASS: TestGPUTransferFragmentedBacking/past_backing (0.00s)
+=== CONT  TestDeviceWorkersProcessQueueReadyWithoutGuestKick/block
+2000/01/01 01:00:00 virtio-blk: IOThreadEntry started
+=== CONT  TestDeviceWorkersRecoverPendingInterrupt/gpu
+2000/01/01 01:00:00 virtio-gpu: IOThreadEntry started
+=== CONT  TestDeviceWorkersRecoverPendingInterrupt/tablet
+2000/01/01 01:00:00 virtio-input: gokvm tablet IOThreadEntry started
+2000/01/01 01:00:01 virtio-blk: Close called
+2000/01/01 01:00:01 virtio-blk: IOThreadEntry received done signal
+2000/01/01 01:00:01 virtio-blk: Close called
+2000/01/01 01:00:01 virtio-blk: IOThreadEntry received done signal
+=== CONT  TestDeviceWorkersRecoverPendingInterrupt/network
+=== CONT  TestDeviceDMAGuestRAM/cross_MMIO_boundary
+2000/01/01 01:00:01 virtio-gpu: IOThreadEntry received done signal
+=== CONT  TestDeviceDMAGuestRAM/MMIO_hole
+2000/01/01 01:00:01 virtio-input: gokvm tablet IOThreadEntry received done signal
+=== CONT  TestDeviceDMAGuestRAM/high_RAM
+=== CONT  TestDeviceWatchdogRecoversMissedKick/block
+=== CONT  TestDeviceWorkersProcessQueueReadyWithoutGuestKick/gpu
+2000/01/01 01:00:00 virtio-blk: IOThreadEntry started
+--- PASS: TestDeviceDMAGuestRAM (0.00s)
+    --- PASS: TestDeviceDMAGuestRAM/low_RAM (0.00s)
+    --- PASS: TestDeviceDMAGuestRAM/cross_MMIO_boundary (0.00s)
+    --- PASS: TestDeviceDMAGuestRAM/MMIO_hole (0.00s)
+    --- PASS: TestDeviceDMAGuestRAM/high_RAM (0.00s)
+=== CONT  TestDeviceWorkersProcessQueueReadyWithoutGuestKick/tablet
+2000/01/01 01:00:01 virtio-blk: Close called
+2000/01/01 01:00:01 virtio-blk: IOThreadEntry received done signal
+2000/01/01 01:00:00 virtio-input: gokvm tablet IOThreadEntry started
+=== CONT  TestDeviceWorkersProcessQueueReadyWithoutGuestKick/network
+2000/01/01 01:00:00 virtio-gpu: IOThreadEntry started
+2000/01/01 01:00:01 virtio-input: gokvm tablet IOThreadEntry received done signal
+=== CONT  TestDeviceWatchdogRecoversMissedKick/gpu
+2000/01/01 01:00:00 virtio-gpu: IOThreadEntry started
+2000/01/01 01:00:00 virtio-net: TxThreadEntry started
+2000/01/01 01:00:01 virtio-gpu: IOThreadEntry received done signal
+2000/01/01 01:00:00 virtio-net: TxThreadEntry started
+=== CONT  TestDeviceWatchdogRecoversMissedKick/tablet
+2000/01/01 01:00:00 virtio-input: gokvm tablet IOThreadEntry started
+2000/01/01 01:00:01 virtio-net: Close called
+2000/01/01 01:00:01 virtio-net: TxThreadEntry received done signal
+=== CONT  TestDeviceWatchdogRecoversMissedKick/network
+2000/01/01 01:00:01 virtio-net: Close called
+2000/01/01 01:00:01 virtio-net: TxThreadEntry received done signal
+2000/01/01 01:00:00 virtio-net: TxThreadEntry started
+--- PASS: TestDeviceWorkersRecoverPendingInterrupt (0.00s)
+    --- PASS: TestDeviceWorkersRecoverPendingInterrupt/block (0.00s)
+    --- PASS: TestDeviceWorkersRecoverPendingInterrupt/gpu (0.00s)
+    --- PASS: TestDeviceWorkersRecoverPendingInterrupt/tablet (0.00s)
+    --- PASS: TestDeviceWorkersRecoverPendingInterrupt/network (0.00s)
+2000/01/01 01:00:01 virtio-gpu: IOThreadEntry received done signal
+2000/01/01 01:00:01 virtio-net: Close called
+2000/01/01 01:00:01 virtio-input: gokvm tablet IOThreadEntry received done signal
+2000/01/01 01:00:01 virtio-net: TxThreadEntry received done signal
+--- PASS: TestDeviceWorkersProcessQueueReadyWithoutGuestKick (0.00s)
+    --- PASS: TestDeviceWorkersProcessQueueReadyWithoutGuestKick/block (0.00s)
+    --- PASS: TestDeviceWorkersProcessQueueReadyWithoutGuestKick/tablet (0.00s)
+    --- PASS: TestDeviceWorkersProcessQueueReadyWithoutGuestKick/network (0.00s)
+    --- PASS: TestDeviceWorkersProcessQueueReadyWithoutGuestKick/gpu (0.00s)
+--- PASS: TestDeviceWatchdogRecoversMissedKick (0.00s)
+    --- PASS: TestDeviceWatchdogRecoversMissedKick/block (0.00s)
+    --- PASS: TestDeviceWatchdogRecoversMissedKick/gpu (0.00s)
+    --- PASS: TestDeviceWatchdogRecoversMissedKick/tablet (0.00s)
+    --- PASS: TestDeviceWatchdogRecoversMissedKick/network (0.00s)
+PASS
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/virtio	0.008s

@@ -185,6 +185,18 @@ func (m *Manager) prepareImage(ctx context.Context, record VM, passwordHash, ima
 func (m *Manager) prepareImageWithProgress(
 	ctx context.Context, record VM, passwordHash, imagePath string, report func(CreateProgress),
 ) error {
+	input, err := os.Open(imagePath) //nolint:gosec // Validated operator image path.
+	if err != nil {
+		return err
+	}
+	defer input.Close()
+
+	return m.prepareOpenImageWithProgress(ctx, record, passwordHash, input, report)
+}
+
+func (m *Manager) prepareOpenImageWithProgress(
+	ctx context.Context, record VM, passwordHash string, imageFile *os.File, report func(CreateProgress),
+) error {
 	if !validID(record.ID) {
 		return fmt.Errorf("invalid VM identity: %w", ErrInvalid)
 	}
@@ -207,7 +219,7 @@ func (m *Manager) prepareImageWithProgress(
 	defer func() {
 		_ = os.RemoveAll(staging) //nolint:gosec // Private staging path uses the strictly validated VM ID.
 	}()
-	if err := cloneFileWithProgress(ctx, imagePath, filepath.Join(staging, "disk.img"), report); err != nil {
+	if err := cloneOpenFileWithProgress(ctx, imageFile, filepath.Join(staging, "disk.img"), report); err != nil {
 		return fmt.Errorf("clone VM base image: %w", err)
 	}
 	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "configuring"}); err != nil {

@@ -382,6 +382,12 @@ TCP/UDP, while host loopback destinations are denied. This restriction does not
 make the guest network an offline environment or isolate all reachable host/LAN
 services.
 
+Desktop creation preserves sparse image holes when reflinks are unavailable.
+`MAX_CONCURRENT_CREATIONS` limits simultaneous provisioning across all accounts
+(default `2`); additional requests wait without blocking inventory or existing
+RDP connections. `VM_CREATE_TIMEOUT` bounds creation including queue wait
+(default `30m`). Progress writes have a separate 30-second network deadline.
+
 **Stop** requests the guest's ACPI power button and waits up to `VM_STOP_TIMEOUT`
 (30 seconds by default). If the guest needs confirmation or does not shut down, it remains running; use its
 graphical power menu and refresh status. **Delete** requires a stopped VM and

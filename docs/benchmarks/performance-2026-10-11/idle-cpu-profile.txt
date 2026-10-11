@@ -1,0 +1,28 @@
+File: gokvm-perf-idle.test
+Build ID: f551235c514aa12306ff8b490dde0890c353dbcd
+Type: cpu
+Time: 2026-10-11 22:07:39 CEST
+Duration: 6.61s, Total samples = 1.06s (16.03%)
+Showing nodes accounting for 0.86s, 81.13% of 1.06s total
+Showing top 20 nodes out of 98
+      flat  flat%   sum%        cum   cum%
+     0.43s 40.57% 40.57%      0.43s 40.57%  runtime.futex
+     0.18s 16.98% 57.55%      0.18s 16.98%  internal/runtime/syscall/linux.Syscall6
+     0.03s  2.83% 60.38%      0.03s  2.83%  runtime.lock2
+     0.03s  2.83% 63.21%      0.03s  2.83%  runtime.unlock2
+     0.03s  2.83% 66.04%      0.03s  2.83%  runtime.write1
+     0.02s  1.89% 67.92%      0.02s  1.89%  runtime.traceEnabled (inline)
+     0.01s  0.94% 68.87%      0.01s  0.94%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).process
+     0.01s  0.94% 69.81%      0.01s  0.94%  internal/runtime/atomic.(*Uint64).CompareAndSwap
+     0.01s  0.94% 70.75%      0.19s 17.92%  internal/runtime/syscall/linux.EpollWait
+     0.01s  0.94% 71.70%      0.01s  0.94%  internal/sync.(*Mutex).Lock
+     0.01s  0.94% 72.64%      0.02s  1.89%  log.(*Logger).output
+     0.01s  0.94% 73.58%      0.01s  0.94%  runtime.(*gcControllerState).releaseNextGCMarkWorker
+     0.01s  0.94% 74.53%      0.01s  0.94%  runtime.(*m).clearAllpSnapshot
+     0.01s  0.94% 75.47%      0.02s  1.89%  runtime.(*timer).unlock
+     0.01s  0.94% 76.42%      0.10s  9.43%  runtime.(*timer).unlockAndRun
+     0.01s  0.94% 77.36%      0.11s 10.38%  runtime.(*timers).run
+     0.01s  0.94% 78.30%      0.01s  0.94%  runtime.(*timers).wakeTime
+     0.01s  0.94% 79.25%      0.01s  0.94%  runtime.(*waitq).dequeueSudoG
+     0.01s  0.94% 80.19%      0.03s  2.83%  runtime.acquirep
+     0.01s  0.94% 81.13%      0.01s  0.94%  runtime.casgstatus

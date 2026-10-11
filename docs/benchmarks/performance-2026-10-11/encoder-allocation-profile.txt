@@ -1,0 +1,23 @@
+File: gokvm-perf-encoder.test
+Build ID: ab5b0330e6842b4b544716a4afa49ae251373864
+Type: alloc_space
+Time: 2026-10-11 22:10:18 CEST
+Showing nodes accounting for 476.62MB, 98.52% of 483.76MB total
+Dropped 41 nodes (cum <= 2.42MB)
+Showing top 15 nodes out of 41
+      flat  flat%   sum%        cum   cum%
+  132.16MB 27.32% 27.32%   132.16MB 27.32%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.AllocPicture
+  126.63MB 26.18% 53.49%   126.63MB 26.18%  image.NewRGBA
+  111.24MB 23.00% 76.49%   180.08MB 37.23%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.RequestMemorySvc
+   47.51MB  9.82% 86.31%    47.51MB  9.82%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.(*CDownsampling).AllocateSampleBuffer (inline)
+   23.81MB  4.92% 91.23%   283.67MB 58.64%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.newEncoderWithNVENC
+   15.36MB  3.18% 94.41%    15.36MB  3.18%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.InitMbListD
+    8.60MB  1.78% 96.19%    68.33MB 14.12%  github.com/define42/DevBox-Gateway-kvm/pkg/h264.(*Encoder).Encode
+    6.55MB  1.35% 97.54%     6.55MB  1.35%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsPSliceMdEnc
+    3.67MB  0.76% 98.30%     3.67MB  0.76%  github.com/define42/DevBox-Gateway-kvm/pkg/h264.collectBitstream (inline)
+    1.10MB  0.23% 98.52%   259.86MB 53.72%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsInitEncoderExt
+         0     0% 98.52%    48.66MB 10.06%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).Encode (inline)
+         0     0% 98.52%    68.33MB 14.12%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).EncodeDamage
+         0     0% 98.52%   259.86MB 53.72%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).useSoftware
+         0     0% 98.52%    68.33MB 14.12%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*openH264Encoder).encode
+         0     0% 98.52%   458.96MB 94.87%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.BenchmarkConcurrentDesktops.func1

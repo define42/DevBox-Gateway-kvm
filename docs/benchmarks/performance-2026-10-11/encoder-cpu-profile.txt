@@ -1,0 +1,29 @@
+File: gokvm-perf-encoder.test
+Build ID: ab5b0330e6842b4b544716a4afa49ae251373864
+Type: cpu
+Time: 2026-10-11 22:10:14 CEST
+Duration: 4.52s, Total samples = 14780ms (326.83%)
+Showing nodes accounting for 10310ms, 69.76% of 14780ms total
+Dropped 153 nodes (cum <= 73.90ms)
+Showing top 20 nodes out of 123
+      flat  flat%   sum%        cum   cum%
+    2000ms 13.53% 13.53%     2000ms 13.53%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.rgbaToI420AVX2Kernel
+    1060ms  7.17% 20.70%     1060ms  7.17%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sad8x8
+    1050ms  7.10% 27.81%     1050ms  7.10%  runtime.memmove
+     650ms  4.40% 32.21%      650ms  4.40%  dctT4SSE2Kernel
+     600ms  4.06% 36.27%      600ms  4.06%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.welsCopyNxM
+     570ms  3.86% 40.12%      570ms  3.86%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sad16x16
+     550ms  3.72% 43.84%      550ms  3.72%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McCopyWidthEq16_c (inline)
+     540ms  3.65% 47.50%      610ms  4.13%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsI16x16LumaPredPlane_c
+     400ms  2.71% 50.20%      400ms  2.71%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McCopyWidthEq8_c (inline)
+     390ms  2.64% 52.84%      390ms  2.64%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsIDctT4Rec_c
+     360ms  2.44% 55.28%      360ms  2.44%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.satd8x8AVX2
+     300ms  2.03% 57.31%      300ms  2.03%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.simdBlockSlice (inline)
+     280ms  1.89% 59.20%      320ms  2.17%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.slicedDesktopFrames
+     270ms  1.83% 61.03%     3540ms 23.95%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdPSkipEnc
+     260ms  1.76% 62.79%      300ms  2.03%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.fillNeighborCacheInter
+     240ms  1.62% 64.41%      240ms  1.62%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*SMB).Add (inline)
+     220ms  1.49% 65.90%      220ms  1.49%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsI16x16LumaPredH_c
+     200ms  1.35% 67.25%      200ms  1.35%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.quantFour4x4MaxSSE2
+     190ms  1.29% 68.54%     1420ms  9.61%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSad8x8_sse2
+     180ms  1.22% 69.76%      180ms  1.22%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.memsetU8

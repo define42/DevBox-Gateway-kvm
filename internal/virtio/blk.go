@@ -164,6 +164,7 @@ func (v *Blk) QueueReady(idx int, q *SplitQueue) {
 	if idx == blkQueue {
 		v.VirtQueue[idx] = q
 		v.LastAvailIdx[idx] = 0
+		v.Notify(idx)
 	}
 }
 
@@ -176,7 +177,7 @@ func (v *Blk) Reset() {
 }
 
 func (v *Blk) Notify(idx int) {
-	// Non-blocking kick; the IO thread also polls on a ticker.
+	// Coalesced kicks remain pending while the worker drains the queue.
 	select {
 	case v.kick <- true:
 	default:
@@ -186,10 +187,11 @@ func (v *Blk) Notify(idx int) {
 func (v *Blk) IOThreadEntry() {
 	log.Println("virtio-blk: IOThreadEntry started")
 
-	ticker := time.NewTicker(1 * time.Millisecond)
-	defer ticker.Stop()
+	poll := newDevicePoll(time.Millisecond)
+	defer poll.timer.Stop()
 
 	for {
+		active := true
 		select {
 		case <-v.done:
 			log.Println("virtio-blk: IOThreadEntry " +
@@ -197,16 +199,14 @@ func (v *Blk) IOThreadEntry() {
 
 			return
 		case <-v.kick:
-			for v.IO() == nil {
-			}
-
-			_ = v.ReinjectIfPending()
-		case <-ticker.C:
-			for v.IO() == nil {
-			}
-
-			_ = v.ReinjectIfPending()
+		case <-poll.interruptWake(v.ModernTransport):
+		case <-poll.timer.C:
+			active = false
 		}
+		for v.IO() == nil {
+		}
+		_ = v.ReinjectIfPending()
+		poll.reset(active || v.interruptPending())
 	}
 }
 

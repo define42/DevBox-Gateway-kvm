@@ -1,0 +1,8 @@
+=== RUN   TestPerformanceReviewSparseFallbackCopy
+    performance_review_test.go:223: 64MiB forced fallback: source blocks=16 (8192 bytes), target blocks=131072 (67108864 bytes), physical expansion=8192x; complete SHA-256 content verified
+--- PASS: TestPerformanceReviewSparseFallbackCopy (0.45s)
+=== RUN   TestPerformanceReviewCreationWriteTimeoutCancelsBackend
+    performance_review_test.go:288: real streamCreation with 25ms HTTP WriteTimeout and 100ms copy progress gap: backend before flush=<nil>, after flush=context canceled; client read=unexpected EOF
+--- PASS: TestPerformanceReviewCreationWriteTimeoutCancelsBackend (0.10s)
+PASS
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/gateway	0.559s

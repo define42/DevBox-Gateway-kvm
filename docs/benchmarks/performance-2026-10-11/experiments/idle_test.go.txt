@@ -1,0 +1,80 @@
+package virtio
+
+import (
+    "fmt"
+    "io"
+    "runtime"
+    "sync"
+    "testing"
+    "time"
+
+    "golang.org/x/sys/unix"
+)
+
+type perfIdleImage struct{}
+func (perfIdleImage) ReadAt(p []byte, off int64) (int, error) { return 0, io.EOF }
+func (perfIdleImage) WriteAt(p []byte, off int64) (int, error) { return len(p), nil }
+func (perfIdleImage) Size() int64 { return 4096 }
+func (perfIdleImage) Sync() error { return nil }
+func (perfIdleImage) Close() error { return nil }
+
+type perfIdleBackend struct{}
+func (perfIdleBackend) Read(p []byte) (int, error) { return 0, io.EOF }
+func (perfIdleBackend) Write(p []byte) (int, error) { return len(p), nil }
+func (perfIdleBackend) Ready() <-chan struct{} { return nil }
+
+type perfIdleIRQ struct{}
+func (perfIdleIRQ) InjectVirtioNetIRQ() error { return nil }
+func (perfIdleIRQ) InjectVirtioBlkIRQ() error { return nil }
+func (perfIdleIRQ) InjectVirtioGPUIRQ() error { return nil }
+
+// TestPerfIdleGatewayDevices measures timer-only worker overhead in one process.
+// Every synthetic gateway has root+seed block workers, TX+RX workers, a tablet,
+// and GPU worker. No guest queues, KVM, framebuffer, userspace netstack, socket
+// forwarding, real disk IO, or RDP are active. This is not a VM-density result.
+func TestPerfIdleGatewayDevices(t *testing.T) {
+    for _, groups := range []int{0, 1, 4} {
+        t.Run(fmt.Sprintf("groups=%d", groups), func(t *testing.T) {
+            var workers sync.WaitGroup
+            var closers []io.Closer
+            beforeGoroutines := runtime.NumGoroutine()
+            start := func(f func()) { workers.Go(f) }
+            for range groups {
+                for _, readOnly := range []bool{false, true} {
+                    b := newBlk(perfIdleImage{}, readOnly, 10, perfIdleIRQ{}, nil)
+                    closers = append(closers, b)
+                    start(b.IOThreadEntry)
+                }
+                n := NewNet(9, perfIdleIRQ{}, perfIdleBackend{}, nil)
+                closers = append(closers, n)
+                start(n.TxThreadEntry)
+                start(n.RxThreadEntry)
+                input := NewInputTablet(12, func() error { return nil }, nil)
+                closers = append(closers, input)
+                start(input.IOThreadEntry)
+                gpu := NewGPU(11, perfIdleIRQ{}, nil, nil)
+                closers = append(closers, gpu)
+                start(gpu.IOThreadEntry)
+            }
+            t.Cleanup(func() {
+                for _, c := range closers { if err := c.Close(); err != nil { t.Error(err) } }
+                workers.Wait()
+            })
+            time.Sleep(250*time.Millisecond)
+            runtime.GC()
+            time.Sleep(50*time.Millisecond)
+            runningGoroutines := runtime.NumGoroutine()
+            var before, after unix.Rusage
+            if err := unix.Getrusage(unix.RUSAGE_SELF, &before); err != nil { t.Fatal(err) }
+            wallStart := time.Now()
+            time.Sleep(3*time.Second)
+            elapsed := time.Since(wallStart)
+            if err := unix.Getrusage(unix.RUSAGE_SELF, &after); err != nil { t.Fatal(err) }
+            cpuSeconds := func(r unix.Rusage) float64 {
+                return float64(r.Utime.Sec+r.Stime.Sec) + float64(r.Utime.Usec+r.Stime.Usec)/1e6
+            }
+            cpu := cpuSeconds(after)-cpuSeconds(before)
+            t.Logf("SYNTHETIC_IDLE groups=%d gomaxprocs=%d elapsed_s=%.6f cpu_ms=%.3f one_core_percent=%.3f goroutines_added=%d voluntary_context_switches=%d involuntary_context_switches=%d", groups, runtime.GOMAXPROCS(0), elapsed.Seconds(), cpu*1000, 100*cpu/elapsed.Seconds(), runningGoroutines-beforeGoroutines, after.Nvcsw-before.Nvcsw, after.Nivcsw-before.Nivcsw)
+        })
+    }
+}

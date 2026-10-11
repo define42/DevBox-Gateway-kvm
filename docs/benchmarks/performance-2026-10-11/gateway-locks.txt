@@ -1,0 +1,10 @@
+=== RUN   TestPerformanceReviewCreateBlocksOwnerList
+    performance_review_test.go:105: List still blocked after context deadline at 101ms; held clone phase controls its latency
+    performance_review_test.go:113: List returned only after clone released; result after canceled context: <nil>
+--- PASS: TestPerformanceReviewCreateBlocksOwnerList (0.34s)
+=== RUN   TestPerformanceReviewCatalogWriterBlocksUnrelatedReaders
+    performance_review_test.go:137: Images still blocked after context deadline at 101ms; held clone phase controls its latency
+    performance_review_test.go:148: Images returned only after unrelated clone and catalog writer completed; result after canceled context: <nil>
+--- PASS: TestPerformanceReviewCatalogWriterBlocksUnrelatedReaders (0.18s)
+PASS
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/gateway	0.532s

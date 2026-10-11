@@ -147,6 +147,7 @@ type ModernTransport struct {
 	irqMu       sync.Mutex
 	setIRQLevel func(bool) error
 	irqError    error
+	irqWake     chan struct{} // Wakes recovery when an interrupt becomes pending.
 
 	dev       ModernDevice
 	Mem       []byte
@@ -178,6 +179,7 @@ func NewModernTransport(dev ModernDevice, mem []byte, inject func() error) *Mode
 		features:  dev.DeviceFeatures() | featureVersion1,
 		configLen: dev.DeviceConfigLen(),
 		queues:    make([]queueState, dev.NumQueues()),
+		irqWake:   make(chan struct{}, 1),
 	}
 
 	// Advertise the maximum queue size to the driver up front; it reads
@@ -221,7 +223,7 @@ func (t *ModernTransport) SetIRQLine(setLevel func(bool) error) {
 func (t *ModernTransport) Interrupt() error {
 	t.irqMu.Lock()
 	defer t.irqMu.Unlock()
-	atomic.OrUint32(&t.isr, 0x1)
+	t.setPendingInterrupt(0x1)
 
 	return t.raiseIRQ()
 }
@@ -232,9 +234,24 @@ func (t *ModernTransport) ConfigChanged() error {
 	t.irqMu.Lock()
 	defer t.irqMu.Unlock()
 	atomic.AddUint32(&t.configGen, 1)
-	atomic.OrUint32(&t.isr, 0x2)
+	t.setPendingInterrupt(0x2)
 
 	return t.raiseIRQ()
+}
+
+// setPendingInterrupt runs under irqMu. Wake the recovery worker only on the
+// first pending interrupt; repeated recovery must not wake itself indefinitely.
+func (t *ModernTransport) setPendingInterrupt(bits uint32) {
+	if atomic.OrUint32(&t.isr, bits) == 0 {
+		select {
+		case t.irqWake <- struct{}{}:
+		default:
+		}
+	}
+}
+
+func (t *ModernTransport) interruptPending() bool {
+	return atomic.LoadUint32(&t.isr) != 0
 }
 
 // ReinjectIfPending re-asserts the interrupt when ISR is still set, i.e. the

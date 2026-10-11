@@ -33,6 +33,7 @@ type webBackend struct {
 	mu                  sync.Mutex
 	vms                 []VM
 	endpoint            Endpoint
+	listErr             error
 	calls               []string
 	owner, passwordHash string
 }
@@ -41,7 +42,7 @@ func (b *webBackend) List(context.Context, string) ([]VM, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	return append([]VM(nil), b.vms...), nil
+	return append([]VM(nil), b.vms...), b.listErr
 }
 
 func (b *webBackend) Create(_ context.Context, owner, name, hash string) (VM, error) {
@@ -78,6 +79,17 @@ func (b *webBackend) Delete(_ context.Context, owner, id string) error {
 func (b *webBackend) RDP(_ context.Context, owner, id string) (Endpoint, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	owned := false
+	for _, vm := range b.vms {
+		if vm.ID == id && vm.Owner == owner {
+			owned = true
+
+			break
+		}
+	}
+	if !owned {
+		return Endpoint{}, ErrNotFound
+	}
 	b.calls = append(b.calls, "rdp:"+owner+":"+id)
 
 	return b.endpoint, nil

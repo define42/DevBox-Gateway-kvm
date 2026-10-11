@@ -122,6 +122,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	intFlag(&options.manager.MemoryMiB, "memory", config.VM_MEMORY_MIB)
 	intFlag(&options.manager.MemoryBudgetMiB, "memory-budget", config.VM_MEMORY_BUDGET_MIB)
 	intFlag(&options.manager.MaxVMsPerUser, "max-vms-per-user", config.MAX_VDI_PER_USER)
+	intFlag(&options.manager.MaxCreations, "max-creations", config.MAX_CONCURRENT_CREATIONS)
 	intFlag(&options.manager.MaxRunning, "max-running", config.MAX_RUNNING_VMS)
 	flags.Int64Var(
 		&options.manager.MaxImageUploadBytes,
@@ -129,6 +130,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 		s.Int64(config.IMAGE_UPLOAD_MAX_BYTES),
 		description(config.IMAGE_UPLOAD_MAX_BYTES),
 	)
+	durationFlag(&options.gateway.CreationTimeout, "vm-create-timeout", config.VM_CREATE_TIMEOUT)
 	durationFlag(&options.manager.StartTimeout, "vm-start-timeout", config.VM_START_TIMEOUT)
 	durationFlag(&options.manager.StopTimeout, "vm-stop-timeout", config.VM_STOP_TIMEOUT)
 	durationFlag(&options.gateway.UploadTimeout, "image-upload-timeout", config.IMAGE_UPLOAD_TIMEOUT)

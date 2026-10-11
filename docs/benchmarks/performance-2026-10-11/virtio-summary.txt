@@ -1,0 +1,76 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                  │ docs/benchmarks/performance-2026-10-11/virtio.txt │
+                                  │                      sec/op                       │
+BlkWriteFlushGroup/writethrough-4                                        96.80m ±  5%
+BlkWriteFlushGroup/writeback-4                                           3.205m ±  7%
+FramebufferDamage/Full1080p-4                                            3.490m ± 29%
+FramebufferDamage/Small64x32-4                                           4.919µ ±  5%
+FramebufferRead/copy-4                                                   811.3µ ± 24%
+FramebufferRead/immutable-4                                              29.10n ±  3%
+GPUDesktop/Convert-4                                                     2.614m ±  2%
+GPUDesktop/Convert64x64-4                                                13.92µ ±  6%
+GPUDesktop/FlushCursor-4                                                 3.798m ±  1%
+GPUDesktop/TransferFull-4                                                369.2µ ± 15%
+GPUDesktop/TransferBrowser-4                                             444.8µ ± 39%
+NetTx/packets=1/segments=2-4                                             121.0n ±  4%
+NetTx/packets=8/segments=2-4                                             528.2n ±  5%
+NetTx/packets=1/segments=16-4                                            239.5n ±  4%
+geomean                                                                  67.84µ
+
+                                  │ docs/benchmarks/performance-2026-10-11/virtio.txt │
+                                  │                        B/s                        │
+BlkWriteFlushGroup/writethrough-4                                       1.292Mi ±  6%
+BlkWriteFlushGroup/writeback-4                                          39.01Mi ±  6%
+GPUDesktop/TransferFull-4                                               7.936Gi ± 13%
+GPUDesktop/TransferBrowser-4                                            5.146Gi ± 28%
+NetTx/packets=1/segments=2-4                                            11.65Gi ±  4%
+NetTx/packets=8/segments=2-4                                            21.36Gi ±  5%
+NetTx/packets=1/segments=16-4                                           5.887Gi ±  4%
+geomean                                                                 1.163Gi
+
+                                  │ docs/benchmarks/performance-2026-10-11/virtio.txt │
+                                  │                     syncs/op                      │
+BlkWriteFlushGroup/writethrough-4                                          32.00 ± 0%
+BlkWriteFlushGroup/writeback-4                                             1.000 ± 0%
+geomean                                                                    5.657
+
+                                  │ docs/benchmarks/performance-2026-10-11/virtio.txt │
+                                  │                       B/op                        │
+BlkWriteFlushGroup/writethrough-4                                        0.000 ± 0%
+BlkWriteFlushGroup/writeback-4                                           0.000 ± 0%
+FramebufferDamage/Full1080p-4                                            144.0 ± 0%
+FramebufferDamage/Small64x32-4                                           144.0 ± 0%
+FramebufferRead/copy-4                                                 3.000Mi ± 0%
+FramebufferRead/immutable-4                                              0.000 ± 0%
+GPUDesktop/Convert-4                                                     0.000 ± 0%
+GPUDesktop/Convert64x64-4                                                0.000 ± 0%
+GPUDesktop/FlushCursor-4                                               3.000Mi ± 0%
+GPUDesktop/TransferFull-4                                                0.000 ± 0%
+GPUDesktop/TransferBrowser-4                                             0.000 ± 0%
+NetTx/packets=1/segments=2-4                                             0.000 ± 0%
+NetTx/packets=8/segments=2-4                                             0.000 ± 0%
+NetTx/packets=1/segments=16-4                                            0.000 ± 0%
+geomean                                                                             ¹
+¹ summaries must be >0 to compute geomean
+
+                                  │ docs/benchmarks/performance-2026-10-11/virtio.txt │
+                                  │                     allocs/op                     │
+BlkWriteFlushGroup/writethrough-4                                        0.000 ± 0%
+BlkWriteFlushGroup/writeback-4                                           0.000 ± 0%
+FramebufferDamage/Full1080p-4                                            2.000 ± 0%
+FramebufferDamage/Small64x32-4                                           2.000 ± 0%
+FramebufferRead/copy-4                                                   1.000 ± 0%
+FramebufferRead/immutable-4                                              0.000 ± 0%
+GPUDesktop/Convert-4                                                     0.000 ± 0%
+GPUDesktop/Convert64x64-4                                                0.000 ± 0%
+GPUDesktop/FlushCursor-4                                                 2.000 ± 0%
+GPUDesktop/TransferFull-4                                                0.000 ± 0%
+GPUDesktop/TransferBrowser-4                                             0.000 ± 0%
+NetTx/packets=1/segments=2-4                                             0.000 ± 0%
+NetTx/packets=8/segments=2-4                                             0.000 ± 0%
+NetTx/packets=1/segments=16-4                                            0.000 ± 0%
+geomean                                                                             ¹
+¹ summaries must be >0 to compute geomean

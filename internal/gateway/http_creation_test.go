@@ -8,8 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
+	"testing/synctest"
+	"time"
 )
 
 type progressTestBackend struct {
@@ -188,4 +191,95 @@ func TestCreationProgressBrokenStreamCancelsBackend(t *testing.T) {
 	if !canceled {
 		t.Fatal("disconnected progress stream did not cancel provisioning")
 	}
+}
+
+func TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout(t *testing.T) {
+	t.Parallel()
+	s, base, raw, sess := webFixture(t)
+	s.config.CreationTimeout = 2 * time.Second
+	s.config.Backend = &progressTestBackend{webBackend: base, create: func(
+		ctx context.Context, _, _, _, _ string, report func(CreateProgress),
+	) (VM, error) {
+		time.Sleep(100 * time.Millisecond)
+		report(CreateProgress{Phase: "copying", CopiedBytes: 100, TotalBytes: 100})
+
+		return VM{}, ctx.Err()
+	}}
+	server := httptest.NewUnstartedServer(s.routes())
+	server.Config.WriteTimeout = 25 * time.Millisecond
+	server.StartTLS()
+	defer server.Close()
+	r := creationRequest(t, raw, sess.csrf)
+	r.URL, _ = url.Parse(server.URL + "/vms")
+	r.RequestURI = ""
+	response, err := server.Client().Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	decoder := json.NewDecoder(response.Body)
+	for _, phase := range []string{"preparing", "copying", "complete"} {
+		var event creationEvent
+		if err := decoder.Decode(&event); err != nil || event.Phase != phase {
+			t.Fatalf("phase %q: %+v, %v", phase, event, err)
+		}
+	}
+}
+
+func TestCreationDeadlineCancelsBackend(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		s, base, raw, sess := webFixture(t)
+		s.config.CreationTimeout = time.Minute
+		var backendErr error
+		s.config.Backend = &progressTestBackend{webBackend: base, create: func(
+			ctx context.Context, _, _, _, _ string, _ func(CreateProgress),
+		) (VM, error) {
+			<-ctx.Done()
+			backendErr = ctx.Err()
+
+			return VM{}, backendErr
+		}}
+		w := httptest.NewRecorder()
+		s.routes().ServeHTTP(w, creationRequest(t, raw, sess.csrf))
+		if !errors.Is(backendErr, context.DeadlineExceeded) || strings.Contains(w.Body.String(), "complete") {
+			t.Fatalf("creation lifetime not bounded: %v, %s", backendErr, w.Body.String())
+		}
+	})
+}
+
+// Model net/http's non-revivable expired write deadline without wall-clock sleeps.
+type creationDeadlineWriter struct {
+	*httptest.ResponseRecorder
+	deadline time.Time
+}
+
+func (w *creationDeadlineWriter) SetWriteDeadline(deadline time.Time) error {
+	if !w.deadline.IsZero() && !time.Now().Before(w.deadline) {
+		return os.ErrDeadlineExceeded
+	}
+	w.deadline = deadline
+
+	return nil
+}
+
+func TestCreationRestoresDeadlineBetweenProgressWrites(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		s, base, raw, sess := webFixture(t)
+		s.config.CreationTimeout = time.Minute
+		s.config.Backend = &progressTestBackend{webBackend: base, create: func(
+			ctx context.Context, _, _, _, _ string, report func(CreateProgress),
+		) (VM, error) {
+			time.Sleep(35 * time.Second)
+			report(CreateProgress{Phase: "finalizing"})
+
+			return VM{}, ctx.Err()
+		}}
+		w := &creationDeadlineWriter{ResponseRecorder: httptest.NewRecorder()}
+		s.routes().ServeHTTP(w, creationRequest(t, raw, sess.csrf))
+		if !strings.Contains(w.Body.String(), `"phase":"complete"`) {
+			t.Fatalf("healthy long creation expired between writes: %s", w.Body.String())
+		}
+	})
 }

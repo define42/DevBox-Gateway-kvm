@@ -25,9 +25,11 @@ const (
 	VM_MEMORY_MIB              = "VM_MEMORY_MIB"
 	VM_MEMORY_BUDGET_MIB       = "VM_MEMORY_BUDGET_MIB"
 	MAX_VDI_PER_USER           = "MAX_VDI_PER_USER"
+	MAX_CONCURRENT_CREATIONS   = "MAX_CONCURRENT_CREATIONS"
 	MAX_RUNNING_VMS            = "MAX_RUNNING_VMS"
 	IMAGE_UPLOAD_MAX_BYTES     = "IMAGE_UPLOAD_MAX_BYTES"
 	IMAGE_UPLOAD_TIMEOUT       = "IMAGE_UPLOAD_TIMEOUT"
+	VM_CREATE_TIMEOUT          = "VM_CREATE_TIMEOUT"
 	VM_START_TIMEOUT           = "VM_START_TIMEOUT"
 	VM_STOP_TIMEOUT            = "VM_STOP_TIMEOUT"
 	LISTEN_ADDR                = "LISTEN_ADDR"
@@ -107,9 +109,11 @@ func NewSettings(printSettings bool) *Settings {
 	s.SetInt(VM_MEMORY_MIB, "MiB per desktop", 4096)
 	s.SetInt(VM_MEMORY_BUDGET_MIB, "Maximum MiB reserved for running desktops including overhead (0: automatic)", 0)
 	s.SetInt(MAX_VDI_PER_USER, "Desktop quota per account", 3)
+	s.SetInt(MAX_CONCURRENT_CREATIONS, "Maximum simultaneous desktop provisioning operations", 2)
 	s.SetInt(MAX_RUNNING_VMS, "Global running desktop limit", 4)
 	s.SetInt64(IMAGE_UPLOAD_MAX_BYTES, "Maximum uploaded qcow2 file size in bytes", DefaultMaxImageUploadBytes)
 	s.SetDuration(IMAGE_UPLOAD_TIMEOUT, "Maximum image upload and import duration", 30*time.Minute)
+	s.SetDuration(VM_CREATE_TIMEOUT, "Maximum desktop creation duration including queue wait", 30*time.Minute)
 	s.SetDuration(VM_START_TIMEOUT, "Maximum time to wait for a desktop to start", 30*time.Second)
 	s.SetDuration(VM_STOP_TIMEOUT, "Maximum time to wait for a desktop to stop", 30*time.Second)
 

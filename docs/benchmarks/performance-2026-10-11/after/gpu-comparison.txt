@@ -1,0 +1,39 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │ docs/benchmarks/performance-2026-10-11/after/gpu-transfer.txt │
+                                      │                         sec/op                          │                 sec/op                  vs base               │
+ReviewGPUTransfer/1920x1080/Full-4                                                 1.326m ±  4%                              1.294m ± 4%        ~ (p=0.065 n=6)
+ReviewGPUTransfer/1920x1080/Browser-4                                              1.773m ±  3%                              1.139m ± 3%  -35.75% (p=0.002 n=6)
+ReviewGPUTransfer/3840x2160/Full-4                                                 5.538m ± 28%                              5.594m ± 2%        ~ (p=0.310 n=6)
+ReviewGPUTransfer/3840x2160/Browser-4                                             10.875m ±  3%                              5.203m ± 3%  -52.16% (p=0.002 n=6)
+geomean                                                                            3.450m                                    2.559m       -25.81%
+
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │ docs/benchmarks/performance-2026-10-11/after/gpu-transfer.txt │
+                                      │                           B/s                           │                  B/s                   vs base                │
+ReviewGPUTransfer/1920x1080/Full-4                                                5.827Gi ±  4%                            5.972Gi ± 4%         ~ (p=0.065 n=6)
+ReviewGPUTransfer/1920x1080/Browser-4                                             3.712Gi ±  3%                            5.778Gi ± 3%   +55.66% (p=0.002 n=6)
+ReviewGPUTransfer/3840x2160/Full-4                                                5.579Gi ± 39%                            5.523Gi ± 2%         ~ (p=0.310 n=6)
+ReviewGPUTransfer/3840x2160/Browser-4                                             2.628Gi ±  3%                            5.494Gi ± 3%  +109.04% (p=0.002 n=6)
+geomean                                                                           4.220Gi                                  5.688Gi        +34.79%
+
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │ docs/benchmarks/performance-2026-10-11/after/gpu-transfer.txt │
+                                      │                          B/op                           │                 B/op                   vs base                │
+ReviewGPUTransfer/1920x1080/Full-4                                                 0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ReviewGPUTransfer/1920x1080/Browser-4                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ReviewGPUTransfer/3840x2160/Full-4                                                 0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ReviewGPUTransfer/3840x2160/Browser-4                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                       ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                      │ docs/benchmarks/performance-2026-10-11/gpu-transfer.txt │ docs/benchmarks/performance-2026-10-11/after/gpu-transfer.txt │
+                                      │                        allocs/op                        │               allocs/op                vs base                │
+ReviewGPUTransfer/1920x1080/Full-4                                                 0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ReviewGPUTransfer/1920x1080/Browser-4                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ReviewGPUTransfer/3840x2160/Full-4                                                 0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ReviewGPUTransfer/3840x2160/Browser-4                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                       ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

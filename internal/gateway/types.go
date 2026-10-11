@@ -75,6 +75,6 @@ type Config struct {
 	Backend                                      Backend
 	SessionTTL                                   time.Duration
 	MaxImageUploadBytes                          int64
-	UploadTimeout                                time.Duration
+	UploadTimeout, CreationTimeout               time.Duration
 	MaxSessions, MaxConnections                  int
 }

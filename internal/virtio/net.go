@@ -279,10 +279,11 @@ func (v *Net) rxBuffers(q *SplitQueue, head uint16) ([][]byte, int, error) {
 func (v *Net) TxThreadEntry() {
 	log.Println("virtio-net: TxThreadEntry started")
 
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
+	poll := newDevicePoll(10 * time.Millisecond)
+	defer poll.timer.Stop()
 
 	for {
+		active := true
 		select {
 		case <-v.done:
 			log.Println("virtio-net: TxThreadEntry " +
@@ -290,16 +291,14 @@ func (v *Net) TxThreadEntry() {
 
 			return
 		case <-v.txKick:
-			for v.Tx() == nil {
-			}
-
-			_ = v.ReinjectIfPending()
-		case <-ticker.C:
-			for v.Tx() == nil {
-			}
-
-			_ = v.ReinjectIfPending()
+		case <-poll.interruptWake(v.ModernTransport):
+		case <-poll.timer.C:
+			active = false
 		}
+		for v.Tx() == nil {
+		}
+		_ = v.ReinjectIfPending()
+		poll.reset(active || v.interruptPending())
 	}
 }
 

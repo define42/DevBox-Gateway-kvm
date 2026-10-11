@@ -24,7 +24,8 @@ const (
 )
 
 // graphicsState implements the AVC420 subset of MS-RDPEGFX over MS-RDPEDYC.
-// mu serializes negotiation, frame acknowledgments, and complete DVC messages.
+// mu protects negotiation and frame acknowledgments; writeMu orders outgoing
+// frames and resizes without blocking the reader during transport writes.
 // A single reader owns both inbound reassembly buffers.
 type graphicsPendingFrame struct {
 	id     uint32
@@ -33,6 +34,8 @@ type graphicsPendingFrame struct {
 
 type graphicsState struct {
 	mu            sync.Mutex
+	writeMu       sync.Mutex
+	ackGeneration uint64
 	supported     bool
 	ready         bool
 	closed        bool
@@ -178,9 +181,12 @@ func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (b
 	if g == nil {
 		return false, nil
 	}
+	g.writeMu.Lock()
+	defer g.writeMu.Unlock()
 	g.mu.Lock()
-	defer g.mu.Unlock()
-	if !g.canSend() {
+	canSend := g.canSend()
+	g.mu.Unlock()
+	if !canSend {
 		return false, nil
 	}
 	width, height := s.Size()
@@ -196,17 +202,48 @@ func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (b
 	if len(annexB) > avc420MaxPayload(len(regions)) {
 		return false, errors.New("rdp: AVC420 frame and region metadata exceed message limit")
 	}
-	g.frameID++
-	frame := avc420FrameDamage(width, height, g.frameID, graphicsTimestamp(time.Now()), annexB, regions)
-	if err := s.writeGraphics(frame); err != nil {
-		return false, err
+	g.mu.Lock()
+	if !g.canSend() {
+		g.mu.Unlock()
+
+		return false, nil
 	}
-	g.observeFrame(len(frame))
+	g.frameID++
+	frameID, generation := g.frameID, g.ackGeneration
 	if !g.ackOff {
-		g.inFlight = append(g.inFlight, graphicsPendingFrame{id: g.frameID, sentAt: time.Now()})
+		// Reserve before writing: the reader can receive an ACK as the final
+		// transport Write returns. Completion must not reinsert an ACKed frame.
+		g.inFlight = append(g.inFlight, graphicsPendingFrame{id: frameID})
+	}
+	g.mu.Unlock()
+
+	frame := avc420FrameDamage(width, height, frameID, graphicsTimestamp(time.Now()), annexB, regions)
+	err := s.writeGraphics(frame)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	// Suspension and channel close invalidate the old ACK window, including
+	// any frame still being written. Do not restore its pacing state afterward.
+	if generation != g.ackGeneration {
+		return err == nil, err
+	}
+	for i := range g.inFlight {
+		if g.inFlight[i].id != frameID {
+			continue
+		}
+		if err != nil {
+			g.inFlight = append(g.inFlight[:i], g.inFlight[i+1:]...)
+			g.notifyChanged()
+		} else {
+			g.inFlight[i].sentAt = time.Now()
+		}
+
+		break
+	}
+	if err == nil {
+		g.observeFrame(len(frame))
 	}
 
-	return true, nil
+	return err == nil, err
 }
 
 // MS-RDPEGFX encodes UTC time of day, not Unix milliseconds, in START_FRAME.
@@ -314,6 +351,7 @@ func (g *graphicsState) observeFrame(bytes int) {
 }
 
 func (g *graphicsState) resetAcknowledgments() {
+	g.ackGeneration++
 	g.inFlight = nil
 	g.averageBytes = 0
 	g.ackTurnaround = 0
@@ -325,7 +363,9 @@ func (g *graphicsState) adaptAcknowledgments(queueDepth uint32, frame graphicsPe
 	if base <= 0 {
 		base = graphicsMinFrameInterval
 	}
-	if elapsed := now.Sub(frame.sentAt); elapsed > 0 {
+	// An ACK can race the final transport Write returning. Retire that frame
+	// normally, but sample turnaround only after its send completion is known.
+	if elapsed := now.Sub(frame.sentAt); !frame.sentAt.IsZero() && elapsed > 0 {
 		if g.ackTurnaround == 0 {
 			g.ackTurnaround = elapsed
 		} else {

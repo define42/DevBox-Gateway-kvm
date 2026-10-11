@@ -24,6 +24,8 @@ func TestServerRejectsMissingAuthenticationAndUnsafeAddresses(t *testing.T) {
 		{name: "header injection", change: func(c *Config) { c.PublicAddress = "gateway.test\r\nx:443" }},
 		{name: "URL as address", change: func(c *Config) { c.PublicAddress = "https://gateway.test:443" }},
 		{name: "missing public port", change: func(c *Config) { c.PublicAddress = "gateway.test" }},
+		{name: "short creation timeout", change: func(c *Config) { c.CreationTimeout = time.Second }},
+		{name: "unbounded creation timeout", change: func(c *Config) { c.CreationTimeout = 25 * time.Hour }},
 		{name: "unbounded sessions", change: func(c *Config) { c.MaxSessions = 10001 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

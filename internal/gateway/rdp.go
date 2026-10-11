@@ -58,21 +58,7 @@ func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
 	defer stopSession()
 	setupCtx, cancelSetup := context.WithTimeout(connCtx, 10*time.Second)
 	defer cancelSetup()
-	vms, err := s.config.Backend.List(setupCtx, owner)
-	if err != nil {
-		return
-	}
-	owned := false
-	for _, candidate := range vms {
-		if candidate.ID == vm && candidate.Owner == owner {
-			owned = true
-
-			break
-		}
-	}
-	if !owned {
-		return
-	}
+	// Backend.RDP checks ownership on the selected VM without listing unrelated desktops.
 	endpoint, err := s.config.Backend.RDP(setupCtx, owner, vm)
 	if err != nil {
 		return

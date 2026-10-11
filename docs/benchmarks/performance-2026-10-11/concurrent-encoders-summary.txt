@@ -1,0 +1,163 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                             sec/op                             │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                     7.423m ±  3%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                     9.118m ±  7%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                     12.47m ± 11%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     13.22m ±  6%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     15.24m ±  5%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     19.36m ± 15%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                        6.106m ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                        8.851m ± 22%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                        15.41m ±  4%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        5.820m ± 26%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        12.99m ± 15%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        17.78m ± 17%
+geomean                                                                                                  11.15m
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                          bytes/frame                           │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                       107.1 ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                       107.1 ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                       107.1 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     3.608Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     3.608Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     3.608Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                          243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                          243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                          243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        3.722Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        3.722Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        3.722Ki ± 0%
+geomean                                                                                                    778.3
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                           frames/op                            │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                       1.000 ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                       2.000 ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                       4.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                       1.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                       2.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                       4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                          1.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                          2.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                          4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                          1.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                          2.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                          4.000 ± 0%
+geomean                                                                                                    2.000
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                            frames/s                            │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                      134.7 ±  3%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                      219.3 ±  6%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                      320.9 ± 10%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                      75.64 ±  5%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                      131.2 ±  4%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                      206.6 ± 13%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                         163.8 ±  6%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                         226.1 ± 18%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                         259.6 ±  4%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                         171.9 ± 20%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                         153.9 ± 13%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                         224.9 ± 15%
+geomean                                                                                                   179.4
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                         p50-sec/frame                          │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                     7.296m ±  2%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                     8.260m ±  1%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                     9.962m ± 11%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     12.99m ±  3%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     14.30m ±  2%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     16.49m ± 10%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                        6.083m ±  7%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                        7.247m ± 17%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                        11.46m ±  6%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        5.758m ± 20%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        11.52m ± 10%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        13.79m ± 17%
+geomean                                                                                                  9.865m
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                         p95-sec/frame                          │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                     8.762m ±  9%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                     12.91m ± 28%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                     15.38m ±  9%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     15.55m ± 20%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     21.94m ± 27%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     25.77m ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                        6.925m ±  9%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                        9.510m ± 21%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                        16.40m ±  4%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        6.546m ± 68%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        15.31m ± 10%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        19.34m ± 21%
+geomean                                                                                                  13.35m
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                       service-sec/frame                        │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                     7.412m ±  3%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                     8.815m ±  5%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                     11.08m ±  8%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     13.21m ±  6%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     14.87m ±  4%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     17.73m ± 12%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                        6.088m ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                        7.327m ± 20%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                        11.42m ±  6%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        5.808m ± 26%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        11.11m ± 18%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        13.78m ± 16%
+geomean                                                                                                  10.11m
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                         wall-sec/frame                         │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                     7.423m ±  3%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                     4.559m ±  7%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                     3.117m ± 11%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     13.22m ±  6%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     7.622m ±  5%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     4.840m ± 15%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                        6.106m ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                        4.426m ± 22%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                        3.854m ±  4%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        5.820m ± 26%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        6.496m ± 15%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        4.446m ± 17%
+geomean                                                                                                  5.575m
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                              B/op                              │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                     23.12Ki ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                     46.24Ki ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                     92.47Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                     26.70Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                     53.41Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                     106.8Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                          524.0 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                        1.023Ki ± 1%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                        2.048Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                        4.079Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                        8.158Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                        16.33Ki ± 0%
+geomean                                                                                                  11.98Ki
+
+                                                     │ docs/benchmarks/performance-2026-10-11/concurrent-encoders.txt │
+                                                     │                           allocs/op                            │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                                       29.00 ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                                       59.00 ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                                       119.0 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                                       31.00 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                                       63.00 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                                       127.0 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                                          4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                                          8.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                                          16.00 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                                          4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                                          8.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                                          16.00 ± 0%
+geomean                                                                                                    22.05

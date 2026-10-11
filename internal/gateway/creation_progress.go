@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 )
 
-// CreateProgress reports a creation stage and real image-file copy byte counts.
-// Byte counts apply only to the copying phase; phases do not imply percentages.
+// CreateProgress reports a creation stage and logical image-file copy progress,
+// including bytes preserved as sparse holes. Byte counts apply only to copying;
+// phases do not imply percentages.
 type CreateProgress struct {
 	Phase       string `json:"phase"`
 	CopiedBytes int64  `json:"copiedBytes"`
@@ -37,6 +39,18 @@ func reportCreationProgress(ctx context.Context, report func(CreateProgress), pr
 }
 
 func copyFileWithProgress(
+	ctx context.Context, input io.Reader, output io.Writer, total int64, report func(CreateProgress),
+) error {
+	if source, ok := input.(*os.File); ok {
+		if target, ok := output.(*os.File); ok {
+			return copySparseFileWithProgress(ctx, source, target, total, report)
+		}
+	}
+
+	return copyStreamWithProgress(ctx, input, output, total, report)
+}
+
+func copyStreamWithProgress(
 	ctx context.Context, input io.Reader, output io.Writer, total int64, report func(CreateProgress),
 ) error {
 	buffer := make([]byte, 1<<20)

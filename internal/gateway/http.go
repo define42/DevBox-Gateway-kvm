@@ -417,19 +417,26 @@ func (s *Server) createVM(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	if backend, supported := s.config.Backend.(CreationProgressBackend); supported &&
-		r.Header.Get("Accept") == creationProgressMediaType {
-		s.streamCreation(w, r, sess, name, backend)
+	ctx, cancel, err := s.creationContext(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Cannot start desktop creation.", http.StatusInternalServerError)
 
 		return
 	}
-	var err error
+	defer cancel()
+	if backend, supported := s.config.Backend.(CreationProgressBackend); supported &&
+		r.Header.Get("Accept") == creationProgressMediaType {
+		s.streamCreation(ctx, w, r, sess, name, backend)
+
+		return
+	}
+
 	if images, supported := s.config.Backend.(ImageBackend); supported {
-		_, err = images.CreateWithImage(r.Context(), sess.owner, name, sess.passwordHash, r.PostForm.Get("image"))
+		_, err = images.CreateWithImage(ctx, sess.owner, name, sess.passwordHash, r.PostForm.Get("image"))
 	} else if r.PostForm.Get("image") != "" {
 		err = ErrInvalid
 	} else {
-		_, err = s.config.Backend.Create(r.Context(), sess.owner, name, sess.passwordHash)
+		_, err = s.config.Backend.Create(ctx, sess.owner, name, sess.passwordHash)
 	}
 	if err != nil {
 		status, message := backendError(err)

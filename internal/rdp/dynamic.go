@@ -171,7 +171,16 @@ func (s *Session) readDynamic(data []byte) error {
 			g.resetAcknowledgments()
 			g.notifyChanged()
 			g.mu.Unlock()
+			// A frame can already be reserved but still under construction.
+			// Wait for its writer before replying, without retaining state locks.
+			g.writeMu.Lock()
+			defer g.writeMu.Unlock()
 		}
+
+		// Finish an outgoing fragmented message before acknowledging close.
+		// Its sender no longer holds graphics.mu across transport writes.
+		d.writeMu.Lock()
+		defer d.writeMu.Unlock()
 
 		return s.writeStatic(d.channel, []byte{0x40, byte(id)})
 	default:

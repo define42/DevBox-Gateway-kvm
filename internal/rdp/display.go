@@ -115,6 +115,8 @@ func (s *Session) Resize(width, height int) (bool, error) {
 	}
 	width, height = size.Width, size.Height
 	if g := s.graphics; g != nil {
+		g.writeMu.Lock()
+		defer g.writeMu.Unlock()
 		g.mu.Lock()
 		defer g.mu.Unlock()
 	}
@@ -129,7 +131,14 @@ func (s *Session) Resize(width, height int) (bool, error) {
 		// Writes on the graphics DVC are ordered. Retire the old ACK window
 		// without reusing frame IDs, so delayed ACKs cannot acknowledge new frames.
 		deleteSurface := graphicsPDU(0x0a, []byte{0, 0})
-		if err := s.writeGraphics(append(deleteSurface, graphicsSurface(width, height)...)); err != nil {
+		// Keep frame/resize ordering under writeMu, while allowing the reader
+		// to process ACKs and check DisplayReady during a blocked transport.
+		d.mu.Unlock()
+		g.mu.Unlock()
+		err := s.writeGraphics(append(deleteSurface, graphicsSurface(width, height)...))
+		g.mu.Lock()
+		d.mu.Lock()
+		if err != nil {
 			return false, err
 		}
 		g.resetAcknowledgments()
