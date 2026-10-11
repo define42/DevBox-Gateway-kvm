@@ -326,6 +326,11 @@ func backendError(err error) (int, string) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return http.StatusNotFound, "That desktop could not be found."
+	case errors.Is(err, ErrMemoryCapacity):
+		return http.StatusConflict, "Not enough host memory to start this desktop. " +
+			"Stop another desktop or contact your administrator."
+	case errors.Is(err, errMemoryCheck):
+		return http.StatusServiceUnavailable, "Host memory could not be checked. Please contact your administrator."
 	case errors.Is(err, ErrConflict):
 		return http.StatusConflict, "That desktop is busy or has reached a configured limit. Please try again later."
 	case errors.Is(err, ErrInvalid):

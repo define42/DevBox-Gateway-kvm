@@ -19,6 +19,7 @@ func TestDebug(t *testing.T) { // nolint:paralleltest
 	}
 
 	rip := uint64(0x1_000_000)
+	writeTestPoison(t, m, int64(rip))
 	if err := m.SetupRegs(rip, 0x10_000, false); err != nil {
 		t.Fatalf("SetupRegs: got %v, want nil", err)
 	}

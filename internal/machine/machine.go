@@ -109,10 +109,8 @@ const (
 )
 
 const (
-	// Poison is an instruction that should force a vmexit.
-	// it fills memory to make catching guest errors easier.
-	// vmcall, nop is this pattern
-	// Poison = []byte{0x0f, 0x0b, } //0x01, 0xC1, 0x90}
+	// Poison is a diagnostic x86 instruction sequence. Tests and debuggers may
+	// write it explicitly; New leaves guest RAM zero initialized.
 	// Disassembly:
 	// 0:  b8 be ba fe ca          mov    eax,0xcafebabe
 	// 5:  90                      nop
@@ -179,6 +177,7 @@ type Machine struct {
 
 // New creates a new KVM. This includes opening the kvm device, creating VM, creating
 // vCPUs, and attaching memory, disk (if needed), and tap (if needed).
+// Guest RAM is zero initialized and demand-paged rather than eagerly filled.
 func New(kvmPath string, nCpus int, memSize int) (_ *Machine, initErr error) {
 	if nCpus < 1 || nCpus > ebda.MaxVCPUs {
 		return nil, fmt.Errorf("cpu count %d outside 1..%d: %w", nCpus, ebda.MaxVCPUs, ErrBadCPU)
@@ -216,15 +215,6 @@ func New(kvmPath string, nCpus int, memSize int) (_ *Machine, initErr error) {
 
 	if err := m.registerMemory(); err != nil {
 		return nil, err
-	}
-
-	// Preserve diagnostic poison for small VMs. Large VMs remain demand-paged
-	// so creating a 6 GiB guest does not immediately commit 6 GiB of host RAM.
-	// In particular, never touch the reserved PCI MMIO hole.
-	if uint64(memSize) <= guestmem.MMIOStart {
-		for i := highMemBase; i < len(m.mem); i += len(Poison) {
-			copy(m.mem[i:], Poison)
-		}
 	}
 
 	return m, nil

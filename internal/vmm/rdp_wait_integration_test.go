@@ -25,8 +25,11 @@ func TestRDPWaitCancellationPrecedesVCPURun(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = v.Close() })
-	// Running this poisoned memory would produce an immediate CPU failure.
+	// Running these diagnostic instructions would produce an immediate CPU failure.
 	// The readiness barrier must prevent that execution before cancellation.
+	if _, err := v.WriteAt([]byte(machine.Poison), 0x100000); err != nil {
+		t.Fatal(err)
+	}
 	if err := v.SetupRegs(0x100000, 0x10000, false); err != nil {
 		t.Fatal(err)
 	}

@@ -17,6 +17,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
@@ -51,6 +53,12 @@ func newTestManager(t *testing.T, behavior string) *Manager {
 	manager, err := NewManager(managerTestConfig(t, behavior))
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Helper children do not allocate guest RAM; keep lifecycle tests independent
+	// of the test host and its cgroup memory limit.
+	manager.readResident = func(int) (uint64, error) { return 0, nil }
+	manager.readMemory = func() (hostMemory, error) {
+		return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
 	}
 	t.Cleanup(func() {
 		if err := manager.Close(); err != nil {
@@ -117,6 +125,34 @@ func TestManagerOwnershipQuotaAndPersistence(t *testing.T) {
 	if _, err := os.Stat(reopened.directory(first.ID)); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("deleted VM state remains: %v", err)
 	}
+}
+
+func TestManagerCloseReleasesDuplicatedLock(t *testing.T) {
+	t.Parallel()
+	m := newTestManager(t, "graceful")
+	// A child between fork and exec holds the same open file description even
+	// when the descriptor is close-on-exec. Keep that reference alive explicitly.
+	inherited, err := unix.FcntlInt(m.lock.Fd(), unix.F_DUPFD_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := unix.Close(inherited); err != nil {
+			t.Error(err)
+		}
+	})
+	if err := m.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := NewManager(m.config)
+	if err != nil {
+		t.Fatalf("closed manager retained its state lock through an inherited descriptor: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := reopened.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 }
 
 func TestManagerConcurrentStartLimitAndStop(t *testing.T) {

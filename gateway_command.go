@@ -34,6 +34,8 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	flags.StringVar(&manager.Keyboard, "keyboard", "us", "guest keyboard layout")
 	flags.IntVar(&manager.CPUs, "cpus", 2, "vCPUs per desktop")
 	flags.IntVar(&manager.MemoryMiB, "memory", 4096, "MiB per desktop")
+	flags.IntVar(&manager.MemoryBudgetMiB, "memory-budget", 0,
+		"maximum MiB reserved for running desktops including overhead (0: automatic)")
 	flags.IntVar(&manager.MaxVMsPerUser, "max-vms-per-user", 3, "desktop quota per account")
 	flags.IntVar(&manager.MaxRunning, "max-running", 4, "global running desktop limit")
 	flags.Int64Var(&manager.MaxImageUploadBytes, "image-upload-limit", gateway.DefaultMaxImageUploadBytes,

@@ -322,6 +322,13 @@ func TestNewAndLoadEDK2PVH(t *testing.T) { // nolint:paralleltest
 	time.Sleep(15 * time.Second)
 }
 
+func writeTestPoison(t *testing.T, m *machine.Machine, addr int64) {
+	t.Helper()
+	if n, err := m.WriteAt([]byte(machine.Poison), addr); err != nil || n != len(machine.Poison) {
+		t.Fatalf("write diagnostic instructions at %#x: (%d, %v)", addr, n, err)
+	}
+}
+
 // TestHalt tries to run a Halt instruction in 64-bit mode.
 func TestHalt(t *testing.T) {
 	if os.Getuid() != 0 {
@@ -334,6 +341,8 @@ func TestHalt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: got %v, want nil", err)
 	}
+
+	writeTestPoison(t, m, 0x100000)
 
 	if err := m.SetupRegs(0x1_00_000, 0x10_000, true); err != nil {
 		t.Fatalf("SetupRegs: got %v, want nil", err)
@@ -423,18 +432,18 @@ func TestReadWriteAt(t *testing.T) {
 		t.Fatalf("ReedAt(b, %#x): (%d,%v) != (%d,nil)", off, n, err, len(b))
 	}
 
-	if !bytes.Equal(b[:], []byte(machine.Poison)[:4]) {
-		t.Fatalf("ReadAt(b, %#x): %#x != %#x", off, b, machine.Poison)
+	if b != [4]byte{} {
+		t.Fatalf("ReadAt(b, %#x): initial RAM = %#x, want zeroes", off, b)
 	}
 
 	t.Logf("%#x found at %#x", b, off)
 
-	var zeros [8]byte
-	if n, err := m.WriteAt(zeros[:], off); err != nil || n != len(zeros) {
-		t.Fatalf("WriteAt(%#x, %#x): (%d, %v) != (%d, nil)", zeros, off, n, err, len(zeros))
+	data := []byte(machine.Poison)
+	if n, err := m.WriteAt(data, off); err != nil || n != len(data) {
+		t.Fatalf("WriteAt(%#x, %#x): (%d, %v) != (%d, nil)", data, off, n, err, len(data))
 	}
 
-	if n, err := m.WriteAt(zeros[:], 1<<30); !errors.Is(err, syscall.EFBIG) {
+	if n, err := m.WriteAt(data, 1<<30); !errors.Is(err, syscall.EFBIG) {
 		t.Fatalf("WriteAt(_, 1<<30): (%d, %v) != (%d, %v)", n, err, 0, syscall.EFBIG)
 	}
 
@@ -443,8 +452,8 @@ func TestReadWriteAt(t *testing.T) {
 		t.Fatalf("ReedAt(got, %#x): (%d,%v) != (%d,nil)", off, n, err, len(got))
 	}
 
-	if !bytes.Equal(got[:], zeros[:]) {
-		t.Fatalf("ReadAt(b, %#x): %#x != %#x", off, got, zeros)
+	if !bytes.Equal(got[:], data) {
+		t.Fatalf("ReadAt(b, %#x): %#x != %#x", off, got, data)
 	}
 }
 
@@ -544,6 +553,8 @@ func TestSingleStep(t *testing.T) {
 		t.Fatalf("Open: got %v, want nil", err)
 	}
 
+	writeTestPoison(t, m, 0x100000)
+
 	if err := m.SetupRegs(0x1_00_000, 0x10_000, true); err != nil {
 		t.Fatalf("SetupRegs: got %v, want nil", err)
 	}
@@ -628,6 +639,8 @@ func TestTranslate32(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: got %v, want nil", err)
 	}
+
+	writeTestPoison(t, m, 0x100000)
 
 	if err := m.SetupRegs(0x1_00_000, 0x10_000, false); err != nil {
 		t.Fatalf("SetupRegs: got %v, want nil", err)

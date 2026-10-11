@@ -258,6 +258,7 @@ configuration file; configure the executable with these flags.
 | `-keyboard` | `us` | Layout provisioned in newly created guests. |
 | `-cpus` | `2` | vCPUs per desktop, from 1 to 64. |
 | `-memory` | `4096` | MiB per desktop, from 256 to 1048576. |
+| `-memory-budget` | `0` (automatic) | Maximum total MiB reserved for starting and running desktops, including 256 MiB overhead per desktop. An explicit limit can lower the automatic budget. |
 | `-max-vms-per-user` | `3` | Desktop quota per account. |
 | `-max-running` | `4` | Global concurrently running desktop limit. |
 | `-image-upload-limit` | `21474836480` | Maximum bytes per uploaded or normalized catalog file; up to 1 TiB. |
@@ -279,6 +280,35 @@ configuration file; configure the executable with these flags.
 Run `./gokvm serve -help` for the executable's option descriptions. CPU, RAM, and
 encoder settings apply when a VM process starts; they are gateway-wide settings,
 not per-image sizing. Quotas limit VM counts, not total allocated disk bytes.
+
+Before starting the first desktop, the gateway sets its automatic memory budget
+from Linux `MemAvailable`, leaves 1 GiB for the host, and applies any smaller
+`-memory-budget` limit. Visible cgroup v1/v2 memory limits and usage also constrain
+available capacity, including ancestor limits. Each starting or running desktop
+reserves its full configured RAM plus a 256 MiB allowance for runtime/device
+overhead, even when the guest has not touched all of its RAM yet. Concurrent
+starts share this budget; launch failure or child exit releases the reservation.
+The automatic budget is refreshed once all desktops have stopped and another
+start is requested.
+
+Every start also checks current available memory and effective memory limits,
+including existing reservations that are not yet backed by resident anonymous
+pages. Anonymous proportional resident memory from each child's Linux
+`smaps_rollup` is credited so committed RAM is not counted twice; unreadable
+child accounting receives no credit.
+Insufficient capacity leaves the desktop stopped and displays a memory-specific
+error. If host memory cannot be measured, the start is refused. For example:
+
+```bash
+make gateway GATEWAY_ARGS='-memory 4096 -memory-budget 10240'
+```
+
+This caps desktop reservations at 10 GiB, allowing at most two 4 GiB desktops
+(each charged 4352 MiB), subject to available host memory and `-max-running`.
+These checks are admission control, not a hard memory limit or an OS reservation:
+other applications can allocate memory afterward, and actual process overhead
+can exceed the allowance. Guest RAM is fixed while running; there is no memory
+ballooning. Standalone `boot` commands are outside the gateway budget.
 
 For an explicit local-auth development setup:
 

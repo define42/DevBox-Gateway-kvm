@@ -32,8 +32,11 @@ func TestHeadlessBootReturnsCPUFailure(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	// The poisoned RAM deliberately executes UD2 without an IDT, producing a
+	// These diagnostic instructions execute UD2 without an IDT, producing a
 	// fatal exit on the BSP while the second CPU is waiting for startup.
+	if _, err := m.WriteAt([]byte(machine.Poison), 0x100000); err != nil {
+		t.Fatal(err)
+	}
 	if err := m.SetupRegs(0x100000, 0x10000, false); err != nil {
 		t.Fatal(err)
 	}

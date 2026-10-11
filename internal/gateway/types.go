@@ -10,6 +10,7 @@ import (
 var (
 	ErrNotFound       = errors.New("virtual machine not found")
 	ErrConflict       = errors.New("virtual machine operation conflicts with its current state")
+	ErrMemoryCapacity = errors.New("insufficient host memory to start desktop")
 	ErrInvalid        = errors.New("invalid gateway configuration or request")
 	ErrAuthentication = errors.New("authentication failed")
 )

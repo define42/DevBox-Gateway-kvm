@@ -28,6 +28,7 @@ type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	Encoder, Keyboard                                  string
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
+	MemoryBudgetMiB                                    int // Zero selects an automatic host-memory budget.
 	StartTimeout, StopTimeout                          time.Duration
 	MaxImageUploadBytes                                int64
 }
@@ -39,6 +40,10 @@ type Manager struct {
 	mu           sync.Mutex
 	vms          map[string]*managedVM
 	active       int
+	memoryBudget uint64 // Capacity for guest reservations while any VM is active.
+	readMemory   func() (hostMemory, error)
+	readResident func(int) (uint64, error)
+	processes    map[*managedProcess]struct{} // Started children, protected by mu.
 	closed       bool
 	lock         *os.File
 	jobs         sync.WaitGroup
@@ -93,18 +98,18 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 	m := &Manager{
 		config: config, vms: make(map[string]*managedVM), images: make(map[string]Image),
 		imageImports: make(chan struct{}, 1), lock: lock, ctx: ctx, cancel: cancel,
+		readMemory: readHostMemory, readResident: readProcessMemory,
+		processes: make(map[*managedProcess]struct{}),
 	}
 	if err := m.loadImages(); err != nil {
 		cancel()
-		_ = lock.Close()
 
-		return nil, err
+		return nil, errors.Join(err, releaseManagerLock(lock))
 	}
 	if err := m.load(); err != nil {
 		cancel()
-		_ = lock.Close()
 
-		return nil, err
+		return nil, errors.Join(err, releaseManagerLock(lock))
 	}
 
 	return m, nil
@@ -169,6 +174,9 @@ func normalizeManagerLimits(c *ManagerConfig) error {
 	}
 	if c.CPUs < 1 || c.CPUs > 64 || c.MemoryMiB < 256 || c.MemoryMiB > 1048576 || c.MaxVMsPerUser < 1 || c.MaxRunning < 1 {
 		return fmt.Errorf("invalid VM resource limits: %w", ErrInvalid)
+	}
+	if c.MemoryBudgetMiB < 0 || c.MemoryBudgetMiB > 1<<30 {
+		return fmt.Errorf("memory budget must be between 0 and 1073741824 MiB: %w", ErrInvalid)
 	}
 	if c.Encoder == "" {
 		c.Encoder = "auto"
@@ -460,6 +468,11 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 
 		return fmt.Errorf("running desktop limit reached: %w", ErrConflict)
 	}
+	if err := m.checkMemory(); err != nil {
+		m.mu.Unlock()
+
+		return err
+	}
 	m.active++
 	m.jobs.Add(1)
 	m.mu.Unlock()
@@ -472,6 +485,9 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 
 		return err
 	}
+	m.mu.Lock()
+	m.processes[run] = struct{}{}
+	m.mu.Unlock()
 	v.run = run
 	v.record.State, v.record.Error = "starting", ""
 	go m.watch(v, run)
@@ -572,6 +588,7 @@ func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	defer m.jobs.Done()
 	run.err = run.cmd.Wait()
 	m.mu.Lock()
+	delete(m.processes, run)
 	m.active--
 	m.mu.Unlock()
 	close(run.done)
@@ -785,7 +802,10 @@ func (m *Manager) Close() error {
 		}
 		closeWG.Wait()
 		finished := make(chan error, 1)
-		go func() { m.jobs.Wait(); finished <- m.lock.Close() }()
+		go func() {
+			m.jobs.Wait()
+			finished <- releaseManagerLock(m.lock)
+		}()
 		select {
 		case err := <-finished:
 			m.closeErr = errors.Join(errors.Join(errorsByVM...), err)
@@ -795,6 +815,14 @@ func (m *Manager) Close() error {
 	})
 
 	return m.closeErr
+}
+
+func releaseManagerLock(lock *os.File) error {
+	// A concurrently forked child retains this open file description until exec.
+	// Explicitly unlock so those inherited references cannot delay release.
+	unlockErr := unix.Flock(int(lock.Fd()), unix.LOCK_UN)
+
+	return errors.Join(unlockErr, lock.Close())
 }
 
 func privateOwned(info os.FileInfo) bool {

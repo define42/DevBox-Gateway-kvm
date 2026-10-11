@@ -72,6 +72,13 @@ address space below 4 GiB. The requested `-m` value is RAM; the device address
 hole does not reduce it. Allow additional host memory for gokvm and other
 applications.
 
+Guest RAM uses a zero-initialized anonymous mapping outside the Go heap. Startup
+does not fill untouched RAM with diagnostic bytes, so physical pages are acquired
+as the loader, devices, and guest touch them. The mapping remains 2 MiB aligned
+with a transparent-huge-page hint; actual huge-page use depends on the host.
+Gateway-managed starts also enforce the [host-memory budget](gateway.md#serve-options).
+Standalone `boot` does not perform gateway admission checks.
+
 ## UEFI disk boot
 
 `-uefi` starts x86-64 OVMF firmware and executes the EFI bootloader installed on
@@ -291,9 +298,19 @@ eviction.
 
 The qcow2 backend supports standalone v2/v3 images with 16-bit refcounts.
 Backing files, internal snapshots, encryption, compressed or shared data
-clusters, external data files, and extended L2 entries are unsupported. Dirty
-or corrupt images are rejected. Convert an unsupported image to a new standalone
-file with `qemu-img` before attaching it; preserve the original:
+clusters, external data files, persistent bitmaps, and extended L2 entries are
+unsupported. Images marked dirty or corrupt are rejected. Opening an image
+validates header fields, table bounds, mapped-cluster refcounts, and cluster
+ownership; overlapping metadata and guest data are rejected before any writes.
+L1 tables are limited to 32 MiB and refcount tables to 8 MiB.
+
+Failed metadata updates restore the previous mapping before reclaiming newly
+allocated clusters. If recovery also fails, the open image rejects further
+writes and reports the failure on flush; it may need offline repair. This
+recovery handles reported I/O errors and does not provide a power-loss journal.
+
+Convert an unsupported image to a new standalone file with `qemu-img` before
+attaching it; preserve the original:
 
 ```bash
 qemu-img convert -f qcow2 -O qcow2 source.qcow2 guest.qcow2

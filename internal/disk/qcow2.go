@@ -66,7 +66,12 @@ type qcow2RefcountBlock struct {
 }
 
 type qcow2Image struct {
-	file *os.File
+	file    *os.File
+	version uint32
+
+	// Defaults to file; isolates metadata writes for deterministic fault tests.
+	metadataWriter io.WriterAt
+	writeFault     error // Protected by mu; recovery could not restore metadata.
 
 	size        uint64
 	clusterSize uint64
@@ -109,6 +114,7 @@ func (q *qcow2Image) open() error {
 		return err
 	}
 
+	q.version = h.version
 	q.size = h.size
 	q.clusterSize = uint64(1) << h.clusterBits
 	q.l1TableOffset = h.l1TableOffset
@@ -137,7 +143,7 @@ func (q *qcow2Image) open() error {
 		return fmt.Errorf("qcow2: read refcount table: %w", err)
 	}
 
-	return q.validateMappings()
+	return q.validateLayout(h)
 }
 
 func (q *qcow2Image) readHeader() (*qcow2Header, error) {
@@ -183,7 +189,14 @@ func (q *qcow2Image) readHeader() (*qcow2Header, error) {
 		return nil, fmt.Errorf("qcow2: unsupported version %d", h.version)
 	}
 
-	return h, validateHeader(h)
+	if err := validateHeader(h); err != nil {
+		return nil, err
+	}
+	if err := q.validateHeaderCluster(h); err != nil {
+		return nil, err
+	}
+
+	return h, nil
 }
 
 func validateHeader(h *qcow2Header) error {
@@ -267,7 +280,7 @@ func validateHeader(h *qcow2Header) error {
 		return errors.New("qcow2: unaligned metadata table")
 	}
 
-	return nil
+	return validateHeaderGeometry(h)
 }
 
 func (q *qcow2Image) ReadAt(b []byte, off int64) (int, error) {
@@ -326,6 +339,9 @@ func (q *qcow2Image) WriteAt(b []byte, off int64) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
+	if q.writeFault != nil {
+		return 0, q.writeFault
+	}
 
 	if off < 0 {
 		return 0, errors.New("qcow2: negative write offset")
@@ -362,7 +378,10 @@ func (q *qcow2Image) Size() int64 {
 }
 
 func (q *qcow2Image) Sync() error {
-	return q.file.Sync()
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	return errors.Join(q.writeFault, q.file.Sync())
 }
 
 func (q *qcow2Image) Close() error {
@@ -384,7 +403,7 @@ func (q *qcow2Image) hostOffset(guestOff uint64) (uint64, bool, error) {
 		return 0, true, nil
 	}
 
-	if err := validateL2Entry(entry); err != nil {
+	if err := q.validateL2Entry(entry); err != nil {
 		return 0, false, err
 	}
 
@@ -412,7 +431,7 @@ func (q *qcow2Image) ensureWritableCluster(guestOff uint64) (uint64, error) {
 	}
 
 	entry := l2[l2Index]
-	if err := validateL2Entry(entry); err != nil {
+	if err := q.validateL2Entry(entry); err != nil {
 		return 0, err
 	}
 
@@ -431,7 +450,7 @@ func (q *qcow2Image) ensureWritableCluster(guestOff uint64) (uint64, error) {
 	}
 
 	if err := q.updateL2Entry(l1Index, l2Index, clusterOff|qcow2OFlagCopied); err != nil {
-		return 0, err
+		return 0, q.rollbackNewCluster(clusterOff, err)
 	}
 
 	return clusterOff + (guestOff & (q.clusterSize - 1)), nil
@@ -486,22 +505,21 @@ func (q *qcow2Image) ensureL2Table(l1Index uint64) ([]uint64, error) {
 		return q.loadL2(l1Index)
 	}
 
-	l2Off, err := q.allocateCluster()
-	if err != nil {
-		return nil, err
-	}
-
 	l2Len, err := checkedInt(q.l2Entries)
 	if err != nil {
 		return nil, err
 	}
 
-	l2 := make([]uint64, l2Len)
-	q.l2Cache[l1Index] = l2
-
-	if err := q.updateL1Entry(l1Index, l2Off|qcow2OFlagCopied); err != nil {
+	l2Off, err := q.allocateCluster()
+	if err != nil {
 		return nil, err
 	}
+
+	l2 := make([]uint64, l2Len)
+	if err := q.updateL1Entry(l1Index, l2Off|qcow2OFlagCopied); err != nil {
+		return nil, q.rollbackNewCluster(l2Off, err)
+	}
+	q.l2Cache[l1Index] = l2
 
 	return l2, nil
 }
@@ -570,10 +588,7 @@ func (q *qcow2Image) loadL2(l1Index uint64) ([]uint64, error) {
 }
 
 func (q *qcow2Image) updateL1Entry(l1Index, entry uint64) error {
-	var b [8]byte
-
-	binary.BigEndian.PutUint64(b[:], entry)
-	if _, err := q.file.WriteAt(b[:], int64(q.l1TableOffset+l1Index*8)); err != nil {
+	if err := q.writeMetadataEntry(q.l1TableOffset+l1Index*8, q.l1[l1Index], entry); err != nil {
 		return err
 	}
 
@@ -589,10 +604,10 @@ func (q *qcow2Image) updateL2Entry(l1Index, l2Index, entry uint64) error {
 	}
 
 	l2Off := clusterOffset(q.l1[l1Index])
-	var b [8]byte
-
-	binary.BigEndian.PutUint64(b[:], entry)
-	if _, err := q.file.WriteAt(b[:], int64(l2Off+l2Index*8)); err != nil {
+	if l2Off == 0 {
+		return errors.New("qcow2: cannot update an unpublished l2 table")
+	}
+	if err := q.writeMetadataEntry(l2Off+l2Index*8, l2[l2Index], entry); err != nil {
 		return err
 	}
 
@@ -634,8 +649,15 @@ func (q *qcow2Image) allocateCluster() (uint64, error) {
 		return 0, err
 	}
 	if err := q.setRefcount(offset, 1); err != nil {
-		// A failed refcount write must not leave an untracked tail cluster.
-		return 0, errors.Join(err, q.setRefcount(offset, 0), q.file.Truncate(oldSize))
+		// Restore its unused refcount before removing the appended cluster.
+		if restoreErr := q.setRefcount(offset, 0); restoreErr != nil {
+			return 0, q.disableWrites(errors.Join(err, restoreErr))
+		}
+		if truncateErr := q.file.Truncate(oldSize); truncateErr != nil {
+			return 0, q.disableWrites(errors.Join(err, truncateErr))
+		}
+
+		return 0, err
 	}
 
 	return offset, nil
@@ -672,21 +694,24 @@ func (q *qcow2Image) appendRefcountBlock(offset uint64, oldSize int64) error {
 	blockIndex := clusterIndex % q.refcountBlockEntries
 	block := make([]byte, int(q.clusterSize))
 	binary.BigEndian.PutUint16(block[blockIndex*2:], 1)
-	if _, err := q.file.WriteAt(block, int64(offset)); err != nil {
-		return errors.Join(fmt.Errorf("qcow2: append refcount block: %w", err), q.file.Truncate(oldSize))
-	}
-	var entry [8]byte
-	binary.BigEndian.PutUint64(entry[:], offset)
-	tableOffset := int64(q.refcountTableOffset + tableIndex*8)
-	if _, err := q.file.WriteAt(entry[:], tableOffset); err != nil {
-		// Restore the unused table entry before removing its new block.
-		clear(entry[:])
-		_, restoreErr := q.file.WriteAt(entry[:], tableOffset)
-		if restoreErr != nil {
-			return errors.Join(err, restoreErr)
+	if err := q.writeMetadata(block, offset); err != nil {
+		writeErr := fmt.Errorf("qcow2: append refcount block: %w", err)
+		if truncateErr := q.file.Truncate(oldSize); truncateErr != nil {
+			return q.disableWrites(errors.Join(writeErr, truncateErr))
 		}
 
-		return errors.Join(err, q.file.Truncate(oldSize))
+		return writeErr
+	}
+	tableOffset := q.refcountTableOffset + tableIndex*8
+	if err := q.writeMetadataEntry(tableOffset, 0, offset); err != nil {
+		if q.writeFault != nil {
+			return err
+		}
+		if truncateErr := q.file.Truncate(oldSize); truncateErr != nil {
+			return q.disableWrites(errors.Join(err, truncateErr))
+		}
+
+		return err
 	}
 	q.refcountTable[tableIndex] = offset
 	q.cacheRefcountBlock(offset, block)
@@ -763,10 +788,7 @@ func (q *qcow2Image) setRefcount(clusterOff uint64, refcount uint16) error {
 	var b [2]byte
 
 	binary.BigEndian.PutUint16(b[:], refcount)
-	n, err := q.file.WriteAt(b[:], int64(refBlockOff+blockIndex*2))
-	if err == nil && n != len(b) {
-		err = io.ErrShortWrite
-	}
+	err = q.writeMetadata(b[:], refBlockOff+blockIndex*2)
 	if err != nil {
 		// A partial metadata write may have changed the on-disk value. Do not
 		// retain the old value while allocation rollback attempts to repair it.
@@ -818,68 +840,13 @@ func (q *qcow2Image) zeroCluster(clusterOff uint64) error {
 	return err
 }
 
-func (q *qcow2Image) validateMappings() error {
-	for l1Index, entry := range q.l1 {
-		if entry == 0 {
-			continue
-		}
-
-		l2Off := clusterOffset(entry)
-		if l2Off == 0 {
-			return errors.New("qcow2: invalid l1 entry")
-		}
-
-		if l2Off%q.clusterSize != 0 {
-			return errors.New("qcow2: unaligned l2 table")
-		}
-
-		refcount, err := q.refcount(l2Off)
-		if err != nil {
-			return err
-		}
-
-		if refcount != 1 {
-			return fmt.Errorf("qcow2: l2 copy-on-write refcount %d is unsupported", refcount)
-		}
-
-		l2, err := q.loadL2(uint64(l1Index))
-		if err != nil {
-			return err
-		}
-
-		for _, l2Entry := range l2 {
-			if l2Entry == 0 {
-				continue
-			}
-
-			if err := validateL2Entry(l2Entry); err != nil {
-				return err
-			}
-
-			dataOff := clusterOffset(l2Entry)
-			if dataOff == 0 {
-				continue
-			}
-
-			if dataOff%q.clusterSize != 0 {
-				return errors.New("qcow2: unaligned data cluster")
-			}
-
-			refcount, err := q.refcount(dataOff)
-			if err != nil {
-				return err
-			}
-
-			if refcount != 1 {
-				return fmt.Errorf("qcow2: copy-on-write refcount %d is unsupported", refcount)
-			}
-		}
+func (q *qcow2Image) validateL2Entry(entry uint64) error {
+	if q.version == qcow2Version2 && entry&qcow2OFlagZero != 0 {
+		return errors.New("qcow2: zero cluster flag is invalid in version 2")
 	}
-
-	return nil
-}
-
-func validateL2Entry(entry uint64) error {
+	if clusterOffset(entry) == 0 && entry&qcow2OFlagCopied != 0 {
+		return errors.New("qcow2: copied cluster has no host offset")
+	}
 	if entry&qcow2OFlagCompressed != 0 {
 		return errors.New("qcow2: compressed clusters are unsupported")
 	}
@@ -892,10 +859,17 @@ func validateL2Entry(entry uint64) error {
 }
 
 func (q *qcow2Image) readUint64Table(off uint64, entries int) ([]uint64, error) {
-	if entries < 0 || uint64(entries) > uint64(maxInt64)/8 {
+	if entries < 0 || uint64(entries) > qcow2MaxL1Bytes/8 {
 		return nil, errors.New("qcow2: table is too large")
 	}
 
+	info, err := q.file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if err := qcow2FileRange(uint64(info.Size()), off, uint64(entries)*8, "metadata table"); err != nil {
+		return nil, err
+	}
 	buf := make([]byte, entries*8)
 	if _, err := q.file.ReadAt(buf, int64(off)); err != nil {
 		return nil, err

@@ -346,7 +346,7 @@ func TestBlkIOStatusByte(t *testing.T) {
 	q.Desc[2].Addr = 0x3000
 	q.Desc[2].Len = 1
 
-	mem[0x3000] = 0xB8 // poison like machine.New()
+	mem[0x3000] = 0xB8 // poison status byte
 
 	v.VirtQueue[0] = q
 
