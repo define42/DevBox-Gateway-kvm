@@ -46,6 +46,27 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 		}
 	}
 
+	t.Cleanup(func() {
+		if !t.Failed() {
+			return
+		}
+		paths, err := filepath.Glob(filepath.Join(config.DataDir, "vms", "*", "console.log"))
+		if err != nil {
+			t.Logf("find VM console logs: %v", err)
+
+			return
+		}
+		for _, path := range paths {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Logf("read %s: %v", path, err)
+
+				continue
+			}
+			t.Logf("VM console log %s:\n%s", path, data)
+		}
+	})
+
 	return config
 }
 
@@ -281,6 +302,64 @@ func TestManagerStopTimeoutDoesNotKill(t *testing.T) {
 	}
 }
 
+func TestManagerRetainsListenerDuringStartup(t *testing.T) {
+	t.Parallel()
+	m := newTestManager(t, "verify-listener")
+	vm := createManagerVM(t, m, "alice", "desktop")
+	// The child attempts to bind this address before adopting its descriptor.
+	// Startup succeeds only if the reserved listener survived the exec handoff.
+	if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+		t.Fatal(err)
+	}
+	endpoint, err := m.RDP(t.Context(), vm.Owner, vm.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Stop(t.Context(), vm.Owner, vm.ID); err != nil {
+		t.Fatal(err)
+	}
+	managerAssertAddressAvailable(t, endpoint.Address)
+}
+
+func TestManagerStartReportsEarlyExit(t *testing.T) {
+	t.Parallel()
+	m := newTestManager(t, "startup-exit")
+	vm := createManagerVM(t, m, "alice", "desktop")
+	err := m.Start(t.Context(), vm.Owner, vm.ID)
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("startup exit did not preserve the conflict error: %v", err)
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 2 {
+		t.Fatalf("startup exit did not preserve exit status 2: %v", err)
+	}
+	if !strings.Contains(err.Error(), "desktop process exited during startup") ||
+		!strings.Contains(err.Error(), "exit status 2") {
+		t.Fatalf("startup failure omitted the process exit diagnostic: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "console.log"))
+	if err != nil || !strings.Contains(string(data), "forced startup failure") {
+		t.Fatalf("startup console log = %q, %v", data, err)
+	}
+	managerAssertReaped(t, m.directory(vm.ID))
+	data, err = os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.address"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	managerAssertAddressAvailable(t, string(data))
+}
+
+func managerAssertAddressAvailable(t *testing.T, address string) {
+	t.Helper()
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Fatalf("stopped child retained its listener at %s: %v", address, err)
+	}
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestManagerFailedStartupIsReaped(t *testing.T) {
 	t.Parallel()
 	m := newTestManager(t, "no-listener")
@@ -455,11 +534,17 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	if args["-net"] != "user-isolated" {
+	if err := os.WriteFile(filepath.Join(dir, "helper.address"), []byte(args["-rdp"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper address:", err)
 		os.Exit(2)
 	}
-	if behavior != "no-listener" {
-		managerHelperListen(args)
+	if args["-net"] != "user-isolated" {
+		fmt.Fprintln(os.Stderr, "manager helper: expected isolated networking")
+		os.Exit(2)
+	}
+	if err := managerHelperListen(args, behavior); err != nil {
+		fmt.Fprintln(os.Stderr, "manager helper:", err)
+		os.Exit(2)
 	}
 	for received := range signals {
 		if behavior == "no-listener" || behavior == "stubborn" ||
@@ -473,14 +558,44 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 	}
 }
 
-func managerHelperListen(args map[string]string) {
+//nolint:err113 // Standalone test helper diagnostics are logged immediately before exit.
+func managerHelperListen(args map[string]string, behavior string) error {
+	if behavior == "verify-listener" {
+		contender, err := net.Listen("tcp", args["-rdp"])
+		if err == nil {
+			_ = contender.Close()
+
+			return errors.New("reserved RDP address became available before child startup")
+		}
+		if !errors.Is(err, syscall.EADDRINUSE) {
+			return fmt.Errorf("check reserved RDP address: %w", err)
+		}
+	}
+	fd, err := strconv.Atoi(args["-rdp-fd"])
+	if err != nil {
+		return fmt.Errorf("parse inherited RDP descriptor: %w", err)
+	}
+	if fd < 3 {
+		return fmt.Errorf("invalid inherited RDP descriptor %d", fd)
+	}
+	file := os.NewFile(uintptr(fd), "rdp-listener")
+	if file == nil {
+		return errors.New("inherited RDP descriptor is unavailable")
+	}
+	defer file.Close()
+	if behavior == "no-listener" {
+		return nil
+	}
+	if behavior == "startup-exit" {
+		return errors.New("forced startup failure")
+	}
 	certificate, err := tls.LoadX509KeyPair(args["-rdp-cert"], args["-rdp-key"])
 	if err != nil {
-		os.Exit(2)
+		return fmt.Errorf("load RDP certificate: %w", err)
 	}
-	listener, err := net.Listen("tcp", args["-rdp"])
+	listener, err := net.FileListener(file)
 	if err != nil {
-		os.Exit(2)
+		return fmt.Errorf("adopt inherited RDP listener: %w", err)
 	}
 	go func() {
 		for {
@@ -502,4 +617,6 @@ func managerHelperListen(args map[string]string) {
 			}()
 		}
 	}()
+
+	return nil
 }

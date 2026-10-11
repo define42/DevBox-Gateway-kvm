@@ -29,8 +29,11 @@ const rdpResizeDelay = 150 * time.Millisecond
 
 var errRDPEncoder = errors.New("rdp: H.264 encoder must be software, nvenc, or auto and requires H.264")
 
-// RDPConfig selects the server certificate, H.264 AVC420 graphics, and audio playback.
+// RDPConfig selects the listener, server certificate, H.264 AVC420 graphics, and audio playback.
 type RDPConfig struct {
+	// Listener overrides the address passed to NewRDPDisplayWithConfig. The
+	// display owns it on success; the caller retains ownership on failure.
+	Listener    net.Listener
 	TLS         *tls.Config
 	H264        bool
 	H264Encoder string // Empty selects the software encoder.
@@ -123,9 +126,13 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 		config.MinVersion = max(config.MinVersion, tls.VersionTLS12)
 	}
 
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
+	listener := options.Listener
+	if listener == nil {
+		var err error
+		listener, err = net.Listen("tcp", addr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	display := &RDPDisplay{

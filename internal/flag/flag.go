@@ -24,6 +24,8 @@ var ErrRDPStats = errors.New("-rdp-stats requires -rdp")
 
 var ErrRDPWait = errors.New("-rdp-wait requires -rdp")
 
+var ErrRDPFD = errors.New("-rdp-fd must be 0 (disabled) or an inherited TCP listener descriptor >=3 with -rdp")
+
 var ErrNetwork = errors.New("-net must be 'user', 'user-isolated', or 'none' and cannot be combined with -t")
 
 var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires -rdp")
@@ -53,6 +55,7 @@ type BootArgs struct {
 	GPU            string
 	VNC            string
 	RDP            string
+	RDPFD          int
 	RDPWait        bool
 	RDPCert        string
 	RDPKey         string
@@ -95,6 +98,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		`If empty, no VNC server is created. (default "")`)
 	bootCmd.StringVar(&c.RDP, "rdp", "", "RDP console listen address, for example 127.0.0.1:3389 "+
 		"(one connection at a time, TLS, no authentication)")
+	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
+		"inherited TCP listener descriptor (>=3) matching -rdp; 0 opens a new listener")
 	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false, "wait for an RDP client before starting the guest (requires -rdp)")
 	bootCmd.StringVar(&c.RDPCert, "rdp-cert", "",
 		"RDP TLS certificate PEM file (default: temporary self-signed certificate)")
@@ -163,6 +168,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 }
 
 func validateRDPOptions(c *BootArgs, threadsSet, encoderSet bool) error {
+	if c.RDPFD != 0 && (c.RDPFD < 3 || c.RDP == "") {
+		return ErrRDPFD
+	}
 	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDP == "") {
 		return ErrRDPOptions
 	}

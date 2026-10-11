@@ -17,6 +17,79 @@ import (
 
 var _ ConsoleDisplay = (*RDPDisplay)(nil)
 
+func TestRDPDisplayUsesSuppliedListener(t *testing.T) {
+	t.Parallel()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	addr := listener.Addr().String()
+
+	// The address remains bound throughout construction. Rebinding it instead
+	// of using the supplied listener must fail.
+	d, err := NewRDPDisplayWithConfig(addr, RDPConfig{Listener: listener})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d.Close() })
+	if got := d.Addr(); got != addr {
+		t.Fatalf("display address = %q, want supplied listener address %q", got, addr)
+	}
+
+	conn := dialRDPTestDisplay(t, d)
+	response := negotiateRDPTestDisplay(t, conn, 1)
+	if response[11] != 2 || binary.LittleEndian.Uint32(response[15:]) != 1 {
+		t.Fatalf("TLS negotiation response: got %x", response)
+	}
+	secured := tls.Client(conn, rdpTestClientTLS(t, d))
+	if err := secured.Handshake(); err != nil {
+		t.Fatalf("TLS handshake on supplied listener: %v", err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	assertRDPConnectionClosed(t, secured)
+	if conn, err := listener.Accept(); !errors.Is(err, net.ErrClosed) {
+		if conn != nil {
+			_ = conn.Close()
+		}
+		t.Fatalf("listener after display shutdown: %v, want net.ErrClosed", err)
+	}
+}
+
+func TestRDPDisplayInitializationFailurePreservesSuppliedListener(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		options RDPConfig
+		wantErr error
+	}{
+		{name: "encoder", options: RDPConfig{H264: true, H264Encoder: "invalid"}, wantErr: errRDPEncoder},
+		{name: "threads", options: RDPConfig{H264Threads: -1}, wantErr: errRDPThreads},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = listener.Close() })
+			tc.options.Listener = listener
+			d, err := NewRDPDisplayWithConfig(listener.Addr().String(), tc.options)
+			if d != nil {
+				t.Cleanup(func() { _ = d.Close() })
+			}
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("initialization error = %v, want %v", err, tc.wantErr)
+			}
+			if err := listener.Close(); err != nil {
+				t.Fatalf("caller no longer owns listener after initialization failure: %v", err)
+			}
+		})
+	}
+}
+
 func TestRDPDisplayH264Configuration(t *testing.T) {
 	t.Parallel()
 	for _, backend := range []string{"", "software"} {

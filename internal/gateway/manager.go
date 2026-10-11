@@ -512,14 +512,19 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 }
 
 func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
 	if err != nil {
 		return nil, err
 	}
+	defer listener.Close()
 	address := listener.Addr().String()
-	if err := listener.Close(); err != nil {
-		return nil, err
+	// Keep the port bound until exec inherits the socket. Releasing a reserved
+	// address and asking the child to bind it would race other VM startups.
+	listenerFile, err := listener.File()
+	if err != nil {
+		return nil, fmt.Errorf("duplicate RDP listener: %w", err)
 	}
+	defer listenerFile.Close()
 	dir := m.directory(v.record.ID)
 	if err := checkPrivateDirectory(dir); err != nil {
 		return nil, err
@@ -546,11 +551,13 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
 		"-d", filepath.Join(dir, "disk.img"), "-cloud-init", filepath.Join(dir, "seed.iso"),
 		"-c", fmt.Sprint(m.config.CPUs), "-m", fmt.Sprintf("%dM", m.config.MemoryMiB), "-net", "user-isolated",
-		"-rdp", address, "-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
+		"-rdp", address, "-rdp-fd", "3",
+		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
 	cmd.Stdout, cmd.Stderr = logFile, logFile
+	cmd.ExtraFiles = []*os.File{listenerFile} // ExtraFiles[0] is descriptor 3 in the child.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
 	if err := cmd.Start(); err != nil {
 		return nil, err
@@ -572,7 +579,7 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-run.done:
-			return fmt.Errorf("desktop process exited during startup: %w", ErrConflict)
+			return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrConflict))
 		case <-tick.C:
 			probeCtx, cancelProbe := context.WithTimeout(ctx, time.Second)
 			conn, err := dialRDPBackend(probeCtx, run.endpoint)
@@ -584,7 +591,7 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 				}
 				select {
 				case <-run.done:
-					return ErrConflict
+					return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrConflict))
 				default:
 					return nil
 				}

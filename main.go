@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	stdflag "flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/probe"
 	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
+	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -73,6 +75,16 @@ func run(ctx context.Context, args []string) error {
 			NCPUs:          bootArgs.NCPUs,
 			MemSize:        bootArgs.MemSize,
 			TraceCount:     bootArgs.TraceCount,
+		}
+
+		if bootArgs.RDPFD != 0 {
+			// Keep the inherited socket reserved across firmware-requested resets.
+			// Each VMM duplicates it for its own display lifecycle.
+			if _, err := unix.FcntlInt(uintptr(bootArgs.RDPFD), unix.F_SETFD, unix.FD_CLOEXEC); err != nil {
+				return fmt.Errorf("adopt inherited RDP listener: %w", err)
+			}
+			c.RDPListenerFile = os.NewFile(uintptr(bootArgs.RDPFD), "inherited-rdp-listener")
+			defer c.RDPListenerFile.Close()
 		}
 
 		return runBoot(ctx, *c)

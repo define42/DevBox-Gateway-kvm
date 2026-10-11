@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -39,6 +38,8 @@ var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software, nv
 var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
 
 var errRDPWaitConfig = errors.New("RDP boot wait requires an RDP listener")
+
+var errRDPListenerConfig = errors.New("inherited RDP listener requires a matching TCP listen address")
 
 var errUKIBootSource = errors.New("UKI cannot be combined with ISO, kernel, or initrd")
 
@@ -82,6 +83,9 @@ type Config struct {
 	NCPUs          int
 	MemSize        int
 	TraceCount     int
+	// RDPListenerFile is borrowed from the caller, which keeps it open across
+	// guest resets. Each display owns a duplicate; nil binds RDP normally.
+	RDPListenerFile *os.File
 }
 
 type VMM struct {
@@ -106,6 +110,9 @@ func New(c Config) *VMM {
 }
 
 func (v *VMM) validateRDPPerformanceConfig() error {
+	if v.RDPListenerFile != nil && v.RDP == "" {
+		return errRDPListenerConfig
+	}
 	switch v.RDPH264Encoder {
 	case "", "software", "nvenc", "auto":
 	default:
@@ -283,19 +290,7 @@ func (v *VMM) display(input virtio.VNCInput) (result virtio.Display, displayErr 
 		displays = append(displays, display)
 	}
 	if v.RDP != "" {
-		var config *tls.Config
-		if v.RDPCert != "" || v.RDPKey != "" {
-			certificate, err := tls.LoadX509KeyPair(v.RDPCert, v.RDPKey)
-			if err != nil {
-				return nil, fmt.Errorf("RDP certificate: %w", err)
-			}
-			config = &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12}
-		}
-		display, err := virtio.NewRDPDisplayWithConfig(v.RDP, virtio.RDPConfig{
-			TLS: config, H264: v.RDPH264, Audio: v.Audio == "rdp",
-			H264Encoder: v.RDPH264Encoder,
-			H264Threads: v.RDPH264Threads, Stats: v.RDPStats, GuestCPUs: v.NCPUs,
-		})
+		display, err := v.newRDPDisplay()
 		if err != nil {
 			return nil, err
 		}
