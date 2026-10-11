@@ -26,7 +26,8 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	var ldap gateway.LDAPConfig
 	var authFile string
 	flags.StringVar(&manager.DataDir, "state", ".gokvm-gateway", "private persistent VM state directory")
-	flags.StringVar(&manager.BaseImage, "image", "", "immutable standalone raw or uncompressed qcow2 base image")
+	flags.StringVar(&manager.BaseImage, "image", "",
+		"optional immutable raw or uncompressed qcow2 default image; otherwise use admin uploads")
 	flags.StringVar(&manager.Firmware, "uefi", "/usr/share/OVMF/OVMF_CODE_4M.fd", "OVMF CODE firmware")
 	flags.StringVar(&manager.VarsTemplate, "uefi-vars-template", "/usr/share/OVMF/OVMF_VARS_4M.fd",
 		"matching pristine OVMF variables template")
@@ -66,7 +67,9 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	if (authFile == "") == (ldap.URL == "") {
 		return fmt.Errorf("choose either -ldap-url or -auth-file: %w", errCommandUsage)
 	}
-	config.DesktopImage = filepath.Base(manager.BaseImage)
+	if manager.BaseImage != "" {
+		config.DesktopImage = filepath.Base(manager.BaseImage)
+	}
 	config.DesktopCPUs, config.DesktopMemoryMiB = manager.CPUs, manager.MemoryMiB
 	config.MaxImageUploadBytes = manager.MaxImageUploadBytes
 	var err error

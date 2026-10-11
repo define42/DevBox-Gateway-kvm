@@ -19,6 +19,8 @@
   let previousRTT = null;
   let jitter = 0;
   let disabledButtons = new Map();
+  let imagesAvailable = Array.from(document.getElementById("vm-base-image").options)
+    .some((option) => option.value !== "");
 
   function enableInfo() {
     list.querySelectorAll("[data-info]").forEach((button) => { button.hidden = false; });
@@ -60,9 +62,17 @@
     actions.replaceChildren(alert);
   }
 
+  function updateCreateAvailability() {
+    const disabled = pending || !imagesAvailable;
+    openCreate.setAttribute("aria-disabled", String(disabled));
+    openCreate.classList.toggle("disabled", disabled);
+    openCreate.tabIndex = disabled ? -1 : 0;
+    document.getElementById("empty-images-notice").hidden = imagesAvailable;
+  }
+
   function busy(value, creating = false) {
     pending = value;
-    openCreate.setAttribute("aria-disabled", String(value));
+    updateCreateAvailability();
     if (value) {
       disabledButtons = new Map();
       const controls = Array.from(document.querySelectorAll("button"));
@@ -135,7 +145,9 @@
       select.prepend(placeholder);
       select.value = "";
     }
-    const unavailable = !Array.from(select.options).some((option) => option.value !== "");
+    imagesAvailable = Array.from(select.options).some((option) => option.value !== "");
+    updateCreateAvailability();
+    const unavailable = !imagesAvailable;
     const button = document.getElementById("create-button");
     if (pending) disabledButtons.set(button, unavailable);
     else button.disabled = unavailable;
@@ -165,7 +177,7 @@
   openCreate.setAttribute("aria-haspopup", "dialog");
   openCreate.addEventListener("click", (event) => {
     event.preventDefault();
-    if (pending) return;
+    if (pending || !imagesAvailable) return;
     document.getElementById("create-error").hidden = true;
     document.getElementById("create-progress").hidden = true;
     showModal("create-modal", "vm-name");

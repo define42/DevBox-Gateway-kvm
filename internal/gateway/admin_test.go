@@ -17,6 +17,7 @@ type adminTestBackend struct {
 	*webBackend
 	imported, selected, deleted string
 	content                     []byte
+	images                      []Image
 }
 
 func (b *adminTestBackend) ListAll(ctx context.Context) ([]VM, error) { return b.List(ctx, "") }
@@ -35,10 +36,7 @@ func (b *adminTestBackend) GetAny(ctx context.Context, id string) (VM, error) {
 }
 
 func (b *adminTestBackend) Images(context.Context) ([]Image, error) {
-	return []Image{
-		{ID: "default", Name: "default.qcow2", Default: true},
-		{ID: "custom", Name: "Rocky workstation.qcow2"},
-	}, nil
+	return append([]Image(nil), b.images...), nil
 }
 
 func (b *adminTestBackend) ImportImage(_ context.Context, name string, input io.Reader) (Image, error) {
@@ -47,8 +45,10 @@ func (b *adminTestBackend) ImportImage(_ context.Context, name string, input io.
 		return Image{}, err
 	}
 	b.imported, b.content = name, content
+	image := Image{ID: "custom", Name: name}
+	b.images = append(b.images, image)
 
-	return Image{ID: "custom", Name: name}, nil
+	return image, nil
 }
 
 func (b *adminTestBackend) DeleteImage(_ context.Context, id string) error {
@@ -66,7 +66,13 @@ func (b *adminTestBackend) CreateWithImage(ctx context.Context, owner, name, has
 func adminFixture(t *testing.T) (*Server, *adminTestBackend, string, browserSession) {
 	t.Helper()
 	s, base, _, _ := webFixture(t)
-	backend := &adminTestBackend{webBackend: base}
+	backend := &adminTestBackend{
+		webBackend: base,
+		images: []Image{
+			{ID: "default", Name: "default.qcow2", Default: true},
+			{ID: "custom", Name: "Rocky workstation.qcow2"},
+		},
+	}
 	s.config.Backend = backend
 	raw, err := s.newIdentitySession(Identity{Username: "alice", IsAdmin: true}, "127.0.0.1", "hash")
 	if err != nil {
@@ -227,6 +233,68 @@ func TestAdminUploadAuthorizesBeforeReadingBody(t *testing.T) {
 		if w.Code != http.StatusSeeOther && w.Code != http.StatusForbidden {
 			t.Fatalf("authorization status %d", w.Code)
 		}
+	}
+}
+
+func TestDashboardWithEmptyCatalog(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, guidance string
+		admin          bool
+	}{
+		{name: "administrator", admin: true, guidance: `href="/admin#base-images-panel"`},
+		{name: "ordinary user", guidance: "Ask an administrator to upload a QCOW2 image"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			s, backend, _, _ := adminFixture(t)
+			backend.images = nil
+			raw, err := s.newIdentitySession(Identity{Username: "alice", IsAdmin: tc.admin}, "127.0.0.1", "hash")
+			if err != nil {
+				t.Fatal(err)
+			}
+			result := webRequest(s, http.MethodGet, "/", raw, nil)
+			body := result.Body.String()
+			if result.Code != http.StatusOK || !strings.Contains(body, tc.guidance) ||
+				!strings.Contains(body, `id="open-create-button" href="#create-fallback" aria-disabled="true"`) ||
+				!strings.Contains(body, `id="create-button" type="submit" disabled`) {
+				t.Fatalf("empty catalog did not explain how to enable creation: %d %s", result.Code, body)
+			}
+			if !strings.Contains(body, "my-work") {
+				t.Fatal("empty catalog hid an existing DevBox")
+			}
+			if !tc.admin && strings.Contains(body, `href="/admin#base-images-panel"`) {
+				t.Fatal("ordinary user was directed to an administrator-only upload page")
+			}
+		})
+	}
+}
+
+func TestAdminCanUploadFirstImage(t *testing.T) {
+	t.Parallel()
+	s, backend, raw, sess := adminFixture(t)
+	backend.images = nil
+	result := webRequest(s, http.MethodGet, "/admin", raw, nil)
+	if result.Code != http.StatusOK || !strings.Contains(result.Body.String(), `id="image-upload-form"`) ||
+		!strings.Contains(result.Body.String(), "No base images available. Upload an image") {
+		t.Fatalf("empty catalog prevented administration: %d %s", result.Code, result.Body.String())
+	}
+	result = uploadRequest(t, s, raw, sess.csrf, catalogQCOW2("first upload"), false, false)
+	if result.Code != http.StatusSeeOther {
+		t.Fatalf("first upload failed: %d %s", result.Code, result.Body.String())
+	}
+	result = webRequest(s, http.MethodGet, "/", raw, nil)
+	body := result.Body.String()
+	if result.Code != http.StatusOK || !strings.Contains(body, `value="custom"`) ||
+		!strings.Contains(body, `id="open-create-button" href="#create-fallback" aria-disabled="false"`) ||
+		!strings.Contains(body, `id="empty-images-notice" role="status" hidden`) ||
+		strings.Contains(body, `id="create-button" type="submit" disabled`) {
+		t.Fatalf("first upload did not enable creation: %d %s", result.Code, body)
+	}
+	form := url.Values{"csrf": {sess.csrf}, "name": {"first"}, "image": {"custom"}}
+	result = webRequest(s, http.MethodPost, "/vms", raw, form)
+	if result.Code != http.StatusSeeOther || backend.selected != "custom" || backend.owner != "alice" {
+		t.Fatalf("first image was not used for creation: %d %q %q", result.Code, backend.selected, backend.owner)
 	}
 }
 

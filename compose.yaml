@@ -1,0 +1,88 @@
+name: devbox-gateway-kvm
+
+services:
+  certificates:
+    build:
+      context: .
+      target: certificates
+    image: devbox-gateway-kvm:certificates
+    network_mode: none
+    environment:
+      GATEWAY_HOST: ${GATEWAY_HOST:-localhost}
+    volumes:
+      - gateway-tls:/certs/gateway
+      - ldap-tls:/certs/ldap
+    restart: "no"
+
+  ldap:
+    image: glauth/glauth@sha256:6d448805cf54fc2ca3bca2b87f89dffe571a354a69a667b5a910111be3cf430e
+    depends_on:
+      certificates:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    volumes:
+      - ldap-tls:/app/config:ro
+
+  gateway:
+    build:
+      context: .
+      target: runtime
+    image: devbox-gateway-kvm:local
+    platform: linux/amd64
+    depends_on:
+      certificates:
+        condition: service_completed_successfully
+      ldap:
+        condition: service_started
+    restart: unless-stopped
+    stop_grace_period: 45s
+    devices:
+      - /dev/kvm:/dev/kvm
+    group_add:
+      - "${KVM_GID:?Run ./docker/configure.sh to detect the host KVM group}"
+    ports:
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-8443}:8443"
+    volumes:
+      - gateway-state:/var/lib/gokvm
+      - gateway-tls:/etc/gokvm/tls:ro
+    command:
+      - serve
+      - -state
+      - /var/lib/gokvm
+      - -listen
+      - 0.0.0.0:8443
+      - -public-address
+      - ${GATEWAY_HOST:-localhost}:${GATEWAY_PORT:-8443}
+      - -tls-cert
+      - /etc/gokvm/tls/cert.pem
+      - -tls-key
+      - /etc/gokvm/tls/key.pem
+      - -ldap-url
+      - ldaps://ldap:389
+      - -ldap-base-dn
+      - dc=glauth,dc=com
+      - -ldap-domain
+      - example.com
+      - -ldap-filter
+      - (mail=%s)
+      - -ldap-username-attribute
+      - mail
+      - -ldap-required-group
+      - ou=team10_r,ou=groups,dc=glauth,dc=com
+      - -ldap-admin-group
+      - devbox-admins
+      - -ldap-ca
+      - /etc/gokvm/tls/ldap-ca.pem
+      - -encoder
+      - ${GATEWAY_ENCODER:-auto}
+      - -cpus
+      - "${GATEWAY_CPUS:-2}"
+      - -memory
+      - "${GATEWAY_MEMORY:-4096}"
+      - -max-running
+      - "${GATEWAY_MAX_RUNNING:-4}"
+
+volumes:
+  gateway-state:
+  gateway-tls:
+  ldap-tls:

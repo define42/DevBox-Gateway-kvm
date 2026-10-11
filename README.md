@@ -72,11 +72,15 @@ git clone https://github.com/define42/DevBox-Gateway-kvm.git
 cd DevBox-Gateway-kvm
 ```
 
-The example uses **Rocky Linux 9 with XFCE**. From
+The gateway can start with an empty image catalog; no desktop image is required
+at startup. Prepare a sample now or upload your own compatible QCOW2 image later
+through **Admin → Base Images**.
+
+The sample uses **Rocky Linux 9 with XFCE**. From
 [DevBox-Gateway v2.4.16](https://github.com/define42/DevBox-Gateway/releases/tag/v2.4.16),
 download both `rocky9-xfce-v2.4.16.img.part-*` files and
 `rocky9-xfce-v2.4.16.img.sha256` into this directory. Reassemble, verify, and
-convert to the filename expected by the Make targets:
+convert to a QCOW2 file for upload or standalone `make qcow2` use:
 
 ```bash
 cat rocky9-xfce-v2.4.16.img.part-* > rocky9-xfce-v2.4.16.img
@@ -87,7 +91,8 @@ sha256sum --check rocky9-xfce-v2.4.16.img.sha256 && \
 
 The release's `.img` is a QCOW2 disk despite its extension. If you already have
 `rocky9-xfce-v2.4.16.qcow2`, skip reconstruction and conversion. Another compatible
-image can be selected with `QCOW2_IMAGE=/path/to/desktop.qcow2`.
+image can be uploaded through **Admin**. For standalone boot, select it with
+`make qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2`.
 
 ### Start the gateway
 
@@ -95,10 +100,10 @@ image can be selected with `QCOW2_IMAGE=/path/to/desktop.qcow2`.
 make gateway
 ```
 
-This starts the bundled LDAP directory, builds gokvm, prepares a separate base
-image under `.gokvm-gateway/`, and serves the gateway on **https://localhost:8443**.
-It preserves the source image. For this local setup, accept the generated
-self-signed certificate in your browser and RDP client.
+This starts the bundled LDAP directory, builds gokvm, and serves the gateway on
+**https://localhost:8443**. A new state directory has an empty image catalog.
+For this local setup, accept the generated self-signed certificate in your
+browser and RDP client.
 
 Sign in with one of the public development accounts:
 
@@ -111,13 +116,15 @@ Sign in with one of the public development accounts:
 These accounts are for local development. See [LDAP setup](testldap/README.md)
 for directory configuration and group membership.
 
-1. Select **Create DevBox**, enter a name, and choose a base image. The progress
-   bar reports disk preparation and configuration.
-2. Select **Start**. A **running** state means the RDP console is available;
+1. Sign in as `administrator`, open **Admin → Base Images**, and upload a
+   compatible QCOW2 desktop image. The gateway validates and prepares it for use.
+2. Sign in as a desktop user, select **Create DevBox**, enter a name, and choose
+   an uploaded image. The progress bar reports disk preparation and configuration.
+3. Select **Start**. A **running** state means the RDP console is available;
    Linux and cloud-init may still be starting.
-3. Select **RDP**, then open the downloaded file in your client within two minutes.
+4. Select **RDP**, then open the downloaded file in your client within two minutes.
    Keep the file's generated username unchanged: it carries a connection proof.
-4. At the Linux graphical login, enter the username and password used to sign
+5. At the Linux graphical login, enter the username and password used to sign
    in to the gateway when you created the VM.
 
 Download a fresh RDP file when reconnecting. The file contains no account
@@ -139,6 +146,29 @@ Shut down desktops before stopping the gateway when guest application state
 matters. Stopping the gateway also stops its VM processes; saved desktops remain
 on disk and can be started again. The development LDAP service stays running
 until you run `make ldap-stop`.
+
+### Run in Docker
+
+On an x86-64 Linux host with Docker Compose and `/dev/kvm`, start both the
+gateway and development LDAP directory:
+
+```bash
+./docker/configure.sh
+docker compose up --build -d
+```
+
+Open **https://localhost:8443**, accept the local self-signed certificate, and
+sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload
+a QCOW2 desktop image; users can then select it in **Create DevBox**. The catalog
+starts empty. Templates are stored under `/var/lib/gokvm/images` in the
+`gateway-state` volume, alongside persistent desktop state. The stack generates
+TLS certificates in separate named volumes. `docker compose down` stops and
+removes the services while preserving those volumes.
+
+The `scratch`-based gateway image includes OVMF, `qemu-img`, and NVENC support
+with automatic software fallback. The [Docker guide](docs/docker.md) covers
+image uploads, storage, configuration, external LDAP/TLS, and the optional
+`compose.nvidia.yaml` override for NVIDIA GPUs.
 
 ## Features and behavior
 
@@ -163,9 +193,9 @@ and **20 GiB per uploaded image**, with a **30-minute upload/import request
 limit**. These are configurable. The host must have sufficient resources; these
 limits are not a host resource scheduler or disk quota system.
 
-The configured default base image is protected from removal. Uploaded templates
-can be removed without deleting existing desktops because each desktop has its
-own disk. Deleting a stopped desktop permanently removes its disk and firmware
+The image catalog can be empty, including after removing its last template.
+Uploaded templates can be removed without deleting existing desktops because
+each desktop has its own disk. Deleting a stopped desktop permanently removes its disk and firmware
 state. The [gateway guide](docs/gateway.md) covers storage, image validation,
 configuration flags, shutdown behavior, and backups.
 

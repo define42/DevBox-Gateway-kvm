@@ -39,6 +39,73 @@ func catalogQCOW2(marker string) []byte {
 	return data
 }
 
+func TestImageCatalogWithoutDefaultImage(t *testing.T) {
+	t.Parallel()
+	config := managerTestConfig(t, "graceful")
+	config.BaseImage = ""
+	m, err := NewManager(config)
+	if err != nil {
+		t.Fatalf("start without a base image: %v", err)
+	}
+	defer m.Close()
+	images, err := m.Images(t.Context())
+	if err != nil || len(images) != 0 {
+		t.Fatalf("initial catalog = %+v, %v", images, err)
+	}
+	hash := seedHelperPasswordHash()
+	if _, err := m.Create(t.Context(), "alice", "selected", hash); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("created VM without a template: %v", err)
+	}
+	entries, err := os.ReadDir(filepath.Join(config.DataDir, "vms"))
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("failed creation left VM state: %v, %v", entries, err)
+	}
+	image, err := m.ImportImage(t.Context(), "Rocky Desktop.qcow2", bytes.NewReader(catalogQCOW2("selected image")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.CreateWithImage(t.Context(), "alice", "selected", hash, ""); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("creation without a default did not require an image selection: %v", err)
+	}
+	vm, err := m.CreateWithImage(t.Context(), "alice", "selected", hash, image.ID)
+	if err != nil {
+		t.Fatalf("create from the first uploaded image: %v", err)
+	}
+	assertSelectedImageData(t, m, vm)
+	if err := m.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := NewManager(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	images, err = reopened.Images(t.Context())
+	if err != nil || len(images) != 1 || images[0] != image || images[0].Default {
+		t.Fatalf("uploaded catalog did not persist: %+v, %v", images, err)
+	}
+	if err := reopened.DeleteImage(t.Context(), image.ID); err != nil {
+		t.Fatalf("delete the last template: %v", err)
+	}
+	if err := reopened.Close(); err != nil {
+		t.Fatal(err)
+	}
+	again, err := NewManager(config)
+	if err != nil {
+		t.Fatalf("reopen an empty catalog with an existing VM: %v", err)
+	}
+	defer again.Close()
+	images, err = again.Images(t.Context())
+	if err != nil || len(images) != 0 {
+		t.Fatalf("deleted template reappeared: %+v, %v", images, err)
+	}
+	saved, err := again.GetAny(t.Context(), vm.ID)
+	if err != nil || saved.ImageID != image.ID || saved.ImageName != image.Name {
+		t.Fatalf("existing VM lost its source image metadata: %+v, %v", saved, err)
+	}
+	assertSelectedImageData(t, again, saved)
+}
+
 func TestImageCatalogImportSelectionPersistenceAndDeletion(t *testing.T) {
 	t.Parallel()
 	m := newTestManager(t, "graceful")

@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -124,6 +125,56 @@ func TestManagerOwnershipQuotaAndPersistence(t *testing.T) {
 	}
 	if _, err := os.Stat(reopened.directory(first.ID)); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("deleted VM state remains: %v", err)
+	}
+}
+
+func TestManagerReloadWithoutConfiguredBaseImage(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		legacy bool
+	}{
+		{name: "saved image metadata"},
+		{name: "legacy VM", legacy: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			m := newTestManager(t, "graceful")
+			vm := createManagerVM(t, m, "alice", "existing")
+			if test.legacy {
+				vm.ImageID, vm.ImageName = "", ""
+				data, err := json.Marshal(vm)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(m.directory(vm.ID), "vm.json"), data, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := m.Close(); err != nil {
+				t.Fatal(err)
+			}
+			config := m.config
+			if err := os.Remove(config.BaseImage); err != nil {
+				t.Fatal(err)
+			}
+			config.BaseImage = ""
+			reopened, err := NewManager(config)
+			if err != nil {
+				t.Fatalf("reload VM after removing the default template: %v", err)
+			}
+			defer reopened.Close()
+			loaded, err := reopened.GetAny(t.Context(), vm.ID)
+			if err != nil || loaded.ImageID != DefaultImageID || loaded.ImageName != vm.ImageName {
+				t.Fatalf("VM source metadata = %+v, %v", loaded, err)
+			}
+			// The helper child does not allocate guest RAM.
+			reopened.readMemory = m.readMemory
+			reopened.readResident = m.readResident
+			if err := reopened.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+				t.Fatalf("start an existing VM without its source template: %v", err)
+			}
+		})
 	}
 }
 

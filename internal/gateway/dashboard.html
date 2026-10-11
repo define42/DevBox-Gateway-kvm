@@ -27,12 +27,15 @@
               </div>
               <div class="dashboard-actions d-flex flex-wrap align-items-center gap-2">
                 {{if .Admin}}<a class="btn btn-outline-primary btn-sm" id="admin-view-link" href="/admin"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Admin</a>{{end}}
-                <a class="btn btn-primary" id="open-create-button" href="#create-fallback"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create DevBox</a>
+                <a class="btn btn-primary{{if not .Images}} disabled{{end}}" id="open-create-button" href="#create-fallback" aria-disabled="{{not .Images}}"{{if not .Images}} tabindex="-1"{{end}}><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create DevBox</a>
                 <form method="post" action="/logout" class="m-0">
                   <input type="hidden" name="csrf" value="{{.CSRF}}">
                   <button class="btn btn-outline-secondary btn-sm" type="submit" title="Log out {{.User}}"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Logout</button>
                 </form>
               </div>
+            </div>
+            <div class="alert alert-info mt-3" id="empty-images-notice" role="status"{{if .Images}} hidden{{end}}>
+              No base images are available yet. {{if .Admin}}<a class="alert-link" href="/admin#base-images-panel">Upload a QCOW2 image in Admin → Base Images</a> to enable new DevBoxes.{{else}}Ask an administrator to upload a QCOW2 image before creating a DevBox.{{end}}
             </div>
             <div id="action-area" class="mt-3" aria-live="polite">{{if .Message}}<div class="alert alert-danger mb-0" role="alert">{{.Message}}</div>{{end}}</div>
             <div id="vm-list" class="mt-3">

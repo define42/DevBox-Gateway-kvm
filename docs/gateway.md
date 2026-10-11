@@ -11,10 +11,11 @@ for host requirements and the project overview.
 
 ## Local development setup
 
-The example uses `rocky9-xfce-v2.4.16.qcow2` in the repository root, matching OVMF
-CODE/VARS files, Docker with the Compose plugin, OpenSSL, and `qemu-img` from
-`qemu-utils`. The `make gateway` target builds with cgo and the `nvenc` tag, so it
-also requires a C compiler, `pkg-config`, and FFmpeg development libraries
+The example uses matching OVMF CODE/VARS files, Docker with the Compose plugin,
+OpenSSL, and `qemu-img` from `qemu-utils` for image uploads that need conversion.
+No desktop image is required at startup. The `make gateway` target builds with
+cgo and the `nvenc` tag, so it also requires a C compiler, `pkg-config`, and
+FFmpeg development libraries
 (`libavcodec-dev` and `libavutil-dev` on Debian/Ubuntu). Its default encoder is
 `auto`: NVIDIA encoding is used when available, with software fallback.
 
@@ -38,16 +39,17 @@ separately and `make ldap-stop` to stop it. See the
 [LDAP setup](../testldap/README.md) for every demo account, certificate handling,
 external-directory variables, and authentication tests.
 
-The Make target converts the source image once into its separate default base,
-then reuses that base. It preserves the original download and the working disk
-used by `make qcow2`. `qemu-img` performs image conversion only; gokvm runs the
-VMs.
+A new gateway starts with an empty image catalog in `.gokvm-gateway/images`.
+Sign in as `administrator`, open **Admin → Base Images**, and upload a compatible
+QCOW2 desktop image. Users can then select it when creating a desktop. Templates
+and desktop disks persist across restarts. `qemu-img` performs image conversion
+only; gokvm runs the VMs.
 
 | Make variable | Default | Purpose |
 | --- | --- | --- |
-| `QCOW2_IMAGE` | `./rocky9-xfce-v2.4.16.qcow2` | Source used when creating the gateway base. |
+| `QCOW2_IMAGE` | `./rocky9-xfce-v2.4.16.qcow2` | Source used only when an explicit `GATEWAY_IMAGE` needs creating. |
 | `GATEWAY_STATE` | `./.gokvm-gateway` | Private persistent state. |
-| `GATEWAY_IMAGE` | `$(GATEWAY_STATE)/base.qcow2` | Protected default image; created if absent. |
+| `GATEWAY_IMAGE` | Empty | Optional protected default image; if set and absent, converted from `QCOW2_IMAGE`. |
 | `GATEWAY_ARGS` | Empty | Additional `serve` flags. |
 | `OVMF_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | Firmware code. |
 | `OVMF_VARS` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | Matching pristine variables template. |
@@ -55,20 +57,26 @@ VMs.
 | `LDAP_PORT` | `1636` | Bundled directory's host port. |
 
 The Make variables configure this example; the executable itself takes CLI
-flags.
+flags. To opt into a preconfigured protected default, for example:
+
+```bash
+make gateway GATEWAY_IMAGE=./.gokvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2
+```
+
+This prepares the destination once if absent, then reuses it. The original
+source and the working disk used by `make qcow2` are preserved. Without
+`GATEWAY_IMAGE`, the gateway uses only its uploaded catalog.
 
 ### Build without NVENC
 
 To use the bundled software encoder without a C compiler or native codec
-libraries, build directly and start LDAP separately. This example uses the
-already prepared `rocky9-xfce-v2.4.16.qcow2` from the
-[README setup](../README.md) as its immutable default base:
+libraries, build directly and start LDAP separately:
 
 ```bash
 CGO_ENABLED=0 go build -o gokvm .
 make ldap
 ./gokvm serve -state ./.gokvm-gateway \
-  -image ./rocky9-xfce-v2.4.16.qcow2 -encoder software \
+  -encoder software \
   -ldap-url ldaps://127.0.0.1:1636 -ldap-base-dn dc=glauth,dc=com \
   -ldap-domain example.com -ldap-filter '(mail=%s)' \
   -ldap-username-attribute mail \
@@ -77,6 +85,7 @@ make ldap
 ```
 
 Open the same **https://localhost:8443** page and use the demo accounts above.
+Sign in as `administrator` to upload the first template if the catalog is empty.
 The default OVMF paths must exist; override `-uefi` and `-uefi-vars-template` if
 needed. `qemu-img` is still needed to prepare compressed images and for catalog
 imports that require conversion. `-encoder auto` also uses software encoding
@@ -84,6 +93,8 @@ when the binary has no NVENC support. `make gateway` always rebuilds the NVENC
 target, so use the direct `serve` command to keep this build.
 
 ## Create and connect to a desktop
+
+Once an administrator has uploaded at least one template:
 
 1. Sign in, select **Create DevBox**, enter a name, and choose a **Base Image**.
    Names use lowercase letters, digits, and interior hyphens, up to 63 characters.
@@ -147,6 +158,10 @@ Administrators open **Admin** to view all owners' VMs, start or stop them, delet
 stopped VMs, and manage shared base images. The role does not grant access to
 another owner's RDP console.
 
+The catalog starts empty and may remain empty until the first upload. It is
+stored under `<state>/images`; a template has its own QCOW2 file and metadata.
+Users cannot create a new desktop until at least one template is available.
+
 On **Admin → Base Images**, choose a file under **Upload Base Image**, then
 select **Upload**. Keep the page open through both transfer and preparation.
 The transfer percentage measures upload bytes; validation and conversion follow
@@ -184,8 +199,9 @@ space for the upload, converted output, and guest clones; the per-file limit is
 not a total state-directory quota.
 
 Validated images become available to every allowed user in **Create DevBox**.
-The `-image` / `GATEWAY_IMAGE` template is marked **Default** and **Protected**;
-it cannot be removed through the UI. Removing an uploaded image removes it from
+If explicitly configured, the optional `-image` / `GATEWAY_IMAGE` template is
+marked **Default** and **Protected**; it cannot be removed through the UI.
+Removing an uploaded image, including the last template, removes it from
 the catalog but preserves existing VMs, whose disks are independent. A
 filesystem reflink may initially share storage blocks without creating a QCOW2
 backing-file dependency.
@@ -193,10 +209,11 @@ backing-file dependency.
 ## LDAP and remote access
 
 For a remote deployment, use a certificate trusted by both web browsers and RDP
-clients. The host must have a supported base image and matching OVMF firmware:
+clients. The host must have matching OVMF firmware. An administrator uploads
+image templates after startup:
 
 ```bash
-./gokvm serve -state /var/lib/gokvm -image /srv/images/rocky-base.qcow2 \
+./gokvm serve -state /var/lib/gokvm \
   -listen 0.0.0.0:8443 -public-address desktops.example.com:8443 \
   -tls-cert /etc/gokvm/fullchain.pem -tls-key /etc/gokvm/key.pem \
   -ldap-url ldaps://directory.example.com -ldap-base-dn dc=example,dc=com \
@@ -251,7 +268,7 @@ configuration file; configure the executable with these flags.
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `-state` | `.gokvm-gateway` | Private persistent state directory. |
-| `-image` | Required | Immutable raw or supported uncompressed QCOW2 default base. Convert unsupported layouts before starting `serve`. |
+| `-image` | Empty | Optional immutable raw or supported uncompressed QCOW2 default base. Omit it to use administrator-uploaded templates. Convert unsupported layouts before supplying this flag. |
 | `-uefi` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | OVMF CODE file. |
 | `-uefi-vars-template` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | Matching pristine variables template, copied per VM. |
 | `-encoder` | `auto` | `auto`, `nvenc`, or `software` H.264 encoding. |
@@ -320,7 +337,9 @@ This creates a new bcrypt account file and a private
 `auth.json.credentials.json` with a generated password. Supply
 `-auth-file auth.json` instead of LDAP flags when starting `serve`. Existing
 output files are never overwritten. This mode requires a loopback listener and
-does not provide administrator accounts.
+does not provide administrator accounts. Use an already populated image catalog
+or pass `-image /path/to/prepared.qcow2` with a supported uncompressed default
+template; this mode cannot upload the first image through Admin.
 
 ## State, networking, and shutdown
 
@@ -332,7 +351,6 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | --- | --- |
 | `manager.lock` | Exclusive manager lock. |
 | `gateway.crt`, `gateway.key` | Generated development TLS identity when no certificate is supplied. |
-| `base.qcow2` | Default base created by `make gateway`; custom `-image` paths may be elsewhere. |
 | `images/<image-id>/image.json` | Uploaded template metadata. |
 | `images/<image-id>/disk.qcow2` | Validated, normalized template. |
 | `vms/<vm-id>/vm.json` | Persistent name, owner, state, and source-image identity. |
@@ -342,9 +360,13 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | `vms/<vm-id>/rdp.crt`, `rdp.key` | Private VM-console TLS identity. |
 | `vms/<vm-id>/console.log` | Appended child-process diagnostics. |
 
-Back up the state with the gateway and VMs stopped; include any configured base
-image outside the state directory. Keep seeds and private keys protected. The
-host account and other local host users must be trusted: the VM's loopback RDP
+The `images` directory is created automatically and starts empty for a new
+state directory without `-image`. The Compose stack stores it at
+`/var/lib/gokvm/images` in its persistent `gateway-state` volume.
+
+Back up the state with the gateway and VMs stopped; include any optional base
+image configured outside the state directory. Keep seeds and private keys
+protected. The host account and other local host users must be trusted: the VM's loopback RDP
 listener is a private transport, not a separate local-user authentication
 boundary.
 

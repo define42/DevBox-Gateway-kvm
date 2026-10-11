@@ -1,0 +1,11 @@
+# Optional: docker compose -f compose.yaml -f compose.nvidia.yaml up --build -d
+services:
+  gateway:
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

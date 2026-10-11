@@ -23,7 +23,7 @@ import (
 )
 
 // ManagerConfig supplies operator-controlled resources for managed UEFI guests.
-// BaseImage must be a standalone raw or uncompressed qcow2 image.
+// BaseImage is optional; when set, it must be a standalone raw or uncompressed qcow2 image.
 type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	Encoder, Keyboard                                  string
@@ -116,8 +116,8 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 }
 
 func normalizeManagerConfig(c *ManagerConfig) error {
-	if c.DataDir == "" || c.BaseImage == "" || c.Firmware == "" || c.VarsTemplate == "" {
-		return fmt.Errorf("state, image, firmware and variables template are required: %w", ErrInvalid)
+	if c.DataDir == "" || c.Firmware == "" || c.VarsTemplate == "" {
+		return fmt.Errorf("state, firmware and variables template are required: %w", ErrInvalid)
 	}
 	if c.Binary == "" {
 		var err error
@@ -127,6 +127,9 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		}
 	}
 	for _, path := range []*string{&c.DataDir, &c.Binary, &c.BaseImage, &c.Firmware, &c.VarsTemplate} {
+		if *path == "" {
+			continue
+		}
 		absolute, err := filepath.Abs(*path)
 		if err != nil {
 			return err
@@ -134,6 +137,9 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		*path = absolute
 	}
 	for _, path := range []string{c.Binary, c.BaseImage, c.Firmware, c.VarsTemplate} {
+		if path == "" {
+			continue
+		}
 		info, err := os.Stat(path)
 		if err != nil {
 			return err
@@ -142,12 +148,14 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 			return fmt.Errorf("%s must be a nonempty regular file: %w", path, ErrInvalid)
 		}
 	}
-	image, err := disk.OpenReadOnly(c.BaseImage)
-	if err != nil {
-		return fmt.Errorf("base image must be supported by gokvm (convert compressed qcow2 first): %w", err)
-	}
-	if err := image.Close(); err != nil {
-		return err
+	if c.BaseImage != "" {
+		image, err := disk.OpenReadOnly(c.BaseImage)
+		if err != nil {
+			return fmt.Errorf("base image must be supported by gokvm (convert compressed qcow2 first): %w", err)
+		}
+		if err := image.Close(); err != nil {
+			return err
+		}
 	}
 
 	return normalizeManagerLimits(c)
@@ -336,7 +344,8 @@ func (m *Manager) List(ctx context.Context, owner string) ([]VM, error) {
 	return result, nil
 }
 
-// Create makes a fresh standalone disk and seed; the immutable base is untouched.
+// Create clones the operator-configured default image into a standalone VM.
+// Without a default image, callers must select an uploaded template with CreateWithImage.
 func (m *Manager) Create(ctx context.Context, owner, name, passwordHash string) (VM, error) {
 	return m.CreateWithImage(ctx, owner, name, passwordHash, DefaultImageID)
 }

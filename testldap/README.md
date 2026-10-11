@@ -4,11 +4,29 @@ This directory brings the DevBox-Gateway demo LDAP users and groups into
 DevBox-Gateway-kvm.
 [`default-config.cfg`](default-config.cfg) is copied unchanged from
 [DevBox-Gateway commit `e4fbf205`](https://github.com/define42/DevBox-Gateway/blob/e4fbf205adb7663167190f1082c41ff81681d3d8/testldap/default-config.cfg),
-with its [MIT license](LICENSE). Compose runs GLAuth with a pinned image digest.
-The server is published only on `127.0.0.1:1636` and requires TLS.
+with its [MIT license](LICENSE). Both Compose setups run GLAuth with a pinned
+image digest and require TLS.
 
-Install Docker with the Compose plugin and OpenSSL, then run from the repository
-root:
+## Gateway and LDAP in Docker
+
+The repository's root [`compose.yaml`](../compose.yaml) starts the gateway and
+LDAP together. Follow the [Docker quick start](../docs/docker.md#start-the-gateway-and-ldap-with-compose)
+to configure the KVM group, then run `docker compose up --build -d`
+from the repository root. The gateway is published on `127.0.0.1:8443` by
+default. LDAP is reachable only inside the Compose network as `ldaps://ldap:389`;
+it has no published host port.
+
+A one-time certificate service generates the gateway and LDAP certificates in
+named volumes. The gateway trusts the LDAP certificate explicitly and verifies
+the `ldap` hostname. The accounts and group rules below are shared by both
+setups. `docker compose down` stops the complete container stack while
+preserving its named volumes.
+
+## Native gateway with LDAP in Docker
+
+The separate [`testldap/compose.yaml`](compose.yaml) serves the native gateway
+and tests through `127.0.0.1:1636`. Install Docker with the Compose plugin and
+OpenSSL, then run from the repository root:
 
 ```bash
 make gateway              # Start LDAP, then the native gateway
@@ -36,12 +54,14 @@ These are public demo credentials, retained from DevBox-Gateway for local use.
 The `administrator` account can open **Admin** to upload and remove shared QCOW2
 base images and start, stop, or delete any owner’s VM. Every allowed user can
 select an uploaded image when creating a desktop. RDP downloads remain limited
-to each VM’s owner, even for administrators. The configured default image cannot
-be removed; existing VMs retain independent disks if an uploaded image is removed.
+to each VM’s owner, even for administrators. A new gateway starts with an empty
+image catalog; sign in as `administrator` to upload the first template. Existing
+VMs retain independent disks if an uploaded image is removed. An optional default
+image configured with `-image` is protected from removal.
 New guests use the authenticated username and password at their graphical login.
 Existing guests retain their provisioned passwords and owners.
 
-`generate-cert.sh` creates a local certificate and private key in the ignored
+For the native workflow, `generate-cert.sh` creates a local certificate and private key in the ignored
 `.tls/` directory, with `localhost` and `127.0.0.1` as certificate names. Compose
 mounts these files into GLAuth, and the gateway trusts `.tls/cert.pem` explicitly.
 Certificate verification stays enabled. The private key is generated locally;

@@ -81,21 +81,23 @@ func (m *Manager) loadImages() error {
 	if err := checkPrivateDirectory(root); err != nil {
 		return err
 	}
-	base, err := disk.OpenReadOnly(m.config.BaseImage)
-	if err != nil {
-		return err
-	}
-	virtualSize := base.Size()
-	if err := base.Close(); err != nil {
-		return err
-	}
-	info, err := os.Stat(m.config.BaseImage)
-	if err != nil {
-		return err
-	}
-	m.images[DefaultImageID] = Image{
-		ID: DefaultImageID, Name: filepath.Base(m.config.BaseImage),
-		SizeBytes: info.Size(), VirtualSizeBytes: virtualSize, CreatedAt: info.ModTime().UTC(), Default: true,
+	if m.config.BaseImage != "" {
+		base, err := disk.OpenReadOnly(m.config.BaseImage)
+		if err != nil {
+			return err
+		}
+		virtualSize := base.Size()
+		if err := base.Close(); err != nil {
+			return err
+		}
+		info, err := os.Stat(m.config.BaseImage)
+		if err != nil {
+			return err
+		}
+		m.images[DefaultImageID] = Image{
+			ID: DefaultImageID, Name: filepath.Base(m.config.BaseImage),
+			SizeBytes: info.Size(), VirtualSizeBytes: virtualSize, CreatedAt: info.ModTime().UTC(), Default: true,
+		}
 	}
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -175,7 +177,7 @@ func (m *Manager) loadImage(id string) error {
 	return nil
 }
 
-// Images returns a copy of the shared catalog, with the default template first.
+// Images returns a copy of the shared catalog, with the optional default template first.
 func (m *Manager) Images(ctx context.Context) ([]Image, error) {
 	_, finish, err := m.operation(ctx)
 	if err != nil {

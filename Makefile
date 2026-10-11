@@ -9,7 +9,7 @@ QCOW2_USER ?= rocky
 QCOW2_KEYBOARD ?= us
 QCOW2_ARGS ?=
 GATEWAY_STATE ?= ./.gokvm-gateway
-GATEWAY_IMAGE ?= $(GATEWAY_STATE)/base.qcow2
+GATEWAY_IMAGE ?=
 GATEWAY_ARGS ?=
 LDAP_PORT ?= 1636
 GATEWAY_LDAP_LOCAL ?= 1
@@ -211,15 +211,16 @@ endif
 gateway: generate
 	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
 	@set -eu; mkdir -p -m 700 "$(GATEWAY_STATE)"; \
-	if [ ! -e "$(GATEWAY_IMAGE)" ]; then \
+	if [ -n "$(GATEWAY_IMAGE)" ] && [ ! -e "$(GATEWAY_IMAGE)" ]; then \
 		command -v qemu-img >/dev/null 2>&1 || { echo "Install qemu-utils for one-time image conversion." >&2; exit 1; }; \
+		test -r "$(QCOW2_IMAGE)" || { echo "Source disk not found: $(QCOW2_IMAGE)" >&2; exit 1; }; \
 		tmp=$$(mktemp "$(GATEWAY_IMAGE).tmp.XXXXXX"); \
 		trap 'rm -f -- "$$tmp"' EXIT; \
 		qemu-img convert -f qcow2 -O qcow2 "$(QCOW2_IMAGE)" "$$tmp"; \
 		ln -- "$$tmp" "$(GATEWAY_IMAGE)"; \
 	fi
 	@echo "Open https://localhost:8443 and sign in with your LDAP account. See testldap/README.md for local accounts."
-	./gokvm serve -state "$(GATEWAY_STATE)" -image "$(GATEWAY_IMAGE)" \
+	./gokvm serve -state "$(GATEWAY_STATE)" $(if $(strip $(GATEWAY_IMAGE)),-image "$(GATEWAY_IMAGE)") \
 		-uefi "$(OVMF_CODE)" -uefi-vars-template "$(OVMF_VARS)" \
 		-ldap-url "$(GATEWAY_LDAP_URL)" -ldap-base-dn "$(GATEWAY_LDAP_BASE_DN)" \
 		-ldap-domain "$(GATEWAY_LDAP_DOMAIN)" -ldap-filter '$(GATEWAY_LDAP_FILTER)' \
