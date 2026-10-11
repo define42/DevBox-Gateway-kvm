@@ -283,8 +283,15 @@ Build the application from the repository root:
 CGO_ENABLED=0 go build -o gokvm .
 ```
 
-This includes software H.264 encoding. Packaged versions, when available, are
-listed under [GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases).
+This includes software H.264 encoding. Each push to `main` publishes its tested
+head commit to [GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases)
+after CI passes. Versions use the commit's UTC date and time plus its short SHA,
+for example `v2026.10.11-195952-g012345abcdef`. A rerun reuses the same version.
+Pull requests and scheduled checks do not publish releases.
+
+Releases include a Linux amd64 binary archive and SHA-256 checksums. The gateway
+and certificate helper containers are published to GHCR with the same version
+and full commit SHA; see [published container images](docs/docker.md#published-container-images).
 For development checks and VM test fixtures, follow the
 [development guide](docs/development.md). Include a reproduction or focused test
 for behavior changes and update the relevant user guide when changing a workflow.

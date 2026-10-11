@@ -10,3 +10,41 @@ builds:
   - linux
   goarch:
   - amd64
+  flags:
+  - -trimpath
+
+archives:
+- formats: [tar.gz]
+  files:
+  - LICENSE
+  - LICENSE-OpenH264
+  - LICENSE-go.264
+  - README.md
+  - docs/**
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  name_template: 'Release {{ .Tag }}'
+  # Keep all assets private until the workflow has completed every upload.
+  draft: true
+  use_existing_draft: true
+  replace_existing_artifacts: true
+  # The date/time/SHA suffix identifies a normal release, not a prerelease.
+  prerelease: false
+  make_latest: false
+  header: |
+    DevBox-Gateway-kvm built from commit `{{ .FullCommit }}`.
+
+    The Linux amd64 archive includes the `gokvm` binary with software H.264
+    encoding. Install OVMF and qemu-utils on the host for gateway use.
+
+    The container includes OVMF, qemu-img, and NVENC support:
+    ```sh
+    docker pull {{ .Env.RELEASE_IMAGE }}:{{ .Tag }}
+    ```
+    The matching Compose certificate helper is
+    `{{ .Env.RELEASE_IMAGE }}-certificates:{{ .Tag }}`.
+    See the [Docker guide](https://github.com/{{ .Env.GITHUB_REPOSITORY }}/blob/{{ .Tag }}/docs/docker.md)
+    for KVM access, LDAP, TLS, and NVIDIA setup.
