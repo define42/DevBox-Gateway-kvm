@@ -1,8 +1,6 @@
 GOLANGCI_LINT_VERSION = v2.12.2
 
 GO ?= $(shell go env GOROOT)/bin/go
-NETDESK_UKI ?= ../NetDesk/dist/netdesk.efi
-NETDESK_ARGS ?=
 QCOW2_IMAGE ?= ./rocky9-xfce-v2.4.16.qcow2
 QCOW2_DISK ?= $(basename $(QCOW2_IMAGE)).gokvm.qcow2
 QCOW2_VARS ?= $(QCOW2_DISK).vars.fd
@@ -139,18 +137,6 @@ qemu: initrd bzImage
 .PHONY: tinycore
 tinycore: gokvm
 	./gokvm boot -iso TinyCore-current.iso -vnc 127.0.0.1:5900 -m 512M
-
-.PHONY: slax
-slax: generate
-	CGO_ENABLED=0 $(GO) build -o gokvm .
-	./gokvm boot -iso ./slax.iso -c 4 -m 2G -net user -rdp 127.0.0.1:3390 \
-		-rdp-h264 -rdp-h264-threads 4
-
-.PHONY: netdesk
-netdesk: generate
-	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
-	./gokvm boot -uki "$(NETDESK_UKI)" -c 2 -m 6G -net user -rdp 127.0.0.1:3390 \
-		-rdp-h264 -rdp-h264-encoder nvenc $(NETDESK_ARGS)
 
 .PHONY: qcow2
 qcow2: generate

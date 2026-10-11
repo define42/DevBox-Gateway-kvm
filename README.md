@@ -239,7 +239,7 @@ current flags. LDAP is the authentication path used by `make gateway`.
 - [Gateway operations](docs/gateway.md): configuration, external LDAP/TLS, image
   management, connection tokens, state, and cloud-init.
 - [VM and remote-display reference](docs/runtime.md): standalone `make qcow2`,
-  `make netdesk`, firmware, boot modes, clients, encoding, audio, and troubleshooting.
+  firmware, boot modes, clients, encoding, audio, and troubleshooting.
 - [Development guide](docs/development.md): package layout, builds, tests, tracing,
   and low-level virtualization references.
 - [Bundled LDAP directory](testldap/README.md): development accounts and directory setup.

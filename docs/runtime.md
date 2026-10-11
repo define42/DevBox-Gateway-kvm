@@ -240,9 +240,6 @@ TinyCore remote boots receive an initrd overlay that starts the FLWM/Xvesa
 desktop. Right-click its desktop for the menu; the application dock is at the
 bottom. `make tinycore` runs the local ISO on VNC `127.0.0.1:5900`.
 
-`make slax` builds without cgo and runs the local `slax.iso` with four vCPUs,
-2 GiB RAM, user networking, and H.264 RDP on `127.0.0.1:3390`. It requests four
-encoder slices, bounded by the host CPU budget. Connect with `make rdp`.
 The Slackware-based Slax image with Linux 6.1.38 was tested through desktop
 startup using its original boot parameters, without extracting a kernel or
 adding a driver blacklist.
@@ -264,11 +261,7 @@ the payloads have loaded.
 
 [NetDesk](https://github.com/define42/NetDesk) includes its desktop in the UKI and
 needs no attached disk. Six GiB matches its reference VM configuration.
-`make netdesk` uses `../NetDesk/dist/netdesk.efi`, two vCPUs, 6 GiB RAM, user
-networking, and required NVENC H.264 RDP on port 3390. Install the
-[NVENC dependencies](#optional-nvidia-nvenc) first and connect with `make rdp`.
-Override `NETDESK_UKI` for another image and append flags with `NETDESK_ARGS`,
-for example `NETDESK_ARGS="-rdp-stats -rdp-h264-encoder software"`.
+Connect to the example above with `make rdp`.
 
 ## Storage and cloud-init
 
@@ -534,8 +527,8 @@ are ignored by Git.
 `make rdp` prefers this local build, otherwise `xfreerdp3` or `xfreerdp` on PATH.
 It checks H.264 support and connects to port 3390 with AVC420, dynamic resolution,
 and the local certificate exception. Set `RDP_CLIENT=/path/to/xfreerdp` to choose
-another executable. This target works with `make qcow2`, `make slax`, or
-`make netdesk`; their standalone listeners use the same default port.
+another executable. This target works with `make qcow2` and any standalone
+listener started with `-rdp 127.0.0.1:3390`.
 
 For X11 cursor rendering, check `WITH_XCURSOR=ON`. Virtio-gpu hardware cursor
 shapes, hotspots, and positions are separate RDP updates, so pointer-only motion

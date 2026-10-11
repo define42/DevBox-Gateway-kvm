@@ -138,8 +138,8 @@ clients without AVC420 support. Clipboard redirection is not implemented, and
 managed VMs currently do not enable audio, even though the downloaded file
 contains client preferences for these features.
 
-`make rdp` connects to the standalone `make qcow2` or `make netdesk` console on
-port 3390. It does not use the gateway's downloaded routing credentials.
+`make rdp` connects to the standalone console on port 3390, such as one started
+with `make qcow2`. It does not use the gateway's downloaded routing credentials.
 
 ## Shared base images and administration
 
