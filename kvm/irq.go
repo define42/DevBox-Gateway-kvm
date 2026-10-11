@@ -41,10 +41,12 @@ type pitConfig struct {
 	_     [15]uint32
 }
 
-// CreatePIT2 creates a PIT type 2. Just having one was not enough.
+// CreatePIT2 creates the in-kernel PIT with the speaker port at 0x61.
+// Guests use that port to control channel 2 and read its output during
+// TSC calibration, even when no audible speaker is attached.
 func CreatePIT2(vmFd uintptr) error {
 	pit := pitConfig{
-		Flags: 0,
+		Flags: 1, // KVM_PIT_SPEAKER_DUMMY
 	}
 	_, err := Ioctl(vmFd,
 		IIOW(kvmCreatePIT2, unsafe.Sizeof(pitConfig{})),
