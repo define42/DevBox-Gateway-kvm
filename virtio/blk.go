@@ -88,6 +88,7 @@ func (v *Blk) GetDeviceHeader() pci.DeviceHeader {
 	if base == 0 {
 		base = BlkMMIOBase
 	}
+
 	return pci.DeviceHeader{
 		// 0x1040 + virtio device id (2 = block). The 0x1042 id marks a
 		// non-transitional device, so the driver uses the modern

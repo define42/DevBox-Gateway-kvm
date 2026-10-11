@@ -165,6 +165,35 @@ func (v *VMM) Init() (initErr error) {
 		}
 	}
 
+	if err := v.initNetwork(m); err != nil {
+		return err
+	}
+
+	if len(v.Disk) > 0 {
+		if err := m.AddDisk(v.Disk); err != nil {
+			return err
+		}
+	}
+	if v.CloudInit != "" {
+		if err := m.AddReadOnlyDisk(v.CloudInit); err != nil {
+			return fmt.Errorf("attach cloud-init seed: %w", err)
+		}
+	}
+
+	if err := v.initDisplay(m); err != nil {
+		return err
+	}
+	if v.Audio == "rdp" {
+		m.AddSound(v.rdpDisplay)
+		log.Print("Audio: virtio-snd playback through RDP (48 kHz, stereo PCM16)")
+	}
+
+	v.Machine = m
+
+	return nil
+}
+
+func (v *VMM) initNetwork(m *machine.Machine) error {
 	if len(v.TapIfName) > 0 {
 		if err := m.AddTapIf(v.TapIfName); err != nil {
 			return err
@@ -183,52 +212,41 @@ func (v *VMM) Init() (initErr error) {
 		log.Print("User-mode network: DHCP 10.0.2.15, gateway/DNS 10.0.2.2")
 	}
 
-	if len(v.Disk) > 0 {
-		if err := m.AddDisk(v.Disk); err != nil {
-			return err
-		}
-	}
-	if v.CloudInit != "" {
-		if err := m.AddReadOnlyDisk(v.CloudInit); err != nil {
-			return fmt.Errorf("attach cloud-init seed: %w", err)
-		}
+	return nil
+}
+
+func (v *VMM) initDisplay(m *machine.Machine) error {
+	if v.GPU == "" && !v.hasRemoteDisplay() {
+		return nil
 	}
 
-	if len(v.GPU) > 0 || v.hasRemoteDisplay() {
-		var input virtio.VNCInput
-		if v.hasRemoteDisplay() {
-			if v.UEFI != "" {
-				input = m.AddUEFIInput()
-			} else {
-				input = m.AddVirtioInput()
-			}
-			v.consoleInput = input
+	var input virtio.VNCInput
+	if v.hasRemoteDisplay() {
+		if v.UEFI != "" {
+			input = m.AddUEFIInput()
+		} else {
+			input = m.AddVirtioInput()
 		}
-
-		display, err := v.display(input)
-		if err != nil {
-			return err
-		}
-
-		if err := m.AddGPUDisplay(display); err != nil {
-			_ = display.Close()
-
-			return err
-		}
-
-		if len(v.ISO) > 0 {
-			for _, console := range v.consoles {
-				m.EnableVESA(console)
-				m.StartVGATextFallback(console)
-			}
-		}
-	}
-	if v.Audio == "rdp" {
-		m.AddSound(v.rdpDisplay)
-		log.Print("Audio: virtio-snd playback through RDP (48 kHz, stereo PCM16)")
+		v.consoleInput = input
 	}
 
-	v.Machine = m
+	display, err := v.display(input)
+	if err != nil {
+		return err
+	}
+
+	if err := m.AddGPUDisplay(display); err != nil {
+		_ = display.Close()
+
+		return err
+	}
+
+	if len(v.ISO) > 0 {
+		for _, console := range v.consoles {
+			m.EnableVESA(console)
+			m.StartVGATextFallback(console)
+		}
+	}
 
 	return nil
 }

@@ -141,6 +141,7 @@ func bootGuest(ctx context.Context, conf vmm.Config) (bootErr error) {
 		}
 	}()
 	defer func() { cancel(); <-done }()
+
 	return vm.BootContext(ctx)
 }
 

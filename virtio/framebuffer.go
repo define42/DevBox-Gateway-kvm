@@ -164,7 +164,7 @@ func (d *framebuffer) writeSerial(p []byte) (int, error) {
 
 	first := d.textConsole == nil
 	if first {
-		d.textConsole = newVNCTextConsole(vncTextCols, vncTextRows)
+		d.textConsole = newVNCTextConsole()
 	}
 
 	d.textConsole.write(p)
@@ -483,14 +483,14 @@ type vncTextConsole struct {
 	escape []byte
 }
 
-func newVNCTextConsole(cols, rows int) *vncTextConsole {
+func newVNCTextConsole() *vncTextConsole {
 	c := &vncTextConsole{
-		cols:  cols,
-		rows:  rows,
-		cells: make([][]rune, rows),
+		cols:  vncTextCols,
+		rows:  vncTextRows,
+		cells: make([][]rune, vncTextRows),
 	}
 	for y := range c.cells {
-		c.cells[y] = make([]rune, cols)
+		c.cells[y] = make([]rune, vncTextCols)
 		for x := range c.cells[y] {
 			c.cells[y][x] = ' '
 		}

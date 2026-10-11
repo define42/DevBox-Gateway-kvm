@@ -144,31 +144,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if err := selectUKIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
-	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDP == "") {
-		return nil, ErrRDPOptions
-	}
-	if c.RDPWait && c.RDP == "" {
-		return nil, ErrRDPWait
-	}
-	if c.RDPH264 && c.RDP == "" {
-		return nil, ErrRDPH264
-	}
-	switch c.RDPH264Encoder {
-	case "software", "nvenc", "auto":
-	default:
-		return nil, ErrRDPH264Encoder
-	}
-	if encoderSet && !c.RDPH264 {
-		return nil, ErrRDPH264Encoder
-	}
-	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
-		return nil, ErrRDPH264Threads
-	}
-	if c.RDPStats && c.RDP == "" {
-		return nil, ErrRDPStats
-	}
-	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDP == "") {
-		return nil, ErrAudio
+	if err := validateRDPOptions(c, threadsSet, encoderSet); err != nil {
+		return nil, err
 	}
 	if (c.Network != "" && c.Network != "none" && c.Network != "user" && c.Network != "user-isolated") ||
 		(c.Network != "" && c.TapIfName != "") {
@@ -183,6 +160,37 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	}
 
 	return c, nil
+}
+
+func validateRDPOptions(c *BootArgs, threadsSet, encoderSet bool) error {
+	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDP == "") {
+		return ErrRDPOptions
+	}
+	if c.RDPWait && c.RDP == "" {
+		return ErrRDPWait
+	}
+	if c.RDPH264 && c.RDP == "" {
+		return ErrRDPH264
+	}
+	switch c.RDPH264Encoder {
+	case "software", "nvenc", "auto":
+	default:
+		return ErrRDPH264Encoder
+	}
+	if encoderSet && !c.RDPH264 {
+		return ErrRDPH264Encoder
+	}
+	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
+		return ErrRDPH264Threads
+	}
+	if c.RDPStats && c.RDP == "" {
+		return ErrRDPStats
+	}
+	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDP == "") {
+		return ErrAudio
+	}
+
+	return nil
 }
 
 func selectUKIBootSource(cmd *flag.FlagSet, c *BootArgs) error {

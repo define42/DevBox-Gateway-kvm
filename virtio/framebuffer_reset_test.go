@@ -35,7 +35,7 @@ func TestFramebufferSerialResumesAfterFirmwareReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	d.refreshSerial()
-	want := newVNCTextConsole(vncTextCols, vncTextRows)
+	want := newVNCTextConsole()
 	want.write([]byte("Linux boot\ndriver probe\n"))
 	if !bytes.Equal(d.snapshot().pix, want.render().Pix) {
 		t.Fatal("kernel serial was lost or stale firmware text was replayed")
@@ -94,7 +94,7 @@ func TestFramebufferSerialWorkerRestartsAfterReset(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("serial rendering worker was not restarted")
 	}
-	want := newVNCTextConsole(vncTextCols, vncTextRows)
+	want := newVNCTextConsole()
 	want.write([]byte("boot\nready"))
 	if !bytes.Equal(d.snapshot().pix, want.render().Pix) {
 		t.Fatal("restarted worker lost pending boot text")

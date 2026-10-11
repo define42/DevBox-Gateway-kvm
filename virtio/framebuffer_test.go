@@ -31,7 +31,7 @@ func TestFramebufferSerialWritesAreBatched(t *testing.T) {
 		t.Fatal("serial renderer stopped before graphics took over")
 	}
 
-	expected := newVNCTextConsole(vncTextCols, vncTextRows)
+	expected := newVNCTextConsole()
 	expected.write([]byte("Ready\nroot@slax:~# "))
 	frame := d.snapshot()
 	if frame.seq != 2 || !bytes.Equal(frame.pix, expected.render().Pix) {
@@ -60,7 +60,7 @@ func TestFramebufferSerialPromptIsEventuallyPublished(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("serial prompt without a newline was never rendered")
 	}
-	expected := newVNCTextConsole(vncTextCols, vncTextRows)
+	expected := newVNCTextConsole()
 	expected.write([]byte("boot\nlogin: "))
 	if !bytes.Equal(d.snapshot().pix, expected.render().Pix) {
 		t.Fatal("published serial frame does not contain the complete prompt")
