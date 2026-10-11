@@ -2,6 +2,9 @@ package virtio
 
 import (
 	"encoding/binary"
+	"errors"
+	"io"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -512,4 +515,113 @@ func (d *blockingQueueModernDev) QueueReady(_ int, _ *SplitQueue) {
 func (d *blockingQueueModernDev) Reset() {
 	close(d.resetEntered)
 	d.active.Store(false)
+}
+
+func TestModernINTxAcknowledgement(t *testing.T) {
+	t.Parallel()
+
+	tr := NewModernTransport(&mockModernDev{numQ: 1}, nil, func() error {
+		t.Error("legacy injection callback used after configuring an INTx line")
+
+		return nil
+	})
+	levels := []bool{}
+	tr.SetIRQLine(func(level bool) error {
+		levels = append(levels, level)
+		if pending := atomic.LoadUint32(&tr.isr) != 0; pending != level {
+			t.Errorf("line level %v disagrees with pending ISR %v", level, pending)
+		}
+
+		return nil
+	})
+	if err := tr.Interrupt(); err != nil {
+		t.Fatal(err)
+	}
+	if err := tr.ConfigChanged(); err != nil {
+		t.Fatal(err)
+	}
+	data := []byte{0}
+	tr.MMIO(isrCfgOffset, data, false)
+	if data[0] != 3 {
+		t.Fatalf("ISR = %#x, want queue and configuration bits", data[0])
+	}
+	if !slices.Equal(levels, []bool{true, true, false}) {
+		t.Fatalf("INTx levels = %v", levels)
+	}
+	if err := tr.ReinjectIfPending(); err != nil {
+		t.Fatal(err)
+	}
+	if len(levels) != 3 {
+		t.Fatal("acknowledged interrupt was reasserted")
+	}
+	if err := tr.Interrupt(); err != nil {
+		t.Fatal(err)
+	}
+	writeCfg(tr, 20, 0, 1)
+	if levels[len(levels)-1] {
+		t.Fatal("device reset left INTx asserted")
+	}
+}
+
+func TestModernINTxConcurrentAcknowledgement(t *testing.T) {
+	t.Parallel()
+
+	tr := NewModernTransport(&mockModernDev{numQ: 1}, nil, func() error { return nil })
+	var high bool
+	tr.SetIRQLine(func(level bool) error {
+		high = level
+		if pending := atomic.LoadUint32(&tr.isr) != 0; pending != level {
+			t.Errorf("concurrent ISR/INTx disagreement: pending=%v high=%v", pending, level)
+		}
+
+		return nil
+	})
+	var workers sync.WaitGroup
+	workers.Go(func() {
+		for range 1000 {
+			if err := tr.Interrupt(); err != nil {
+				t.Error(err)
+			}
+		}
+	})
+	workers.Go(func() {
+		for range 1000 {
+			if err := tr.ConfigChanged(); err != nil {
+				t.Error(err)
+			}
+		}
+	})
+	workers.Go(func() {
+		for range 1000 {
+			tr.MMIO(isrCfgOffset, make([]byte, 1), false)
+		}
+	})
+	workers.Wait()
+	tr.MMIO(isrCfgOffset, make([]byte, 1), false)
+	if high {
+		t.Fatal("final acknowledgement left INTx high")
+	}
+}
+
+func TestModernINTxAcknowledgementError(t *testing.T) {
+	t.Parallel()
+
+	tr := NewModernTransport(&mockModernDev{numQ: 1}, nil, func() error { return nil })
+	tr.SetIRQLine(func(level bool) error {
+		if !level {
+			return io.ErrClosedPipe
+		}
+
+		return nil
+	})
+	if err := tr.Interrupt(); err != nil {
+		t.Fatal(err)
+	}
+	tr.MMIO(isrCfgOffset, make([]byte, 1), false)
+	if err := tr.ReinjectIfPending(); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("lost acknowledgement error: %v", err)
+	}
+	if err := tr.Interrupt(); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("lost acknowledgement error during next interrupt: %v", err)
+	}
 }

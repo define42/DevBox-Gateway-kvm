@@ -83,10 +83,11 @@ func (v *Blk) GetDeviceHeader() pci.DeviceHeader {
 		// interface and requires VIRTIO_F_VERSION_1.
 		DeviceID:    0x1042,
 		VendorID:    0x1AF4,
+		RevisionID:  1,    // Modern virtio PCI revision (required for firmware discovery).
 		ClassCode:   0x01, // Mass storage controller
 		Subclass:    0x00, // SCSI storage controller
 		HeaderType:  0,
-		SubsystemID: 2, // Block Device
+		SubsystemID: 0x1042, // Non-transitional subsystem ID.
 		// Memory space enable | bus master.
 		Command: 0x6,
 		// Bit 4: capabilities list present.

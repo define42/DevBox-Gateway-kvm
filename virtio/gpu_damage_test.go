@@ -253,3 +253,74 @@ func TestGPUResetClearsPublishedCursor(t *testing.T) {
 		})
 	}
 }
+
+type graphicsResetSink struct {
+	gpuDamageSink
+	resets, closes int
+	cursorAtReset  bool
+}
+
+func (d *graphicsResetSink) GraphicsReset() {
+	d.resets++
+	d.cursorAtReset = d.cursor.Image != nil
+}
+
+func (d *graphicsResetSink) Close() error {
+	d.closes++
+
+	return nil
+}
+
+func TestGPUResetReleasesGraphicsAfterHidingCursor(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		cursor bool
+	}{
+		{name: "without cursor", cursor: false},
+		{name: "with cursor", cursor: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			display := &graphicsResetSink{}
+			g := NewGPU(11, nil, nil, display)
+			t.Cleanup(func() { _ = g.Close() })
+			g.resources[1] = &gpuResource{
+				width: 4, height: 4, format: gpuFormatB8G8R8X8,
+				data: bytes.Repeat([]byte{7, 13, 29, 0}, 16),
+			}
+			bounds := image.Rect(0, 0, 4, 4)
+			gpuDamageOK(t, g, gpuDamageCommand(gpuCmdSetScanout, 1, bounds))
+			gpuDamageOK(t, g, gpuDamageCommand(gpuCmdResourceFlush, 1, bounds))
+			if tc.cursor {
+				g.resources[2] = &gpuResource{
+					width: 64, height: 64, format: gpuFormatB8G8R8X8,
+					data: bytes.Repeat([]byte{0, 255, 0, 255}, 64*64),
+				}
+				if !g.handleCursor(gpuResizeRequest(gpuCmdUpdateCursor, 0, 2, 3, 0, 2, 0, 0, 0)) {
+					t.Fatal("valid cursor rejected")
+				}
+				g.present()
+			}
+			pixels := bytes.Clone(display.frame.Pix)
+			g.MMIO(20, []byte{0}, true)
+			if display.resets != 1 || display.cursorAtReset {
+				t.Fatalf("graphics release: %d notifications, cursor visible=%v", display.resets, display.cursorAtReset)
+			}
+			if display.frames != 1 || !bytes.Equal(display.frame.Pix, pixels) {
+				t.Fatal("reset replaced the last visible frame")
+			}
+			response := g.handleControl(gpuDamageCommand(gpuCmdResourceFlush, 1, bounds))
+			if got := binary.LittleEndian.Uint32(response); got != gpuRespErrInvalidResourceID {
+				t.Fatalf("reset retained the old scanout resource: response %#x", got)
+			}
+			if err := g.Close(); err != nil {
+				t.Fatal(err)
+			}
+			g.Reset()
+			if display.resets != 1 || display.closes != 1 {
+				t.Fatal("closing the GPU or resetting a closed GPU rearmed the display")
+			}
+		})
+	}
+}

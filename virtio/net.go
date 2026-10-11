@@ -75,10 +75,11 @@ func (v *Net) GetDeviceHeader() pci.DeviceHeader {
 		// interface and requires VIRTIO_F_VERSION_1.
 		DeviceID:    0x1041,
 		VendorID:    0x1AF4,
+		RevisionID:  1,    // Modern virtio PCI revision (required for firmware discovery).
 		ClassCode:   0x02, // Network controller
 		Subclass:    0x00, // Ethernet controller
 		HeaderType:  0,
-		SubsystemID: 1, // Network Card
+		SubsystemID: 0x1041, // Non-transitional subsystem ID.
 		// Memory space enable | bus master.
 		Command: 0x6,
 		// Bit 4: capabilities list present.

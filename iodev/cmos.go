@@ -1,6 +1,7 @@
 package iodev
 
 import (
+	"sync"
 	"time"
 )
 
@@ -15,16 +16,21 @@ const (
 )
 
 type CMOS struct {
+	mu    sync.Mutex
+	now   func() time.Time
 	Index uint8
 	Data  []uint8
 }
 
 func NewCMOS(memBelow4G, memAbove4G uint64) *CMOS {
 	cmos := &CMOS{
+		now:   time.Now,
 		Index: 0,
 		Data:  make([]uint8, dataLen),
 	}
 
+	// RTC register B: BCD values, 24-hour clock, interrupts disabled.
+	cmos.Data[0x0b] = 0x02
 	cmos.setUint16(0x15, 640) // Conventional memory in KiB.
 	extendedKiB := saturatingSub(memBelow4G, 1*mib) / kib
 	cmos.setUint16(0x17, uint16(clampMax(extendedKiB, 0xffff)))
@@ -69,6 +75,9 @@ func (c *CMOS) Read(base uint64, data []byte) error {
 		return errDataLenInvalid
 	}
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	var d uint8
 
 	// Reading CMOS RAM also requires two steps:
@@ -79,7 +88,7 @@ func (c *CMOS) Read(base uint64, data []byte) error {
 	case indexOffset:
 		data[0] = c.Index
 	case dataOffset:
-		dt := time.Now()
+		dt := c.now()
 		secs := dt.Second()
 		min := dt.Minute()
 		hour := dt.Hour()
@@ -88,27 +97,40 @@ func (c *CMOS) Read(base uint64, data []byte) error {
 		month := dt.Month()
 		year := dt.Year()
 
-		switch c.Index {
+		encode := toBCD
+		if c.Data[0x0b]&0x04 != 0 {
+			encode = func(value uint8) uint8 { return value }
+		}
+
+		// Bit 7 controls NMI masking; it is not part of the CMOS address.
+		switch c.Index & indexMask {
 		case 0x00:
-			d = toBCD(uint8(secs))
+			d = encode(uint8(secs))
 		case 0x02:
-			d = toBCD(uint8(min))
+			d = encode(uint8(min))
 		case 0x04:
-			d = toBCD(uint8(hour))
+			if c.Data[0x0b]&0x02 == 0 {
+				d = encode(uint8((hour+11)%12 + 1))
+				if hour >= 12 {
+					d |= 0x80
+				}
+			} else {
+				d = encode(uint8(hour))
+			}
 		case 0x06:
-			d = toBCD(uint8(weekd))
+			d = encode(uint8(weekd) + 1)
 		case 0x07:
-			d = toBCD(uint8(day))
+			d = encode(uint8(day))
 		case 0x08:
-			d = toBCD(uint8(month))
+			d = encode(uint8(month))
 		case 0x09:
-			d = toBCD(uint8(year % 100))
+			d = encode(uint8(year % 100))
 		case 0x0A:
 			d = 1<<5 | 0<<7 // 32kHz Clock and we assume no update in progress
 		case 0x0D:
 			d = 1 << 7
 		case 0x32:
-			d = toBCD((uint8(year+1900) / 100))
+			d = encode(uint8(year / 100))
 		default:
 			d = c.Data[c.Index&indexMask]
 		}
@@ -123,6 +145,9 @@ func (c *CMOS) Write(base uint64, data []byte) error {
 	if len(data) != 1 {
 		return errDataLenInvalid
 	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	// Writing to CMOS RAM involves two steps:
 	// 1. OUT to port hex 70 with the CMOS address that will be written to.

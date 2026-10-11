@@ -18,8 +18,8 @@ func TestInputGetDeviceHeader(t *testing.T) {
 		t.Fatalf("DeviceID: got 0x%x, want 0x1052", hdr.DeviceID)
 	}
 
-	if hdr.SubsystemID != virtioInputDeviceID {
-		t.Fatalf("SubsystemID: got %d, want %d", hdr.SubsystemID, virtioInputDeviceID)
+	if hdr.SubsystemID != 0x1040+virtioInputDeviceID {
+		t.Fatalf("SubsystemID: got %d, want %d", hdr.SubsystemID, 0x1040+virtioInputDeviceID)
 	}
 
 	if hdr.ClassCode != 0x09 || hdr.Subclass != 0x80 {

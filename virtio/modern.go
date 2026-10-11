@@ -143,6 +143,11 @@ type ModernTransport struct {
 	writeMu  sync.Mutex
 	commonMu sync.RWMutex
 
+	// irqMu keeps ISR read-to-clear and INTx level changes ordered across CPUs.
+	irqMu       sync.Mutex
+	setIRQLevel func(bool) error
+	irqError    error
+
 	dev       ModernDevice
 	Mem       []byte
 	inject    func() error
@@ -190,32 +195,73 @@ func (t *ModernTransport) MMIOBARIndex() int { return 0 }
 // MMIOSize is the size of that BAR.
 func (t *ModernTransport) MMIOSize() uint64 { return modernBARSize }
 
+// SetIRQLine installs a level-triggered INTx callback. Configure it before
+// starting the guest. The callback must not call back into this transport.
+// Without it the constructor's legacy injection callback remains in use.
+func (t *ModernTransport) SetIRQLine(setLevel func(bool) error) {
+	t.irqMu.Lock()
+	defer t.irqMu.Unlock()
+	t.setIRQLevel = setLevel
+}
+
 // Interrupt raises the device's interrupt: it sets the queue-interrupt bit in
 // ISR and asserts the (level) INTx line.
 func (t *ModernTransport) Interrupt() error {
+	t.irqMu.Lock()
+	defer t.irqMu.Unlock()
 	atomic.OrUint32(&t.isr, 0x1)
 
-	return t.inject()
+	return t.raiseIRQ()
 }
 
 // ConfigChanged publishes a device configuration update and raises its INTx
 // configuration interrupt without discarding an outstanding queue interrupt.
 func (t *ModernTransport) ConfigChanged() error {
+	t.irqMu.Lock()
+	defer t.irqMu.Unlock()
 	atomic.AddUint32(&t.configGen, 1)
 	atomic.OrUint32(&t.isr, 0x2)
 
-	return t.inject()
+	return t.raiseIRQ()
 }
 
 // ReinjectIfPending re-asserts the interrupt when ISR is still set, i.e. the
 // driver has not yet read (and thereby acknowledged) it. Device IO threads
 // call this periodically so a missed interrupt does not stall the queue.
 func (t *ModernTransport) ReinjectIfPending() error {
+	t.irqMu.Lock()
+	defer t.irqMu.Unlock()
 	if atomic.LoadUint32(&t.isr) != 0 {
-		return t.inject()
+		return t.raiseIRQ()
 	}
 
-	return nil
+	return t.irqError
+}
+
+// raiseIRQ runs under irqMu. A failed acknowledgement is surfaced through the
+// next device interrupt/poll because the MMIO interface cannot return errors.
+func (t *ModernTransport) raiseIRQ() error {
+	if t.irqError != nil {
+		return t.irqError
+	}
+	if t.setIRQLevel != nil {
+		return t.setIRQLevel(true)
+	}
+
+	return t.inject()
+}
+
+func (t *ModernTransport) clearInterrupt() byte {
+	t.irqMu.Lock()
+	defer t.irqMu.Unlock()
+	status := byte(atomic.SwapUint32(&t.isr, 0))
+	if t.setIRQLevel != nil {
+		if err := t.setIRQLevel(false); err != nil {
+			t.irqError = err
+		}
+	}
+
+	return status
 }
 
 // virtioCap builds a struct virtio_pci_cap of the given length.
@@ -260,7 +306,7 @@ func (t *ModernTransport) MMIO(offset uint64, data []byte, isWrite bool) {
 		if !isWrite {
 			// Reading ISR returns the status and clears it.
 			zero(data)
-			data[0] = byte(atomic.SwapUint32(&t.isr, 0))
+			data[0] = t.clearInterrupt()
 		}
 	case offset >= deviceCfgOffset && offset < deviceCfgOffset+0x1000:
 		if isWrite {
@@ -359,6 +405,7 @@ func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 		if dev, ok := t.dev.(interface{ Reset() }); ok {
 			dev.Reset()
 		}
+		t.clearInterrupt()
 	}
 
 	le := binary.LittleEndian
@@ -381,7 +428,6 @@ func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 			t.driverFeature = [2]uint32{}
 			t.queueSel = 0
 			t.msixConfig = 0
-			atomic.StoreUint32(&t.isr, 0)
 			for i := range t.queues {
 				t.queues[i] = queueState{size: QueueSize}
 			}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"image"
 	"image/color"
-	"io"
 	"sync"
 	"time"
 
@@ -17,11 +16,10 @@ import (
 
 var errInvalidFramebuffer = errors.New("invalid framebuffer image or dimensions")
 
-// ConsoleDisplay presents guest graphics and the serial, VGA, and linear
-// framebuffer consoles through the same remote display.
+// ConsoleDisplay presents guest graphics and legacy framebuffer consoles
+// through the same remote display.
 type ConsoleDisplay interface {
 	Display
-	io.Writer
 	SetInput(VNCInput)
 	StartVGATextFallback(mem []byte)
 	StartLinearFramebufferFallback(mem []byte, base, width, height, stride int)
@@ -45,14 +43,16 @@ type framebuffer struct {
 	linearInterval time.Duration
 	serialInterval time.Duration
 
-	textMu       sync.Mutex
-	textConsole  *vncTextConsole
-	textDirty    bool
-	textDisabled bool
-	serialMuted  bool
-	stopped      bool
-	fallbackWG   sync.WaitGroup
-	shutdownOnce sync.Once
+	textMu                 sync.Mutex
+	textConsole            *vncTextConsole
+	textDirty              bool
+	serialRunning          bool
+	textDisabled           bool
+	legacyFallbackDisabled bool
+	serialMuted            bool
+	stopped                bool
+	fallbackWG             sync.WaitGroup
+	shutdownOnce           sync.Once
 }
 
 func newFramebuffer() *framebuffer {
@@ -76,7 +76,23 @@ func (d *framebuffer) SetInput(input VNCInput) {
 	d.mu.Unlock()
 }
 
-// Flush publishes a GPU frame, permanently replacing console fallbacks.
+// GraphicsReset releases graphics ownership after the GPU loses its scanout.
+// OVMF resets virtio-gpu at ExitBootServices. VNC may then show fresh serial
+// output until the next driver publishes a frame. Keep the last graphics image
+// visible until new output arrives.
+func (d *framebuffer) GraphicsReset() {
+	d.textMu.Lock()
+	defer d.textMu.Unlock()
+	if d.stopped || !d.textDisabled {
+		return
+	}
+	d.textDisabled = false
+	d.serialMuted = false
+	d.textConsole = nil
+	d.textDirty = false
+}
+
+// Flush publishes a GPU frame, replacing console fallbacks until a GPU reset.
 func (d *framebuffer) Flush(width, height int, img *image.RGBA) error {
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
@@ -91,6 +107,7 @@ func (d *framebuffer) Flush(width, height int, img *image.RGBA) error {
 
 	if width > 0 && height > 0 {
 		d.textDisabled = true
+		d.legacyFallbackDisabled = true
 	}
 
 	return nil
@@ -134,10 +151,10 @@ func (d *framebuffer) flush(width, height int, img *image.RGBA) error {
 	return nil
 }
 
-// Write mirrors serial bytes until a graphical or VGA console takes over.
+// writeSerial mirrors serial bytes for VNC until a graphical or VGA console takes over.
 // After the first frame, rendering is batched so byte-at-a-time UART writes do
 // not stall the guest copying a complete framebuffer for every character.
-func (d *framebuffer) Write(p []byte) (int, error) {
+func (d *framebuffer) writeSerial(p []byte) (int, error) {
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
 
@@ -151,6 +168,11 @@ func (d *framebuffer) Write(p []byte) (int, error) {
 	}
 
 	d.textConsole.write(p)
+	if !d.serialRunning {
+		d.serialRunning = true
+		d.fallbackWG.Add(1)
+		go d.renderSerialFrames()
+	}
 	if !first {
 		d.textDirty = true
 
@@ -161,9 +183,6 @@ func (d *framebuffer) Write(p []byte) (int, error) {
 	if err := d.flush(img.Bounds().Dx(), img.Bounds().Dy(), img); err != nil {
 		return 0, err
 	}
-
-	d.fallbackWG.Add(1)
-	go d.renderSerialFrames()
 
 	return len(p), nil
 }
@@ -178,7 +197,13 @@ func (d *framebuffer) renderSerialFrames() {
 		case <-d.done:
 			return
 		case <-ticker.C:
-			if !d.refreshSerial() {
+			d.textMu.Lock()
+			active := d.refreshSerialLocked()
+			if !active {
+				d.serialRunning = false
+			}
+			d.textMu.Unlock()
+			if !active {
 				return
 			}
 		}
@@ -189,6 +214,10 @@ func (d *framebuffer) refreshSerial() bool {
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
 
+	return d.refreshSerialLocked()
+}
+
+func (d *framebuffer) refreshSerialLocked() bool {
 	if d.stopped || d.textDisabled || d.serialMuted {
 		return false
 	}
@@ -234,7 +263,7 @@ func (d *framebuffer) startFallback(
 	render func([]byte) *image.RGBA,
 ) {
 	d.textMu.Lock()
-	if d.stopped || d.textDisabled {
+	if d.stopped || d.legacyFallbackDisabled {
 		d.textMu.Unlock()
 
 		return
@@ -274,7 +303,7 @@ func (d *framebuffer) refreshFallback(
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
 
-	if d.stopped || d.textDisabled {
+	if d.stopped || d.legacyFallbackDisabled {
 		return false
 	}
 

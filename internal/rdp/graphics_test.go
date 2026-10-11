@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 )
@@ -201,6 +202,53 @@ func TestGraphicsAcknowledgmentIsolationAndReset(t *testing.T) {
 	if got := s.GraphicsFrameInterval(base); got != base {
 		t.Fatalf("post-resume interval = %v, want %v", got, base)
 	}
+}
+
+func TestGraphicsStatsSnapshot(t *testing.T) {
+	t.Parallel()
+	if got := new(Session).GraphicsStats(); got != (GraphicsStats{}) {
+		t.Fatalf("client without graphics has pacing statistics: %+v", got)
+	}
+	g := &graphicsState{
+		frameInterval: 50 * time.Millisecond,
+		ackTurnaround: 80 * time.Millisecond,
+	}
+	s := &Session{graphics: g}
+	want := GraphicsStats{FrameInterval: 50 * time.Millisecond, ACKTurnaround: 80 * time.Millisecond}
+	if got := s.GraphicsStats(); got != want {
+		t.Fatalf("pacing snapshot = %+v, want %+v", got, want)
+	}
+	if g.baseInterval != 0 || g.frameInterval != want.FrameInterval {
+		t.Fatal("reading statistics changed pacing configuration")
+	}
+	g.resetAcknowledgments()
+	if got := s.GraphicsStats(); got != (GraphicsStats{}) {
+		t.Fatalf("snapshot retained statistics after acknowledgment reset: %+v", got)
+	}
+}
+
+func TestGraphicsStatsConcurrentSnapshot(t *testing.T) {
+	t.Parallel()
+	g := &graphicsState{}
+	s := &Session{graphics: g}
+	var workers sync.WaitGroup
+	workers.Go(func() {
+		for i := range 1000 {
+			g.mu.Lock()
+			g.frameInterval = time.Duration(i) * time.Microsecond
+			g.ackTurnaround = 2 * g.frameInterval
+			g.mu.Unlock()
+		}
+	})
+	for range 1000 {
+		got := s.GraphicsStats()
+		if got.ACKTurnaround != 2*got.FrameInterval {
+			t.Errorf("snapshot mixed two pacing updates: %+v", got)
+
+			break
+		}
+	}
+	workers.Wait()
 }
 
 func TestGraphicsChangesWakeWriter(t *testing.T) {

@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/define42/gokvm/iso9660"
 	"github.com/define42/gokvm/machine"
@@ -35,6 +36,8 @@ var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software, nv
 
 var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
 
+var errRDPWaitConfig = errors.New("RDP boot wait requires an RDP listener")
+
 var errUKIBootSource = errors.New("UKI cannot be combined with ISO, kernel, or initrd")
 
 // These parameters describe gaps in gokvm's direct Linux boot environment, not
@@ -55,6 +58,8 @@ type Config struct {
 	Initrd         string
 	ISO            string
 	UKI            string
+	UEFI           string
+	UEFIVars       string
 	Params         string
 	ParamsSet      bool
 	TapIfName      string
@@ -63,6 +68,7 @@ type Config struct {
 	GPU            string
 	VNC            string
 	RDP            string
+	RDPWait        bool
 	RDPCert        string
 	RDPKey         string
 	RDPH264        bool
@@ -85,6 +91,8 @@ type VMM struct {
 	consoleInput virtio.VNCInput
 	consoles     []virtio.ConsoleDisplay
 	isoCleanup   func()
+	closeOnce    sync.Once
+	closeErr     error
 }
 
 func New(c Config) *VMM {
@@ -108,6 +116,9 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 	}
 	if v.RDPStats && v.RDP == "" {
 		return errRDPStatsConfig
+	}
+	if v.RDPWait && v.RDP == "" {
+		return errRDPWaitConfig
 	}
 
 	return nil
@@ -135,9 +146,18 @@ func (v *VMM) Init() (initErr error) {
 	}
 	defer func() {
 		if initErr != nil {
-			_ = m.Close()
+			initErr = errors.Join(initErr, m.Close())
 		}
 	}()
+
+	if v.RDP != "" {
+		m.DisableSerial()
+	}
+	if v.UEFI != "" {
+		if err := m.EnableUEFIPlatform(); err != nil {
+			return err
+		}
+	}
 
 	if len(v.TapIfName) > 0 {
 		if err := m.AddTapIf(v.TapIfName); err != nil {
@@ -160,7 +180,11 @@ func (v *VMM) Init() (initErr error) {
 	if len(v.GPU) > 0 || v.hasRemoteDisplay() {
 		var input virtio.VNCInput
 		if v.hasRemoteDisplay() {
-			input = m.AddVirtioInput()
+			if v.UEFI != "" {
+				input = m.AddPS2Input()
+			} else {
+				input = m.AddVirtioInput()
+			}
 			v.consoleInput = input
 		}
 
@@ -246,12 +270,8 @@ func (v *VMM) display(input virtio.VNCInput) (result virtio.Display, displayErr 
 		displays = append(displays, display)
 		log.Printf("RDP console listening on %s (TLS, no account authentication)", display.Addr())
 	}
-	if len(v.consoles) > 0 {
-		writers := make([]io.Writer, 0, len(v.consoles))
-		for _, console := range v.consoles {
-			writers = append(writers, console)
-		}
-		v.serialOutput = io.MultiWriter(writers...)
+	if v.RDP == "" && v.vncDisplay != nil {
+		v.serialOutput = v.vncDisplay
 	}
 
 	if len(displays) == 1 {
@@ -261,9 +281,17 @@ func (v *VMM) display(input virtio.VNCInput) (result virtio.Display, displayErr 
 	return virtio.NewMultiDisplay(displays...), nil
 }
 
-func (v *VMM) Setup() error {
+func (v *VMM) Setup() (setupErr error) {
+	defer func() {
+		if setupErr != nil {
+			setupErr = errors.Join(setupErr, v.Close())
+		}
+	}()
 	if err := v.validateBootSource(); err != nil {
 		return err
+	}
+	if v.UEFI != "" {
+		return v.setupUEFI()
 	}
 	if v.UKI != "" {
 		return v.setupUKI()
@@ -296,11 +324,11 @@ func (v *VMM) Setup() error {
 	}
 
 	if isPVH {
-		if err := v.LoadPVH(kern, initrd, v.Params); err != nil {
+		if err := v.LoadPVH(kern, initrd, v.consoleBootParams(v.Params)); err != nil {
 			return err
 		}
 	} else {
-		if err := v.LoadLinux(kern, initrd, v.Params); err != nil {
+		if err := v.LoadLinux(kern, initrd, v.consoleBootParams(v.Params)); err != nil {
 			return err
 		}
 	}
@@ -569,7 +597,7 @@ func kernelParamName(field string) string {
 }
 
 func (v *VMM) attachSerialOutput() {
-	if v.serialOutput == nil || v.GetSerial() == nil {
+	if v.RDP != "" || v.serialOutput == nil || v.GetSerial() == nil {
 		return
 	}
 
@@ -577,7 +605,7 @@ func (v *VMM) attachSerialOutput() {
 }
 
 func (v *VMM) attachSerialInput() {
-	if v.ISO == "" || len(v.consoles) == 0 || v.GetSerial() == nil {
+	if v.RDP != "" || v.ISO == "" || len(v.consoles) == 0 || v.GetSerial() == nil {
 		return
 	}
 
@@ -811,7 +839,8 @@ func trimNewcTrailer(data []byte) ([]byte, bool) {
 
 func writeNewcEntry(buf *bytes.Buffer, name string, mode uint32, data []byte) {
 	namesize := len(name) + 1
-	fmt.Fprintf(buf,
+	fmt.Fprintf(
+		buf,
 		"070701%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
 		1, mode, 0, 0, 1, 0, len(data), 0, 0, 0, 0, namesize, 0,
 	)
@@ -846,16 +875,24 @@ func (v *VMM) Boot() error {
 // BootContext coordinates CPU and terminal workers and returns the first real
 // execution error. Cancellation wakes CPUs even when KVM_RUN is blocked in HLT.
 func (v *VMM) BootContext(ctx context.Context) (bootErr error) {
-	defer v.cleanupISO()
 	defer func() { bootErr = errors.Join(bootErr, v.Close()) }()
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if v.RDPWait {
+		if v.rdpDisplay == nil {
+			return errRDPWaitConfig
+		}
+		log.Print("Waiting for an RDP client before starting the guest")
+		if err := v.rdpDisplay.WaitReady(ctx); err != nil {
+			return fmt.Errorf("wait for RDP client: %w", err)
+		}
 	}
 	trace := v.TraceCount > 0
 	if err := v.SingleStep(trace); err != nil {
 		return fmt.Errorf("setting trace to %v: %w", trace, err)
 	}
-	terminal := term.IsTerminal()
+	terminal := v.GetSerial() != nil && term.IsTerminal()
 	if terminal {
 		restore, err := term.SetRawMode()
 		if err != nil {
@@ -896,6 +933,19 @@ func (v *VMM) BootContext(ctx context.Context) (bootErr error) {
 	stopErr := <-stopped
 
 	return errors.Join(err, stopErr, ctx.Err())
+}
+
+// Close stops the machine, persists attached state, and removes temporary boot
+// media. Setup must finish before Close begins. Repeated calls are safe.
+func (v *VMM) Close() error {
+	v.closeOnce.Do(func() {
+		if v.Machine != nil {
+			v.closeErr = v.Machine.Close()
+		}
+		v.cleanupISO()
+	})
+
+	return v.closeErr
 }
 
 func (v *VMM) cleanupISO() {

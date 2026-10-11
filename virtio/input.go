@@ -199,10 +199,11 @@ func (d *InputDevice) GetDeviceHeader() pci.DeviceHeader {
 		// non-transitional device, so Linux uses the modern interface.
 		DeviceID:            0x1040 + virtioInputDeviceID,
 		VendorID:            0x1AF4,
+		RevisionID:          1,
 		ClassCode:           0x09, // Input device controller
 		Subclass:            0x80, // Other input controller
 		HeaderType:          0,
-		SubsystemID:         virtioInputDeviceID,
+		SubsystemID:         0x1040 + virtioInputDeviceID,
 		Command:             0x6,
 		Status:              0x10,
 		CapabilitiesPointer: capCommonAt,

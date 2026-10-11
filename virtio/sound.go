@@ -108,7 +108,7 @@ func NewSound(irq uint8, inject func() error, mem []byte, sink SoundSink) *Sound
 func (s *Sound) GetDeviceHeader() pci.DeviceHeader {
 	return pci.DeviceHeader{
 		DeviceID: 0x1059, VendorID: 0x1af4, ClassCode: 0x04, Subclass: 0x01,
-		SubsystemID: 25, Command: 0x6, Status: 0x10, CapabilitiesPointer: capCommonAt,
+		RevisionID: 1, SubsystemID: 0x1059, Command: 0x6, Status: 0x10, CapabilitiesPointer: capCommonAt,
 		BAR: [6]uint32{SoundMMIOBase}, InterruptPin: 1, InterruptLine: s.irq,
 	}
 }

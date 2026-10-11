@@ -20,7 +20,7 @@ func TestFramebufferSerialWritesAreBatched(t *testing.T) {
 	t.Cleanup(d.shutdown)
 	payload := []byte("Starting...\rReady\x1b[K\nroot@slax:~# ")
 	for i := range payload {
-		if n, err := d.Write(payload[i : i+1]); n != 1 || err != nil {
+		if n, err := d.writeSerial(payload[i : i+1]); n != 1 || err != nil {
 			t.Fatalf("write byte %d: got %d, %v", i, n, err)
 		}
 	}
@@ -48,11 +48,11 @@ func TestFramebufferSerialPromptIsEventuallyPublished(t *testing.T) {
 
 	d := newFramebuffer()
 	t.Cleanup(d.shutdown)
-	if _, err := d.Write([]byte("boot\n")); err != nil {
+	if _, err := d.writeSerial([]byte("boot\n")); err != nil {
 		t.Fatal(err)
 	}
 	_, _, published := d.changedFrame(1, false)
-	if _, err := d.Write([]byte("login: ")); err != nil {
+	if _, err := d.writeSerial([]byte("login: ")); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -77,7 +77,7 @@ func TestFramebufferPendingSerialCannotOverwriteTakeover(t *testing.T) {
 			d.serialInterval = time.Hour
 			t.Cleanup(d.shutdown)
 			for _, text := range []string{"initial", "pending"} {
-				if _, err := d.Write([]byte(text)); err != nil {
+				if _, err := d.writeSerial([]byte(text)); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -226,7 +226,7 @@ func TestFramebufferGPUFrameSupersedesFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := d.Write([]byte("later serial output")); err != nil {
+	if _, err := d.writeSerial([]byte("later serial output")); err != nil {
 		t.Fatal(err)
 	}
 	var last []byte
@@ -286,7 +286,7 @@ func TestFramebufferConcurrentFallbackStartAndShutdown(t *testing.T) {
 
 		d.StartLinearFramebufferFallback(mem, 0, 1, 1, 4)
 		before := d.snapshot().seq
-		if _, err := d.Write([]byte("after shutdown")); err != nil {
+		if _, err := d.writeSerial([]byte("after shutdown")); err != nil {
 			t.Fatal(err)
 		}
 		if err := d.Flush(1, 1, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
@@ -435,7 +435,7 @@ func BenchmarkFramebufferSerialByte(b *testing.B) {
 	b.ReportAllocs()
 	b.SetBytes(1)
 	for b.Loop() {
-		if _, err := d.Write(p); err != nil {
+		if _, err := d.writeSerial(p); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -73,6 +73,11 @@ func (d *VNCDisplay) Addr() string {
 	return d.listener.Addr().String()
 }
 
+// Write mirrors serial output into the VNC console until graphics takes over.
+func (d *VNCDisplay) Write(p []byte) (int, error) {
+	return d.writeSerial(p)
+}
+
 func (d *VNCDisplay) Close() error {
 	var err error
 

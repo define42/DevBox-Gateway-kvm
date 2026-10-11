@@ -8,6 +8,9 @@ import (
 )
 
 func (v *VMM) validateBootSource() error {
+	if err := v.validateUEFIBootSource(); err != nil {
+		return err
+	}
 	if v.UKI != "" && (v.ISO != "" || v.Kernel != "" || v.Initrd != "") {
 		return errUKIBootSource
 	}
@@ -17,10 +20,10 @@ func (v *VMM) validateBootSource() error {
 
 func (v *VMM) bootParams(embedded string) string {
 	if v.ParamsSet {
-		return v.Params
+		return v.consoleBootParams(v.Params)
 	}
 
-	return isoBootParams(embedded)
+	return v.consoleBootParams(isoBootParams(embedded))
 }
 
 func (v *VMM) setupUKI() error {

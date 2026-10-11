@@ -22,6 +22,8 @@ var ErrRDPH264Threads = errors.New("-rdp-h264-threads must be 0 (auto) or 1..16 
 
 var ErrRDPStats = errors.New("-rdp-stats requires -rdp")
 
+var ErrRDPWait = errors.New("-rdp-wait requires -rdp")
+
 var ErrNetwork = errors.New("-net must be 'user' or 'none' and cannot be combined with -t")
 
 var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires -rdp")
@@ -38,6 +40,8 @@ type BootArgs struct {
 	Initrd         string
 	ISO            string
 	UKI            string
+	UEFI           string
+	UEFIVars       string
 	Params         string
 	ParamsSet      bool
 	TapIfName      string
@@ -46,6 +50,7 @@ type BootArgs struct {
 	GPU            string
 	VNC            string
 	RDP            string
+	RDPWait        bool
 	RDPCert        string
 	RDPKey         string
 	RDPH264        bool
@@ -65,6 +70,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.Initrd, "i", "", "initrd path")
 	bootCmd.StringVar(&c.ISO, "iso", "", "ISO image path or http(s) URL to boot")
 	bootCmd.StringVar(&c.UKI, "uki", "", "x86-64 Unified Kernel Image path or http(s) URL to boot directly")
+	bootCmd.StringVar(&c.UEFI, "uefi", "", "OVMF firmware code file for UEFI disk boot (requires -uefi-vars and -d)")
+	bootCmd.StringVar(&c.UEFIVars, "uefi-vars", "", "existing writable per-VM copy of the matching OVMF variables file")
 	//  refs: commit 1621292e73770aabbc146e72036de5e26f901e86 in kvmtool
 	bootCmd.StringVar(&c.Params, "p", `console=tty0 console=ttyS0 earlyprintk=serial `+
 		`noapic noacpi nowatchdog nmi_watchdog=0 mitigations=off lapic `+
@@ -83,6 +90,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		`If empty, no VNC server is created. (default "")`)
 	bootCmd.StringVar(&c.RDP, "rdp", "", "RDP console listen address, for example 127.0.0.1:3389 "+
 		"(one connection at a time, TLS, no authentication)")
+	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false, "wait for an RDP client before starting the guest (requires -rdp)")
 	bootCmd.StringVar(&c.RDPCert, "rdp-cert", "",
 		"RDP TLS certificate PEM file (default: temporary self-signed certificate)")
 	bootCmd.StringVar(&c.RDPKey, "rdp-key", "", "RDP TLS private key PEM file")
@@ -122,11 +130,17 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 			encoderSet = true
 		}
 	})
+	if err := selectUEFIBootSource(bootCmd, c); err != nil {
+		return nil, err
+	}
 	if err := selectUKIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
 	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDP == "") {
 		return nil, ErrRDPOptions
+	}
+	if c.RDPWait && c.RDP == "" {
+		return nil, ErrRDPWait
 	}
 	if c.RDPH264 && c.RDP == "" {
 		return nil, ErrRDPH264

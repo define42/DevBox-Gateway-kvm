@@ -27,6 +27,14 @@ type DamageDisplay interface {
 	FlushDamage(width, height int, img *image.RGBA, damage []image.Rectangle) error
 }
 
+// GraphicsResetDisplay releases graphics ownership when the guest resets its
+// GPU, allowing serial console fallbacks to resume. The notification follows
+// scanout removal and cursor hiding; it does not require clearing the last image.
+// Calls are serialized with frame/cursor publication and must not call into the GPU.
+type GraphicsResetDisplay interface {
+	GraphicsReset()
+}
+
 // DisplayCursor describes a guest hardware cursor. X and Y are the image's
 // top-left CRTC position, which may be negative. The pointer position is
 // (X+HotX, Y+HotY). Image is borrowed for the call; nil hides the pointer.
@@ -102,6 +110,18 @@ func NewMultiDisplay(displays ...Display) *MultiDisplay {
 	}
 
 	return d
+}
+
+// GraphicsReset releases cached scanouts and notifies capable child displays.
+// Visible frames remain owned by the children until fresh output replaces them.
+func (d *MultiDisplay) GraphicsReset() {
+	d.frame, d.composite = nil, nil
+	d.cursor = DisplayCursor{}
+	for _, display := range d.displays {
+		if reset, ok := display.(GraphicsResetDisplay); ok {
+			reset.GraphicsReset()
+		}
+	}
 }
 
 func (d *MultiDisplay) Flush(width, height int, img *image.RGBA) error {

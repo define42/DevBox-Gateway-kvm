@@ -5,6 +5,7 @@
 *.so
 *.dylib
 *.iso
+*.qcow2
 gokvm
 gokvm-caps
 golangci-lint
@@ -35,3 +36,9 @@ _linux/
 /tools/.cache/
 /tools/.deps/
 /tools/freerdp/
+
+# Persistent disks and firmware settings prepared by make qcow2.
+*.gokvm.qcow2
+*.gokvm.qcow2.vars.fd
+*.gokvm.qcow2.tmp.*
+*.gokvm.qcow2.vars.fd.tmp.*

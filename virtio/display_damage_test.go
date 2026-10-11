@@ -96,3 +96,39 @@ func TestMultiDisplayAvoidsLegacyDesktopCopyForCursorBackends(t *testing.T) {
 		t.Fatal("cursor-capable backends allocated a legacy desktop copy")
 	}
 }
+
+func TestMultiDisplayGraphicsResetReleasesCachedScanout(t *testing.T) {
+	t.Parallel()
+	first, second, legacy := &graphicsResetSink{}, &graphicsResetSink{}, &legacyDisplaySink{}
+	d := NewMultiDisplay(first, legacy, NewMultiDisplay(second))
+	frame := image.NewRGBA(image.Rect(0, 0, 4, 4))
+	oldColor := color.RGBA{R: 255, A: 255}
+	draw.Draw(frame, frame.Bounds(), &image.Uniform{C: oldColor}, image.Point{}, draw.Src)
+	if err := d.Flush(4, 4, frame); err != nil {
+		t.Fatal(err)
+	}
+	d.GraphicsReset()
+	if first.resets != 1 || second.resets != 1 {
+		t.Fatal("reset did not reach every capable child, including nested displays")
+	}
+	if first.frames != 1 || second.frames != 1 || legacy.frames != 1 || legacy.frame.RGBAAt(0, 0) != oldColor {
+		t.Fatal("reset replaced a child's visible frame")
+	}
+	// A cursor-only update between drivers must not republish stale firmware
+	// pixels and prevent a child display from presenting its serial fallback.
+	if err := d.SetCursor(DisplayCursor{}); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.frames != 1 {
+		t.Fatal("cursor update republished the released scanout")
+	}
+	newColor := color.RGBA{B: 255, A: 255}
+	draw.Draw(frame, frame.Bounds(), &image.Uniform{C: newColor}, image.Point{}, draw.Src)
+	if err := d.FlushDamage(4, 4, frame, []image.Rectangle{image.Rect(0, 0, 1, 1)}); err != nil {
+		t.Fatal(err)
+	}
+	if first.frame.RGBAAt(3, 3) != newColor || second.frame.RGBAAt(3, 3) != newColor ||
+		legacy.frame.RGBAAt(3, 3) != newColor {
+		t.Fatal("the first new scanout retained pixels from the old graphics owner")
+	}
+}

@@ -104,6 +104,30 @@ func (s *Session) GraphicsFrameInterval(base time.Duration) time.Duration {
 	return min(g.frameInterval, graphicsMaxFrameInterval)
 }
 
+// GraphicsStats is a read-only snapshot of acknowledgement-driven pacing.
+// ACKTurnaround is the smoothed time from sending a frame to receiving its
+// acknowledgement, including client processing; it is not network RTT.
+type GraphicsStats struct {
+	FrameInterval time.Duration
+	ACKTurnaround time.Duration
+}
+
+// GraphicsStats returns a coherent snapshot without updating pacing state.
+// Values are zero before pacing or acknowledgement samples are available.
+func (s *Session) GraphicsStats() GraphicsStats {
+	if s.graphics == nil {
+		return GraphicsStats{}
+	}
+	g := s.graphics
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return GraphicsStats{
+		FrameInterval: g.frameInterval,
+		ACKTurnaround: g.ackTurnaround,
+	}
+}
+
 // GraphicsChanged wakes the single video writer when negotiation or frame
 // acknowledgments change graphics readiness. Notifications are coalesced; the
 // writer must check the current state after subscribing and after each wake.

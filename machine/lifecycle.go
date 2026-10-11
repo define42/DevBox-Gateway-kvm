@@ -100,6 +100,12 @@ func (m *Machine) Close() error {
 		if m.vmCreated {
 			errs = append(errs, syscall.Close(int(m.vmFd)))
 		}
+		if m.uefiVars != nil {
+			errs = append(errs, m.uefiVars.Close())
+		}
+		if m.uefiCode != nil {
+			errs = append(errs, syscall.Munmap(m.uefiCode))
+		}
 		if m.memMapping != nil {
 			errs = append(errs, syscall.Munmap(m.memMapping))
 		}

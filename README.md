@@ -21,7 +21,8 @@ console, and VNC/RDP desktops for exploring virtualization from user space.
   [NVIDIA NVENC encoding](#optional-nvidia-nvenc-encoding) requires cgo and FFmpeg
   development libraries.
 - A Linux kernel and optional initrd, a supported Linux live ISO, or an x86-64
-  Unified Kernel Image (UKI). VNC and RDP
+  Unified Kernel Image (UKI), or a UEFI-bootable disk with matching OVMF CODE/VARS
+  firmware files. VNC and RDP
   also require a client on the machine where you want to view the guest.
 
 ### Installation
@@ -76,7 +77,7 @@ already built kernel.
 
 | Area | Support |
 | --- | --- |
-| CPU and boot | KVM acceleration, multiple vCPUs, direct Linux and PVH boot, x86-64 UKI loading, Linux ISO discovery through El Torito and boot configs |
+| CPU and boot | KVM acceleration, multiple vCPUs, direct Linux and PVH boot, x86-64 UKI loading, Linux ISO discovery through El Torito and boot configs, native OVMF UEFI disk boot |
 | Storage | Modern virtio-blk, writable raw/qcow2 disks, read-only ISO media |
 | Networking | Modern virtio-net, built-in IPv4 DHCP/DNS and outbound TCP/UDP, or a host-managed TAP interface |
 | Display and input | Modern virtio-gpu 2D framebuffer, PNG output, VNC/RDP keyboard and mouse input |
@@ -97,6 +98,8 @@ flags; there is no VM configuration file.
 | `-i path` | Unset | Optional initrd for direct kernel boot. |
 | `-iso path-or-url` | Unset | Linux ISO path or HTTP(S) URL; takes precedence over `-k` and `-i`. |
 | `-uki path-or-url` | Unset | x86-64 Unified Kernel Image; cannot be combined with `-iso`, `-k`, or `-i`. |
+| `-uefi path` | Unset | Local OVMF CODE firmware file for UEFI disk boot; requires `-uefi-vars` and `-d`. |
+| `-uefi-vars path` | Unset | Existing writable per-VM copy of the matching OVMF VARS file; preserves firmware settings between runs. |
 | `-p parameters` | Built-in kernel command line | Replace the kernel command line; ISO/UKI boot otherwise uses the image's arguments plus gokvm defaults. |
 | `-c count` | `1` | Number of guest vCPUs, from 1 to 64. |
 | `-m size` | `1G` | Guest RAM; `K`, `M`, and `G` use binary units. Unitless values mean GiB. |
@@ -161,6 +164,9 @@ user networking, and NVIDIA NVENC H.264 RDP on `127.0.0.1:3390`. Install the
 [NVENC build dependencies and NVIDIA driver](#optional-nvidia-nvenc-encoding)
 first. Connect with `make rdp` in another terminal.
 Use `make netdesk NETDESK_UKI=/path/to/netdesk.efi` to select another image.
+Append boot options with `NETDESK_ARGS`, for example
+`make netdesk NETDESK_ARGS="-rdp-stats"` to measure the active session, or
+`NETDESK_ARGS="-rdp-stats -rdp-h264-encoder software"` to compare encoders.
 
 `-uki` reads a single-profile x86-64 PE32+ UKI's `.linux`, `.initrd`, and optional
 `.cmdline` sections, then boots the embedded Linux bzImage directly. It does not
@@ -193,7 +199,8 @@ Attach an existing raw or qcow2 disk with `-d`:
 
 The format is detected from the file contents. The disk is writable and appears
 as `/dev/vda`; when combined with `-iso`, the read-only ISO follows it as another
-virtio-blk device. `-d` attaches storage; a kernel or ISO is still needed to boot.
+virtio-blk device. `-d` attaches storage; select `-uefi` to execute its EFI
+bootloader, or supply a direct kernel, UKI, or supported ISO boot source.
 Block writes are synchronized before successful completion is reported to the
 guest. Requests already pending in one queue batch share a sync; writeback caching
 and the optional FLUSH command are not advertised.
@@ -210,6 +217,114 @@ qemu-img create -f qcow2 disk.qcow2 4G
 
 Create a filesystem in the guest before storing files on a new disk; partition
 the disk first if needed.
+
+### UEFI disk boot
+
+Use `-uefi` to start x86-64 OVMF firmware and execute the EFI bootloader installed
+on a raw or supported qcow2 disk. The guest loads its own kernel and initrd;
+external kernel extraction is unnecessary. Direct kernel, ISO, and UKI boot
+remain available as separate modes.
+
+Provide a matching pair of plain, non-SMM OVMF CODE and VARS images from your
+host's OVMF package. Create a separate writable VARS copy for each VM before its
+first run. For example, with the Debian/Ubuntu 4 MiB firmware layout:
+
+```bash
+cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
+./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+  -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 \
+  -m 2G -c 2 -net user -rdp 127.0.0.1:3390
+```
+
+For the Rocky Linux XFCE example, place `rocky9-xfce-v2.4.16.qcow2` in the
+repository root and run:
+
+```bash
+make qcow2
+# In another terminal:
+make rdp
+```
+
+The first run uses `qemu-img` (`qemu-utils` on Debian/Ubuntu) to create
+`rocky9-xfce-v2.4.16.gokvm.qcow2`, an uncompressed standalone working disk. This
+Rocky download contains compressed clusters, which gokvm's disk backend does
+not support. The source image is preserved. The target also creates a matching
+`rocky9-xfce-v2.4.16.gokvm.qcow2.vars.fd`; subsequent runs reuse both files, keeping
+guest changes and firmware settings. Both generated files are ignored by Git.
+
+The example uses two vCPUs, 4 GiB RAM, user networking, and H.264 RDP on
+`127.0.0.1:3390`. It waits for `make rdp` to connect before starting the guest,
+so firmware and early boot screens are visible from the beginning. Use
+`QCOW2_ARGS="-rdp-wait=false"` to boot without a viewer. It builds NVENC support
+and selects hardware encoding when available, with software fallback; install the
+[NVENC build dependencies](#optional-nvidia-nvenc-encoding) first. Override
+`QCOW2_IMAGE` for another source,
+`QCOW2_DISK`/`QCOW2_VARS` for persistent output paths, and `OVMF_CODE`/`OVMF_VARS`
+for another matching firmware pair. Append VM options with `QCOW2_ARGS`, for
+example `make qcow2 QCOW2_ARGS="-m 6G -rdp-stats"`.
+
+Keep `guest_VARS.fd` for later runs; copying the template again resets boot
+entries and firmware settings. CODE is read-only. The VARS copy is locked while
+the VM runs, updated by firmware writes, and flushed on shutdown. Do not point
+`-uefi-vars` at the package's shared template or share one writable store between
+VMs. SIGINT/SIGTERM (including **Ctrl+C**) stop the VM and close its disks and
+firmware store. The **Ctrl-a, then x** shortcut is available only with a serial
+console, without `-rdp`. A guest-requested reset closes and
+recreates the VM with the same disk and VARS file; reconnect the RDP/VNC client
+after the reset.
+
+The disk must already contain an x86-64 EFI bootloader and an EFI System
+Partition. On a fresh VARS store, the standard fallback path
+`EFI/BOOT/BOOTX64.EFI` lets firmware discover it without a saved boot entry.
+Use firmware's boot manager for other installed EFI paths. A blank qcow2 file
+is only empty storage; it is not a bootable OS image.
+
+RDP/VNC presents firmware graphics through virtio-gpu and supplies PS/2 keyboard
+and mouse input. Press Escape during firmware startup to enter its boot menu.
+With `-rdp`, the VM has no serial port or host terminal input; the remote display
+shows the guest's graphical screen. Host terminal messages are gokvm diagnostics.
+
+OVMF's virtio-gpu driver provides a graphics protocol without a directly mapped
+linear framebuffer. After firmware exits, the last frame remains until the guest
+graphics driver publishes another frame. Early Linux output requires a graphical
+console supported by the guest; it is not synthesized from serial text.
+This Rocky image's bootloader uses `console=ttyS0,115200n8`. Change its installed
+bootloader arguments to `console=tty0` to enable screen output once Linux has a
+graphical console. RDP mode does not modify the disk's bootloader configuration.
+
+The RDP display shows the current screen; it does not replay screens that passed
+before the viewer connected. Use `-rdp-wait` to hold boot until a viewer is ready.
+
+This mode requires virtio-capable guests. Legacy BIOS/CSM boot, Secure Boot,
+SMM-enabled firmware, and UEFI installation from `-iso` are not supported.
+`-uefi` cannot be combined with `-k`, `-i`, `-uki`, `-iso`, or `-p`; edit the disk's
+bootloader configuration to change kernel arguments. Existing qcow2 format
+restrictions still apply. Firmware paths and the disk must be local files.
+
+Large EFI applications can hit OVMF's virtio-blk limit of 1 GiB per read. A
+1.6 GB UKI returned `EFI_BAD_BUFFER_SIZE` during a file read in an independent
+QEMU control; firmware may report this as `Not Found`. Use a smaller EFI
+application or a bootloader that reads its large payload in chunks. Direct `-uki`
+boot is unaffected by this firmware limit.
+See [EDK2's virtio-blk request validation](https://github.com/tianocore/edk2/blob/master/OvmfPkg/VirtioBlkDxe/VirtioBlk.c).
+
+Run the opt-in firmware regression test with `/dev/kvm`, GNU-EFI development
+files (`gnu-efi`), a C compiler/binutils, mtools, `qemu-img`, and Python 3:
+
+```bash
+OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
+OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd tools/test-uefi.sh
+```
+
+The script builds a small EFI application and boots it from isolated raw and
+qcow2 test disks. It verifies graphics output, a nonvolatile counter surviving a
+guest-requested reboot, and firmware shutdown. RDP uses ephemeral local ports.
+It leaves the source firmware untouched and retains logs, disks, and screenshots
+on failure. Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to
+exercise more vCPUs, or `GOKVM_BINARY=/path/to/gokvm` to test an existing binary.
+GNU-EFI installations in other locations can use `EFI_INCLUDE_DIR` and
+`EFI_LIB_DIR`. This tests firmware/platform behavior; guest OS compatibility is a
+separate check.
 
 ### Desktop guests
 
@@ -336,8 +451,11 @@ connection closes.
 The RDP session uses the client's requested desktop size and supports live
 single-monitor resizing. By default it sends uncompressed bitmap updates with
 16-, 24-, or 32-bit color. The `-rdp-h264` option adds compressed AVC420 graphics.
-It includes the same serial/VGA/VESA fallbacks as VNC. Both `-rdp` and `-vnc` can
-be supplied to view the same guest at once; connected viewers share its keyboard
+It supports VGA/VESA framebuffers and virtio-gpu graphics. RDP mode disables the
+serial port, serial text overlay, and host terminal input. Direct Linux, PVH,
+UKI, and ISO boots select `console=tty0` and remove serial/early console arguments;
+UEFI disk boots use the installed bootloader configuration. Both `-rdp` and
+`-vnc` can be supplied to view the same guest at once; connected viewers share its keyboard
 and mouse. Optional audio playback uses `-audio rdp`. Clipboard, microphone input,
 drive redirection, and multiple monitors are not implemented. FreeRDP 3.32.1 has
 been tested with TinyCore and Slax desktop rendering, pointer positioning, menu
@@ -497,11 +615,17 @@ The codec may use fewer slices and workers for small pictures. Frames remain
 ordered, and a slow client receives the latest frame without building a queue.
 
 Use `-rdp-stats` to log performance measurements every five seconds while frames
-are active, plus a summary when the client disconnects. Statistics include frame
-and compressed payload byte counts, actual slice count, average/maximum time
-for framebuffer copying, color conversion, H.264 encoding and network writes,
-and time spent waiting for client acknowledgements. Statistics are disabled by
-default and also work with bitmap RDP. For example:
+are active, plus a summary when the client disconnects. Statistics include the
+actual encoder, source/output dimensions, frame rate, compressed payload bytes,
+actual slice count, and average/maximum time for framebuffer copying, color
+conversion, H.264 encoding and network writes. The `pacing` average/maximum is
+the permitted send interval sampled per capture; `ack_turnaround` is the latest
+smoothed send-to-acknowledgement time sampled at capture, including client
+processing. `ack_wait` counts time a pending frame waits for a free
+acknowledgement slot after its pacing deadline. A zero `ack_wait` can still accompany reduced frame rate from
+adaptive pacing or guest rendering. Frame rate covers the reporting window,
+including any idle time. Statistics are disabled by default and also work with
+bitmap RDP. For example:
 
 ```bash
 ./gokvm boot -iso ./slax.iso -m 2G -net user \
@@ -535,7 +659,7 @@ receives the latest available image when ready. The server keeps a two-frame
 decode window and adapts H.264 pacing from normal frame-acknowledgment turnaround
 and the client's reported queued bytes, backing off quickly and recovering
 gradually. Resizing and refresh requests repaint the whole desktop.
-Serial/VGA/VESA fallbacks still publish full images. Actual frame rate depends
+VGA/VESA fallbacks (and the serial fallback in VNC-only mode) publish full images. Actual frame rate depends
 on guest rendering, host CPU/GPU, and client decoding;
 bitmap RDP remains capped at 30 fps.
 

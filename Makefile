@@ -2,6 +2,13 @@ GOLANGCI_LINT_VERSION = v2.12.2
 
 GO ?= $(shell go env GOROOT)/bin/go
 NETDESK_UKI ?= ../NetDesk/dist/netdesk.efi
+NETDESK_ARGS ?=
+QCOW2_IMAGE ?= ./rocky9-xfce-v2.4.16.qcow2
+QCOW2_DISK ?= $(basename $(QCOW2_IMAGE)).gokvm.qcow2
+QCOW2_VARS ?= $(QCOW2_DISK).vars.fd
+QCOW2_ARGS ?=
+OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
+OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
 RDP_CLIENT ?= $(shell if [ -x ./tools/freerdp/bin/xfreerdp ]; then \
 	printf '%s\n' ./tools/freerdp/bin/xfreerdp; \
 	else command -v xfreerdp3 2>/dev/null || command -v xfreerdp 2>/dev/null; fi)
@@ -124,7 +131,33 @@ slax: generate
 .PHONY: netdesk
 netdesk: generate
 	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
-	./gokvm boot -uki "$(NETDESK_UKI)" -c 2 -m 6G -net user -rdp 127.0.0.1:3390 -rdp-h264 -rdp-h264-encoder nvenc
+	./gokvm boot -uki "$(NETDESK_UKI)" -c 2 -m 6G -net user -rdp 127.0.0.1:3390 \
+		-rdp-h264 -rdp-h264-encoder nvenc $(NETDESK_ARGS)
+
+.PHONY: qcow2
+qcow2: generate
+	@test -r "$(OVMF_CODE)" || { echo "UEFI firmware not found; set OVMF_CODE to a plain OVMF CODE image." >&2; exit 1; }
+	@set -eu; if [ ! -e "$(QCOW2_DISK)" ]; then \
+		command -v qemu-img >/dev/null 2>&1 || { echo "Install qemu-utils for qemu-img to prepare the disk." >&2; exit 1; }; \
+		test -r "$(QCOW2_IMAGE)" || { echo "Source disk not found: $(QCOW2_IMAGE)" >&2; exit 1; }; \
+		echo "Preparing uncompressed working disk: $(QCOW2_DISK)"; \
+		tmp=$$(mktemp "$(QCOW2_DISK).tmp.XXXXXX"); \
+		trap 'rm -f -- "$$tmp"' EXIT; \
+		qemu-img convert -f qcow2 -O qcow2 "$(QCOW2_IMAGE)" "$$tmp"; \
+		ln -- "$$tmp" "$(QCOW2_DISK)"; \
+	fi
+	@set -eu; if [ ! -e "$(QCOW2_VARS)" ]; then \
+		test -r "$(OVMF_VARS)" || { echo "UEFI variables template not found; set OVMF_VARS to the matching template." >&2; exit 1; }; \
+		echo "Creating persistent UEFI variables: $(QCOW2_VARS)"; \
+		tmp=$$(mktemp "$(QCOW2_VARS).tmp.XXXXXX"); \
+		trap 'rm -f -- "$$tmp"' EXIT; \
+		cat -- "$(OVMF_VARS)" > "$$tmp"; \
+		ln -- "$$tmp" "$(QCOW2_VARS)"; \
+	fi
+	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
+	./gokvm boot -uefi "$(OVMF_CODE)" -uefi-vars "$(QCOW2_VARS)" -d "$(QCOW2_DISK)" \
+		-c 2 -m 4G -net user -rdp 127.0.0.1:3390 -rdp-wait \
+		-rdp-h264 -rdp-h264-encoder auto $(QCOW2_ARGS)
 
 .PHONY: freerdp
 freerdp:

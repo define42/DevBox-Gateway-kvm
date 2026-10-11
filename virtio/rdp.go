@@ -1,6 +1,7 @@
 package virtio
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -55,6 +56,8 @@ type RDPDisplay struct {
 	conn           net.Conn // Includes an in-progress handshake; guarded by connMu.
 	wg             sync.WaitGroup
 	once           sync.Once
+	readyOnce      sync.Once
+	ready          chan struct{}
 	resizeMu       sync.Mutex
 	resize         func(int, int) error
 	viewer         *rdp.Session
@@ -126,7 +129,7 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	}
 
 	display := &RDPDisplay{
-		framebuffer: newFramebuffer(), listener: listener, tls: config,
+		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
 		h264Backend: backend, h264Slices: slices,
 	}
@@ -143,6 +146,36 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 }
 
 func (d *RDPDisplay) Addr() string { return d.listener.Addr().String() }
+
+// WaitReady waits for the first activated RDP display session. A TCP connection
+// or an incomplete protocol handshake does not release the wait. Cancellation
+// and display shutdown take precedence over an already observed ready session.
+func (d *RDPDisplay) WaitReady(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case <-d.done:
+		return net.ErrClosed
+	default:
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-d.done:
+		return net.ErrClosed
+	case <-d.ready:
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		select {
+		case <-d.done:
+			return net.ErrClosed
+		default:
+			return nil
+		}
+	}
+}
 
 // SetResizeHandler attaches the guest GPU. The connected viewer controls its resolution.
 func (d *RDPDisplay) SetResizeHandler(resize func(int, int) error) {
@@ -441,6 +474,9 @@ func (d *RDPDisplay) writeFrames(
 		}
 		cursor, cursorChanged := d.cursorSnapshot()
 		if session.DisplayReady() {
+			// Readiness must not depend on a guest frame: boot may be waiting
+			// here before any vCPU has started producing graphics.
+			d.readyOnce.Do(func() { close(d.ready) })
 			d.mu.Lock()
 			guestWidth, guestHeight := d.width, d.height
 			d.mu.Unlock()
@@ -543,6 +579,20 @@ func (w *rdpFrameWriter) writeWhenReady(display *framebuffer, timer *time.Timer)
 	if err != nil {
 		return nil, err
 	}
+	if w.stats.enabled {
+		encoder := "bitmap"
+		timing := rdp.GraphicsStats{FrameInterval: time.Second / 30}
+		if w.graphics {
+			encoder = string(w.avc.Backend())
+			timing = w.session.GraphicsStats()
+		}
+		w.stats.captured(
+			encoder,
+			image.Pt(w.frame.width, w.frame.height),
+			image.Pt(w.width, w.height),
+			timing,
+		)
+	}
 	w.force = !sent
 	if sent {
 		w.sequence = w.frame.seq
@@ -644,7 +694,8 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 		}
 		w.avc = encoder
 		force = true // A new encoder starts an independent reference chain.
-		log.Printf("rdp: client %s H.264 encoder=%s slices=%d",
+		log.Printf(
+			"rdp: client %s H.264 encoder=%s slices=%d",
 			w.stats.peer,
 			encoder.Backend(),
 			encoder.Threads(),
@@ -656,7 +707,8 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 	previousBackend := w.avc.Backend()
 	data, err := w.avc.EncodeDamage(img, damage, force)
 	if w.avc.Backend() != previousBackend {
-		log.Printf("rdp: client %s H.264 encoder=%s after %s failure: %v",
+		log.Printf(
+			"rdp: client %s H.264 encoder=%s after %s failure: %v",
 			w.stats.peer,
 			w.avc.Backend(),
 			previousBackend,

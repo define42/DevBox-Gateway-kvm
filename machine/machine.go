@@ -154,6 +154,7 @@ type Machine struct {
 	runs           []*kvm.RunData
 	pci            *pci.PCI
 	serial         *serial.Serial
+	serialDisabled bool
 	devices        []iodev.Device
 	ioportHandlers [0x10000][2]func(port uint64, bytes []byte) error
 	stopped        uint32
@@ -166,6 +167,12 @@ type Machine struct {
 	vmCreated      bool
 	runMappings    [][]byte
 	vesaEnabled    bool
+	uefiCode       []byte
+	uefiCodeBase   uint64
+	uefiVars       *uefiFlash
+	uefiIRQ        bool // Set before attaching devices by EnableUEFIPlatform.
+	pciIRQMu       sync.Mutex
+	pciIRQLines    map[uint8]*sharedIRQLine
 }
 
 // New creates a new KVM. This includes opening the kvm device, creating VM, creating
@@ -246,6 +253,7 @@ func (m *Machine) AddUserNet() error {
 
 func (m *Machine) addNetwork(backend io.ReadWriter) {
 	v := virtio.NewNet(virtioNetIRQ, m, backend, m.mem)
+	m.connectVirtioIRQ(v.ModernTransport, virtioNetIRQ)
 	m.deviceWG.Go(v.TxThreadEntry)
 	m.deviceWG.Go(v.RxThreadEntry)
 	// 00:01.0 for Virtio net
@@ -258,6 +266,7 @@ func (m *Machine) AddDisk(diskPath string) error {
 		return err
 	}
 
+	m.connectVirtioIRQ(v.ModernTransport, virtioBlkIRQ)
 	m.deviceWG.Go(v.IOThreadEntry)
 	// 00:02.0 for Virtio blk
 	m.pci.AddDevices(v)
@@ -271,6 +280,7 @@ func (m *Machine) AddReadOnlyDisk(diskPath string) error {
 		return err
 	}
 
+	m.connectVirtioIRQ(v.ModernTransport, virtioBlkIRQ)
 	m.deviceWG.Go(v.IOThreadEntry)
 	m.pci.AddDevices(v)
 
@@ -291,6 +301,7 @@ func (m *Machine) AddGPU(outputPath string) error {
 
 func (m *Machine) AddGPUDisplay(display virtio.Display) error {
 	v := virtio.NewGPU(virtioGPUIRQ, m, m.mem, display)
+	m.connectVirtioIRQ(v.ModernTransport, virtioGPUIRQ)
 	if resizable, ok := display.(interface{ SetResizeHandler(func(int, int) error) }); ok {
 		resizable.SetResizeHandler(v.SetDisplaySize)
 	}
@@ -305,6 +316,7 @@ func (m *Machine) AddGPUDisplay(display virtio.Display) error {
 // AddSound attaches a clocked virtio-snd playback device to the audio sink.
 func (m *Machine) AddSound(sink virtio.SoundSink) {
 	v := virtio.NewSound(virtioSoundIRQ, m.InjectVirtioSoundIRQ, m.mem, sink)
+	m.connectVirtioIRQ(v.ModernTransport, virtioSoundIRQ)
 	m.pci.AddDevices(v)
 	m.deviceWG.Go(v.IOThreadEntry)
 }
@@ -319,6 +331,8 @@ func (m *Machine) AddPS2Input() virtio.VNCInput {
 func (m *Machine) AddVirtioInput() virtio.VNCInput {
 	keyboard := virtio.NewInputKeyboard(virtioInputKeyboardIRQ, m.InjectVirtioInputKeyboardIRQ, m.mem)
 	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)
+	m.connectVirtioIRQ(keyboard.ModernTransport, virtioInputKeyboardIRQ)
+	m.connectVirtioIRQ(pointer.ModernTransport, virtioInputPointerIRQ)
 
 	m.deviceWG.Go(keyboard.IOThreadEntry)
 	m.deviceWG.Go(pointer.IOThreadEntry)
@@ -518,7 +532,7 @@ func (m *Machine) LoadPVH(kern, initrd io.ReaderAt, cmdline string) error {
 
 	copy(m.mem[pvh.PVHInfoStart:], pvhstartinfob)
 
-	if m.serial, err = serial.New(m); err != nil {
+	if err := m.initSerial(); err != nil {
 		return err
 	}
 
@@ -541,7 +555,7 @@ func (m *Machine) LoadLinux(kernel, initrd io.ReaderAt, params string) error {
 	if err := m.SetupRegs(entry, bootParamAddr, amd64); err != nil {
 		return err
 	}
-	if m.serial, err = serial.New(m); err != nil {
+	if err := m.initSerial(); err != nil {
 		return err
 	}
 	low, high := m.ramSizes()
@@ -555,8 +569,28 @@ func (m *Machine) LoadLinux(kernel, initrd io.ReaderAt, params string) error {
 	return nil
 }
 
-// GetInputChan returns a chan <- byte for serial.
+// DisableSerial omits the emulated UART. Call it before loading a guest.
+func (m *Machine) DisableSerial() {
+	m.serialDisabled = true
+	m.serial = nil
+}
+
+func (m *Machine) initSerial() error {
+	if m.serialDisabled {
+		return nil
+	}
+	var err error
+	m.serial, err = serial.New(m)
+
+	return err
+}
+
+// GetInputChan returns the serial input channel, or nil when no UART is present.
 func (m *Machine) GetInputChan() chan<- byte {
+	if m.serial == nil {
+		return nil
+	}
+
 	return m.serial.GetInputChan()
 }
 
@@ -846,6 +880,9 @@ func (m *Machine) runOnce(cpu int, fd uintptr) (bool, error) {
 		return true, err
 	case kvm.EXITMMIO:
 		physAddr, data, isWrite := m.runs[cpu].MMIO()
+		if handled, err := m.uefiMMIO(physAddr, data, isWrite); handled {
+			return err == nil, err
+		}
 
 		if dev, offset, ok := m.pci.LookupMMIO(physAddr); ok {
 			dev.MMIO(offset, data, isWrite)
@@ -976,8 +1013,12 @@ func (m *Machine) initIOPortHandlers() {
 	m.registerIOPortHandler(0x60, 0x70, funcInbPS2, funcNone)     // PS/2 Keyboard (Always 8042 Chip)
 	m.registerIOPortHandler(0xed, 0xee, funcNone, funcNone)       // 0xed is the new standard delay port.
 
-	// Serial port 1
-	m.registerIOPortHandler(serial.COM1Addr, serial.COM1Addr+8, m.serial.In, m.serial.Out)
+	// Serial port 1 behaves as absent when no UART is attached.
+	if m.serial == nil {
+		m.registerIOPortHandler(serial.COM1Addr, serial.COM1Addr+8, funcInAbsent, funcNone)
+	} else {
+		m.registerIOPortHandler(serial.COM1Addr, serial.COM1Addr+8, m.serial.In, m.serial.Out)
+	}
 
 	// PCI configuration
 	//
@@ -998,8 +1039,11 @@ func (m *Machine) initIOPortHandlers() {
 	}
 }
 
-// InjectSerialIRQ injects a serial interrupt.
+// InjectSerialIRQ injects a serial interrupt, or does nothing without a UART.
 func (m *Machine) InjectSerialIRQ() error {
+	if m.serial == nil {
+		return nil
+	}
 	if err := kvm.IRQLineStatus(m.vmFd, serialIRQ, 0); err != nil {
 		return err
 	}

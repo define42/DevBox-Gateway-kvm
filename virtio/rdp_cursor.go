@@ -43,11 +43,37 @@ func (d *RDPDisplay) FlushDamage(width, height int, img *image.RGBA, rects []ima
 	if d.stopped {
 		return nil
 	}
+	// Serial may have replaced every pixel, even at the same dimensions.
+	// Reclaim the whole scanout on the first real update after a reset.
+	if rects != nil {
+		bounds := image.Rect(0, 0, width, height)
+		changed := false
+		for _, rect := range rects {
+			if !rect.Intersect(bounds).Empty() {
+				changed = true
+
+				break
+			}
+		}
+		if !changed {
+			return nil
+		}
+		if !d.textDisabled {
+			rects = nil
+		}
+	}
+	d.mu.Lock()
+	before := d.seq
+	d.mu.Unlock()
 	if err := d.flushDamage(width, height, img, rects); err != nil {
 		return err
 	}
-	if width > 0 && height > 0 {
+	d.mu.Lock()
+	published := d.seq != before
+	d.mu.Unlock()
+	if published {
 		d.textDisabled = true
+		d.legacyFallbackDisabled = true
 	}
 
 	return nil

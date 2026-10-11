@@ -66,6 +66,7 @@ type qcow2Image struct {
 	l1TableOffset uint64
 	l1            []uint64
 
+	refcountTableOffset  uint64
 	refcountTable        []uint64
 	refcountBlockEntries uint64
 
@@ -99,6 +100,7 @@ func (q *qcow2Image) open() error {
 	q.size = h.size
 	q.clusterSize = uint64(1) << h.clusterBits
 	q.l1TableOffset = h.l1TableOffset
+	q.refcountTableOffset = h.refcountTableOffset
 	q.l2Entries = q.clusterSize / 8
 	q.refcountBlockEntries = q.clusterSize / 2
 
@@ -416,10 +418,6 @@ func (q *qcow2Image) ensureWritableCluster(guestOff uint64) (uint64, error) {
 		return 0, err
 	}
 
-	if err := q.setRefcount(clusterOff, 1); err != nil {
-		return 0, err
-	}
-
 	if err := q.updateL2Entry(l1Index, l2Index, clusterOff|qcow2OFlagCopied); err != nil {
 		return 0, err
 	}
@@ -478,10 +476,6 @@ func (q *qcow2Image) ensureL2Table(l1Index uint64) ([]uint64, error) {
 
 	l2Off, err := q.allocateCluster()
 	if err != nil {
-		return nil, err
-	}
-
-	if err := q.setRefcount(l2Off, 1); err != nil {
 		return nil, err
 	}
 
@@ -595,29 +589,96 @@ func (q *qcow2Image) updateL2Entry(l1Index, l2Index, entry uint64) error {
 	return nil
 }
 
+// allocateCluster appends a zeroed cluster with its refcount already recorded.
+// Missing refcount blocks are appended first and account for themselves.
 func (q *qcow2Image) allocateCluster() (uint64, error) {
 	info, err := q.file.Stat()
 	if err != nil {
 		return 0, err
 	}
-
 	if info.Size() < 0 {
 		return 0, errors.New("qcow2: invalid file size")
 	}
-
-	size := uint64(info.Size())
-	size = alignUp(size, q.clusterSize)
-
-	newSize := size + q.clusterSize
-	if newSize > uint64(maxInt64) {
-		return 0, errors.New("qcow2: host image is too large")
-	}
-
-	if err := q.file.Truncate(int64(newSize)); err != nil {
+	oldSize := info.Size()
+	offset := alignUp(uint64(oldSize), q.clusterSize)
+	if err := q.validateAppendCapacity(offset); err != nil {
 		return 0, err
 	}
+	for {
+		_, _, exists, err := q.refcountLocation(offset)
+		if err != nil {
+			return 0, err
+		}
+		if exists {
+			break
+		}
+		if err := q.appendRefcountBlock(offset, oldSize); err != nil {
+			return 0, err
+		}
+		offset += q.clusterSize
+		oldSize = int64(offset)
+	}
+	if err := q.file.Truncate(int64(offset + q.clusterSize)); err != nil {
+		return 0, err
+	}
+	if err := q.setRefcount(offset, 1); err != nil {
+		// A failed refcount write must not leave an untracked tail cluster.
+		return 0, errors.Join(err, q.setRefcount(offset, 0), q.file.Truncate(oldSize))
+	}
 
-	return size, nil
+	return offset, nil
+}
+
+// validateAppendCapacity accounts for new refcount blocks as well as the data
+// cluster before extending the file. Refcount-table expansion is unsupported.
+func (q *qcow2Image) validateAppendCapacity(offset uint64) error {
+	for {
+		if offset > uint64(maxInt64)-q.clusterSize {
+			return errors.New("qcow2: host image is too large")
+		}
+		_, _, exists, err := q.refcountLocation(offset)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return nil
+		}
+		if offset > uint64(maxInt64)-2*q.clusterSize {
+			return errors.New("qcow2: host image is too large")
+		}
+		next := offset + q.clusterSize
+		if next/q.clusterSize/q.refcountBlockEntries == offset/q.clusterSize/q.refcountBlockEntries {
+			return nil
+		}
+		offset = next
+	}
+}
+
+func (q *qcow2Image) appendRefcountBlock(offset uint64, oldSize int64) error {
+	clusterIndex := offset / q.clusterSize
+	tableIndex := clusterIndex / q.refcountBlockEntries
+	blockIndex := clusterIndex % q.refcountBlockEntries
+	block := make([]byte, int(q.clusterSize))
+	binary.BigEndian.PutUint16(block[blockIndex*2:], 1)
+	if _, err := q.file.WriteAt(block, int64(offset)); err != nil {
+		return errors.Join(fmt.Errorf("qcow2: append refcount block: %w", err), q.file.Truncate(oldSize))
+	}
+	var entry [8]byte
+	binary.BigEndian.PutUint64(entry[:], offset)
+	tableOffset := int64(q.refcountTableOffset + tableIndex*8)
+	if _, err := q.file.WriteAt(entry[:], tableOffset); err != nil {
+		// Restore the unused table entry before removing its new block.
+		clear(entry[:])
+		_, restoreErr := q.file.WriteAt(entry[:], tableOffset)
+		if restoreErr != nil {
+			return errors.Join(err, restoreErr)
+		}
+
+		return errors.Join(err, q.file.Truncate(oldSize))
+	}
+	q.refcountTable[tableIndex] = offset
+
+	return nil
 }
 
 func (q *qcow2Image) refcount(clusterOff uint64) (uint16, error) {

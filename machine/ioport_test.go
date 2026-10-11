@@ -74,3 +74,23 @@ func TestLegacyIOPortOverrides(t *testing.T) {
 		t.Errorf("unknown port: got %v, want %v", err, kvm.ErrUnexpectedExitReason)
 	}
 }
+
+func TestUEFIAbsentVMwarePorts(t *testing.T) {
+	t.Parallel()
+	m := &Machine{pci: pci.New(), mem: make([]byte, 2<<20), vcpuFds: []uintptr{0}}
+	if err := m.uefiDevices(); err != nil {
+		t.Fatal(err)
+	}
+	for _, port := range []uint64{0x5658, 0x5659} {
+		data := []byte{0x68, 0x58, 0x4d, 0x56}
+		if err := m.ioportHandlers[port][kvm.EXITIOOUT](port, data); err != nil {
+			t.Fatalf("VMware probe write: %v", err)
+		}
+		if err := m.ioportHandlers[port][kvm.EXITIOIN](port, data); err != nil {
+			t.Fatalf("VMware probe read: %v", err)
+		}
+		if !bytes.Equal(data, []byte{0xff, 0xff, 0xff, 0xff}) {
+			t.Fatalf("VMware probe returned %x, want absent device", data)
+		}
+	}
+}

@@ -172,10 +172,11 @@ func (g *GPU) GetDeviceHeader() pci.DeviceHeader {
 		// interface and requires VIRTIO_F_VERSION_1.
 		DeviceID:    0x1050,
 		VendorID:    0x1AF4,
+		RevisionID:  1,    // Modern virtio PCI revision (required for firmware discovery).
 		ClassCode:   0x03, // Display controller
-		Subclass:    0x00, // VGA-compatible controller
+		Subclass:    0x80, // Other display controller; no legacy VGA register interface.
 		HeaderType:  0,
-		SubsystemID: 16, // GPU
+		SubsystemID: 0x1050, // Non-transitional subsystem ID.
 		// Memory space enable | bus master.
 		Command: 0x6,
 		// Bit 4: capabilities list present.
@@ -1035,10 +1036,16 @@ func (g *GPU) Reset() {
 	defer g.mu.Unlock()
 	hadCursor := g.cursor.image != nil
 	g.resetLocked()
-	if hadCursor && !g.closed {
+	if g.closed {
+		return
+	}
+	if hadCursor {
 		// Separate cursor displays retain their last shape across desktop
 		// flushes. Clear it while publication is still serialized by mu.
 		g.present()
+	}
+	if display, ok := g.display.(GraphicsResetDisplay); ok {
+		display.GraphicsReset()
 	}
 }
 

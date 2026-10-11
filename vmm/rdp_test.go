@@ -103,11 +103,8 @@ func TestRDPDisplayConfiguration(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = display.Close() })
-			if !v.hasRemoteDisplay() || len(v.consoles) != want || v.rdpDisplay == nil || v.serialOutput == nil {
+			if !v.hasRemoteDisplay() || len(v.consoles) != want || v.rdpDisplay == nil || v.serialOutput != nil {
 				t.Fatalf("incomplete remote console configuration: %+v", v)
-			}
-			if _, err := v.serialOutput.Write([]byte("booting\n")); err != nil {
-				t.Fatal(err)
 			}
 		})
 	}

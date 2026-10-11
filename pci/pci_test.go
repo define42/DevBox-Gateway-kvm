@@ -455,3 +455,79 @@ func (d *reentrantMMIODevice) MMIO(_ uint64, _ []byte, _ bool) {
 	_ = d.bus.PciConfAddrIn(0xcf8, value[:])
 	d.accesses.Add(1)
 }
+
+func TestPCISparseFunctionsKeepIndependentBARs(t *testing.T) {
+	t.Parallel()
+
+	p := pci.New(pci.NewBridge())
+	first, second := &testMMIODevice{}, &testMMIODevice{}
+	if err := p.AddDeviceAt(5, 3, second); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.AddDeviceAt(5, 0, first); err != nil {
+		t.Fatal(err)
+	}
+	p.AddDevices(pci.NewIDEController())
+	if got := readPCIConfig(t, p, 5, 0, 0x0c); got&0x00800000 == 0 {
+		t.Fatal("late function zero does not advertise multiple functions")
+	}
+	if got := readPCIConfig(t, p, 6, 0, 0); got != 0x70108086 {
+		t.Fatalf("sequential registration did not continue after explicit slot: %#x", got)
+	}
+	barOffset := 0x10 + 4*first.MMIOBARIndex()
+	writePCIConfig(t, p, 5, 0, barOffset, 0xd1000000)
+	writePCIConfig(t, p, 5, 3, barOffset, 0xd2000000)
+	for _, tc := range []struct {
+		name string
+		addr uint64
+		dev  pci.CapsAndMMIO
+	}{
+		{name: "function zero", addr: 0xd1000020, dev: first},
+		{name: "function three", addr: 0xd2000020, dev: second},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			dev, offset, found := p.LookupMMIO(tc.addr)
+			if !found || dev != tc.dev || offset != 0x20 {
+				t.Fatalf("MMIO lookup: device=%v offset=%#x found=%v", dev, offset, found)
+			}
+		})
+	}
+	writePCIConfig(t, p, 5, 3, barOffset, 0xffffffff)
+	if got := readPCIConfig(t, p, 5, 0, barOffset); got != 0xd1000000 {
+		t.Fatalf("function-three BAR probe altered function zero: %#x", got)
+	}
+	if got := readPCIConfig(t, p, 5, 3, barOffset); got != pci.SizeToBits(second.MMIOSize()) {
+		t.Fatalf("wrong function-three BAR probe result: %#x", got)
+	}
+}
+
+func TestPCIAddDeviceAtValidation(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name     string
+		slot     int
+		function int
+		dev      pci.Device
+		want     error
+	}{
+		{name: "negative slot", slot: -1, dev: pci.NewBridge(), want: pci.ErrDeviceAddress},
+		{name: "large slot", slot: 32, dev: pci.NewBridge(), want: pci.ErrDeviceAddress},
+		{name: "negative function", function: -1, dev: pci.NewBridge(), want: pci.ErrDeviceAddress},
+		{name: "large function", function: 8, dev: pci.NewBridge(), want: pci.ErrDeviceAddress},
+		{name: "nil device", want: pci.ErrNilDevice},
+		{name: "occupied function", dev: pci.NewBridge(), want: pci.ErrDeviceOccupied},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			p := pci.New(pci.NewBridge())
+			if err := p.AddDeviceAt(tc.slot, tc.function, tc.dev); !errors.Is(err, tc.want) {
+				t.Fatalf("got %v, want %v", err, tc.want)
+			}
+			if len(p.Devices()) != 1 {
+				t.Fatal("failed registration changed the registry")
+			}
+		})
+	}
+}

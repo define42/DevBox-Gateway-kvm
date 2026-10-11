@@ -3,6 +3,8 @@ package pci
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -107,8 +109,9 @@ func (h DeviceHeader) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// registeredDevice stores metadata that is fixed for the lifetime of a PCI
-// function. Device callbacks run only while registering, outside the bus lock.
+// registeredDevice stores PCI function metadata. Device callbacks run only
+// while registering, outside the bus lock. Adding another function in the same
+// slot updates function zero's multifunction header bit under the bus lock.
 type registeredDevice struct {
 	dev      Device
 	header   DeviceHeader
@@ -116,12 +119,25 @@ type registeredDevice struct {
 	barSizes [6]uint64
 	mmio     CapsAndMMIO
 	mmioBAR  int
+	slot     int
+	function int
 }
+
+var ErrDeviceAddress = errors.New("invalid PCI slot or function")
+
+var ErrDeviceOccupied = errors.New("PCI function is already occupied")
+
+var ErrNilDevice = errors.New("PCI device is nil")
 
 type PCI struct {
 	mu      sync.RWMutex
 	addr    address
 	devices []registeredDevice
+
+	// functions maps bus-zero device/function addresses to registry indices.
+	// The registry retains insertion order for device lifecycle callbacks.
+	functions map[int]int
+	nextSlot  int
 
 	// A single size-probe can be in flight at a time: the guest writes
 	// 0xffffffff to a BAR then immediately reads it back. probeSlot is -1
@@ -130,7 +146,7 @@ type PCI struct {
 	probeBar  int
 
 	// barOverride records guest-assigned base addresses for the memory
-	// BARs of modern (CapsAndMMIO) devices, keyed by slot then BAR index.
+	// BARs of modern (CapsAndMMIO) devices, keyed by registry index then BAR.
 	barOverride map[int]map[int]uint32
 
 	// configOverride records writable configuration-space bytes outside BARs.
@@ -142,6 +158,7 @@ type PCI struct {
 func New(devices ...Device) *PCI {
 	p := &PCI{
 		probeSlot:      -1,
+		functions:      map[int]int{},
 		barOverride:    map[int]map[int]uint32{},
 		configOverride: map[int]map[int]byte{},
 	}
@@ -156,25 +173,79 @@ func New(devices ...Device) *PCI {
 func (p *PCI) AddDevices(devices ...Device) {
 	registered := make([]registeredDevice, 0, len(devices))
 	for _, dev := range devices {
-		entry := registeredDevice{dev: dev, header: dev.GetDeviceHeader()}
-		entry.barSizes[0] = dev.Size()
-		if cm, ok := dev.(CapsAndMMIO); ok {
-			entry.caps = append([]byte(nil), cm.Capabilities()...)
-			bar := cm.MMIOBARIndex()
-			if bar >= 0 && bar < len(entry.barSizes) {
-				entry.mmio, entry.mmioBAR = cm, bar
-				entry.barSizes[bar] = cm.MMIOSize()
-			}
-		}
-		registered = append(registered, entry)
+		registered = append(registered, registerDevice(dev))
 	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	for _, entry := range registered {
+		p.registerAt(p.nextSlot, 0, entry)
+	}
+}
+
+func registerDevice(dev Device) registeredDevice {
+	entry := registeredDevice{dev: dev, header: dev.GetDeviceHeader()}
+	entry.barSizes[0] = dev.Size()
+	if cm, ok := dev.(CapsAndMMIO); ok {
+		entry.caps = append([]byte(nil), cm.Capabilities()...)
+		bar := cm.MMIOBARIndex()
+		if bar >= 0 && bar < len(entry.barSizes) {
+			entry.mmio, entry.mmioBAR = cm, bar
+			entry.barSizes[bar] = cm.MMIOSize()
+		}
+	}
+
+	return entry
+}
+
+// AddDeviceAt registers a function at an explicit bus-zero PCI address. Later
+// AddDevices calls continue at the next slot after the highest registered slot.
+func (p *PCI) AddDeviceAt(slot, function int, dev Device) error {
+	if slot < 0 || slot >= 32 || function < 0 || function >= 8 {
+		return fmt.Errorf("%w: %02x.%x", ErrDeviceAddress, slot, function)
+	}
+	if dev == nil {
+		return ErrNilDevice
+	}
+	entry := registerDevice(dev)
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if _, exists := p.functions[slot*8+function]; exists {
+		return fmt.Errorf("%w: %02x.%x", ErrDeviceOccupied, slot, function)
+	}
+	p.registerAt(slot, function, entry)
+
+	return nil
+}
+
+// registerAt installs precomputed metadata while holding mu.
+func (p *PCI) registerAt(slot, function int, entry registeredDevice) {
+	if p.functions == nil {
+		p.functions = map[int]int{}
+	}
 	if len(p.devices) == 0 {
 		p.probeSlot = -1
 	}
-	p.devices = append(p.devices, registered...)
+	if function != 0 {
+		if index, ok := p.functions[slot*8]; ok {
+			p.devices[index].header.HeaderType |= 0x80
+		}
+	} else {
+		for fn := 1; fn < 8; fn++ {
+			if _, ok := p.functions[slot*8+fn]; ok {
+				entry.header.HeaderType |= 0x80
+
+				break
+			}
+		}
+	}
+	entry.slot, entry.function = slot, function
+	p.functions[slot*8+function] = len(p.devices)
+	p.devices = append(p.devices, entry)
+	if slot >= p.nextSlot {
+		p.nextSlot = slot + 1
+	}
 }
 
 // Devices returns a snapshot of the registered functions. Mutating the returned
@@ -189,6 +260,27 @@ func (p *PCI) Devices() []Device {
 	}
 
 	return devices
+}
+
+// Function identifies a registered PCI function on bus zero.
+type Function struct {
+	Slot     int
+	Function int
+	Device   Device
+}
+
+// Functions returns the devices and their addresses in registration order.
+// The returned slice is independent of the bus registry.
+func (p *PCI) Functions() []Function {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	functions := make([]Function, len(p.devices))
+	for i, entry := range p.devices {
+		functions[i] = Function{Slot: entry.slot, Function: entry.function, Device: entry.dev}
+	}
+
+	return functions
 }
 
 // barAtOffset returns the BAR index (0-5) addressed by a config-space byte
@@ -298,15 +390,9 @@ func (p *PCI) PciConfDataIn(port uint64, values []byte) error {
 		return nil
 	}
 
-	if p.addr.getFunctionNumber() != 0 {
-		fillAbsent()
-
-		return nil
-	}
-
-	slot := int(p.addr.getDeviceNumber())
-
-	if slot >= len(p.devices) {
+	function := int(p.addr.getDeviceNumber()*8 + p.addr.getFunctionNumber())
+	slot, exists := p.functions[function]
+	if !exists {
 		fillAbsent()
 
 		return nil
@@ -363,13 +449,9 @@ func (p *PCI) PciConfDataOut(port uint64, values []byte) error {
 		return nil
 	}
 
-	if p.addr.getFunctionNumber() != 0 {
-		return nil
-	}
-
-	slot := int(p.addr.getDeviceNumber())
-
-	if slot >= len(p.devices) {
+	function := int(p.addr.getDeviceNumber()*8 + p.addr.getFunctionNumber())
+	slot, exists := p.functions[function]
+	if !exists {
 		return nil
 	}
 

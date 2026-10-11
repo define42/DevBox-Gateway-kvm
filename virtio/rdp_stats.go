@@ -2,8 +2,11 @@ package virtio
 
 import (
 	"fmt"
+	"image"
 	"log"
 	"time"
+
+	"github.com/define42/gokvm/internal/rdp"
 )
 
 type rdpStageTime struct {
@@ -51,16 +54,21 @@ func (w *rdpWaitTime) update(waiting bool, now time.Time) {
 // Stats belong to one frame writer. Disabled stats do not read the clock or
 // allocate. Report only during activity and at disconnect; no idle timer.
 type rdpFrameStats struct {
-	enabled bool
-	peer    string
-	start   time.Time
-	frames  uint64
-	bytes   uint64
-	copy    rdpStageTime
-	convert rdpStageTime
-	encode  rdpStageTime
-	write   rdpStageTime
-	ack     rdpWaitTime
+	enabled       bool
+	peer          string
+	encoder       string
+	source        image.Point
+	output        image.Point
+	start         time.Time
+	frames        uint64
+	bytes         uint64
+	copy          rdpStageTime
+	convert       rdpStageTime
+	encode        rdpStageTime
+	write         rdpStageTime
+	ack           rdpWaitTime
+	pacing        rdpStageTime
+	ackTurnaround time.Duration
 }
 
 func (s *rdpFrameStats) begin() time.Time {
@@ -89,6 +97,17 @@ func (s *rdpFrameStats) waiting(ack bool, nextFrame time.Time) {
 	}
 }
 
+// captured samples the active encoder and pacing once per framebuffer capture.
+// Pacing describes the permitted send interval, not elapsed encode or wait time.
+func (s *rdpFrameStats) captured(encoder string, source, output image.Point, timing rdp.GraphicsStats) {
+	if !s.enabled {
+		return
+	}
+	s.encoder, s.source, s.output = encoder, source, output
+	s.pacing.add(timing.FrameInterval)
+	s.ackTurnaround = timing.ACKTurnaround
+}
+
 func (s *rdpFrameStats) sent(bytes int) {
 	if s.enabled && bytes != 0 {
 		s.frames++
@@ -109,13 +128,38 @@ func (s *rdpFrameStats) report(slices int, final bool) {
 	}
 	s.ack.update(!s.ack.start.IsZero(), now)
 	if s.frames != 0 || s.ack.total != 0 {
-		log.Printf("rdp: stats client=%s slices=%d frames=%d payload_bytes=%d elapsed=%.2fs "+
-			"avg/max copy=%s convert=%s encode=%s write=%s ack_wait=%s",
-			s.peer, slices, s.frames, s.bytes, now.Sub(s.start).Seconds(),
-			s.copy, s.convert, s.encode, s.write, s.ack.total.Round(time.Millisecond))
+		elapsed := now.Sub(s.start).Seconds()
+		var fps float64
+		if elapsed > 0 {
+			fps = float64(s.frames) / elapsed
+		}
+		log.Printf(
+			"rdp: stats client=%s encoder=%s source=%dx%d output=%dx%d slices=%d "+
+				"frames=%d payload_bytes=%d elapsed=%.2fs fps=%.2f "+
+				"avg/max copy=%s convert=%s encode=%s write=%s pacing=%s ack_turnaround=%s ack_wait=%s",
+			s.peer,
+			s.encoder,
+			s.source.X,
+			s.source.Y,
+			s.output.X,
+			s.output.Y,
+			slices,
+			s.frames,
+			s.bytes,
+			elapsed,
+			fps,
+			s.copy,
+			s.convert,
+			s.encode,
+			s.write,
+			s.pacing,
+			s.ackTurnaround.Round(time.Microsecond),
+			s.ack.total.Round(time.Millisecond),
+		)
 	}
 	*s = rdpFrameStats{
 		enabled: true, peer: s.peer, start: now,
-		ack: rdpWaitTime{start: s.ack.start},
+		encoder: s.encoder, source: s.source, output: s.output,
+		ack: rdpWaitTime{start: s.ack.start}, ackTurnaround: s.ackTurnaround,
 	}
 }

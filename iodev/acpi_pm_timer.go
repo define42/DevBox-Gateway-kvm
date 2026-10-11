@@ -25,17 +25,21 @@ func (a *ACPIPMTimer) Read(base uint64, data []byte) error {
 		return errDataLenInvalid
 	}
 
-	since := time.Since(a.Start)
-	nanos := since.Nanoseconds()
-	counter := (nanos * int64(pmTimerFreqHz)) / int64(nanosPerSecond)
-	counter32 := uint32(counter & 0xFFFF_FFFF)
-	counterbyte := make([]byte, 4)
-
-	binary.LittleEndian.PutUint32(counterbyte, counter32)
-
-	copy(data[0:], counterbyte)
+	binary.LittleEndian.PutUint32(data, pmTimerTicks(time.Since(a.Start)))
 
 	return nil
+}
+
+// Split seconds from nanoseconds before multiplication. Multiplying the whole
+// duration by the timer frequency overflows int64 after about 43 minutes.
+func pmTimerTicks(elapsed time.Duration) uint32 {
+	if elapsed <= 0 {
+		return 0
+	}
+	seconds := uint64(elapsed / time.Second)
+	nanos := uint64(elapsed % time.Second)
+
+	return uint32(seconds*pmTimerFreqHz + nanos*pmTimerFreqHz/nanosPerSecond)
 }
 
 func (a *ACPIPMTimer) Write(base uint64, data []byte) error {
