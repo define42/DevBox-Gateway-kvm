@@ -6,8 +6,8 @@ image conversion. The executable uses dynamic linking; NVENC also loads NVIDIA
 driver libraries supplied by the host. The runtime has no shell, package manager,
 or FFmpeg command-line tool.
 
-It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Docker, and
-working `/dev/kvm` access. If Linux itself runs in a VM, nested virtualization
+It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
+and working `/dev/kvm` access. If Linux itself runs in a VM, nested virtualization
 must be enabled.
 
 ## Start the gateway and LDAP with Compose
@@ -17,18 +17,23 @@ LDAP directory. No desktop image is needed to start it. Run from the repository
 root:
 
 ```bash
-./docker/configure.sh
-```
-
-The setup helper detects `/dev/kvm`'s group and writes `KVM_GID` to `.env`,
-which Compose loads automatically. It creates `.env` from `.env.example` when
-needed and preserves your other settings on later runs. Run it again if the
-host KVM group changes; the gateway continues to run as UID 10001.
-
-```bash
-docker compose up --build -d
+make gateway-docker
 docker compose logs -f gateway ldap
 ```
+
+The target runs `./docker/configure.sh`, then
+`docker compose up --build -d gateway`. The setup helper detects `/dev/kvm`'s
+group and writes `KVM_GID` to `.env`, which Compose loads automatically. It
+creates `.env` from `.env.example` when needed and preserves your other settings
+on later runs. The gateway continues to run as UID 10001. Existing desktop,
+image, and certificate volumes are preserved.
+
+After updating this checkout, run `make gateway-docker` again to rebuild the
+gateway image and recreate its container. `docker compose restart`
+reuses the existing binary. If an older image reports
+`choose either -ldap-url or -auth-file: invalid command arguments` after the
+environment configuration migration, it may be ignoring the new variables;
+that message does not necessarily mean both authentication methods are set.
 
 Open **https://localhost:8443** and accept the locally generated self-signed
 certificate in your browser and RDP client. Sign in as **`administrator`** with

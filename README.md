@@ -151,13 +151,16 @@ until you run `make ldap-stop`.
 
 ### Run in Docker
 
-On an x86-64 Linux host with Docker Compose and `/dev/kvm`, start both the
+On an x86-64 Linux host with Make, Docker Compose, and `/dev/kvm`, start both the
 gateway and development LDAP directory:
 
 ```bash
-./docker/configure.sh
-docker compose up --build -d
+make gateway-docker
 ```
+
+This runs `./docker/configure.sh`, then `docker compose up --build -d gateway`.
+Run it again after updating the checkout to rebuild the gateway and recreate
+its container while preserving desktop, image, and certificate volumes.
 
 Open **https://localhost:8443**, accept the local self-signed certificate, and
 sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload

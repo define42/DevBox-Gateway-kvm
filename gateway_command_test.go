@@ -122,6 +122,7 @@ func TestPublishFailurePreservesExistingFiles(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
 func TestGatewayCommandRejectsUnsafeConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	for _, args := range [][]string{

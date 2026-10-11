@@ -23,26 +23,15 @@ GATEWAY_LDAP_ADMIN_GROUP ?= devbox-admins
 GATEWAY_LDAP_CA ?= ./testldap/.tls/cert.pem
 OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
-# Native gateway configuration uses the same ENV keys as the executable.
-# Retain the GATEWAY_* make variables as defaults for existing invocations.
-export DATA_ROOT_DIR ?= $(GATEWAY_STATE)
-export BASE_IMAGE ?= $(GATEWAY_IMAGE)
-export UEFI_CODE ?= $(OVMF_CODE)
-export UEFI_VARS_TEMPLATE ?= $(OVMF_VARS)
-export LDAP_URL ?= $(GATEWAY_LDAP_URL)
-export LDAP_BASE_DN ?= $(GATEWAY_LDAP_BASE_DN)
-export LDAP_USER_DOMAIN ?= $(GATEWAY_LDAP_DOMAIN)
-export LDAP_USER_FILTER ?= $(GATEWAY_LDAP_FILTER)
-export LDAP_USERNAME_ATTRIBUTE ?= $(GATEWAY_LDAP_USERNAME_ATTRIBUTE)
-export LDAP_REQUIRED_GROUP ?= $(GATEWAY_LDAP_REQUIRED_GROUP)
-export ADMIN_GROUP ?= $(GATEWAY_LDAP_ADMIN_GROUP)
-export LDAP_CA_FILE ?= $(GATEWAY_LDAP_CA)
 RDP_CLIENT ?= $(shell if [ -x ./tools/freerdp/bin/xfreerdp ]; then \
 	printf '%s\n' ./tools/freerdp/bin/xfreerdp; \
 	else command -v xfreerdp3 2>/dev/null || command -v xfreerdp 2>/dev/null; fi)
 
+# Docker builds use their own Go toolchain.
+ifneq ($(MAKECMDGOALS),gateway-docker)
 export GOPATH := $(shell $(GO) env GOPATH)
 export PATH := $(GOPATH)/bin:$(PATH)
+endif
 
 $(GOPATH)/bin/stringer:
 	$(GO) install golang.org/x/tools/cmd/stringer@latest
@@ -217,6 +206,28 @@ gateway-ldap-test: ldap
 	GOKVM_TEST_LDAP_URL="ldaps://127.0.0.1:$(LDAP_PORT)" \
 		GOKVM_TEST_LDAP_CA="$(abspath testldap/.tls/cert.pem)" \
 		$(GO) test -race ./internal/gateway -run '^TestBundledLDAP' -count=1
+
+# Rebuild and recreate the container after source or configuration changes.
+.PHONY: gateway-docker
+gateway-docker:
+	./docker/configure.sh
+	docker compose up --build -d gateway
+
+# Native gateway configuration uses the same ENV keys as the executable.
+# Scope native defaults to this target so Docker uses Compose/.env settings.
+# Retain the GATEWAY_* make variables as defaults for existing invocations.
+gateway: export DATA_ROOT_DIR ?= $(GATEWAY_STATE)
+gateway: export BASE_IMAGE ?= $(GATEWAY_IMAGE)
+gateway: export UEFI_CODE ?= $(OVMF_CODE)
+gateway: export UEFI_VARS_TEMPLATE ?= $(OVMF_VARS)
+gateway: export LDAP_URL ?= $(GATEWAY_LDAP_URL)
+gateway: export LDAP_BASE_DN ?= $(GATEWAY_LDAP_BASE_DN)
+gateway: export LDAP_USER_DOMAIN ?= $(GATEWAY_LDAP_DOMAIN)
+gateway: export LDAP_USER_FILTER ?= $(GATEWAY_LDAP_FILTER)
+gateway: export LDAP_USERNAME_ATTRIBUTE ?= $(GATEWAY_LDAP_USERNAME_ATTRIBUTE)
+gateway: export LDAP_REQUIRED_GROUP ?= $(GATEWAY_LDAP_REQUIRED_GROUP)
+gateway: export ADMIN_GROUP ?= $(GATEWAY_LDAP_ADMIN_GROUP)
+gateway: export LDAP_CA_FILE ?= $(GATEWAY_LDAP_CA)
 
 .PHONY: gateway
 ifeq ($(GATEWAY_LDAP_LOCAL),1)
