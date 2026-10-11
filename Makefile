@@ -123,9 +123,8 @@ slax: generate
 
 .PHONY: netdesk
 netdesk: generate
-	CGO_ENABLED=0 $(GO) build -o gokvm .
-	./gokvm boot -uki "$(NETDESK_UKI)" -c 2 -m 6G -net user -rdp 127.0.0.1:3390 \
-		-rdp-h264 -rdp-h264-threads 2
+	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
+	./gokvm boot -uki "$(NETDESK_UKI)" -c 2 -m 6G -net user -rdp 127.0.0.1:3390 -rdp-h264 -rdp-h264-encoder nvenc
 
 .PHONY: freerdp
 freerdp:

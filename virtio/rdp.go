@@ -26,10 +26,13 @@ import (
 
 const rdpResizeDelay = 150 * time.Millisecond
 
+var errRDPEncoder = errors.New("rdp: H.264 encoder must be software, nvenc, or auto and requires H.264")
+
 // RDPConfig selects the server certificate, H.264 AVC420 graphics, and audio playback.
 type RDPConfig struct {
 	TLS         *tls.Config
 	H264        bool
+	H264Encoder string // Empty selects the software encoder.
 	Audio       bool
 	H264Threads int // Slice request; zero chooses a bounded automatic count.
 	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
@@ -44,6 +47,7 @@ type RDPDisplay struct {
 	listener       net.Listener
 	tls            *tls.Config
 	h264           bool
+	h264Backend    avc.Backend
 	h264Slices     int
 	stats          bool
 	audio          *audio.Hub
@@ -74,15 +78,32 @@ func NewRDPDisplayWithTLS(addr string, config *tls.Config) (*RDPDisplay, error) 
 // NewRDPDisplayWithConfig enables AVC420 for capable clients when H264 is set.
 // Other clients retain bitmap updates.
 func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error) {
+	backend := avc.Backend(options.H264Encoder)
+	switch backend {
+	case "", avc.BackendSoftware, avc.BackendNVENC, avc.BackendAuto:
+	default:
+		return nil, errRDPEncoder
+	}
+	if backend != "" && !options.H264 {
+		return nil, errRDPEncoder
+	}
+	if backend == "" {
+		backend = avc.BackendSoftware
+	}
 	if options.H264Threads < 0 || options.H264Threads > avc.MaxThreads ||
 		(options.H264Threads != 0 && !options.H264) {
 		return nil, errRDPThreads
 	}
+	slices := rdpEncoderSlices(runtime.GOMAXPROCS(0), options.GuestCPUs, options.H264Threads)
 	if options.H264 {
 		// Fail before opening the listener if the H.264 encoder cannot initialize.
-		encoder, err := avc.NewEncoder(1024, 768)
+		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{Backend: backend, Threads: slices})
 		if err != nil {
 			return nil, err
+		}
+		log.Printf("rdp: H.264 encoder=%s requested=%s", encoder.Backend(), backend)
+		if reason := encoder.FallbackReason(); reason != nil {
+			log.Printf("rdp: H.264 using software fallback: %v", reason)
 		}
 		encoder.Close()
 	}
@@ -107,7 +128,7 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	display := &RDPDisplay{
 		framebuffer: newFramebuffer(), listener: listener, tls: config,
 		h264: options.H264, stats: options.Stats,
-		h264Slices: rdpEncoderSlices(runtime.GOMAXPROCS(0), options.GuestCPUs, options.H264Threads),
+		h264Backend: backend, h264Slices: slices,
 	}
 	if options.Audio {
 		display.audio = audio.NewHub()
@@ -381,8 +402,8 @@ func (d *RDPDisplay) writeFrames(
 	}
 	writer := &rdpFrameWriter{
 		session: session, bitmap: bitmap, width: width, height: height, force: true,
-		slices: d.h264Slices,
-		stats:  rdpFrameStats{enabled: d.stats, peer: conn.RemoteAddr().String()},
+		backend: d.h264Backend, slices: d.h264Slices,
+		stats: rdpFrameStats{enabled: d.stats, peer: conn.RemoteAddr().String()},
 	}
 	writer.stats.start = writer.stats.begin()
 	defer writer.shutdown()
@@ -468,6 +489,7 @@ type rdpFrameWriter struct {
 	session   *rdp.Session
 	bitmap    *rdp.BitmapEncoder
 	avc       *avc.Encoder
+	backend   avc.Backend
 	frame     vncFrame
 	width     int
 	height    int
@@ -536,7 +558,7 @@ func (w *rdpFrameWriter) updateGraphics(conn net.Conn) bool {
 	}
 	w.graphics = ready
 	if ready {
-		log.Printf("rdp: client %s using pure-Go H.264 AVC420 graphics", conn.RemoteAddr())
+		log.Printf("rdp: client %s using H.264 AVC420 graphics", conn.RemoteAddr())
 	} else {
 		w.close()
 	}
@@ -615,16 +637,32 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 	if w.avc == nil {
 		width, height := w.session.Size()
 		encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
-			Threads: max(1, w.slices), Measure: w.stats.enabled,
+			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.enabled,
 		})
 		if err != nil {
 			return false, err
 		}
 		w.avc = encoder
 		force = true // A new encoder starts an independent reference chain.
-		log.Printf("rdp: client %s H.264 slices=%d requested=%d", w.stats.peer, encoder.Threads(), max(1, w.slices))
+		log.Printf("rdp: client %s H.264 encoder=%s slices=%d",
+			w.stats.peer,
+			encoder.Backend(),
+			encoder.Threads(),
+		)
+		if reason := encoder.FallbackReason(); reason != nil {
+			log.Printf("rdp: client %s H.264 using software fallback: %v", w.stats.peer, reason)
+		}
 	}
+	previousBackend := w.avc.Backend()
 	data, err := w.avc.EncodeDamage(img, damage, force)
+	if w.avc.Backend() != previousBackend {
+		log.Printf("rdp: client %s H.264 encoder=%s after %s failure: %v",
+			w.stats.peer,
+			w.avc.Backend(),
+			previousBackend,
+			w.avc.FallbackReason(),
+		)
+	}
 	if w.stats.enabled {
 		stats := w.avc.LastStats()
 		w.stats.convert.add(stats.Conversion)

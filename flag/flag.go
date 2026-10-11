@@ -16,6 +16,8 @@ var ErrRDPOptions = errors.New("RDP certificate and key must be provided togethe
 
 var ErrRDPH264 = errors.New("-rdp-h264 requires -rdp")
 
+var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software, nvenc, or auto and requires -rdp-h264")
+
 var ErrRDPH264Threads = errors.New("-rdp-h264-threads must be 0 (auto) or 1..16 and requires -rdp-h264")
 
 var ErrRDPStats = errors.New("-rdp-stats requires -rdp")
@@ -47,6 +49,7 @@ type BootArgs struct {
 	RDPCert        string
 	RDPKey         string
 	RDPH264        bool
+	RDPH264Encoder string
 	RDPH264Threads int
 	RDPStats       bool
 	Audio          string
@@ -84,9 +87,11 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"RDP TLS certificate PEM file (default: temporary self-signed certificate)")
 	bootCmd.StringVar(&c.RDPKey, "rdp-key", "", "RDP TLS private key PEM file")
 	bootCmd.BoolVar(&c.RDPH264, "rdp-h264", false,
-		"enable pure-Go H.264 AVC420 graphics for compatible RDP clients")
+		"enable H.264 AVC420 graphics for compatible RDP clients")
+	bootCmd.StringVar(&c.RDPH264Encoder, "rdp-h264-encoder", "software",
+		"H.264 encoder: software, nvenc, or auto (NVENC with software fallback); requires -rdp-h264")
 	bootCmd.IntVar(&c.RDPH264Threads, "rdp-h264-threads", 0,
-		"H.264 slices: 0 selects one automatically, "+
+		"software H.264 slices: 0 selects one automatically, "+
 			"1..16 requests a count within the host budget (requires -rdp-h264)")
 	bootCmd.BoolVar(&c.RDPStats, "rdp-stats", false, "log RDP performance statistics every 5 seconds")
 	bootCmd.StringVar(&c.Audio, "audio", "", "audio output: rdp (virtio-snd playback through RDP) or none (default)")
@@ -106,13 +111,15 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if c.NCPUs < 1 || c.NCPUs > ebda.MaxVCPUs {
 		return nil, ErrCPUCount
 	}
-	var threadsSet bool
+	var threadsSet, encoderSet bool
 	bootCmd.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "p":
 			c.ParamsSet = true
 		case "rdp-h264-threads":
 			threadsSet = true
+		case "rdp-h264-encoder":
+			encoderSet = true
 		}
 	})
 	if err := selectUKIBootSource(bootCmd, c); err != nil {
@@ -123,6 +130,14 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	}
 	if c.RDPH264 && c.RDP == "" {
 		return nil, ErrRDPH264
+	}
+	switch c.RDPH264Encoder {
+	case "software", "nvenc", "auto":
+	default:
+		return nil, ErrRDPH264Encoder
+	}
+	if encoderSet && !c.RDPH264 {
+		return nil, ErrRDPH264Encoder
 	}
 	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
 		return nil, ErrRDPH264Threads

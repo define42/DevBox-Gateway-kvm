@@ -65,6 +65,7 @@ func TestParseBootArgs(t *testing.T) {
 		"-rdp-key", "console.key",
 		"-rdp-h264",
 		"-rdp-h264-threads", "4",
+		"-rdp-h264-encoder", "nvenc",
 		"-rdp-stats",
 		"-m",
 		"1G",
@@ -115,7 +116,7 @@ func TestParseBootArgs(t *testing.T) {
 	if c.RDP != "127.0.0.1:3389" || c.RDPCert != "console.crt" || c.RDPKey != "console.key" || !c.RDPH264 {
 		t.Errorf("invalid RDP options: %+v", c)
 	}
-	if c.RDPH264Threads != 4 || !c.RDPStats {
+	if c.RDPH264Threads != 4 || c.RDPH264Encoder != "nvenc" || !c.RDPStats {
 		t.Errorf("invalid RDP performance options: %+v", c)
 	}
 
@@ -186,6 +187,9 @@ func TestParseBootArgsWithDefaults(t *testing.T) {
 	}
 	if c.RDP != "" || c.RDPCert != "" || c.RDPKey != "" || c.RDPH264 {
 		t.Errorf("RDP must be disabled by default: %+v", c)
+	}
+	if c.RDPH264Encoder != "software" {
+		t.Errorf("RDP encoder must default to software: %+v", c)
 	}
 	if c.RDPH264Threads != 0 || c.RDPStats {
 		t.Errorf("RDP slices must default to auto and statistics must be disabled: %+v", c)
@@ -266,6 +270,65 @@ func TestRDPH264RequiresListener(t *testing.T) {
 	t.Parallel()
 	if _, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-rdp-h264"}); !errors.Is(err, flag.ErrRDPH264) {
 		t.Fatalf("H.264 without RDP listener: got %v, want %v", err, flag.ErrRDPH264)
+	}
+}
+
+func TestRDPH264EncoderOptions(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+		err  error
+	}{
+		{name: "default", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264"}, want: "software"},
+		{
+			name: "software",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264", "-rdp-h264-encoder=software"},
+			want: "software",
+		},
+		{
+			name: "nvenc",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264", "-rdp-h264-encoder=nvenc"},
+			want: "nvenc",
+		},
+		{
+			name: "auto",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264", "-rdp-h264-encoder=auto"},
+			want: "auto",
+		},
+		{
+			name: "unknown",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264", "-rdp-h264-encoder=vaapi"},
+			err:  flag.ErrRDPH264Encoder,
+		},
+		{
+			name: "empty",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264", "-rdp-h264-encoder="},
+			err:  flag.ErrRDPH264Encoder,
+		},
+		{
+			name: "software-without-codec",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264-encoder=software"},
+			err:  flag.ErrRDPH264Encoder,
+		},
+		{
+			name: "nvenc-without-codec",
+			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264-encoder=nvenc"},
+			err:  flag.ErrRDPH264Encoder,
+		},
+		{name: "auto-without-rdp", args: []string{"-rdp-h264-encoder=auto"}, err: flag.ErrRDPH264Encoder},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			c, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, tc.args...))
+			if !errors.Is(err, tc.err) {
+				t.Fatalf("got %v, want %v", err, tc.err)
+			}
+			if err == nil && c.RDPH264Encoder != tc.want {
+				t.Errorf("got encoder %q, want %q", c.RDPH264Encoder, tc.want)
+			}
+		})
 	}
 }
 

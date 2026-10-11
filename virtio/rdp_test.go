@@ -19,16 +19,45 @@ var _ ConsoleDisplay = (*RDPDisplay)(nil)
 
 func TestRDPDisplayH264Configuration(t *testing.T) {
 	t.Parallel()
-	d, err := NewRDPDisplayWithConfig("127.0.0.1:0", RDPConfig{H264: true})
-	if err != nil {
-		t.Fatal(err)
+	for _, backend := range []string{"", "software"} {
+		name := backend
+		if name == "" {
+			name = "default"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			d, err := NewRDPDisplayWithConfig("127.0.0.1:0", RDPConfig{H264: true, H264Encoder: backend})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = d.Close() })
+			if !d.h264 || d.h264Backend != avc.BackendSoftware {
+				t.Fatalf("software H.264 was not enabled: enabled=%v backend=%q", d.h264, d.h264Backend)
+			}
+			if d.linearInterval != time.Second/avc.FrameRate {
+				t.Fatalf("H.264 capture interval %v does not match encoder frame rate", d.linearInterval)
+			}
+		})
 	}
-	t.Cleanup(func() { _ = d.Close() })
-	if !d.h264 {
-		t.Fatal("H.264 option was not enabled")
-	}
-	if d.linearInterval != time.Second/avc.FrameRate {
-		t.Fatalf("H.264 capture interval %v does not match encoder frame rate", d.linearInterval)
+}
+
+func TestRDPEncoderConfigValidation(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		options RDPConfig
+	}{
+		{name: "unknown", options: RDPConfig{H264: true, H264Encoder: "invalid"}},
+		{name: "software-without-h264", options: RDPConfig{H264Encoder: "software"}},
+		{name: "nvenc-without-h264", options: RDPConfig{H264Encoder: "nvenc"}},
+		{name: "auto-without-h264", options: RDPConfig{H264Encoder: "auto"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if _, err := NewRDPDisplayWithConfig("invalid-address", tc.options); !errors.Is(err, errRDPEncoder) {
+				t.Fatalf("invalid encoder options reached listener creation: %v", err)
+			}
+		})
 	}
 }
 

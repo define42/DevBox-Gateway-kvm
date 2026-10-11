@@ -1,9 +1,10 @@
-// Package avc provides the pure-Go H.264 encoder used by the RDP graphics
-// pipeline.
+// Package avc provides software and optional NVENC H.264 encoding for the RDP
+// graphics pipeline.
 package avc
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"time"
 
@@ -24,12 +25,25 @@ var (
 	ErrCodec    = errors.New("H.264 encoding failed")
 	ErrClosed   = errors.New("H.264 encoder is closed")
 	ErrThreads  = errors.New("H.264 slice count must be between 1 and 16")
+	ErrBackend  = errors.New("H.264 encoder must be software, nvenc, or auto")
 )
 
-// Options controls the H.264 slice count and optional per-frame measurements.
+// Backend selects an H.264 encoder implementation.
+type Backend string
+
+const (
+	BackendSoftware Backend = "software"
+	BackendNVENC    Backend = "nvenc"
+	// BackendAuto tries NVENC and falls back to software on initialization or
+	// encoding failure. A running encoder falls back at most once.
+	BackendAuto Backend = "auto"
+)
+
+// Options controls the backend, software slice count, and per-frame measurements.
 type Options struct {
 	Threads int
 	Measure bool
+	Backend Backend // Empty selects software; NVENC requires the nvenc build tag and cgo.
 }
 
 // EncodeStats describes the most recent Encode or EncodeDamage call. Encoding
@@ -47,16 +61,20 @@ type codecEncoder interface {
 // Encoder produces Annex-B AVC access units, including parameter sets with IDR
 // frames. One goroutine must own the encoder, including calls to Close.
 type Encoder struct {
-	codec         codecEncoder
-	width, height int
-	i420          []byte
-	source        image.Rectangle
-	initialized   bool
-	retry         bool
-	frame         int64
-	threads       int
-	measure       bool
-	stats         EncodeStats
+	codec            codecEncoder
+	width, height    int
+	i420             []byte
+	source           image.Rectangle
+	initialized      bool
+	retry            bool
+	frame            int64
+	threads          int
+	requestedThreads int
+	backend          Backend
+	auto             bool
+	fallbackReason   error
+	measure          bool
+	stats            EncodeStats
 }
 
 // NewEncoder fixes the output size for the lifetime of the encoder. Dimensions
@@ -65,31 +83,77 @@ func NewEncoder(width, height int) (*Encoder, error) {
 	return NewEncoderWithOptions(width, height, Options{Threads: 1})
 }
 
-// NewEncoderWithOptions fixes the output size and requested slice count.
+// NewEncoderWithOptions fixes the output size and selects the encoding backend.
 // Threads must be between 1 and MaxThreads. The codec may reduce the slice count
-// for small pictures; Threads reports the effective count.
+// for small pictures; Threads reports the effective software count, or zero for
+// NVENC. BackendNVENC returns errors directly; BackendAuto can fall back to software.
 func NewEncoderWithOptions(width, height int, options Options) (*Encoder, error) {
+	return newEncoderWithNVENC(width, height, options, newNVENCEncoder)
+}
+
+func newEncoderWithNVENC(
+	width, height int, options Options, createNVENC func(int, int) (codecEncoder, error),
+) (*Encoder, error) {
 	if width < 16 || height < 16 || width > maxDimension || height > maxDimension || width%2 != 0 || height%2 != 0 {
 		return nil, ErrGeometry
 	}
 	if options.Threads < 1 || options.Threads > MaxThreads {
 		return nil, ErrThreads
 	}
-
-	codec, threads, err := newCodecEncoder(width, height, options.Threads)
-	if err != nil {
-		return nil, err
+	backend := options.Backend
+	if backend == "" {
+		backend = BackendSoftware
+	}
+	if backend != BackendSoftware && backend != BackendNVENC && backend != BackendAuto {
+		return nil, ErrBackend
 	}
 
-	return &Encoder{
-		codec: codec, width: width, height: height,
-		i420:    make([]byte, width*height*3/2),
-		threads: threads, measure: options.Measure,
-	}, nil
+	e := &Encoder{
+		width: width, height: height, requestedThreads: options.Threads,
+		measure: options.Measure, auto: backend == BackendAuto,
+	}
+	if backend != BackendSoftware {
+		codec, err := createNVENC(width, height)
+		switch {
+		case err == nil:
+			e.codec, e.backend = codec, BackendNVENC
+		case backend == BackendNVENC:
+			return nil, err
+		default:
+			e.fallbackReason = err
+		}
+	}
+	if e.codec == nil {
+		if err := e.useSoftware(); err != nil {
+			return nil, errors.Join(e.fallbackReason, err)
+		}
+	}
+	e.i420 = make([]byte, width*height*3/2)
+
+	return e, nil
 }
 
-// Threads returns the effective H.264 slice count.
+// Threads returns the effective software slice count, or zero for NVENC.
 func (e *Encoder) Threads() int { return e.threads }
+
+// Backend reports the active implementation, including after automatic fallback.
+func (e *Encoder) Backend() Backend { return e.backend }
+
+// FallbackReason reports why automatic selection switched to software, if any.
+func (e *Encoder) FallbackReason() error { return e.fallbackReason }
+
+func (e *Encoder) useSoftware() error {
+	codec, threads, err := newCodecEncoder(e.width, e.height, e.requestedThreads)
+	if err != nil {
+		return err
+	}
+	if e.codec != nil {
+		e.codec.close()
+	}
+	e.codec, e.threads, e.backend = codec, threads, BackendSoftware
+
+	return nil
+}
 
 // LastStats returns measurements for the most recent encode call. Measurements
 // are zero when Options.Measure is false; that path does not read the clock.
@@ -143,6 +207,16 @@ func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force
 		started = time.Now()
 	}
 	data, err := e.codec.encode(e.i420, force || e.retry, e.frame*1000/FrameRate)
+	if err != nil && e.auto && e.backend == BackendNVENC {
+		e.fallbackReason = err
+		if fallbackErr := e.useSoftware(); fallbackErr != nil {
+			err = fmt.Errorf("%w: software fallback: %w", err, fallbackErr)
+		} else {
+			// The client still references the hardware stream. An independent
+			// frame with parameter sets replaces it and triggers a full repaint.
+			data, err = e.codec.encode(e.i420, true, e.frame*1000/FrameRate)
+		}
+	}
 	if e.measure {
 		e.stats.Encoding = time.Since(started)
 	}

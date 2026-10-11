@@ -31,6 +31,8 @@ var errAudioConfig = errors.New("audio must be 'none' or 'rdp'; 'rdp' requires a
 
 var errRDPH264ThreadsConfig = errors.New("RDP H.264 slices must be 0 (auto) or 1..16; a slice count requires H.264")
 
+var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software, nvenc, or auto and requires H.264")
+
 var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
 
 var errUKIBootSource = errors.New("UKI cannot be combined with ISO, kernel, or initrd")
@@ -64,6 +66,7 @@ type Config struct {
 	RDPCert        string
 	RDPKey         string
 	RDPH264        bool
+	RDPH264Encoder string
 	RDPH264Threads int
 	RDPStats       bool
 	Audio          string
@@ -92,6 +95,14 @@ func New(c Config) *VMM {
 }
 
 func (v *VMM) validateRDPPerformanceConfig() error {
+	switch v.RDPH264Encoder {
+	case "", "software", "nvenc", "auto":
+	default:
+		return errRDPH264EncoderConfig
+	}
+	if v.RDPH264Encoder != "" && !v.RDPH264 {
+		return errRDPH264EncoderConfig
+	}
 	if v.RDPH264Threads < 0 || v.RDPH264Threads > 16 || (v.RDPH264Threads != 0 && !v.RDPH264) {
 		return errRDPH264ThreadsConfig
 	}
@@ -223,6 +234,7 @@ func (v *VMM) display(input virtio.VNCInput) (result virtio.Display, displayErr 
 		}
 		display, err := virtio.NewRDPDisplayWithConfig(v.RDP, virtio.RDPConfig{
 			TLS: config, H264: v.RDPH264, Audio: v.Audio == "rdp",
+			H264Encoder: v.RDPH264Encoder,
 			H264Threads: v.RDPH264Threads, Stats: v.RDPStats, GuestCPUs: v.NCPUs,
 		})
 		if err != nil {

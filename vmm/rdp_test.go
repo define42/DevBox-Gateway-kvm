@@ -3,6 +3,7 @@ package vmm
 import (
 	"errors"
 	"net"
+	"strings"
 	"testing"
 	"time"
 )
@@ -21,6 +22,21 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 			config: Config{RDP: "127.0.0.1:0", RDPH264Threads: 2},
 			want:   errRDPH264ThreadsConfig,
 		},
+		{
+			name:   "invalid-encoder",
+			config: Config{RDPH264: true, RDPH264Encoder: "invalid"},
+			want:   errRDPH264EncoderConfig,
+		},
+		{
+			name:   "encoder-without-h264",
+			config: Config{RDP: "127.0.0.1:0", RDPH264Encoder: "nvenc"},
+			want:   errRDPH264EncoderConfig,
+		},
+		{
+			name:   "software-without-h264",
+			config: Config{RDP: "127.0.0.1:0", RDPH264Encoder: "software"},
+			want:   errRDPH264EncoderConfig,
+		},
 		{name: "stats-without-rdp", config: Config{RDPStats: true}, want: errRDPStatsConfig},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,6 +50,37 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 				t.Fatal("invalid RDP configuration created a machine")
 			}
 		})
+	}
+}
+
+func TestRDPEncoderConfiguration(t *testing.T) {
+	t.Parallel()
+	for _, backend := range []string{"", "software", "nvenc", "auto"} {
+		name := backend
+		if name == "" {
+			name = "default"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			v := New(Config{RDP: "127.0.0.1:0", RDPH264: true, RDPH264Encoder: backend})
+			if err := v.validateRDPPerformanceConfig(); err != nil {
+				t.Fatalf("valid encoder configuration rejected: %v", err)
+			}
+		})
+	}
+}
+
+func TestRDPDisplayReceivesEncoderConfiguration(t *testing.T) {
+	t.Parallel()
+	// Calling display directly bypasses VMM validation. An invalid backend must
+	// still reach the RDP constructor and fail before it opens the listener.
+	v := New(Config{RDP: "invalid-address", RDPH264: true, RDPH264Encoder: "invalid"})
+	display, err := v.display(nil)
+	if display != nil {
+		_ = display.Close()
+	}
+	if err == nil || !strings.Contains(err.Error(), "H.264 encoder") {
+		t.Fatalf("encoder configuration was not passed to RDP: %v", err)
 	}
 }
 

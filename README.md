@@ -17,7 +17,9 @@ console, and VNC/RDP desktops for exploring virtualization from user space.
 - An x86-64 Linux host with hardware virtualization enabled and read/write access
   to `/dev/kvm`. Nested hosts must expose KVM to the environment running gokvm.
 - Go 1.26.0 or newer to build from source, plus Git to clone the repository.
-  A C compiler and native codec libraries are not needed to build gokvm.
+  The default build needs no C compiler or native codec libraries. Optional
+  [NVIDIA NVENC encoding](#optional-nvidia-nvenc-encoding) requires cgo and FFmpeg
+  development libraries.
 - A Linux kernel and optional initrd, a supported Linux live ISO, or an x86-64
   Unified Kernel Image (UKI). VNC and RDP
   also require a client on the machine where you want to view the guest.
@@ -78,7 +80,7 @@ already built kernel.
 | Storage | Modern virtio-blk, writable raw/qcow2 disks, read-only ISO media |
 | Networking | Modern virtio-net, built-in IPv4 DHCP/DNS and outbound TCP/UDP, or a host-managed TAP interface |
 | Display and input | Modern virtio-gpu 2D framebuffer, PNG output, VNC/RDP keyboard and mouse input |
-| RDP graphics | TLS, bitmap updates or bundled H.264 AVC420, hardware cursor updates, live single-monitor resizing |
+| RDP graphics | TLS, bitmap updates or H.264 AVC420 with bundled software encoding or optional NVIDIA NVENC, hardware cursor updates, live single-monitor resizing |
 | Audio | Virtio-snd stereo playback through RDP |
 | Console and API | Serial console and Go wrappers for KVM ioctls |
 
@@ -107,7 +109,8 @@ flags; there is no VM configuration file.
 | `-rdp-cert path` | Temporary self-signed certificate | PEM certificate; requires `-rdp-key` and `-rdp`. |
 | `-rdp-key path` | Unset | PEM private key; requires `-rdp-cert` and `-rdp`. |
 | `-rdp-h264` | `false` | Enable AVC420 for compatible clients; requires `-rdp`. |
-| `-rdp-h264-threads count` | `0` | One automatic slice, or request 1–16 within the host CPU budget; requires `-rdp-h264`. |
+| `-rdp-h264-encoder software\|auto\|nvenc` | `software` | H.264 backend; `auto` tries NVENC with software fallback, and `nvenc` requires working hardware encoding; requires `-rdp-h264`. |
+| `-rdp-h264-threads count` | `0` | Software encoder: one automatic slice, or request 1–16 within the host CPU budget; ignored by NVENC; requires `-rdp-h264`. |
 | `-rdp-stats` | `false` | Log RDP performance statistics; requires `-rdp`. |
 | `-audio none\|rdp` | `none` | Virtio-snd playback through RDP; `rdp` requires `-rdp`. |
 | `-T count` | `0` | Instructions to skip between trace prints; zero disables tracing. |
@@ -152,9 +155,11 @@ Connect an RDP client to `127.0.0.1:3390`, or replace `-rdp` with
 needs no attached disk. Six GiB matches NetDesk's reference VM configuration;
 allow additional host memory for gokvm and other applications.
 
-For a local NetDesk checkout, `make netdesk` builds gokvm and boots
-`../NetDesk/dist/netdesk.efi` with 6 GiB RAM, two vCPUs, user networking, and
-H.264 RDP on `127.0.0.1:3390`. Connect with `make rdp` in another terminal.
+For a local NetDesk checkout, `make netdesk` builds gokvm with cgo and the
+`nvenc` tag, then boots `../NetDesk/dist/netdesk.efi` with 6 GiB RAM, two vCPUs,
+user networking, and NVIDIA NVENC H.264 RDP on `127.0.0.1:3390`. Install the
+[NVENC build dependencies and NVIDIA driver](#optional-nvidia-nvenc-encoding)
+first. Connect with `make rdp` in another terminal.
 Use `make netdesk NETDESK_UKI=/path/to/netdesk.efi` to select another image.
 
 `-uki` reads a single-profile x86-64 PE32+ UKI's `.linux`, `.initrd`, and optional
@@ -265,7 +270,7 @@ and DHCP ports.
 This backend supports outbound IPv4 TCP/UDP. Incoming port forwarding and IPv6
 are not implemented. External ICMP/ping is not forwarded; check connectivity
 with a web browser or `wget https://github.com` in the guest. The network stack
-and H.264 encoder are built in Go and work with `CGO_ENABLED=0`.
+and default H.264 encoder are built in Go and work with `CGO_ENABLED=0`.
 
 The tested Slax image lacks its default CA certificate bundle. If its HTTPS
 tools report certificate errors, run these commands inside Slax, then retry:
@@ -382,9 +387,10 @@ add `sh "$HOME/.local/bin/gokvm-resize" &` before the line that starts Fluxbox i
 
 #### H.264 graphics
 
-The server uses the bundled pure-Go OpenH264 port in [`pkg/h264`](pkg/h264) for
-H.264/AVC420 over the RDP graphics pipeline. It needs no C compiler,
-`pkg-config`, native codec library, or special build tag. A normal build includes
+By default, the server uses the bundled pure-Go OpenH264 port in
+[`pkg/h264`](pkg/h264) for H.264/AVC420 over the RDP graphics pipeline. This backend
+needs no C compiler, `pkg-config`, native codec library, or special build tag.
+A normal build includes
 AVC420 support. On amd64, selected codec kernels use SIMD when supported by the
 host CPU, with scalar fallbacks:
 
@@ -392,6 +398,43 @@ host CPU, with scalar fallbacks:
 CGO_ENABLED=0 go build -o gokvm .
 ./gokvm boot -iso ./TinyCore-current.iso -rdp 127.0.0.1:3389 -rdp-h264 -m 512M
 ```
+
+##### Optional NVIDIA NVENC encoding
+
+Build with the `nvenc` tag to enable hardware H.264 encoding through FFmpeg's
+`libavcodec`. On Debian or Ubuntu, install the build dependencies, then compile:
+
+```bash
+sudo apt install build-essential pkg-config libavcodec-dev libavutil-dev
+CGO_ENABLED=1 go build -tags nvenc -o gokvm .
+./gokvm boot -iso ./slax.iso -m 2G -net user \
+  -rdp 127.0.0.1:3390 -rdp-h264 -rdp-h264-encoder nvenc -rdp-stats
+```
+
+The runtime needs an NVIDIA GPU with H.264 NVENC support, a working NVIDIA driver,
+and FFmpeg libraries built with the `h264_nvenc` encoder. gokvm links to those
+libraries; it does not start an `ffmpeg` subprocess. The FFmpeg command-line tool,
+if installed, can check driver and encoder availability before booting a guest:
+
+```bash
+ffmpeg -hide_banner -f lavfi -i testsrc2=size=1280x720:rate=30 \
+  -frames:v 3 -c:v h264_nvenc -f null -
+```
+
+`-rdp-h264-encoder nvenc` requires NVENC to initialize and encode successfully.
+Use `-rdp-h264-encoder auto` to try NVENC and fall back to the bundled software
+encoder if hardware initialization or encoding fails. The default `software`
+always uses the bundled encoder, including in an NVENC-enabled build. A normal
+build without the `nvenc` tag supports `software` and `auto`; explicitly selecting
+`nvenc` reports that the backend is unavailable.
+
+NVENC uses low-latency settings without B-frames or lookahead and preserves RDP
+keyframes for resize and refresh. Framebuffer copying and RGB-to-YUV conversion
+still run on the CPU. `-rdp-h264-threads` controls only the software encoder; NVENC
+reports zero software slices in the statistics. Intel VA-API and Quick Sync
+backends are not implemented.
+
+##### Client support and performance
 
 Use a FreeRDP build with H.264 decoding enabled:
 
@@ -440,9 +483,9 @@ Xcursor support can show a second pointer in this case. VNC and PNG outputs
 continue receiving an image with the guest cursor composed into it, including
 when used alongside RDP.
 
-The server logs `using pure-Go H.264 AVC420 graphics` after negotiation. Clients
-without AVC420 support receive bitmap updates automatically. The server does not
-load a shared codec library, and AVC420 is available in normal builds.
+The server logs the selected H.264 backend after negotiation. Clients without
+AVC420 support receive bitmap updates automatically. Software AVC420 is available
+in normal builds without shared codec libraries.
 
 The bundled OpenH264 port can divide an RDP frame into fixed slices and encode
 them concurrently. The default `-rdp-h264-threads 0` requests one slice and one
@@ -473,14 +516,14 @@ and client acknowledgement waits can also limit frame rate. These options
 require no changes to the RDP client command. `-rdp-h264-threads` requires
 `-rdp-h264`; `-rdp-stats` requires `-rdp`.
 
-AVC420 uses lossy YUV 4:2:0 compression and software encoding, so small colored
-text can be softer than bitmap output. AVC444 and hardware encoding are not
-implemented. TLS and authentication behavior are the same as for bitmap RDP.
+AVC420 uses lossy YUV 4:2:0 compression, so small colored text can be softer than
+bitmap output with either encoder. AVC444 is not implemented. TLS and
+authentication behavior are the same as for bitmap RDP.
 
 The H.264 path sends changed frames at up to 60 fps. The ordered RDP transport
 uses IDR frames for stream initialization, resize, refresh, and codec recovery
-instead of inserting periodic IDRs. The RDP encoder disables the H.264 deblocking
-filter to reduce software-encoding latency. Virtio-gpu dirty rectangles limit
+instead of inserting periodic IDRs. The software encoder disables the H.264
+deblocking filter to reduce encoding latency. Virtio-gpu dirty rectangles limit
 pixel conversion and framebuffer copying to changed regions; the session retains
 its image and catches up safely after skipping intermediate frames.
 Bitmap output updates changed 64×64 tiles, while H.264 updates a persistent YUV
@@ -493,20 +536,19 @@ decode window and adapts H.264 pacing from normal frame-acknowledgment turnaroun
 and the client's reported queued bytes, backing off quickly and recovering
 gradually. Resizing and refresh requests repaint the whole desktop.
 Serial/VGA/VESA fallbacks still publish full images. Actual frame rate depends
-on guest rendering, host CPU, and client decoding;
+on guest rendering, host CPU/GPU, and client decoding;
 bitmap RDP remains capped at 30 fps.
 
 Virtio-gpu currently provides a 2D framebuffer without guest 3D acceleration.
 Complex browser pages can therefore be limited by software rendering inside
 the guest even when AVC420 is active. For choppy scrolling, first check the
-server's `using pure-Go H.264 AVC420 graphics` message to confirm the session is
-using the faster graphics path.
+server's H.264 backend message to confirm the session is using AVC420.
 
 #### Audio playback
 
 Add `-audio rdp` to expose a virtio-snd card and play guest audio through the
 connected RDP client. The tested Slax ISO already includes the Linux
-`virtio_snd` driver. Neither audio nor H.264 needs a native library or special
+`virtio_snd` driver. Audio and software H.264 need no native library or special
 build tag in gokvm.
 
 ```bash
@@ -552,6 +594,24 @@ Run the RDP, graphics, input, and flag tests without booting a VM or enabling cg
 ```bash
 CGO_ENABLED=0 go test -short ./internal/rdp/... ./virtio ./vmm ./flag
 ```
+
+With the NVENC build dependencies installed, check the tagged build and unit tests
+without requiring an NVIDIA GPU:
+
+```bash
+CGO_ENABLED=1 go build -tags nvenc ./...
+CGO_ENABLED=1 go test -short -tags nvenc ./internal/rdp/... ./virtio ./vmm ./flag
+```
+
+To test actual NVIDIA encoding, install `ffmpeg` and run the opt-in hardware test:
+
+```bash
+GOKVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
+  ./internal/rdp/avc -run '^TestNVENCHardware' -count=1 -timeout 2m -v
+```
+
+This verifies independent decoding, forced IDR refreshes, non-macroblock-aligned
+sizes, full-range BT.709 metadata, and output buffer ownership.
 
 Check audio, networking, storage, ISO parsing, and the resize helper separately:
 

@@ -16,6 +16,10 @@ func main() {
 	}
 
 	if bootArgs != nil {
+		var h264Encoder string
+		if bootArgs.RDPH264 {
+			h264Encoder = bootArgs.RDPH264Encoder
+		}
 		c := &vmm.Config{
 			Dev:            bootArgs.Dev,
 			Kernel:         bootArgs.Kernel,
@@ -33,6 +37,7 @@ func main() {
 			RDPCert:        bootArgs.RDPCert,
 			RDPKey:         bootArgs.RDPKey,
 			RDPH264:        bootArgs.RDPH264,
+			RDPH264Encoder: h264Encoder,
 			RDPH264Threads: bootArgs.RDPH264Threads,
 			RDPStats:       bootArgs.RDPStats,
 			Audio:          bootArgs.Audio,
