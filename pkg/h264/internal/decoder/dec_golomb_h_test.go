@@ -3,7 +3,7 @@ package decoder
 import (
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // initReaderForTest mirrors DecInitBits + InitReadBits (bit_stream.cpp)

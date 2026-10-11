@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/define42/gokvm/internal/term"
+	"github.com/define42/DevBox-Gateway-kvm/internal/term"
 	"golang.org/x/sys/unix"
 )
 

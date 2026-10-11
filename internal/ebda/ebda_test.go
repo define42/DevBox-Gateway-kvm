@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/define42/gokvm/internal/ebda"
+	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
 )
 
 func TestMPTableDescribesConfiguredCPUs(t *testing.T) {

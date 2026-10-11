@@ -9,8 +9,8 @@ package encoder
 import (
 	"reflect"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // VERSION_NUMBER is the version string of codec/common/inc/version.h (used

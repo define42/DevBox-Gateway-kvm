@@ -2,7 +2,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 var g_kiClz5Table = [32]int8{
 	6, 5, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2,

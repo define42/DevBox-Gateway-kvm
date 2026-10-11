@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 // CPUID call 'KVM_GET_SUPPORTED_CPUID' and print the result.

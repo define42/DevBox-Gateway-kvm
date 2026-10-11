@@ -2,7 +2,7 @@
 
 package decoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 // SReorderingSyn is the anonymous element struct of
 // SRefPicListReorderSyn.sReorderingSyn.

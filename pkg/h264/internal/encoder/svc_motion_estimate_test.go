@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // meTestYUVPixelDataGenerator is a port of test/api/DataGenerator.cpp: it copies a

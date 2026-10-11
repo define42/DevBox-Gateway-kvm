@@ -5,7 +5,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 var g_kuiAlphaTable = [52 + 12]uint8{ //this table refers to Table 8-16 in H.264/AVC standard
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

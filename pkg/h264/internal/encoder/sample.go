@@ -5,7 +5,7 @@ package encoder
 import (
 	"math"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 func WelsSampleSatd4x4_c(pSample1 []uint8, iSample1Off int, iStride1 int32, pSample2 []uint8, iSample2Off int, iStride2 int32) int32 {

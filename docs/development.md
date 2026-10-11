@@ -34,8 +34,9 @@ pinned in the Makefile, using [`.golangci.yaml`](../.golangci.yaml).
 
 ## Code layout and API boundary
 
-The application entry point remains at the repository root. `go build .` builds
-the CLI; there is no separate `cmd/gokvm` module.
+The application entry point remains at the repository root. `go build -o gokvm .`
+builds the CLI with its existing executable name; there is no separate
+`cmd/gokvm` module.
 
 | Location | Responsibility |
 | --- | --- |
@@ -52,11 +53,12 @@ the CLI; there is no separate `cmd/gokvm` module.
 | [`scripts`](../scripts), [`tools`](../tools), [`testldap`](../testldap) | Guest helpers, developer tools, and the local test directory service |
 
 Application packages under `internal/` are implementation details, and Go prevents
-other modules from importing them. Former imports such as
-`github.com/define42/gokvm/vmm` and `github.com/define42/gokvm/machine` were removed
-without compatibility packages. The public `kvm`, `pkg/h264`, and `pkg/h264/api`
-paths remain available. See the [codec guide](../pkg/h264/README.md) for its API
-and the [porting notes](../pkg/h264/PORTING.md) for its implementation history.
+other modules from importing them. The former public `vmm` and `machine` packages
+were moved under `internal/` without compatibility packages. The public `kvm`,
+`pkg/h264`, and `pkg/h264/api` packages are available under the
+`github.com/define42/DevBox-Gateway-kvm` module path. See the
+[codec guide](../pkg/h264/README.md) for its API and the
+[porting notes](../pkg/h264/PORTING.md) for its implementation history.
 
 The gateway starts a separate gokvm process for each running desktop. Each process
 opens KVM and its own disk, firmware variables, seed, and TLS RDP listener. RDP

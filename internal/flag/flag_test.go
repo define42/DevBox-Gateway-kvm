@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/define42/gokvm/internal/ebda"
-	"github.com/define42/gokvm/internal/flag"
+	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
+	"github.com/define42/DevBox-Gateway-kvm/internal/flag"
 )
 
 func TestParsesize(t *testing.T) { // nolint:paralleltest

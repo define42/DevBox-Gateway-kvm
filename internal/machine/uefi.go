@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/define42/gokvm/internal/iodev"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iodev"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 // ErrUEFIReset asks the caller to recreate the VM after a guest firmware reset.

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/define42/gokvm/internal/cloudinit"
-	"github.com/define42/gokvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/cloudinit"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 )
 
 func writeCloudInitSeed(t *testing.T) string {

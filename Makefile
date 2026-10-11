@@ -47,7 +47,7 @@ $(GOPATH)/bin/u-root: $(GOPATH)/src/github.com/u-root/u-root
 .PHONY: gokvm
 gokvm:
 	$(MAKE) generate
-	$(GO) build .
+	$(GO) build -o gokvm .
 
 golangci-lint:
 	curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_LINT_VERSION)/install.sh \

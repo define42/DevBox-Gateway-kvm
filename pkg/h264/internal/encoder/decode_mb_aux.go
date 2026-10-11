@@ -2,7 +2,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 func WelsIHadamard4x4Dc(pRes []int16) { //pBuffer size : 4x4
 	var iTemp [4]int16

@@ -3,8 +3,8 @@ package decoder
 import (
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // newDecoderCoreTestCtx builds a minimal decoder context with the static

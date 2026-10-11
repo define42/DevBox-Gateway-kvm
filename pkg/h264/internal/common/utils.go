@@ -5,7 +5,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/define42/gokvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 // Port of codec/common/src/utils.cpp.

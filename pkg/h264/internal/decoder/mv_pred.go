@@ -6,8 +6,8 @@
 package decoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // SetRectBlock (static inline in mv_pred.cpp) is a byte-level rectangle fill

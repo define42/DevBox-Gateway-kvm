@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/define42/gokvm/internal/bootparam"
+	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
 )
 
 const (

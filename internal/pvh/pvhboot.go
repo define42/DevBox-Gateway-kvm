@@ -7,7 +7,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 const (

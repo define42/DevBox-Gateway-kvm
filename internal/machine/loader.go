@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/define42/gokvm/internal/bootparam"
-	"github.com/define42/gokvm/internal/ebda"
-	"github.com/define42/gokvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
+	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
 )
 
 var errBootImage = errors.New("invalid boot image")

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 func newTaskMgmtTestCtx() *sWelsEncCtx {

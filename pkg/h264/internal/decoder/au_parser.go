@@ -6,8 +6,8 @@
 package decoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // _PARSE_NALHRD_VCLHRD_PARAMS_ is defined (1) in the C source: HRD parameters

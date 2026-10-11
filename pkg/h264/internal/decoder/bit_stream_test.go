@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // Port of TEST (DecoderBitStreamBoundsTest, DecInitBitsHandlesShortSeedBytesSafely)

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/define42/gokvm/internal/uki"
+	"github.com/define42/DevBox-Gateway-kvm/internal/uki"
 )
 
 const (

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 func newLifecycleMachine(t *testing.T, cpus int) *Machine {

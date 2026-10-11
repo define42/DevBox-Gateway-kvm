@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/define42/gokvm/internal/bootparam"
+	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
 )
 
 func bpnew(n string) (*bootparam.BootParam, error) {

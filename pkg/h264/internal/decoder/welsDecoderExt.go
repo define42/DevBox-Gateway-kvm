@@ -16,8 +16,8 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // VERSION_NUMBER (codec/common/inc/version.h, non-generated build).

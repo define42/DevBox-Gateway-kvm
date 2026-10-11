@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/define42/gokvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 )
 
 func TestImageCatalogNormalizesCompressedQCOW2(t *testing.T) {

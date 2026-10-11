@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/define42/gokvm/internal/pvh"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 func TestGdtEntry(t *testing.T) {

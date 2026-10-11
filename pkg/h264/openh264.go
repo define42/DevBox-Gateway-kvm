@@ -17,9 +17,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/decoder"
-	"github.com/define42/gokvm/pkg/h264/internal/encoder"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/decoder"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder"
 )
 
 // CreateDecoder is the equivalent of WelsCreateDecoder.

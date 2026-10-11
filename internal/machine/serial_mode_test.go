@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/define42/gokvm/internal/pci"
-	"github.com/define42/gokvm/internal/serial"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/serial"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 func TestDisabledSerial(t *testing.T) {

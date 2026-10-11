@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/internal/machine"
-	"github.com/define42/gokvm/internal/term"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/term"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 func TestHeadlessBootReturnsCPUFailure(t *testing.T) {

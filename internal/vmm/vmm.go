@@ -16,11 +16,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/define42/gokvm/internal/iso9660"
-	"github.com/define42/gokvm/internal/machine"
-	"github.com/define42/gokvm/internal/pvh"
-	"github.com/define42/gokvm/internal/term"
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iso9660"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
+	"github.com/define42/DevBox-Gateway-kvm/internal/term"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sync/errgroup"
 )
 

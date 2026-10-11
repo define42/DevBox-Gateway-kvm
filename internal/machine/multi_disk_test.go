@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/define42/gokvm/internal/pci"
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
 func TestMultipleDiskInitialBARs(t *testing.T) {

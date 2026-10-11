@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/define42/gokvm/internal/gateway"
+	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
 )
 
 var errCommandUsage = errors.New("invalid command arguments")

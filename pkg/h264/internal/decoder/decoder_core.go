@@ -11,8 +11,8 @@ package decoder
 import (
 	"math"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // dcBool2Int32 converts a C bool used in integer arithmetic.

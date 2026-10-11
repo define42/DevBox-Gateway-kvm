@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 )
 
 func TestRDPWaitCancellationPrecedesVCPURun(t *testing.T) {

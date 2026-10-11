@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/define42/gokvm/internal/bootparam"
-	"github.com/define42/gokvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
 )
 
 func bootTestMachine(t *testing.T, size int) *Machine {

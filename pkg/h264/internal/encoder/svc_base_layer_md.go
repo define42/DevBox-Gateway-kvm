@@ -6,7 +6,7 @@ package encoder
 import (
 	"math"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 var g_kiIntra16AvaliMode = [8][5]int8{

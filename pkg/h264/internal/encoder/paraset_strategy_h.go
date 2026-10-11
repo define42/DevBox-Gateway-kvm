@@ -16,7 +16,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 // IWelsParametersetStrategy is the virtual interface of the parameter set
 // strategies (all virtual methods, including the protected ones).

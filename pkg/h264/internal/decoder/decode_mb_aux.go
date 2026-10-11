@@ -3,7 +3,7 @@
 package decoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // IdctResAddPred_c ports void IdctResAddPred_c (uint8_t* pPred, const int32_t kiStride, int16_t* pRs).

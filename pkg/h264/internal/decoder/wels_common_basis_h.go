@@ -4,7 +4,7 @@
 
 package decoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 // Common use tables g_kuiScan8, g_kuiLumaDcZigzagScan, g_kuiChromaDcScan,
 // g_kMbNonZeroCountIdx, g_kCacheNzcScanIdx, g_kCache26ScanIdx,

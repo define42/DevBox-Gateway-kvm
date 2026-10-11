@@ -5,7 +5,7 @@
 package decoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // GetValue4Bytes ports inline uint32_t GetValue4Bytes (uint8_t* pDstNal).

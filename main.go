@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/define42/gokvm/internal/flag"
-	"github.com/define42/gokvm/internal/machine"
-	"github.com/define42/gokvm/internal/probe"
-	"github.com/define42/gokvm/internal/vmm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/flag"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/probe"
+	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
 )
 
 func main() {

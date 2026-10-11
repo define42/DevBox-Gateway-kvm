@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/define42/gokvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"

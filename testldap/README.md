@@ -1,6 +1,7 @@
 # Local LDAP directory
 
-This directory brings the DevBox-Gateway demo LDAP users and groups into gokvm.
+This directory brings the DevBox-Gateway demo LDAP users and groups into
+DevBox-Gateway-kvm.
 [`default-config.cfg`](default-config.cfg) is copied unchanged from
 [DevBox-Gateway commit `e4fbf205`](https://github.com/define42/DevBox-Gateway/blob/e4fbf205adb7663167190f1082c41ff81681d3d8/testldap/default-config.cfg),
 with its [MIT license](LICENSE). Compose runs GLAuth with a pinned image digest.

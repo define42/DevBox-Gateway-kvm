@@ -19,10 +19,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/define42/gokvm/internal/audio"
-	"github.com/define42/gokvm/internal/rdp"
-	"github.com/define42/gokvm/internal/rdp/avc"
-	rdpdamage "github.com/define42/gokvm/internal/rdp/damage"
+	"github.com/define42/DevBox-Gateway-kvm/internal/audio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
+	rdpdamage "github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage"
 )
 
 const rdpResizeDelay = 150 * time.Millisecond

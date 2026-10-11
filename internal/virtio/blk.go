@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/define42/gokvm/internal/disk"
-	"github.com/define42/gokvm/internal/guestmem"
-	"github.com/define42/gokvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
 )
 
 const (

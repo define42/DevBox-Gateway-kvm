@@ -3,8 +3,8 @@ package machine
 import (
 	"sync"
 
-	"github.com/define42/gokvm/internal/virtio"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 // sharedIRQLine combines the independently asserted INTx signals of devices

@@ -2,7 +2,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 /************************************************************************/
 /* VLC FOR WELS ENCODER                                                 */

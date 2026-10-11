@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 )
 
 func TestRDPResizeControllerReconnect(t *testing.T) {

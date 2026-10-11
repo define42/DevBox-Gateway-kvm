@@ -3,7 +3,7 @@ package encoder
 import (
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 // The C unit tests of test/encoder/EncUT_EncoderExt.cpp exercise the whole

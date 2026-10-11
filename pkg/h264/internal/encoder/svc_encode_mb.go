@@ -5,7 +5,7 @@ package encoder
 import (
 	"math"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 func WelsDctMb(pRes []int16, pEncMb []uint8, iEncMbOff int, iEncStride int32, pBestPred []uint8, iBestPredOff int, pfDctFourT4 PDctFunc) {

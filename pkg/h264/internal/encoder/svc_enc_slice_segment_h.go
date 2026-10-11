@@ -2,7 +2,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/api"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 
 // NOTE:
 // if PREFIX_NALs are used in base layer(iDid=0, qid=0), MAX_SLICES_NUM will be half of MAX_NAL_UNITS_IN_LAYER in case ST or MT without PACKING_ONE_SLICE_PER_LAYER

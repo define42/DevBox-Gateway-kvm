@@ -58,7 +58,7 @@ jobs:
       run: |
         go install github.com/mattn/goveralls@latest
 
-    - name: Build gokvm
+    - name: Build DevBox-Gateway-kvm
       env:
         GOFLAGS: "-buildvcs=false"
       run: make gokvm

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/define42/gokvm/internal/flag"
+	"github.com/define42/DevBox-Gateway-kvm/internal/flag"
 )
 
 func TestRDPWaitOptions(t *testing.T) {

@@ -2,7 +2,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/processing"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing"
 
 // Scaled_Picture holds the down-scaled input picture.
 type Scaled_Picture struct {

@@ -6,7 +6,7 @@ import (
 	"image/color"
 	"testing"
 
-	openh264 "github.com/define42/gokvm/pkg/h264"
+	openh264 "github.com/define42/DevBox-Gateway-kvm/pkg/h264"
 )
 
 func TestOpenH264RoundTrip(t *testing.T) {

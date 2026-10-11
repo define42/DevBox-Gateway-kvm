@@ -1,6 +1,6 @@
 package common
 
-import "github.com/define42/gokvm/pkg/h264/api"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 
 // Port of codec/common/inc/welsCodecTrace.h.
 

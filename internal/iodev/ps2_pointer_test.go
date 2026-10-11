@@ -3,7 +3,7 @@ package iodev_test
 import (
 	"testing"
 
-	"github.com/define42/gokvm/internal/iodev"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iodev"
 )
 
 func TestPS2RebasePointerDoesNotReplayTabletMovement(t *testing.T) {

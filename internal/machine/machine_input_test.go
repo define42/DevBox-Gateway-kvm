@@ -3,9 +3,9 @@ package machine
 import (
 	"testing"
 
-	"github.com/define42/gokvm/internal/iodev"
-	"github.com/define42/gokvm/internal/pci"
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iodev"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
 func TestUEFIInputAttachesFirmwareControllerAndAbsoluteTablet(t *testing.T) {

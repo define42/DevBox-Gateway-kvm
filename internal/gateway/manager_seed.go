@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/define42/gokvm/internal/cloudinit"
+	"github.com/define42/DevBox-Gateway-kvm/internal/cloudinit"
 	"github.com/goccy/go-yaml"
 	"golang.org/x/sys/unix"
 )

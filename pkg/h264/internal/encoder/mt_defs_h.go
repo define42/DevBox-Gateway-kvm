@@ -5,7 +5,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/api"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 
 const (
 	THRESHOLD_RMSE_CORE8 = float32(0.0320) // v1.1: 0.0320f; v1.0: 0.02f

@@ -3,7 +3,7 @@ package virtio
 import (
 	"testing"
 
-	"github.com/define42/gokvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
 )
 
 func TestModernPCIIdentitiesSupportFirmwareDiscovery(t *testing.T) {

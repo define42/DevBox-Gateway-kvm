@@ -10,9 +10,9 @@ package encoder
 import (
 	"math"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
-	"github.com/define42/gokvm/pkg/h264/internal/processing"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing"
 )
 
 var g_kiQpToQstepTable = [52]int32{

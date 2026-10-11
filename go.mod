@@ -1,4 +1,4 @@
-module github.com/define42/gokvm
+module github.com/define42/DevBox-Gateway-kvm
 
 go 1.26.0
 

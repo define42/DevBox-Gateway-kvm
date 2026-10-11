@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/define42/gokvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
 )
 
 // sparseGuestMemory reserves a guest-physical address space but commits only

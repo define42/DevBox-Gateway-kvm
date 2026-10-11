@@ -1,15 +1,20 @@
-# gokvm
+# DevBox-Gateway-kvm
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/define42/gokvm)](go.mod) [![License](https://img.shields.io/github/license/define42/gokvm)](LICENSE) [![CI](https://github.com/define42/gokvm/actions/workflows/ci.yml/badge.svg)](https://github.com/define42/gokvm/actions/workflows/ci.yml) [![Coverage](https://coveralls.io/repos/github/define42/gokvm/badge.svg?branch=main)](https://coveralls.io/github/define42/gokvm?branch=main)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/define42/DevBox-Gateway-kvm)](go.mod) [![License](https://img.shields.io/github/license/define42/DevBox-Gateway-kvm)](LICENSE) [![CI](https://github.com/define42/DevBox-Gateway-kvm/actions/workflows/ci.yml/badge.svg)](https://github.com/define42/DevBox-Gateway-kvm/actions/workflows/ci.yml) [![Coverage](https://coveralls.io/repos/github/define42/DevBox-Gateway-kvm/badge.svg?branch=main)](https://coveralls.io/github/define42/DevBox-Gateway-kvm?branch=main)
 
-**gokvm is a self-hosted Linux desktop gateway with a virtual machine runtime
-written in Go.** Users sign in through LDAP, create persistent desktops from
-shared disk images, and connect through downloaded RDP files. Administrators
-manage the image catalog and desktops across accounts.
+**DevBox-Gateway-kvm is a self-hosted Linux desktop gateway with a virtual
+machine runtime written in Go.** Users sign in through LDAP, create persistent
+desktops from shared disk images, and connect through downloaded RDP files.
+Administrators manage the image catalog and desktops across accounts.
 
 It brings the DevBox Gateway workflow into one application: the web dashboard,
 authentication, cloud-init provisioning, VM lifecycle, and RDP routing. Each
-desktop runs in its own gokvm process using Linux KVM directly.
+desktop runs in its own `gokvm` process using Linux KVM directly.
+
+The project is named **DevBox-Gateway-kvm** and uses the Go module path
+`github.com/define42/DevBox-Gateway-kvm`. The executable remains `gokvm`; existing
+command names, `GOKVM_*` environment variables, helper scripts, and
+`.gokvm-gateway/` state paths are unchanged.
 
 **This is experimental software. Do not use it in production.**
 
@@ -63,8 +68,8 @@ the system; it does not install a desktop into a server image.
 ### Prepare the sample desktop
 
 ```bash
-git clone https://github.com/define42/gokvm.git
-cd gokvm
+git clone https://github.com/define42/DevBox-Gateway-kvm.git
+cd DevBox-Gateway-kvm
 ```
 
 The example uses **Rocky Linux 9 with XFCE**. From
@@ -249,26 +254,27 @@ CGO_ENABLED=0 go build -o gokvm .
 ```
 
 This includes software H.264 encoding. Packaged versions, when available, are
-listed under [GitHub Releases](https://github.com/define42/gokvm/releases).
+listed under [GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases).
 For development checks and VM test fixtures, follow the
 [development guide](docs/development.md). Include a reproduction or focused test
 for behavior changes and update the relevant user guide when changing a workflow.
 
-Application packages live under `internal/`. The public Go library paths remain
-`github.com/define42/gokvm/kvm`, `github.com/define42/gokvm/pkg/h264`, and
-`github.com/define42/gokvm/pkg/h264/api`.
+Application packages live under `internal/`. The public Go library paths are
+`github.com/define42/DevBox-Gateway-kvm/kvm`,
+`github.com/define42/DevBox-Gateway-kvm/pkg/h264`, and
+`github.com/define42/DevBox-Gateway-kvm/pkg/h264/api`.
 
 ## Contributors
 
-gokvm builds on [Nobuhiro MIKI's original project](https://github.com/bobuhiro11/gokvm)
-and carries forward the desktop workflow and UI assets from
+DevBox-Gateway-kvm builds on
+[Nobuhiro MIKI's original project](https://github.com/bobuhiro11/gokvm) and carries forward the desktop workflow and UI assets from
 [DevBox-Gateway](https://github.com/define42/DevBox-Gateway). Thanks to everyone
 contributing code, tests, bug reports, and documentation; see the
-[contributors](https://github.com/define42/gokvm/graphs/contributors).
+[contributors](https://github.com/define42/DevBox-Gateway-kvm/graphs/contributors).
 
 ## License
 
-gokvm is licensed under the [MIT License](LICENSE). The bundled OpenH264 port is
-covered by the [BSD 2-Clause license](LICENSE-OpenH264). The repository also
+DevBox-Gateway-kvm is licensed under the [MIT License](LICENSE). The bundled
+OpenH264 port is covered by the [BSD 2-Clause license](LICENSE-OpenH264). The repository also
 retains the [go.264 license notice](LICENSE-go.264), and the copied gateway UI and
 LDAP assets retain their upstream license notices.

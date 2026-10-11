@@ -20,10 +20,10 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
-	"github.com/define42/gokvm/pkg/h264/internal/console"
-	"github.com/define42/gokvm/pkg/h264/internal/encoder"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/console"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder"
 )
 
 const ONLY_ENC_FRAMES_NUM = math.MaxInt32 // 2, INT_MAX // type the num you try to encode here, 2, 10, etc

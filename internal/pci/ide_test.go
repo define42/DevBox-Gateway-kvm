@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/define42/gokvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
 )
 
 func TestIDEControllerHeader(t *testing.T) {

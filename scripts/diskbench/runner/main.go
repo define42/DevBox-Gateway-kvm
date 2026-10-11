@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/define42/gokvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 )
 
 type serialOutput struct {

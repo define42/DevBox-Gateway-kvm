@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 func splitNALs(data []byte) [][]byte {

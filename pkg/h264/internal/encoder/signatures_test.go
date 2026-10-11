@@ -1,6 +1,6 @@
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 // Compile-time checks that the functions stored in the function pointer
 // tables (SWelsFuncPtrList & co.) have exactly the declared Go types. They

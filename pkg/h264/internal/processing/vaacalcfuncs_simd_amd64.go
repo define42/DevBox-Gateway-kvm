@@ -1,6 +1,6 @@
 package processing
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 func initVaaSIMDFuncs(funcs *SVaaFuncs, cpuFlags uint32) {
 	if cpuFlags&common.WELS_CPU_SSE2 != 0 {

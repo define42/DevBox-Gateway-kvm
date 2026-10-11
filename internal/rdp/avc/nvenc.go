@@ -5,7 +5,7 @@ package avc
 import (
 	"fmt"
 
-	"github.com/define42/gokvm/internal/rdp/avc/internal/nvenc"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc/internal/nvenc"
 )
 
 type nvencEncoder struct {

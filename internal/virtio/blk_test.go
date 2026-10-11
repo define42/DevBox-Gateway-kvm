@@ -12,7 +12,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
 // countingInjector counts InjectVirtioBlkIRQ calls.

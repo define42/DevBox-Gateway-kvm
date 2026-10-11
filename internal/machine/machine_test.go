@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/internal/machine"
-	"github.com/define42/gokvm/internal/pvh"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 	"golang.org/x/arch/x86/x86asm"
 )
 

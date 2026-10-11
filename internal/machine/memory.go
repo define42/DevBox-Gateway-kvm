@@ -5,10 +5,10 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/define42/gokvm/internal/bootparam"
-	"github.com/define42/gokvm/internal/guestmem"
-	"github.com/define42/gokvm/internal/pvh"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 const guestMemoryAlignment = 2 << 20

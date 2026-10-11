@@ -18,7 +18,7 @@ output is **bit-exact** with the C library:
 
 ```go
 import (
-	openh264 "github.com/define42/gokvm/pkg/h264"
+	openh264 "github.com/define42/DevBox-Gateway-kvm/pkg/h264"
 )
 
 // Encoding

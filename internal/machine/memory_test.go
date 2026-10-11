@@ -9,9 +9,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/define42/gokvm/internal/iodev"
-	"github.com/define42/gokvm/internal/pvh"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iodev"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 func TestGuestMemoryAlignment(t *testing.T) {

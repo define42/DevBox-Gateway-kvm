@@ -3,8 +3,8 @@
 package decoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 //#define OUTPUT_BIT_STREAM  ////for test to output bitstream (not ported)

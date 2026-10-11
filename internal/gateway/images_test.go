@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/define42/gokvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 )
 
 func catalogQCOW2(marker string) []byte {

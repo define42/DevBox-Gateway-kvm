@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/define42/gokvm/internal/iodev"
-	"github.com/define42/gokvm/internal/pci"
-	"github.com/define42/gokvm/internal/serial"
-	"github.com/define42/gokvm/kvm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iodev"
+	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/serial"
+	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
 func TestAbsentLegacyIOPorts(t *testing.T) {

@@ -2,7 +2,7 @@
 
 package encoder
 
-import "github.com/define42/gokvm/pkg/h264/api"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 
 // SWelsSPS is the Sequence Parameter Set, refer to Page 57 in JVT X201wcm.
 type SWelsSPS struct {

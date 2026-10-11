@@ -3,8 +3,8 @@ package avc
 import (
 	"fmt"
 
-	openh264 "github.com/define42/gokvm/pkg/h264"
-	"github.com/define42/gokvm/pkg/h264/api"
+	openh264 "github.com/define42/DevBox-Gateway-kvm/pkg/h264"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/define42/gokvm/internal/iodev"
+	"github.com/define42/DevBox-Gateway-kvm/internal/iodev"
 )
 
 // ErrShutdownUnsupported indicates that no ACPI power button is exposed.

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/define42/gokvm/internal/ebda"
+	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
 )
 
 var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'seed', or 'auth-user' subcommands")

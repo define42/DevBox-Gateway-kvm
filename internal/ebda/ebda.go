@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/define42/gokvm/internal/bootparam"
+	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
 )
 
 // MaxVCPUs is the maximum number of processors described by the boot MP table.

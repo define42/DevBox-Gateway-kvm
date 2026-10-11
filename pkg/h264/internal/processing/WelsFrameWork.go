@@ -1,6 +1,6 @@
 package processing
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 // Port of codec/processing/src/common/WelsFrameWork.cpp.
 

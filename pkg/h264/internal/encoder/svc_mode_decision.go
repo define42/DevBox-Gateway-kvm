@@ -4,8 +4,8 @@
 package encoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/internal/common"
-	"github.com/define42/gokvm/pkg/h264/internal/processing"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing"
 )
 
 // ////////////

@@ -18,8 +18,8 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/decoder"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/decoder"
 )
 
 // resDir is the repository res/ directory relative to this package.

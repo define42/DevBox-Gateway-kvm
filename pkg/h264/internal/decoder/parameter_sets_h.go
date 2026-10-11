@@ -2,7 +2,7 @@
 
 package decoder
 
-import "github.com/define42/gokvm/pkg/h264/internal/common"
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 
 /* VUI syntax in Sequence Parameter Set, refer to E.1 in Rec */
 type SVui struct {

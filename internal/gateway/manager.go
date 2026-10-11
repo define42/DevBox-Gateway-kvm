@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/define42/gokvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 	"golang.org/x/sys/unix"
 )
 

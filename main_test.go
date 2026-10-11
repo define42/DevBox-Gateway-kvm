@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/define42/gokvm/internal/machine"
-	"github.com/define42/gokvm/internal/vmm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
 )
 
 func TestGuestResetPreservesOtherFailures(t *testing.T) {

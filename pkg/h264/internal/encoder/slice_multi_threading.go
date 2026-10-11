@@ -9,8 +9,8 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // UpdateMbListNeighborParallel: pMbList is the layer's MB list (SDqLayer.sMbDataP).

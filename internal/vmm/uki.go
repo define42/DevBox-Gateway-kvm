@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/define42/gokvm/internal/uki"
+	"github.com/define42/DevBox-Gateway-kvm/internal/uki"
 )
 
 func (v *VMM) validateBootSource() error {

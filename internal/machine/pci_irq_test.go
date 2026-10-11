@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
 func TestSharedIRQLineAcknowledgesEachSource(t *testing.T) {

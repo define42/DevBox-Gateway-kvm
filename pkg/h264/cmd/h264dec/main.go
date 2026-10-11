@@ -22,10 +22,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/define42/gokvm/pkg/h264/api"
-	"github.com/define42/gokvm/pkg/h264/internal/common"
-	"github.com/define42/gokvm/pkg/h264/internal/console"
-	"github.com/define42/gokvm/pkg/h264/internal/decoder"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/console"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/decoder"
 )
 
 // cFloat formats v like printf ("%f") in C.

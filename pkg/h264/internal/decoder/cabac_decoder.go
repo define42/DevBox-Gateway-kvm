@@ -4,7 +4,7 @@
 package decoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 var g_kMvdBinPos2Ctx = [8]int16{0, 1, 2, 3, 3, 3, 3, 3}

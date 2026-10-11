@@ -6,7 +6,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/define42/gokvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 )
 
 func TestRDPCursorMovementDoesNotPublishDesktop(t *testing.T) {

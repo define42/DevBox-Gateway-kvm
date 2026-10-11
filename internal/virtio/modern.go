@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/define42/gokvm/internal/guestmem"
+	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
 )
 
 // Modern (virtio 1.0) PCI transport.

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/define42/gokvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 )
 
 func TestRDPStatsWaitWindows(t *testing.T) {

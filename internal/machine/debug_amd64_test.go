@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/define42/gokvm/internal/machine"
+	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 )
 
 func TestDebug(t *testing.T) { // nolint:paralleltest

@@ -8,7 +8,7 @@ import (
 	"image"
 	"time"
 
-	"github.com/define42/gokvm/internal/rdp/damage"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage"
 )
 
 // FrameRate is the maximum frame rate of the RDP AVC420 encoder.

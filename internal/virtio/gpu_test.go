@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
 // Wire-format command/response values, mirrored here so the external test does

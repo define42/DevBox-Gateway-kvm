@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/define42/gokvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 )
 
 // These checks run before any external image tool can interpret filenames in an

@@ -5,7 +5,7 @@
 package encoder
 
 import (
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 // AllocPicture allocs picture pData with borders for each plane based width

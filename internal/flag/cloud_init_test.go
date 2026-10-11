@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/define42/gokvm/internal/flag"
+	"github.com/define42/DevBox-Gateway-kvm/internal/flag"
 )
 
 func TestCloudInitDefaultsEmpty(t *testing.T) {

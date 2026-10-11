@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/define42/gokvm/internal/cloudinit"
+	"github.com/define42/DevBox-Gateway-kvm/internal/cloudinit"
 )
 
 var errCloudInitDisk = errors.New("cloud-init seed requires a boot disk")

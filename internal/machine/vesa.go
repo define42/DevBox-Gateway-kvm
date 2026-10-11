@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"log"
 
-	"github.com/define42/gokvm/internal/virtio"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
 const (

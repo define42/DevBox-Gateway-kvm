@@ -8,7 +8,7 @@ package encoder
 import (
 	"math"
 
-	"github.com/define42/gokvm/pkg/h264/internal/common"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
 
 var QStepx16ByQp = [52]int32{ /* save QStep<<4 for int32_t */

@@ -1,6 +1,6 @@
 package pvh
 
-import "github.com/define42/gokvm/kvm"
+import "github.com/define42/DevBox-Gateway-kvm/kvm"
 
 // For GDT details see arch/x86/include/asm/segment.h
 
