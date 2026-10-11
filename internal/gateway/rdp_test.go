@@ -85,6 +85,22 @@ func startTestBackend(t *testing.T, beforeCopy func(net.Conn) bool) Endpoint {
 
 func startGatewayForTest(t *testing.T, endpoint Endpoint) (*Server, *webBackend, []byte, string, browserSession) {
 	t.Helper()
+
+	return startGatewayWithAuthenticator(t, endpoint, testAuthenticator(
+		func(_ context.Context, username, password string) (string, error) {
+			if username == "alice" && password == "rdp-password" {
+				return "alice", nil
+			}
+
+			return "", ErrAuthentication
+		},
+	))
+}
+
+func startGatewayWithAuthenticator(
+	t *testing.T, endpoint Endpoint, authenticator Authenticator,
+) (*Server, *webBackend, []byte, string, browserSession) {
+	t.Helper()
 	_, certPEM, certFile, keyFile := testTLSIdentity(t, "gateway.test")
 	backend := &webBackend{vms: []VM{{ID: "mine", Name: "work", Owner: "alice", State: "running"}}, endpoint: endpoint}
 	s, err := New(
@@ -94,15 +110,7 @@ func startGatewayForTest(t *testing.T, endpoint Endpoint) (*Server, *webBackend,
 			CertFile:      certFile,
 			KeyFile:       keyFile,
 			Backend:       backend,
-			Authenticator: testAuthenticator(
-				func(
-					context.Context,
-					string,
-					string,
-				) (string, error) {
-					return "alice", nil
-				},
-			),
+			Authenticator: authenticator,
 		},
 	)
 	if err != nil {
@@ -176,7 +184,7 @@ func dialFrontRDP(t *testing.T, s *Server, certPEM []byte, token string) *tls.Co
 
 func TestGatewayMultiplexesHTTPSAndRDPAndLogoutClosesProxy(t *testing.T) {
 	t.Parallel()
-	endpoint := startTestBackend(t, func(conn net.Conn) bool { return proofBackendHandshake(conn, nil) })
+	endpoint := startTestBackend(t, func(conn net.Conn) bool { return passwordBackendHandshake(conn, nil) })
 	s, backend, certPEM, raw, sess := startGatewayForTest(t, endpoint)
 	roots := x509.NewCertPool()
 	roots.AppendCertsFromPEM(certPEM)
@@ -229,7 +237,7 @@ func TestGatewayMultiplexesHTTPSAndRDPAndLogoutClosesProxy(t *testing.T) {
 		t.Fatalf("HTTPS dashboard failed: status=%d err=%v", response.StatusCode, err)
 	}
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	token, proof, err := s.store.grant(key, "mine")
+	token, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +255,7 @@ func TestGatewayMultiplexesHTTPSAndRDPAndLogoutClosesProxy(t *testing.T) {
 	}
 	aborted.Close()
 	front := dialFrontRDP(t, s, certPEM, token)
-	if err := proofClientHandshake(front, proof); err != nil {
+	if err := passwordClientHandshake(front, "alice", "rdp-password"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := front.Write([]byte("hello")); err != nil {
@@ -407,11 +415,11 @@ func TestLogoutDuringRDPSetupCancelsAuthorization(t *testing.T) {
 	t.Parallel()
 	s, _, raw, _ := webFixture(t)
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	token, _, err := s.store.grant(key, "mine")
+	token, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, _, _, release, ok := s.store.consume(context.Background(), token, "127.0.0.1")
+	ctx, _, _, release, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.1")
 	if !ok {
 		t.Fatal("consume failed")
 	}

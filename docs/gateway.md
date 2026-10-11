@@ -106,7 +106,8 @@ Once an administrator has uploaded at least one template:
 3. Select **Start**. A `running` state means the private RDP console responds;
    firmware, cloud-init, and the desktop may still be booting.
 4. Select **RDP** and open the downloaded file within two minutes, while keeping
-   your browser session signed in. For a locally built FreeRDP client:
+   your browser session signed in. Enter your current gateway password at the RDP
+   client's credential prompt. For a locally built FreeRDP client:
 
    ```bash
    ./tools/freerdp/bin/xfreerdp /path/to/desktop.rdp
@@ -126,17 +127,32 @@ account does not migrate VM ownership or update an existing guest's password.
 
 ### RDP identity and routing
 
-The downloaded file contains two random values: a routing token in
-`loadbalanceinfo` and a separate proof in `username`. **Keep the downloaded
-username unchanged.** It is not the Linux account name. The gateway verifies the
-proof inside TLS before activating the RDP session; the routing token alone is
-insufficient. The file contains no account password.
+The downloaded file contains your LDAP login name in `username` and a random
+routing token in `loadbalanceinfo`. The RDP client must submit your current gateway
+password. The gateway validates it with the configured LDAP authenticator (or the
+development authentication file) on every connection, including required-group
+membership, and requires the resulting account to own the selected VM. A client
+`Domain` hint does not override the gateway's configured directory. Login aliases
+remain usable when the LDAP login differs from the canonical VM owner name.
+
+The routing token is sent in the initial RDP negotiation before TLS, so it is
+visible on the wire. It only selects the desktop and browser session; possession
+of it is insufficient to authenticate. Username and password are sent inside TLS.
+Trust the gateway's certificate in the RDP client. The file contains no saved
+password, and the gateway removes the password before forwarding Client Info to
+the VM console. This gateway check is separate from the guest's graphical login;
+existing guest passwords do not change when an LDAP password changes.
 
 A grant is single use, expires after two minutes or when its browser session
 expires, and is bound to the session, client IP, VM, and owner. Downloading a new
 file for the same VM in that session invalidates the previous unused grant.
-Download again after a failed or closed connection. Browser and RDP connections
-must reach the gateway from the same source IP.
+Successful password validation consumes the grant; rejected credentials do not.
+Download again after a successful connection closes or the grant expires. Browser
+and RDP connections must reach the gateway from the same source IP. Web and RDP
+password checks share the gateway's limit of 10 attempts per source IP per minute
+(including successes), and at most eight simultaneous authentication checks. A web
+login followed by an RDP connection uses two attempts; allow for this when several
+users share an office NAT.
 
 Browser sessions last eight hours. Logging out revokes that session's unused
 grants and active RDP connections; session expiry also ends its RDP connections.
@@ -144,7 +160,8 @@ The gateway checks ownership again when connecting and pins the private VM
 server's certificate. Even administrators can download RDP files only for their
 own VMs.
 
-Use TLS in the RDP client; NLA/CredSSP is not supported. The guest console accepts
+Use TLS in the RDP client; NLA/CredSSP is not supported. Clients must send the
+entered password in the TLS-protected Client Info packet. The guest console accepts
 one RDP connection at a time. Managed VMs enable H.264, with bitmap fallback for
 clients without AVC420 support. Clipboard redirection is not implemented, and
 managed VMs currently do not enable audio, even though the downloaded file

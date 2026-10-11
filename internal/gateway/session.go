@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,16 +20,15 @@ const (
 )
 
 type browserSession struct {
-	owner, clientIP, csrf, passwordHash string
-	IsAdmin                             bool
-	expires                             time.Time
-	connections                         map[*connectionLease]struct{}
+	owner, login, clientIP, csrf, passwordHash string
+	IsAdmin                                    bool
+	expires                                    time.Time
+	connections                                map[*connectionLease]struct{}
 }
 
 type connectionLease struct{ cancel context.CancelFunc }
 
 type connectGrant struct {
-	proof   [sha256.Size]byte
 	session [sha256.Size]byte
 	vm      string
 	expires time.Time
@@ -100,6 +100,15 @@ func (s *Server) newSession(owner, ip, hash string) (string, error) {
 }
 
 func (s *Server) newIdentitySession(identity Identity, ip, hash string) (string, error) {
+	return s.newLoginSession(identity, identity.Username, ip, hash)
+}
+
+// newLoginSession retains the authenticated login name separately from the
+// directory's canonical VM owner, which need not be a valid LDAP bind identifier.
+func (s *Server) newLoginSession(identity Identity, login, ip, hash string) (string, error) {
+	if login == "" || len(login) > 128 || strings.ContainsAny(login, "\r\n\x00") {
+		return "", ErrInvalid
+	}
 	raw, err := randomToken()
 	if err != nil {
 		return "", err
@@ -117,6 +126,7 @@ func (s *Server) newIdentitySession(identity Identity, ip, hash string) (string,
 	}
 	s.store.sessions[key] = &browserSession{
 		owner:        identity.Username,
+		login:        login,
 		IsAdmin:      identity.IsAdmin,
 		clientIP:     ip,
 		passwordHash: hash,
@@ -211,16 +221,11 @@ func (s *sessionStore) allowLogin(ip string) bool {
 	return window.count <= 10
 }
 
-func (s *sessionStore) grant(key [sha256.Size]byte, vm string) (string, string, error) {
+func (s *sessionStore) grant(key [sha256.Size]byte, vm string) (string, error) {
 	raw, err := randomToken()
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
-	proof, err := randomToken()
-	if err != nil {
-		return "", "", err
-	}
-	proofHash, _ := tokenKey(proof)
 	verifier, _ := tokenKey(raw)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -228,7 +233,7 @@ func (s *sessionStore) grant(key [sha256.Size]byte, vm string) (string, string, 
 	s.pruneLocked(now)
 	sess := s.sessions[key]
 	if sess == nil {
-		return "", "", ErrAuthentication
+		return "", ErrAuthentication
 	}
 	count := 0
 	for existing, grant := range s.grants {
@@ -242,16 +247,19 @@ func (s *sessionStore) grant(key [sha256.Size]byte, vm string) (string, string, 
 		}
 	}
 	if count >= 32 {
-		return "", "", ErrConflict
+		return "", ErrConflict
 	}
 	expires := minTime(now.Add(connectWindow), sess.expires)
-	s.grants[verifier] = connectGrant{session: key, vm: vm, expires: expires, proof: proofHash}
+	s.grants[verifier] = connectGrant{session: key, vm: vm, expires: expires}
 
-	return raw, proof, nil
+	return raw, nil
 }
 
-// consume atomically spends a grant and registers cancellation before any backend lookup.
-func (s *sessionStore) consume(ctx context.Context, raw, ip string) (context.Context, string, string, func(), bool) {
+// pendingGrant registers session cancellation before backend lookup. A failed
+// password check must not spend the token; claimGrant spends it after authentication.
+func (s *sessionStore) pendingGrant(
+	ctx context.Context, raw, ip string,
+) (context.Context, string, string, func(), bool) {
 	verifier, ok := tokenKey(raw)
 	if !ok || ip == "" {
 		return nil, "", "", nil, false
@@ -267,9 +275,7 @@ func (s *sessionStore) consume(ctx context.Context, raw, ip string) (context.Con
 	if sess == nil || sess.clientIP != ip {
 		return nil, "", "", nil, false
 	}
-	delete(s.grants, verifier)
 	connCtx, cancel := context.WithDeadline(ctx, sess.expires)
-	connCtx = context.WithValue(connCtx, rdpProofKey{}, grant.proof)
 	lease := &connectionLease{cancel: cancel}
 	sess.connections[lease] = struct{}{}
 	release := func() {
@@ -280,6 +286,29 @@ func (s *sessionStore) consume(ctx context.Context, raw, ip string) (context.Con
 	}
 
 	return connCtx, sess.owner, grant.vm, release, true
+}
+
+// claimGrant atomically consumes a still-valid grant after password validation.
+// Concurrent connections can authenticate, but only one can enter the desktop.
+func (s *sessionStore) claimGrant(raw, ip string) bool {
+	verifier, ok := tokenKey(raw)
+	if !ok || ip == "" {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.pruneLocked(time.Now())
+	grant, ok := s.grants[verifier]
+	if !ok {
+		return false
+	}
+	sess := s.sessions[grant.session]
+	if sess == nil || sess.clientIP != ip {
+		return false
+	}
+	delete(s.grants, verifier)
+
+	return true
 }
 
 func minTime(a, b time.Time) time.Time {

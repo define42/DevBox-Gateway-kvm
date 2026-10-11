@@ -285,7 +285,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if key, _, ok := s.requestSession(r); ok {
 		s.store.revoke(key)
 	}
-	token, err := s.newIdentitySession(identity, ip, hash)
+	token, err := s.newLoginSession(identity, username, ip, hash)
 	if err != nil {
 		s.showLogin(w, http.StatusServiceUnavailable, "Sign in is temporarily unavailable.")
 
@@ -516,7 +516,7 @@ func (s *Server) downloadRDP(
 
 		return
 	}
-	token, proof, err := s.store.grant(key, vm.ID)
+	token, err := s.store.grant(key, vm.ID)
 	if err != nil {
 		http.Error(w, "Sign in again to connect.", http.StatusUnauthorized)
 
@@ -527,8 +527,9 @@ func (s *Server) downloadRDP(
 	_, _ = fmt.Fprintf(
 		w, "full address:s:%s\r\nusername:s:%s\r\nloadbalanceinfo:s:%s\r\n"+
 			"screen mode id:i:2\r\nuse multimon:i:0\r\nsession bpp:i:32\r\nauthentication level:i:2\r\n"+
-			"enablecredsspsupport:i:0\r\nnegotiate security layer:i:1\r\nprompt for credentials:i:0\r\n"+
+			"enablecredsspsupport:i:0\r\nnegotiate security layer:i:1\r\nprompt for credentials:i:1\r\n"+
+			"prompt for credentials on client:i:1\r\n"+
 			"autoreconnection enabled:i:0\r\nredirectclipboard:i:1\r\naudiomode:i:0\r\n",
-		s.config.PublicAddress, proof, token,
+		s.config.PublicAddress, sess.login, token,
 	)
 }

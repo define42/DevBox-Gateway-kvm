@@ -125,7 +125,7 @@ func TestTokenCanBeConsumedOnlyOnceConcurrently(t *testing.T) {
 	t.Parallel()
 	s, _, raw, _ := webFixture(t)
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	token, _, err := s.store.grant(key, "mine")
+	token, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,8 +133,9 @@ func TestTokenCanBeConsumedOnlyOnceConcurrently(t *testing.T) {
 	accepted := make(chan bool, 16)
 	for i := 0; i < 16; i++ {
 		workers.Go(func() {
-			_, _, _, release, ok := s.store.consume(context.Background(), token, "127.0.0.1")
+			_, _, _, release, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.1")
 			if ok {
+				ok = s.store.claimGrant(token, "127.0.0.1")
 				release()
 			}
 			accepted <- ok
@@ -201,31 +202,34 @@ func TestRDPGrantReplacementAndBoundedCapacity(t *testing.T) {
 
 	s, _, raw, _ := webFixture(t)
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	old, _, err := s.store.grant(key, "mine")
+	old, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
-	fresh, _, err := s.store.grant(key, "mine")
+	fresh, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, _, ok := s.store.consume(context.Background(), old, "127.0.0.1"); ok {
+	if _, _, _, _, ok := s.store.pendingGrant(context.Background(), old, "127.0.0.1"); ok {
 		t.Fatal("a new download did not revoke the previous file")
 	}
 	for i := range 31 {
-		if _, _, err := s.store.grant(key, fmt.Sprintf("vm-%d", i)); err != nil {
+		if _, err := s.store.grant(key, fmt.Sprintf("vm-%d", i)); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, _, err := s.store.grant(key, "over-limit"); !errors.Is(err, ErrConflict) {
+	if _, err := s.store.grant(key, "over-limit"); !errors.Is(err, ErrConflict) {
 		t.Fatalf("token capacity is not bounded: %v", err)
 	}
-	ctx, owner, vm, release, ok := s.store.consume(context.Background(), fresh, "127.0.0.1")
+	ctx, owner, vm, release, ok := s.store.pendingGrant(context.Background(), fresh, "127.0.0.1")
 	if !ok || ctx.Err() != nil || owner != "alice" || vm != "mine" {
 		t.Fatal("capacity checks invalidated an existing token")
 	}
+	if !s.store.claimGrant(fresh, "127.0.0.1") {
+		t.Fatal("valid token could not be claimed")
+	}
 	release()
-	if _, _, err := s.store.grant(key, "after-consume"); err != nil {
+	if _, err := s.store.grant(key, "after-consume"); err != nil {
 		t.Fatal("consumed token did not release capacity")
 	}
 }
@@ -235,7 +239,7 @@ func TestRDPRechecksOwnerAfterDownload(t *testing.T) {
 
 	s, backend, cert, raw, _ := startGatewayForTest(t, Endpoint{})
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	token, _, err := s.store.grant(key, "mine")
+	token, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}

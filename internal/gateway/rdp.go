@@ -49,7 +49,8 @@ func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
 	if name := front.ConnectionState().ServerName; name != "" && !strings.EqualFold(name, publicHost) {
 		return
 	}
-	connCtx, owner, vm, release, ok := s.store.consume(ctx, token, clientIP(raw.RemoteAddr().String()))
+	ip := clientIP(raw.RemoteAddr().String())
+	connCtx, owner, vm, release, ok := s.store.pendingGrant(ctx, token, ip)
 	if !ok {
 		return
 	}
@@ -73,13 +74,46 @@ func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
 	if connCtx.Err() != nil {
 		return
 	}
-	if err := verifyRDPClient(setupCtx, front, backend); err != nil {
+	authenticate := func(authCtx context.Context, credentials rdpCredentials) error {
+		if err := s.authenticateRDP(authCtx, ip, owner, credentials); err != nil {
+			return err
+		}
+		if !s.store.claimGrant(token, ip) {
+			return ErrAuthentication
+		}
+
+		return nil
+	}
+	if err := verifyRDPClient(setupCtx, front, backend, authenticate); err != nil {
 		return
 	}
 	cancelSetup()
 	_ = front.SetDeadline(time.Time{})
 	_ = backend.SetDeadline(time.Time{})
 	proxyRDP(front, backend)
+}
+
+// authenticateRDP validates credentials afresh with the web login authenticator,
+// including LDAP access-group checks. A routing token never authenticates a user.
+func (s *Server) authenticateRDP(ctx context.Context, ip, owner string, credentials rdpCredentials) error {
+	if ctx.Err() != nil || credentials.Username == "" || len(credentials.Username) > 128 ||
+		credentials.Password == "" || len(credentials.Password) > 1024 || !s.store.allowLogin(ip) {
+		return ErrAuthentication
+	}
+	select {
+	case s.authSlots <- struct{}{}:
+		defer func() { <-s.authSlots }()
+	default:
+		return ErrAuthentication
+	}
+	// The configured authenticator selects the directory realm, as it does for
+	// web login. The client's RDP Domain hint cannot select another directory.
+	identity, err := authenticateIdentity(ctx, s.config.Authenticator, credentials.Username, credentials.Password)
+	if err != nil || identity.Username != owner || ctx.Err() != nil {
+		return ErrAuthentication
+	}
+
+	return nil
 }
 
 // readConnectionPacket bounds initial X.224 frames by their one-byte length indicator.

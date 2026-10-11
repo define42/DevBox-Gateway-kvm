@@ -125,7 +125,8 @@ for directory configuration and group membership.
 3. Select **Start**. A **running** state means the RDP console is available;
    Linux and cloud-init may still be starting.
 4. Select **RDP**, then open the downloaded file in your client within two minutes.
-   Keep the file's generated username unchanged: it carries a connection proof.
+   The file includes your LDAP login name. Enter your current gateway password
+   when the RDP client prompts for credentials.
 5. At the Linux graphical login, enter the username and password used to sign
    in to the gateway when you created the VM.
 
@@ -209,8 +210,11 @@ environment configuration, shutdown behavior, and backups.
 
 The public listener accepts both HTTPS and RDP on the same TCP port. After an
 LDAP login, the gateway checks VM ownership and issues a single-use routing token
-and a separate proof carried by the downloaded RDP file. It authenticates that
-proof inside TLS and connects the client to the selected VM's private RDP server.
+in the downloaded RDP file. On every RDP connection it validates the submitted
+username and password against LDAP, including access-group membership, inside TLS.
+The authenticated account must own the selected VM. The routing token is sent
+before TLS and is visible on the wire; it cannot authorize access without a valid
+password. The gateway removes the password before forwarding to the VM console.
 
 Each VM's RDP server is part of gokvm. The guest uses its normal graphical login
 and desktop session; the generated cloud-init configuration disables guest XRDP.

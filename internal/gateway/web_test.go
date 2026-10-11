@@ -295,6 +295,13 @@ func TestOriginAndSessionIPCannotBeSpoofed(t *testing.T) {
 func TestLoginHashesPasswordAndIssuesSecureSession(t *testing.T) {
 	t.Parallel()
 	s, b, _, _ := webFixture(t)
+	s.config.Authenticator = testAuthenticator(func(_ context.Context, username, password string) (string, error) {
+		if username == "alice.login" && password == "test-password" {
+			return "alice", nil
+		}
+
+		return "", ErrAuthentication
+	})
 	page := webRequest(s, http.MethodGet, "/login", "", nil)
 	var challenge *http.Cookie
 	for _, c := range page.Result().Cookies() {
@@ -311,7 +318,7 @@ func TestLoginHashesPasswordAndIssuesSecureSession(t *testing.T) {
 		strings.NewReader(
 			url.Values{
 				"csrf":     {challenge.Value},
-				"username": {"alice"},
+				"username": {"alice.login"},
 				"password": {"test-password"},
 			}.Encode(),
 		),
@@ -339,8 +346,12 @@ func TestLoginHashesPasswordAndIssuesSecureSession(t *testing.T) {
 		t.Fatalf("insecure cookie: %+v", cookie)
 	}
 	_, sess, ok := s.store.session(cookie.Value, "127.0.0.1")
-	if !ok {
-		t.Fatal("no authenticated session")
+	if !ok || sess.owner != "alice" || sess.login != "alice.login" {
+		t.Fatal("authenticated session lost the LDAP login or canonical owner")
+	}
+	rdp := webRequest(s, http.MethodPost, "/vms/mine/rdp", cookie.Value, url.Values{"csrf": {sess.csrf}})
+	if rdp.Code != http.StatusOK || !strings.Contains(rdp.Body.String(), "username:s:alice.login\r\n") {
+		t.Fatal("download did not retain the authenticated LDAP login name")
 	}
 	if !strings.HasPrefix(
 		sess.passwordHash,
@@ -433,14 +444,10 @@ func TestDownloadedTokenSingleUseIPBoundAndLogoutRevocable(t *testing.T) {
 		t.Fatal("no routing token")
 	}
 	token, _, _ := strings.Cut(rest, "\r\n")
-	_, proofLine, ok := strings.Cut(w.Body.String(), "username:s:")
-	if !ok {
-		t.Fatal("no encrypted client proof")
-	}
-	proof, _, _ := strings.Cut(proofLine, "\r\n")
-	proofHash, valid := tokenKey(proof)
-	if !valid || proof == token {
-		t.Fatal("encrypted proof must be independent of the routing token")
+	if !strings.Contains(w.Body.String(), "username:s:alice\r\n") ||
+		!strings.Contains(w.Body.String(), "prompt for credentials:i:1\r\n") ||
+		!strings.Contains(w.Body.String(), "prompt for credentials on client:i:1\r\n") {
+		t.Fatal("RDP file must contain the login name and request credentials")
 	}
 	if strings.Contains(
 		w.Body.String(),
@@ -456,22 +463,25 @@ func TestDownloadedTokenSingleUseIPBoundAndLogoutRevocable(t *testing.T) {
 		) {
 		t.Fatal("invalid RDP file")
 	}
-	if _, _, _, _, ok := s.store.consume(context.Background(), token, "127.0.0.2"); ok {
+	if _, _, _, _, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.2"); ok {
 		t.Fatal("different IP consumed token")
 	}
-	ctx, owner, vm, release, ok := s.store.consume(context.Background(), token, "127.0.0.1")
+	ctx, owner, vm, release, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.1")
 	if !ok || owner != "alice" || vm != "mine" {
 		t.Fatal("valid grant rejected")
 	}
 	defer release()
-	if ctx.Value(rdpProofKey{}) != proofHash {
-		t.Fatal("downloaded proof does not match the connection verifier")
+	if s.store.claimGrant(token, "127.0.0.2") {
+		t.Fatal("different IP claimed token")
 	}
-	if _, _, _, _, ok := s.store.consume(context.Background(), token, "127.0.0.1"); ok {
+	if !s.store.claimGrant(token, "127.0.0.1") {
+		t.Fatal("valid token could not be claimed")
+	}
+	if _, _, _, _, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.1"); ok {
 		t.Fatal("token replay accepted")
 	}
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	fresh, _, err := s.store.grant(key, "mine")
+	fresh, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,7 +494,7 @@ func TestDownloadedTokenSingleUseIPBoundAndLogoutRevocable(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("logout did not cancel active RDP")
 	}
-	if _, _, _, _, ok := s.store.consume(context.Background(), fresh, "127.0.0.1"); ok {
+	if _, _, _, _, ok := s.store.pendingGrant(context.Background(), fresh, "127.0.0.1"); ok {
 		t.Fatal("logout retained token")
 	}
 	if _, _, ok := s.store.session(raw, "127.0.0.1"); ok {
@@ -500,7 +510,7 @@ func TestSessionLimitsExpiryAndTokenWindow(t *testing.T) {
 		t.Fatalf("session limit ignored: %v", err)
 	}
 	key, _, _ := s.store.session(raw, "127.0.0.1")
-	token, _, err := s.store.grant(key, "mine")
+	token, err := s.store.grant(key, "mine")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -514,7 +524,7 @@ func TestSessionLimitsExpiryAndTokenWindow(t *testing.T) {
 	if remaining <= 119*time.Second || remaining > connectWindow {
 		t.Fatalf("incorrect grant window: %s", remaining)
 	}
-	if _, _, _, _, ok := s.store.consume(context.Background(), token, "127.0.0.1"); ok {
+	if _, _, _, _, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.1"); ok {
 		t.Fatal("expired token accepted")
 	}
 	s.store.mu.Lock()
