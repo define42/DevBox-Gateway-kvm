@@ -47,3 +47,14 @@ func TestCancelledBootDoesNotCreateMachine(t *testing.T) {
 		t.Fatalf("cancelled boot returned %v", err)
 	}
 }
+
+func TestCancellationPreservesCleanupFailure(t *testing.T) {
+	t.Parallel()
+	if !isOnlyError(errors.Join(context.Canceled), context.Canceled) {
+		t.Fatal("plain cancellation not recognized")
+	}
+	cleanup := os.ErrPermission
+	if isOnlyError(errors.Join(context.Canceled, cleanup), context.Canceled) {
+		t.Fatal("disk persistence error hidden by cancellation")
+	}
+}

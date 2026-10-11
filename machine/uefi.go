@@ -120,7 +120,8 @@ func (m *Machine) uefiDevices() error {
 	low, high := m.ramSizes()
 	m.AddDevice(iodev.NewCMOS(low, high))
 	m.AddDevice(&iodev.FWDebug{})
-	power := &uefiPower{timer: iodev.NewACPIPMTimer(), stop: m.Stop}
+	power := &uefiPower{timer: iodev.NewACPIPMTimer(), stop: m.Stop, irq: m.sharedIRQSource(9)}
+	m.uefiPower = power
 	m.AddDevice(power)
 	entries := map[uint16][]byte{
 		iodev.FWCfgRAMSize:  binary.LittleEndian.AppendUint64(nil, low+high),

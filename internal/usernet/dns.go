@@ -14,6 +14,17 @@ import (
 // New starts a private IPv4 network with DHCP, DNS and outbound TCP/UDP. The
 // first DHCP client receives 10.0.2.15; 10.0.2.2 also reaches host loopback services.
 func New() (*Network, error) {
+	return newDefaultNetwork(false)
+}
+
+// NewIsolated preserves DHCP, DNS and outbound access while denying forwarded
+// host loopback connections, including the virtual gateway's host-service alias.
+// The DNS service can still contact the operator-configured host resolver.
+func NewIsolated() (*Network, error) {
+	return newDefaultNetwork(true)
+}
+
+func newDefaultNetwork(denyHostLoopback bool) (*Network, error) {
 	config, err := dns.ClientConfigFromFile("/etc/resolv.conf")
 	if err != nil {
 		return nil, err
@@ -23,7 +34,7 @@ func New() (*Network, error) {
 		servers = append(servers, net.JoinHostPort(server, config.Port))
 	}
 
-	return newNetwork(servers)
+	return newNetworkWithIsolation(servers, denyHostLoopback)
 }
 
 // startDNS serves DNS inside the guest stack and forwards to the host's resolver

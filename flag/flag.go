@@ -10,7 +10,7 @@ import (
 	"github.com/define42/gokvm/ebda"
 )
 
-var ErrorInvalidSubcommands = errors.New("expected 'boot' or 'probe' subcommands")
+var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'seed', or 'auth-user' subcommands")
 
 var ErrRDPOptions = errors.New("RDP certificate and key must be provided together with -rdp")
 
@@ -24,13 +24,15 @@ var ErrRDPStats = errors.New("-rdp-stats requires -rdp")
 
 var ErrRDPWait = errors.New("-rdp-wait requires -rdp")
 
-var ErrNetwork = errors.New("-net must be 'user' or 'none' and cannot be combined with -t")
+var ErrNetwork = errors.New("-net must be 'user', 'user-isolated', or 'none' and cannot be combined with -t")
 
 var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires -rdp")
 
 var ErrCPUCount = fmt.Errorf("-c must be between 1 and %d", ebda.MaxVCPUs)
 
 var ErrUKIBootSource = errors.New("-uki cannot be combined with -iso, -k, or -i")
+
+var ErrCloudInitDisk = errors.New("-cloud-init requires a primary disk supplied with -d")
 
 type BootArgs struct {
 	Kernel         string
@@ -47,6 +49,7 @@ type BootArgs struct {
 	TapIfName      string
 	Network        string
 	Disk           string
+	CloudInit      string
 	GPU            string
 	VNC            string
 	RDP            string
@@ -81,9 +84,11 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"kernel command-line parameters")
 	bootCmd.StringVar(&c.TapIfName, "t", "", `name of tap interface. `+
 		`If the string is an empty, no tap intarface is created. (default"")`)
-	bootCmd.StringVar(&c.Network, "net", "", "network backend: user (built-in DHCP/DNS and outbound access) "+
-		"or none (default); mutually exclusive with -t")
+	bootCmd.StringVar(&c.Network, "net", "", "network backend: user (DHCP/DNS and outbound access), "+
+		"user-isolated (also denies host loopback), or none (default); mutually exclusive with -t")
 	bootCmd.StringVar(&c.Disk, "d", "", "path of disk file (for /dev/vda)")
+	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
+		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
 	bootCmd.StringVar(&c.GPU, "g", "", `path to write the virtio-gpu framebuffer as PNG. `+
 		`If empty, no virtio-gpu device is created. (default "")`)
 	bootCmd.StringVar(&c.VNC, "vnc", "", `VNC listen address for virtio-gpu, for example ":5900". `+
@@ -130,6 +135,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 			encoderSet = true
 		}
 	})
+	if c.CloudInit != "" && c.Disk == "" {
+		return nil, ErrCloudInitDisk
+	}
 	if err := selectUEFIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
@@ -162,7 +170,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDP == "") {
 		return nil, ErrAudio
 	}
-	if (c.Network != "" && c.Network != "none" && c.Network != "user") ||
+	if (c.Network != "" && c.Network != "none" && c.Network != "user" && c.Network != "user-isolated") ||
 		(c.Network != "" && c.TapIfName != "") {
 		return nil, ErrNetwork
 	}

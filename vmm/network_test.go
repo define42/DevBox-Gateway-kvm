@@ -11,6 +11,7 @@ func TestInvalidNetworkConfigFailsBeforeOpeningKVM(t *testing.T) {
 	for _, config := range []Config{
 		{Network: "invalid"},
 		{Network: "user", TapIfName: "tap0"},
+		{Network: "user-isolated", TapIfName: "tap0"},
 		{Network: "none", TapIfName: "tap0"},
 	} {
 		v := New(config)

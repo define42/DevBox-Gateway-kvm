@@ -150,7 +150,7 @@ func acpiTable(signature string, revision byte, body []byte) []byte {
 
 func uefiFADT() []byte {
 	table := acpiTable("FACP", 3, make([]byte, 244-acpiHeaderSize))
-	binary.LittleEndian.PutUint16(table[46:], 9) // SCI, no hotplug/power-button events generated.
+	binary.LittleEndian.PutUint16(table[46:], 9) // SCI, shared with PCI INTx through GSI 9.
 	binary.LittleEndian.PutUint32(table[48:], 0xb2)
 	table[52], table[53] = 0xf1, 0xf0 // PIIX4 ACPI enable/disable commands.
 	binary.LittleEndian.PutUint32(table[56:], uefiPMBase)
@@ -160,8 +160,8 @@ func uefiFADT() []byte {
 	binary.LittleEndian.PutUint16(table[96:], 0xffff) // No C2/C3 states.
 	binary.LittleEndian.PutUint16(table[98:], 0xffff)
 	binary.LittleEndian.PutUint16(table[109:], 3) // Legacy devices and 8042 controller.
-	// WBINVD, C1, control-method power/sleep buttons, 32-bit timer, reset register.
-	binary.LittleEndian.PutUint32(table[112:], 1|1<<2|1<<4|1<<5|1<<8|1<<10)
+	// WBINVD, C1, fixed power button, no sleep button, 32-bit timer, reset register.
+	binary.LittleEndian.PutUint32(table[112:], 1|1<<2|1<<5|1<<8|1<<10)
 	uefiGAS(table[116:], 0xcf9, 8, 1)
 	table[128] = 6
 	uefiGAS(table[148:], uefiPMBase, 32, 2)

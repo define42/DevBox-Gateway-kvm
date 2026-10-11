@@ -19,6 +19,8 @@ func TestNetworkOptions(t *testing.T) {
 	}{
 		{name: "disabled by default"},
 		{name: "user", args: []string{"-net", "user"}, network: "user"},
+		{name: "isolated user", args: []string{"-net", "user-isolated"}, network: "user-isolated"},
+		{name: "isolated user and TAP", args: []string{"-net", "user-isolated", "-t", "tap0"}, invalid: true},
 		{name: "none", args: []string{"-net", "none"}, network: "none"},
 		{name: "existing TAP", args: []string{"-t", "tap0"}, tap: "tap0"},
 		{name: "unknown", args: []string{"-net", "invalid"}, invalid: true},

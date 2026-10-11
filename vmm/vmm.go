@@ -26,7 +26,9 @@ import (
 
 var errDownloadBootImage = errors.New("download boot image failed")
 
-var errNetworkConfig = errors.New("network must be 'user' or 'none' and cannot be combined with a TAP interface")
+var errNetworkConfig = errors.New(
+	"network must be 'user', 'user-isolated', or 'none' and cannot be combined with a TAP interface",
+)
 
 var errAudioConfig = errors.New("audio must be 'none' or 'rdp'; 'rdp' requires an RDP listener")
 
@@ -65,6 +67,7 @@ type Config struct {
 	TapIfName      string
 	Network        string
 	Disk           string
+	CloudInit      string
 	GPU            string
 	VNC            string
 	RDP            string
@@ -132,10 +135,13 @@ func (v *VMM) Init() (initErr error) {
 	if err := v.validateRDPPerformanceConfig(); err != nil {
 		return err
 	}
+	if err := v.validateCloudInit(); err != nil {
+		return err
+	}
 	if (v.Audio != "" && v.Audio != "none" && v.Audio != "rdp") || (v.Audio == "rdp" && v.RDP == "") {
 		return errAudioConfig
 	}
-	if (v.Network != "" && v.Network != "none" && v.Network != "user") ||
+	if (v.Network != "" && v.Network != "none" && v.Network != "user" && v.Network != "user-isolated") ||
 		(v.Network != "" && v.TapIfName != "") {
 		return errNetworkConfig
 	}
@@ -164,8 +170,14 @@ func (v *VMM) Init() (initErr error) {
 			return err
 		}
 	}
-	if v.Network == "user" {
-		if err := m.AddUserNet(); err != nil {
+	if v.Network == "user" || v.Network == "user-isolated" {
+		var err error
+		if v.Network == "user-isolated" {
+			err = m.AddIsolatedUserNet()
+		} else {
+			err = m.AddUserNet()
+		}
+		if err != nil {
 			return err
 		}
 		log.Print("User-mode network: DHCP 10.0.2.15, gateway/DNS 10.0.2.2")
@@ -174,6 +186,11 @@ func (v *VMM) Init() (initErr error) {
 	if len(v.Disk) > 0 {
 		if err := m.AddDisk(v.Disk); err != nil {
 			return err
+		}
+	}
+	if v.CloudInit != "" {
+		if err := m.AddReadOnlyDisk(v.CloudInit); err != nil {
+			return fmt.Errorf("attach cloud-init seed: %w", err)
 		}
 	}
 

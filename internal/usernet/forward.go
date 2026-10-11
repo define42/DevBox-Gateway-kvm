@@ -18,12 +18,17 @@ import (
 
 // destination maps the virtual gateway to host loopback. Broadcast/multicast
 // packets belong to the virtual link and must not be sent through host sockets.
-func destination(id stack.TransportEndpointID) (string, bool) {
+func (n *Network) destination(id stack.TransportEndpointID) (string, bool) {
 	address := id.LocalAddress
 	if address == gatewayAddress {
 		address = tcpip.AddrFrom4([4]byte{127, 0, 0, 1})
 	}
 	ip := net.IP(address.AsSlice())
+	// Apply isolation after alias translation and before opening any host
+	// socket. IP.IsLoopback also recognizes IPv4-mapped loopback addresses.
+	if n.denyHostLoopback && ip.IsLoopback() {
+		return "", false
+	}
 	if address == header.IPv4Broadcast || ip.IsMulticast() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() {
 		return "", false
 	}
@@ -61,7 +66,7 @@ func (n *Network) release(c io.Closer) {
 }
 
 func (n *Network) forwardTCP(request *tcp.ForwarderRequest) {
-	address, allowed := destination(request.ID())
+	address, allowed := n.destination(request.ID())
 	if !allowed || !n.reserve() {
 		request.Complete(true)
 
@@ -124,7 +129,7 @@ func (n *Network) forwardTCP(request *tcp.ForwarderRequest) {
 }
 
 func (n *Network) forwardUDP(id stack.TransportEndpointID, packet *stack.PacketBuffer) bool {
-	address, allowed := destination(id)
+	address, allowed := n.destination(id)
 	if !allowed || !n.reserve() {
 		return false
 	}

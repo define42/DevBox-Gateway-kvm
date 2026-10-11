@@ -155,6 +155,7 @@ type Machine struct {
 	pci            *pci.PCI
 	serial         *serial.Serial
 	serialDisabled bool
+	blockCount     uint32
 	devices        []iodev.Device
 	ioportHandlers [0x10000][2]func(port uint64, bytes []byte) error
 	stopped        uint32
@@ -171,6 +172,7 @@ type Machine struct {
 	uefiCodeBase   uint64
 	uefiVars       *uefiFlash
 	uefiIRQ        bool // Set before attaching devices by EnableUEFIPlatform.
+	uefiPower      *uefiPower
 	pciIRQMu       sync.Mutex
 	pciIRQLines    map[uint8]*sharedIRQLine
 }
@@ -251,6 +253,18 @@ func (m *Machine) AddUserNet() error {
 	return nil
 }
 
+// AddIsolatedUserNet provides outbound networking without host-loopback access.
+// Built-in guest DHCP/DNS remain available at the virtual gateway.
+func (m *Machine) AddIsolatedUserNet() error {
+	network, err := usernet.NewIsolated()
+	if err != nil {
+		return fmt.Errorf("isolated user-mode network: %w", err)
+	}
+	m.addNetwork(network)
+
+	return nil
+}
+
 func (m *Machine) addNetwork(backend io.ReadWriter) {
 	v := virtio.NewNet(virtioNetIRQ, m, backend, m.mem)
 	m.connectVirtioIRQ(v.ModernTransport, virtioNetIRQ)
@@ -266,10 +280,7 @@ func (m *Machine) AddDisk(diskPath string) error {
 		return err
 	}
 
-	m.connectVirtioIRQ(v.ModernTransport, virtioBlkIRQ)
-	m.deviceWG.Go(v.IOThreadEntry)
-	// 00:02.0 for Virtio blk
-	m.pci.AddDevices(v)
+	m.addBlockDevice(v)
 
 	return nil
 }
@@ -280,11 +291,23 @@ func (m *Machine) AddReadOnlyDisk(diskPath string) error {
 		return err
 	}
 
+	m.addBlockDevice(v)
+
+	return nil
+}
+
+// addBlockDevice reserves a distinct initial BAR for every disk. Direct Linux
+// boot can disable PCI resource reassignment, so firmware cannot fix collisions.
+func (m *Machine) addBlockDevice(v *virtio.Blk) {
+	if m.blockCount != 0 {
+		// Keep the original primary-disk BAR. Secondary disks start beyond the
+		// fixed network, graphics, input and sound ranges, in 64 KiB slots.
+		v.SetInitialMMIOBase(0xd010_0000 + (m.blockCount-1)*0x10000)
+	}
+	m.blockCount++
 	m.connectVirtioIRQ(v.ModernTransport, virtioBlkIRQ)
 	m.deviceWG.Go(v.IOThreadEntry)
 	m.pci.AddDevices(v)
-
-	return nil
 }
 
 func (m *Machine) AddReadOnlyCDROM(r io.ReaderAt, size int64) {

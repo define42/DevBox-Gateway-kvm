@@ -18,10 +18,21 @@ require (
 )
 
 require (
+	github.com/Azure/go-ntlmssp v0.1.1 // indirect
+	github.com/go-asn1-ber/asn1-ber v1.5.8 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+)
+
+require (
+	github.com/go-ldap/ldap/v3 v3.4.14
+	github.com/goccy/go-yaml v1.19.2
 	github.com/google/btree v1.1.2 // indirect
+	github.com/kdomanski/iso9660 v0.4.0
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect
+	github.com/tredoe/osutil v1.5.0
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
+	golang.org/x/crypto v0.57.0
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/time v0.12.0 // indirect

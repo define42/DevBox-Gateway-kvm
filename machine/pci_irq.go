@@ -47,6 +47,11 @@ func (m *Machine) connectVirtioIRQ(transport *virtio.ModernTransport, irq uint8)
 	if !m.uefiIRQ {
 		return
 	}
+	transport.SetIRQLine(m.sharedIRQSource(irq))
+}
+
+// sharedIRQSource also includes fixed ACPI events sharing a GSI with PCI INTx.
+func (m *Machine) sharedIRQSource(irq uint8) func(bool) error {
 	m.pciIRQMu.Lock()
 	defer m.pciIRQMu.Unlock()
 	if m.pciIRQLines == nil {
@@ -64,5 +69,6 @@ func (m *Machine) connectVirtioIRQ(transport *virtio.ModernTransport, irq uint8)
 		}}
 		m.pciIRQLines[irq] = line
 	}
-	transport.SetIRQLine(line.source())
+
+	return line.source()
 }

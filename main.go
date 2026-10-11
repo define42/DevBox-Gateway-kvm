@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	stdflag "flag"
 	"log"
 	"os"
 	"os/signal"
@@ -18,12 +19,22 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	err := run(ctx, os.Args)
 	stop()
-	if err != nil {
+	if err != nil && !errors.Is(err, stdflag.ErrHelp) && !isOnlyError(err, context.Canceled) {
 		log.Fatal(err)
 	}
 }
 
 func run(ctx context.Context, args []string) error {
+	if len(args) > 1 {
+		switch args[1] {
+		case "serve":
+			return runServe(ctx, args[2:], os.Stderr)
+		case "seed":
+			return runSeed(args[2:], os.Stdin, os.Stdout)
+		case "auth-user":
+			return runAuthUser(args[2:], os.Stdin, os.Stdout)
+		}
+	}
 	bootArgs, probeArgs, err := flag.ParseArgs(args)
 	if err != nil {
 		return err
@@ -47,6 +58,7 @@ func run(ctx context.Context, args []string) error {
 			TapIfName:      bootArgs.TapIfName,
 			Network:        bootArgs.Network,
 			Disk:           bootArgs.Disk,
+			CloudInit:      bootArgs.CloudInit,
 			GPU:            bootArgs.GPU,
 			VNC:            bootArgs.VNC,
 			RDP:            bootArgs.RDP,
@@ -98,6 +110,9 @@ func runBoot(ctx context.Context, conf vmm.Config) error {
 }
 
 func bootGuest(ctx context.Context, conf vmm.Config) (bootErr error) {
+	power := make(chan os.Signal, 1)
+	signal.Notify(power, syscall.SIGUSR1)
+	defer signal.Stop(power)
 	vm := vmm.New(conf)
 	defer func() { bootErr = errors.Join(bootErr, vm.Close()) }()
 	if err := vm.Init(); err != nil {
@@ -110,12 +125,33 @@ func bootGuest(ctx context.Context, conf vmm.Config) (bootErr error) {
 		return err
 	}
 
+	controlCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-controlCtx.Done():
+				return
+			case <-power:
+				if err := vm.RequestShutdown(); err != nil {
+					log.Printf("Guest power-button request failed: %v", err)
+				}
+			}
+		}
+	}()
+	defer func() { cancel(); <-done }()
 	return vm.BootContext(ctx)
 }
 
 // isGuestReset accepts wrapped reset errors but never drops an additional
 // shutdown, persistence, or cancellation error joined with the reset request.
 func isGuestReset(err error) bool {
+	return isOnlyError(err, machine.ErrUEFIReset)
+}
+
+// isOnlyError never hides unrelated cleanup failures joined with a benign exit.
+func isOnlyError(err, target error) bool {
 	if err == nil {
 		return false
 	}
@@ -127,15 +163,15 @@ func isGuestReset(err error) bool {
 			return false
 		}
 		for _, child := range children {
-			if !isGuestReset(child) {
+			if !isOnlyError(child, target) {
 				return false
 			}
 		}
 
 		return true
 	case interface{ Unwrap() error }:
-		return isGuestReset(wrapped.Unwrap())
+		return isOnlyError(wrapped.Unwrap(), target)
 	default:
-		return errors.Is(err, machine.ErrUEFIReset)
+		return errors.Is(err, target)
 	}
 }

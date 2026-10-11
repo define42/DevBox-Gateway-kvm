@@ -1,0 +1,13 @@
+name: gokvm-ldap
+
+services:
+  ldap:
+    # Same GLAuth server as DevBox Gateway, pinned for reproducible development.
+    image: glauth/glauth@sha256:6d448805cf54fc2ca3bca2b87f89dffe571a354a69a667b5a910111be3cf430e
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LDAP_PORT:-1636}:389"
+    volumes:
+      - ./default-config.cfg:/app/config/config.cfg:ro
+      - ./.tls/key.pem:/app/config/key.pem:ro
+      - ./.tls/cert.pem:/app/config/cert.pem:ro

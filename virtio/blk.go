@@ -62,6 +62,7 @@ type Blk struct {
 	// capacity is the device size in 512-byte sectors.
 	capacity uint64
 	readOnly bool
+	mmioBase uint32
 
 	VirtQueue    [blkNumQueues]*SplitQueue
 	LastAvailIdx [blkNumQueues]uint16
@@ -76,7 +77,17 @@ type Blk struct {
 	IRQInjector IRQInjector
 }
 
+// SetInitialMMIOBase assigns the initial, MMIOSize-aligned BAR address. Call it
+// before registering the device on the PCI bus; the bus owns guest BAR writes.
+func (v *Blk) SetInitialMMIOBase(base uint32) {
+	v.mmioBase = base
+}
+
 func (v *Blk) GetDeviceHeader() pci.DeviceHeader {
+	base := v.mmioBase
+	if base == 0 {
+		base = BlkMMIOBase
+	}
 	return pci.DeviceHeader{
 		// 0x1040 + virtio device id (2 = block). The 0x1042 id marks a
 		// non-transitional device, so the driver uses the modern
@@ -95,7 +106,7 @@ func (v *Blk) GetDeviceHeader() pci.DeviceHeader {
 		CapabilitiesPointer: capCommonAt,
 		BAR: [6]uint32{
 			// BAR0: 32-bit non-prefetchable memory BAR (low nibble 0).
-			uint32(BlkMMIOBase),
+			base,
 		},
 		// https://github.com/torvalds/linux/blob/fb3b0673b7d5b477ed104949450cd511337ba3c6/drivers/pci/setup-irq.c#L30-L55
 		InterruptPin: 1,

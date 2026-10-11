@@ -6,7 +6,22 @@ NETDESK_ARGS ?=
 QCOW2_IMAGE ?= ./rocky9-xfce-v2.4.16.qcow2
 QCOW2_DISK ?= $(basename $(QCOW2_IMAGE)).gokvm.qcow2
 QCOW2_VARS ?= $(QCOW2_DISK).vars.fd
+QCOW2_SEED ?= $(QCOW2_DISK).seed.iso
+QCOW2_USER ?= rocky
+QCOW2_KEYBOARD ?= us
 QCOW2_ARGS ?=
+GATEWAY_STATE ?= ./.gokvm-gateway
+GATEWAY_IMAGE ?= $(GATEWAY_STATE)/base.qcow2
+GATEWAY_ARGS ?=
+LDAP_PORT ?= 1636
+GATEWAY_LDAP_LOCAL ?= 1
+GATEWAY_LDAP_URL ?= ldaps://127.0.0.1:$(LDAP_PORT)
+GATEWAY_LDAP_BASE_DN ?= dc=glauth,dc=com
+GATEWAY_LDAP_DOMAIN ?= example.com
+GATEWAY_LDAP_FILTER ?= (mail=%s)
+GATEWAY_LDAP_USERNAME_ATTRIBUTE ?= mail
+GATEWAY_LDAP_REQUIRED_GROUP ?= ou=team10_r,ou=groups,dc=glauth,dc=com
+GATEWAY_LDAP_CA ?= ./testldap/.tls/cert.pem
 OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
 RDP_CLIENT ?= $(shell if [ -x ./tools/freerdp/bin/xfreerdp ]; then \
@@ -27,7 +42,7 @@ $(GOPATH)/bin/u-root: $(GOPATH)/src/github.com/u-root/u-root
 	cd $(GOPATH)/src/github.com/u-root/u-root \
 	  && $(GO) install .
 
-gokvm: $(wildcard *.go) $(wildcard */*.go)
+gokvm: $(wildcard *.go) $(wildcard */*.go) $(wildcard gateway/*.html gateway/*.js gateway/static/* gateway/static/vendor/*/*/* gateway/static/vendor/*/*/fonts/*)
 	$(MAKE) generate
 	$(GO) build .
 
@@ -155,7 +170,11 @@ qcow2: generate
 		ln -- "$$tmp" "$(QCOW2_VARS)"; \
 	fi
 	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
-	./gokvm boot -uefi "$(OVMF_CODE)" -uefi-vars "$(QCOW2_VARS)" -d "$(QCOW2_DISK)" \
+	@set -eu; if [ ! -e "$(QCOW2_SEED)" ]; then \
+		./gokvm seed -out "$(QCOW2_SEED)" -user "$(QCOW2_USER)" -keyboard "$(QCOW2_KEYBOARD)"; \
+	fi
+	@echo "Guest login: $(QCOW2_SEED).credentials.json (generated on first boot preparation)."
+	./gokvm boot -cloud-init "$(QCOW2_SEED)" -uefi "$(OVMF_CODE)" -uefi-vars "$(QCOW2_VARS)" -d "$(QCOW2_DISK)" \
 		-c 2 -m 4G -net user -rdp 127.0.0.1:3390 -rdp-wait \
 		-rdp-h264 -rdp-h264-encoder auto $(QCOW2_ARGS)
 
@@ -180,3 +199,40 @@ rdp:
 	esac; \
 	exec "$$client" /v:127.0.0.1:3390 /sec:tls /u:console /p:console \
 		/cert:ignore /dynamic-resolution /gfx:AVC420
+
+# Local native Gateway: HTTPS UI/auth and token-routed RDP share port 8443.
+.PHONY: ldap ldap-stop gateway-ldap-test
+ldap:
+	./testldap/generate-cert.sh
+	LDAP_PORT="$(LDAP_PORT)" docker compose -f testldap/compose.yaml up -d ldap
+	./testldap/wait-ready.sh "$(LDAP_PORT)"
+
+ldap-stop:
+	LDAP_PORT="$(LDAP_PORT)" docker compose -f testldap/compose.yaml stop ldap
+
+gateway-ldap-test: ldap
+	GOKVM_TEST_LDAP_URL="ldaps://127.0.0.1:$(LDAP_PORT)" \
+		GOKVM_TEST_LDAP_CA="$(abspath testldap/.tls/cert.pem)" \
+		$(GO) test -race ./gateway -run '^TestBundledLDAP' -count=1
+
+.PHONY: gateway
+ifeq ($(GATEWAY_LDAP_LOCAL),1)
+gateway: ldap
+endif
+gateway: generate
+	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
+	@set -eu; mkdir -p -m 700 "$(GATEWAY_STATE)"; \
+	if [ ! -e "$(GATEWAY_IMAGE)" ]; then \
+		command -v qemu-img >/dev/null 2>&1 || { echo "Install qemu-utils for one-time image conversion." >&2; exit 1; }; \
+		tmp=$$(mktemp "$(GATEWAY_IMAGE).tmp.XXXXXX"); \
+		trap 'rm -f -- "$$tmp"' EXIT; \
+		qemu-img convert -f qcow2 -O qcow2 "$(QCOW2_IMAGE)" "$$tmp"; \
+		ln -- "$$tmp" "$(GATEWAY_IMAGE)"; \
+	fi
+	@echo "Open https://localhost:8443 and sign in with your LDAP account. See testldap/README.md for local accounts."
+	./gokvm serve -state "$(GATEWAY_STATE)" -image "$(GATEWAY_IMAGE)" \
+		-uefi "$(OVMF_CODE)" -uefi-vars-template "$(OVMF_VARS)" \
+		-ldap-url "$(GATEWAY_LDAP_URL)" -ldap-base-dn "$(GATEWAY_LDAP_BASE_DN)" \
+		-ldap-domain "$(GATEWAY_LDAP_DOMAIN)" -ldap-filter '$(GATEWAY_LDAP_FILTER)' \
+		-ldap-username-attribute "$(GATEWAY_LDAP_USERNAME_ATTRIBUTE)" \
+		-ldap-required-group "$(GATEWAY_LDAP_REQUIRED_GROUP)" -ldap-ca "$(GATEWAY_LDAP_CA)" $(GATEWAY_ARGS)

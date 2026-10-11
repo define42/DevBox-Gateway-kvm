@@ -43,27 +43,32 @@ var gatewayAddress = tcpip.AddrFrom4([4]byte{10, 0, 2, 2}) //nolint:gochecknoglo
 // Network is a nonblocking, packet-oriented Ethernet device. Each Read or Write
 // transfers one complete frame. Ready signals that Read may have work available.
 type Network struct {
-	stack       *stack.Stack
-	link        *channel.Endpoint
-	incoming    chan []byte
-	ready       chan struct{}
-	ctx         context.Context //nolint:containedctx // The network owns its goroutines and cancellation lifetime.
-	cancel      context.CancelFunc
-	workers     sync.WaitGroup
-	closeOnce   sync.Once
-	mu          sync.Mutex
-	closed      bool
-	connections map[io.Closer]struct{}
-	services    []io.Closer
-	slots       chan struct{}
+	stack            *stack.Stack
+	link             *channel.Endpoint
+	incoming         chan []byte
+	ready            chan struct{}
+	ctx              context.Context //nolint:containedctx // The network owns its goroutines and cancellation lifetime.
+	cancel           context.CancelFunc
+	workers          sync.WaitGroup
+	closeOnce        sync.Once
+	mu               sync.Mutex
+	closed           bool
+	connections      map[io.Closer]struct{}
+	services         []io.Closer
+	slots            chan struct{}
+	denyHostLoopback bool
 }
 
-func newNetwork(dnsServers []string) (_ *Network, resultErr error) {
+func newNetwork(dnsServers []string) (*Network, error) {
+	return newNetworkWithIsolation(dnsServers, false)
+}
+
+func newNetworkWithIsolation(dnsServers []string, denyHostLoopback bool) (_ *Network, resultErr error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	n := &Network{
 		incoming: make(chan []byte, queueSize), ready: make(chan struct{}, 1),
 		ctx: ctx, cancel: cancel, connections: make(map[io.Closer]struct{}),
-		slots: make(chan struct{}, maxConnections),
+		slots: make(chan struct{}, maxConnections), denyHostLoopback: denyHostLoopback,
 	}
 	defer func() {
 		if resultErr != nil {

@@ -42,3 +42,11 @@ _linux/
 *.gokvm.qcow2.vars.fd
 *.gokvm.qcow2.tmp.*
 *.gokvm.qcow2.vars.fd.tmp.*
+
+# Native Gateway private state and standalone generated credentials.
+/.gokvm-gateway/
+*.credentials.json
+*.rdp
+
+# Local LDAP development TLS identity (generated, never committed).
+/testldap/.tls/

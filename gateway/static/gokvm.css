@@ -1,0 +1,15 @@
+/* Native gateway adaptations; the shared DevBox theme is kept unchanged. */
+[hidden] { display: none !important; }
+.gateway-remove-menu > summary { list-style: none; }
+.gateway-remove-menu > summary::-webkit-details-marker { display: none; }
+#vm-list td:first-child { overflow-wrap: anywhere; }
+.gateway-modal-open { overflow: hidden; }
+.gateway-vm-name { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

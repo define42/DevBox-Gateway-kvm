@@ -78,7 +78,8 @@ already built kernel.
 | Area | Support |
 | --- | --- |
 | CPU and boot | KVM acceleration, multiple vCPUs, direct Linux and PVH boot, x86-64 UKI loading, Linux ISO discovery through El Torito and boot configs, native OVMF UEFI disk boot |
-| Storage | Modern virtio-blk, writable raw/qcow2 disks, read-only ISO media |
+| Storage | Modern virtio-blk, writable raw/qcow2 disks, read-only ISO media, NoCloud provisioning |
+| Gateway | Native HTTPS dashboard, LDAP authentication, per-user persistent desktops, single-use RDP downloads |
 | Networking | Modern virtio-net, built-in IPv4 DHCP/DNS and outbound TCP/UDP, or a host-managed TAP interface |
 | Display and input | Modern virtio-gpu 2D framebuffer, PNG output, VNC/RDP keyboard and mouse input |
 | RDP graphics | TLS, bitmap updates or H.264 AVC420 with bundled software encoding or optional NVIDIA NVENC, hardware cursor updates, live single-monitor resizing |
@@ -104,7 +105,8 @@ flags; there is no VM configuration file.
 | `-c count` | `1` | Number of guest vCPUs, from 1 to 64. |
 | `-m size` | `1G` | Guest RAM; `K`, `M`, and `G` use binary units. Unitless values mean GiB. |
 | `-d path` | Unset | Existing writable raw or qcow2 disk, exposed as `/dev/vda`. |
-| `-net user\|none` | `none` | Built-in networking or no network; mutually exclusive with `-t`. |
+| `-cloud-init path` | Unset | Local validated CIDATA seed attached read-only after the boot disk; requires `-d`. |
+| `-net user\|user-isolated\|none` | `none` | Built-in networking, optional host loopback isolation, or no network; mutually exclusive with `-t`. |
 | `-t name` | Unset | Host TAP interface. |
 | `-g path` | Unset | Write the framebuffer to a PNG file. |
 | `-vnc address` | Unset | VNC listener, for example `127.0.0.1:5900`. |
@@ -218,6 +220,149 @@ qemu-img create -f qcow2 disk.qcow2 4G
 Create a filesystem in the guest before storing files on a new disk; partition
 the disk first if needed.
 
+### Native desktop gateway
+
+gokvm can host the web UI, authenticate users, provision their desktops, and
+route downloaded `.rdp` files to its own RDP console. Each VM runs as a separate
+gokvm/KVM child process with its own persistent disk, UEFI variables, NoCloud seed,
+and private loopback RDP listener. Managed guests use `-net user-isolated`, which
+blocks access to host loopback services while keeping DHCP, DNS, and outbound
+networking. Neither QEMU nor guest XRDP runs the desktop.
+`qemu-img` is used only for one-time conversion of compressed source images.
+
+The login and dashboard reuse DevBox Gateway’s dark Bootstrap theme, icons,
+DevBox table, and dialogs. Assets are bundled in the binary and served locally.
+The dashboard refreshes VM status and shows live connection latency; its controls
+use gokvm’s create, start, stop, remove, and RDP-download operations.
+
+With the Rocky XFCE source image in the repository root, Docker Compose, and
+OpenSSL installed:
+
+```bash
+make gateway
+```
+
+This starts the bundled LDAP server and the gateway. Open
+**https://localhost:8443**, accept the locally generated self-signed certificate,
+and sign in with **`johndoe` / `dogood`**, the same demo account used by
+[DevBox-Gateway](https://github.com/define42/DevBox-Gateway). Create a desktop,
+start it, then download and open its RDP file. Use the same username and password
+at the guest's graphical login. A running state means the RDP console is
+available; cloud-init and desktop boot may still be in progress. Refresh the
+dashboard to see later state changes.
+
+The bundled GLAuth directory uses the copied DevBox-Gateway users and groups over
+verified LDAPS on `127.0.0.1:1636`. Access requires the `team10_r` group;
+`testuser` / `dogood` and `administrator` / `dogood` also qualify. These are public
+demo credentials for local development. `make gateway` no longer generates or
+uses `.gokvm-gateway/auth.json.credentials.json`; there is no local-password
+fallback. See [the LDAP setup](testldap/README.md) for all accounts, external
+directory settings, certificate handling, and integration tests.
+
+`GATEWAY_STATE`, `GATEWAY_IMAGE`, and `GATEWAY_ARGS` customize the gateway example;
+`LDAP_PORT` changes the bundled directory's port. `make ldap` starts only the
+directory, and `make ldap-stop` stops it. The original image and `make qcow2`
+working disk are not modified; the gateway uses a separate converted base and
+clones it for every VM. Existing workspaces keep their owners: desktops created
+as `developer` are not automatically reassigned to `johndoe`.
+
+For LDAP deployments, build gokvm and supply a TLS identity trusted by clients:
+
+```bash
+./gokvm serve -state /var/lib/gokvm -image /srv/images/rocky-base.qcow2 \
+  -listen 0.0.0.0:8443 -public-address desktops.example.com:8443 \
+  -tls-cert /etc/gokvm/fullchain.pem -tls-key /etc/gokvm/key.pem \
+  -ldap-url ldaps://directory.example.com -ldap-base-dn dc=example,dc=com \
+  -ldap-domain example.com -ldap-username-attribute sAMAccountName \
+  -ldap-filter '(userPrincipalName=%s)'
+```
+
+`-ldap-required-group` restricts direct `memberOf` membership; `-ldap-ca` supplies
+a private directory CA. `ldap://` uses StartTLS, and `ldaps://` verifies TLS from
+connection establishment. Authentication binds using the submitted username,
+optionally followed by `@domain`, and searches for exactly one directory entry.
+The username attribute must contain one valid lowercase Linux account name, or
+an email address whose domain matches `-ldap-domain`; its local part becomes the
+account name and VM owner. Directory passwords are converted to salted SHA-512
+crypt hashes for provisioning; the server does not persist plaintext passwords.
+Existing guest passwords do not track later directory password changes
+automatically.
+
+The shared public TCP port carries HTTPS and RDP directly. A normal HTTP reverse
+proxy cannot forward the RDP part; preserve direct TCP access and client source
+addresses. Each RDP download carries a single-use token that expires after two
+minutes and is bound to the browser session, client IP, and VM owner. Download
+again to reconnect. Logging out revokes the session's outstanding tokens and
+active RDP connections. The RDP file contains no account password. It carries a routing token and a
+separate random proof in its username field. The gateway verifies that proof
+inside TLS before allowing the RDP session to activate; the pre-TLS routing
+cookie alone cannot authorize desktop access. **Keep the downloaded username
+unchanged** in your RDP client. Enter your real account credentials only at the
+guest's graphical login. Guest console RDP uses TLS (not NLA); ownership is checked
+before connecting to the private server, whose certificate is pinned.
+
+For FreeRDP, open the downloaded file with a client that supports H.264:
+
+```bash
+./tools/freerdp/bin/xfreerdp /path/to/desktop.rdp
+```
+
+Use `make rdp` for the standalone `make qcow2`/`make netdesk` console on port 3390;
+it does not use gateway tokens. RDP shows the VM's shared console, including
+firmware and its normal graphical login, rather than creating an XRDP session.
+
+`-cpus`, `-memory` (MiB), `-max-vms-per-user`, and `-max-running` set resource
+limits. Stop requests an ACPI power-button shutdown. If the guest asks for
+confirmation, use its graphical power menu and refresh the dashboard. Delete is
+available only for stopped VMs and permanently removes their disk and firmware
+state. Stopping the gateway requests guest shutdown before bounded process
+cleanup; shut down desktops first when preserving guest application state is
+important. VMs remain stopped when the gateway is restarted.
+
+Keep the state directory private (0700) and back it up with the service stopped.
+Seeds contain password hashes and private per-VM TLS keys live beside them.
+Only one gateway may own a state directory at a time. The host account and other
+local host users must be trusted: loopback RDP is a private transport, not a
+separate local-user authentication boundary. This native mode implements
+the desktop provisioning/login/RDP workflow; the old application's libvirt,
+Splunk, Sauron, and administrator integrations have not been migrated.
+
+### Cloud-init provisioning
+
+Use a cloud-init-enabled disk with gokvm's read-only NoCloud seed attachment:
+
+```bash
+./gokvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
+# Read seed.iso.credentials.json for the generated guest login.
+./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+  -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
+  -m 4G -c 2 -net user -rdp 127.0.0.1:3390
+```
+
+Alternatively, pass `-password-stdin` or `-password-hash-file` to the account seed
+command, or provide your own raw documents:
+
+```bash
+./gokvm seed -user-data ./user-data -meta-data ./meta-data \
+  -network-config ./network-config -out seed.iso
+```
+
+The ISO is generated entirely in Go and labelled `CIDATA`. `meta-data` must have
+a nonempty string `instance-id`; keep it stable for the lifetime of a VM. User-data
+is preserved, so cloud-config and cloud-init scripts are both supported. Optional
+network-config is a separate root document (for version 2, `version: 2` and
+`ethernets:` are top-level fields). Seeds and credential files are created with
+mode 0600 and never overwritten. The boot disk remains `/dev/vda`; the seed is
+attached afterward as a read-only virtio block device. Invalid seeds are rejected
+before KVM is opened.
+
+The generated desktop seed creates the account with password-protected sudo,
+locks root, disables SSH password login and guest XRDP, selects graphical boot,
+and configures Ethernet DHCP. It assumes the image already contains cloud-init,
+a desktop, and a display manager. It does not install a desktop into a server-only
+image. Cloud-init normally applies per-instance configuration once; generate a
+fresh VM disk for a new account rather than changing an existing seed's ID.
+
 ### UEFI disk boot
 
 Use `-uefi` to start x86-64 OVMF firmware and execute the EFI bootloader installed
@@ -250,7 +395,16 @@ The first run uses `qemu-img` (`qemu-utils` on Debian/Ubuntu) to create
 Rocky download contains compressed clusters, which gokvm's disk backend does
 not support. The source image is preserved. The target also creates a matching
 `rocky9-xfce-v2.4.16.gokvm.qcow2.vars.fd`; subsequent runs reuse both files, keeping
-guest changes and firmware settings. Both generated files are ignored by Git.
+guest changes and firmware settings. It also creates a persistent NoCloud seed at
+`rocky9-xfce-v2.4.16.gokvm.qcow2.seed.iso`. The first run generates a `rocky`
+account and saves its random password in the adjacent `.credentials.json` file
+(mode 0600). Read that file to log in at the graphical desktop. The source image
+has no preset login. These generated artifacts are ignored by Git.
+
+The account seed disables guest XRDP and the serial getty: RDP connects to gokvm's
+console, and Linux displays its normal login screen. Change `QCOW2_USER` or
+`QCOW2_KEYBOARD` **before creating the seed**. Existing seeds and credentials are
+reused; changing Make variables does not reprovision an existing account.
 
 The example uses two vCPUs, 4 GiB RAM, user networking, and H.264 RDP on
 `127.0.0.1:3390`. It waits for `make rdp` to connect before starting the guest,
@@ -380,7 +534,9 @@ Omit `-rdp-h264` to use bitmap updates. Slax requests an address
 automatically: the first guest receives `10.0.2.15/24`, with gateway and DNS
 server `10.0.2.2`. DNS uses the host's configured resolvers. Guest TCP/UDP
 connections to `10.0.2.2` reach host loopback services, except the built-in DNS
-and DHCP ports.
+and DHCP ports. Use `-net user-isolated` to deny this alias and all other host
+loopback forwarding; this is the gateway default. Virtual DHCP/DNS and outbound
+IPv4 TCP/UDP remain available.
 
 This backend supports outbound IPv4 TCP/UDP. Incoming port forwarding and IPv6
 are not implemented. External ICMP/ping is not forwarded; check connectivity
