@@ -754,13 +754,16 @@ func (d *RDPDisplay) dispatchInput(session *rdp.Session, events []rdp.InputEvent
 		case rdp.InputPointer:
 			d.pointerInputMu.Lock()
 			d.mu.Lock()
+			input := d.input
 			width, height := d.width, d.height
 			d.mu.Unlock()
 			clientWidth, clientHeight := session.Size()
 			x := min(int(event.X), clientWidth-1) * width / clientWidth
 			y := min(int(event.Y), clientHeight-1) * height / clientHeight
 			d.rememberPointerMotion(session, x, y)
-			d.sendPointerEvent(event.Buttons, uint16(x), uint16(y))
+			// Normalize against the same geometry used above, even if the
+			// guest publishes a resized framebuffer while input is in flight.
+			sendPointerEventInBounds(input, event.Buttons, uint16(x), uint16(y), width, height)
 			d.pointerInputMu.Unlock()
 		}
 	}

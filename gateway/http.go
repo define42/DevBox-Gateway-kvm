@@ -19,7 +19,7 @@ import (
 	directory "github.com/go-ldap/ldap/v3"
 )
 
-//go:embed login.html dashboard.html dashboard.js static
+//go:embed login.html dashboard.html dashboard.js admin.html admin.js static
 var webAssets embed.FS
 
 type pageData struct {
@@ -27,11 +27,18 @@ type pageData struct {
 	RequiredGroup, BaseImage, MemoryGB string
 	CPUs, MemoryMiB                    int
 	VMs                                []VM
+	Admin                              bool
+	Images                             []Image
+	MaxImageUploadBytes                int64
 }
 
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.dashboard)
+	mux.HandleFunc("GET /admin", s.adminPage)
+	mux.HandleFunc("POST /admin/images", s.uploadImage)
+	mux.HandleFunc("POST /admin/images/{id}/delete", s.deleteImage)
+	mux.HandleFunc("POST /admin/vms/{id}/{action}", s.adminVMAction)
 	mux.HandleFunc("GET /login", s.loginPage)
 	mux.HandleFunc("POST /login", s.login)
 	mux.HandleFunc("POST /logout", s.logout)
@@ -55,7 +62,11 @@ func (s *Server) routes() http.Handler {
 		s.requests.Add(1)
 		s.mu.Unlock()
 		defer s.requests.Done()
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
+		timeout := 2 * time.Minute
+		if imageUploadRequest(r) {
+			timeout = s.uploadTimeout()
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 		r = r.WithContext(ctx)
 		w.Header().Set("Cache-Control", "no-store")
@@ -90,6 +101,11 @@ func (s *Server) routes() http.Handler {
 
 				return
 			}
+			if imageUploadRequest(r) {
+				mux.ServeHTTP(w, r)
+
+				return
+			}
 			r.Body = http.MaxBytesReader(w, r.Body, 8<<10)
 			if err := r.ParseForm(); err != nil {
 				http.Error(w, "Invalid form.", http.StatusBadRequest)
@@ -120,7 +136,7 @@ func serveWebAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	file := "static/" + name
-	if name == "dashboard.js" {
+	if name == "dashboard.js" || name == "admin.js" {
 		file = name
 	}
 	data, err := webAssets.ReadFile(file)
@@ -232,7 +248,8 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	owner, err := s.config.Authenticator.Authenticate(r.Context(), username, password)
+	identity, err := authenticateIdentity(r.Context(), s.config.Authenticator, username, password)
+	owner := identity.Username
 	if errors.Is(err, ErrInvalid) {
 		s.showLogin(
 			w,
@@ -268,7 +285,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if key, _, ok := s.requestSession(r); ok {
 		s.store.revoke(key)
 	}
-	token, err := s.newSession(owner, ip, hash)
+	token, err := s.newIdentitySession(identity, ip, hash)
 	if err != nil {
 		s.showLogin(w, http.StatusServiceUnavailable, "Sign in is temporarily unavailable.")
 
@@ -339,20 +356,30 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	data, err := s.dashboardData(r, sess)
+	status := http.StatusOK
+	if err != nil {
+		status, data.Message = backendError(err)
+	}
+	s.render(w, status, "dashboard.html", data)
+}
+
+func (s *Server) dashboardData(r *http.Request, sess browserSession) (pageData, error) {
+	data := pageData{User: sess.owner, CSRF: sess.csrf, Admin: sess.IsAdmin}
 	vms, err := s.config.Backend.List(r.Context(), sess.owner)
 	if err != nil {
-		status, message := backendError(err)
-		s.render(w, status, "dashboard.html", pageData{User: sess.owner, CSRF: sess.csrf, Message: message})
-
-		return
+		return data, err
 	}
-	visible := make([]VM, 0, len(vms))
 	for _, vm := range vms {
 		if vm.Owner == sess.owner {
-			visible = append(visible, vm)
+			data.VMs = append(data.VMs, vm)
 		}
 	}
-	s.render(w, http.StatusOK, "dashboard.html", pageData{User: sess.owner, CSRF: sess.csrf, VMs: visible})
+	if images, supported := s.config.Backend.(ImageBackend); supported {
+		data.Images, err = images.Images(r.Context())
+	}
+
+	return data, err
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
@@ -390,9 +417,28 @@ func (s *Server) createVM(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	if _, err := s.config.Backend.Create(r.Context(), sess.owner, name, sess.passwordHash); err != nil {
+	if backend, supported := s.config.Backend.(CreationProgressBackend); supported &&
+		r.Header.Get("Accept") == creationProgressMediaType {
+		s.streamCreation(w, r, sess, name, backend)
+
+		return
+	}
+	var err error
+	if images, supported := s.config.Backend.(ImageBackend); supported {
+		_, err = images.CreateWithImage(r.Context(), sess.owner, name, sess.passwordHash, r.PostForm.Get("image"))
+	} else if r.PostForm.Get("image") != "" {
+		err = ErrInvalid
+	} else {
+		_, err = s.config.Backend.Create(r.Context(), sess.owner, name, sess.passwordHash)
+	}
+	if err != nil {
 		status, message := backendError(err)
-		s.render(w, status, "dashboard.html", pageData{User: sess.owner, CSRF: sess.csrf, Message: message})
+		if errors.Is(err, ErrNotFound) {
+			message = "That base image is no longer available. Choose another image."
+		}
+		data, _ := s.dashboardData(r, sess)
+		data.Message = message
+		s.render(w, status, "dashboard.html", data)
 
 		return
 	}

@@ -117,3 +117,48 @@ func TestRDPMultiDisplayForwardsResizeHandler(t *testing.T) {
 		t.Fatalf("combined displays did not attach resize handler: %dx%d", width, height)
 	}
 }
+
+func TestRDPResizeAbsolutePointerTracksPixels(t *testing.T) {
+	t.Parallel()
+	d := &RDPDisplay{framebuffer: newFramebuffer()}
+	t.Cleanup(d.shutdown)
+	tablet := NewInputTablet(6, nil, nil)
+	t.Cleanup(func() { _ = tablet.Close() })
+	d.SetInput(NewInputPair(nil, tablet))
+	for _, geometry := range []struct {
+		guest, client image.Point
+	}{
+		{image.Pt(1024, 768), image.Pt(800, 600)},
+		{image.Pt(1280, 720), image.Pt(800, 600)},
+		{image.Pt(800, 600), image.Pt(1920, 1080)},
+		{image.Pt(1920, 1080), image.Pt(1920, 1080)},
+	} {
+		if err := d.Flush(geometry.guest.X, geometry.guest.Y,
+			image.NewRGBA(image.Rectangle{Max: geometry.guest})); err != nil {
+			t.Fatal(err)
+		}
+		session := &rdp.Session{Width: geometry.client.X, Height: geometry.client.Y}
+		for _, point := range []image.Point{
+			image.Pt(0, 0), geometry.client.Sub(image.Pt(1, 1)),
+			image.Pt(geometry.client.X/2, geometry.client.Y/2), image.Pt(65535, 65535),
+		} {
+			d.dispatchInput(session, []rdp.InputEvent{{Kind: rdp.InputPointer, X: uint16(point.X), Y: uint16(point.Y)}})
+			x, xOK := tablet.popPending()
+			y, yOK := tablet.popPending()
+			syn, synOK := tablet.popPending()
+			if !xOK || !yOK || !synOK || x.typ != evAbs || x.code != absX ||
+				y.typ != evAbs || y.code != absY || syn != synEvent() {
+				t.Fatalf("absolute pointer report: %+v %+v %+v", x, y, syn)
+			}
+			// Linux mousedev maps the advertised absolute range back to
+			// pixels. These must be the same source pixels the RDP encoder
+			// samples, regardless of the previous position or display size.
+			got := image.Pt(int(x.value)*geometry.guest.X/inputAbsMax, int(y.value)*geometry.guest.Y/inputAbsMax)
+			want := image.Pt(min(point.X, geometry.client.X-1)*geometry.guest.X/geometry.client.X,
+				min(point.Y, geometry.client.Y-1)*geometry.guest.Y/geometry.client.Y)
+			if got != want {
+				t.Fatalf("geometry %+v, client %v: guest pointer %v, want %v", geometry, point, got, want)
+			}
+		}
+	}
+}

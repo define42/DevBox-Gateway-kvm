@@ -26,10 +26,11 @@ import (
 // LDAPConfig configures direct user binding followed by a unique directory search.
 // UserFilter contains one %s placeholder for the escaped bind identifier.
 // ldap:// uses StartTLS; plaintext is restricted to explicit loopback testing.
+// AdminGroup is a direct memberOf name or DN; empty disables administrator roles.
 type LDAPConfig struct {
-	URL, BaseDN, UserDomain, UserFilter, UsernameAttribute, RequiredGroup, CAFile string
-	AllowInsecure                                                                 bool
-	Timeout                                                                       time.Duration
+	URL, BaseDN, UserDomain, UserFilter, UsernameAttribute, RequiredGroup, AdminGroup, CAFile string
+	AllowInsecure                                                                             bool
+	Timeout                                                                                   time.Duration
 }
 
 type ldapAuthenticator struct {
@@ -41,6 +42,8 @@ type ldapAuthenticator struct {
 
 // NewLDAPAuthenticator validates LDAP configuration without contacting the server.
 func NewLDAPAuthenticator(c LDAPConfig) (Authenticator, error) {
+	c.RequiredGroup = strings.TrimSpace(c.RequiredGroup)
+	c.AdminGroup = strings.TrimSpace(c.AdminGroup)
 	u, err := url.Parse(c.URL)
 	if err != nil ||
 		(u.Scheme != "ldap" &&
@@ -118,16 +121,46 @@ func NewLDAPAuthenticator(c LDAPConfig) (Authenticator, error) {
 	}, nil
 }
 
+// authenticateIdentity keeps legacy and development authenticators unprivileged.
+func authenticateIdentity(ctx context.Context, auth Authenticator, username, password string) (Identity, error) {
+	if roles, ok := auth.(IdentityAuthenticator); ok {
+		identity, err := roles.AuthenticateIdentity(ctx, username, password)
+		if err != nil {
+			return Identity{}, err
+		}
+		if !validOwner(identity.Username) {
+			return Identity{}, ErrAuthentication
+		}
+
+		return identity, nil
+	}
+	owner, err := auth.Authenticate(ctx, username, password)
+	if err != nil {
+		return Identity{}, err
+	}
+	if !validOwner(owner) {
+		return Identity{}, ErrAuthentication
+	}
+
+	return Identity{Username: owner}, nil
+}
+
 func (a *ldapAuthenticator) Authenticate(ctx context.Context, username, password string) (string, error) {
+	identity, err := a.AuthenticateIdentity(ctx, username, password)
+
+	return identity.Username, err
+}
+
+func (a *ldapAuthenticator) AuthenticateIdentity(ctx context.Context, username, password string) (Identity, error) {
 	if !validOwner(strings.ToLower(username)) || password == "" || len(password) > 1024 {
-		return "", ErrAuthentication
+		return Identity{}, ErrAuthentication
 	}
 	ctx, cancel := context.WithTimeout(ctx, a.config.Timeout)
 	defer cancel()
 	var dialer net.Dialer
 	raw, err := dialer.DialContext(ctx, "tcp", a.address)
 	if err != nil {
-		return "", ErrAuthentication
+		return Identity{}, ErrAuthentication
 	}
 	defer raw.Close()
 	stop := context.AfterFunc(ctx, func() { _ = raw.Close() })
@@ -139,7 +172,7 @@ func (a *ldapAuthenticator) Authenticate(ctx context.Context, username, password
 	if a.ldaps {
 		secure := tls.Client(raw, a.tls)
 		if err := secure.HandshakeContext(ctx); err != nil {
-			return "", ErrAuthentication
+			return Identity{}, ErrAuthentication
 		}
 		transport = secure
 	}
@@ -152,7 +185,7 @@ func (a *ldapAuthenticator) Authenticate(ctx context.Context, username, password
 	conn.SetTimeout(a.config.Timeout)
 	if !a.ldaps && !a.config.AllowInsecure {
 		if err := conn.StartTLS(a.tls); err != nil {
-			return "", ErrAuthentication
+			return Identity{}, ErrAuthentication
 		}
 	}
 	identifier := username
@@ -160,7 +193,7 @@ func (a *ldapAuthenticator) Authenticate(ctx context.Context, username, password
 		identifier += "@" + a.config.UserDomain
 	}
 	if err := conn.Bind(identifier, password); err != nil {
-		return "", ErrAuthentication
+		return Identity{}, ErrAuthentication
 	}
 	filter := strings.Replace(a.config.UserFilter, "%s", ldap.EscapeFilter(identifier), 1)
 	result, err := conn.Search(
@@ -182,22 +215,51 @@ func (a *ldapAuthenticator) Authenticate(ctx context.Context, username, password
 		),
 	)
 	if err != nil || len(result.Entries) != 1 || ctx.Err() != nil {
-		return "", ErrAuthentication
+		return Identity{}, ErrAuthentication
 	}
-	entry := result.Entries[0]
-	if a.config.RequiredGroup != "" {
-		matched := false
-		for _, group := range entry.GetAttributeValues("memberOf") {
-			if strings.EqualFold(group, a.config.RequiredGroup) {
-				matched = true
-			}
+
+	return ldapIdentity(result.Entries[0], a.config)
+}
+
+// ldapIdentity assigns roles only after both directory identity and access checks
+// succeed. Role membership is captured for the lifetime of this login session.
+func ldapIdentity(entry *ldap.Entry, config LDAPConfig) (Identity, error) {
+	owner, err := canonicalLDAPUsername(entry, config)
+	if err != nil {
+		return Identity{}, err
+	}
+	if config.RequiredGroup != "" && !ldapGroupMember(entry, config.RequiredGroup) {
+		return Identity{}, ErrAuthentication
+	}
+
+	return Identity{Username: owner, IsAdmin: ldapGroupMember(entry, config.AdminGroup)}, nil
+}
+
+// ldapGroupMember follows DevBox Gateway's direct memberOf semantics: a group
+// may be a full DN or a bare first-RDN name. Nested groups are not resolved.
+func ldapGroupMember(entry *ldap.Entry, group string) bool {
+	group = strings.TrimSpace(group)
+	if entry == nil || group == "" {
+		return false
+	}
+	for _, attribute := range entry.Attributes {
+		if !strings.EqualFold(attribute.Name, "memberOf") {
+			continue
 		}
-		if !matched {
-			return "", ErrAuthentication
+		for _, member := range attribute.Values {
+			member = strings.TrimSpace(member)
+			if strings.EqualFold(member, group) {
+				return true
+			}
+			dn, err := ldap.ParseDN(member)
+			if err == nil && len(dn.RDNs) > 0 && len(dn.RDNs[0].Attributes) > 0 &&
+				strings.EqualFold(dn.RDNs[0].Attributes[0].Value, group) {
+				return true
+			}
 		}
 	}
 
-	return canonicalLDAPUsername(entry, a.config)
+	return false
 }
 
 // canonicalLDAPUsername derives ownership solely from a unique directory value.

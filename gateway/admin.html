@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin · DevBox Gateway</title>
+    <link rel="stylesheet" href="/static/vendor/bootstrap/5.3.2/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/vendor/bootstrap-icons/1.11.3/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/theme.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <link rel="stylesheet" href="/static/gokvm.css">
+    <script defer src="/static/admin.js"></script>
+  </head>
+  <body class="bg-body-tertiary min-vh-100">
+    <div id="app">
+      <main class="container py-4" id="admin-main" data-user="{{.User}}" data-max-upload-bytes="{{.MaxImageUploadBytes}}">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="dashboard-header dashboard-header--admin mb-4">
+              <div class="dashboard-heading">
+                <h1 class="h4 mb-1">DevBox Administration</h1>
+                <p class="text-body-secondary mb-0">Live inventory across all users.</p>
+              </div>
+              <div class="dashboard-actions d-flex flex-wrap align-items-center gap-2">
+                <a class="btn btn-outline-primary btn-sm" id="base-images-button" href="#base-images-panel"><i class="bi bi-device-hdd me-1" aria-hidden="true"></i>Base Images</a>
+                <a class="btn btn-outline-secondary btn-sm" href="/"><i class="bi bi-display me-1" aria-hidden="true"></i>My DevBoxes</a>
+                <form method="post" action="/logout" class="m-0">
+                  <input type="hidden" name="csrf" value="{{.CSRF}}">
+                  <button class="btn btn-outline-secondary btn-sm" type="submit" title="Log out {{.User}}"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Logout</button>
+                </form>
+              </div>
+              <div class="dashboard-metrics gateway-admin-metrics" role="group" aria-label="Gateway health metrics">
+                <span id="rtt-indicator" class="badge rounded-pill text-bg-secondary rtt-indicator" title="Live round-trip time to the gateway"><i class="bi bi-activity me-1" aria-hidden="true"></i><span>RTT: &ndash;&ndash;</span></span>
+                <span id="jitter-indicator" class="badge rounded-pill text-bg-secondary jitter-indicator" title="Live RTT jitter (variation between samples)"><i class="bi bi-graph-up me-1" aria-hidden="true"></i><span>Jitter: &ndash;&ndash;</span></span>
+              </div>
+            </div>
+            <div id="action-area" class="mt-3" aria-live="polite">{{if .Message}}<div class="alert alert-danger mb-0" role="alert">{{.Message}}</div>{{end}}</div>
+            <div id="vm-list" class="mt-3">
+              {{if .VMs}}
+              <div class="table-responsive" tabindex="0" role="region" aria-label="All DevBoxes">
+                <table class="table table-dark table-hover align-middle mb-0 gateway-admin-table">
+                  <caption class="visually-hidden">DevBoxes across all users. Stop a DevBox before removing it.</caption>
+                  <thead><tr><th scope="col">Name</th><th scope="col">Owner</th><th scope="col">State</th><th scope="col">Image</th><th scope="col">Memory (GB)</th><th scope="col">vCPU</th><th scope="col">Actions</th></tr></thead>
+                  <tbody>
+                    {{range .VMs}}
+                    <tr data-vm-id="{{.ID}}" data-vm-name="{{.Name}}" data-vm-owner="{{.Owner}}">
+                      <th scope="row" class="fw-semibold gateway-vm-name">{{.Name}}{{if .Error}}<div class="small text-warning fw-normal mt-1">This DevBox needs attention. Try starting it again.</div>{{end}}</th>
+                      <td class="text-break">{{.Owner}}</td>
+                      <td><span class="badge text-capitalize {{if eq .State "running"}}text-bg-success{{else if or (eq .State "creating") (eq .State "starting") (eq .State "stopping")}}text-bg-warning{{else}}text-bg-secondary{{end}}">{{.State}}</span></td>
+                      <td class="gateway-image-name">{{if .ImageName}}{{.ImageName}}{{else}}Configured base image{{end}}</td>
+                      <td>{{if $.MemoryGB}}{{$.MemoryGB}}{{else}}n/a{{end}}</td>
+                      <td>{{if $.CPUs}}{{$.CPUs}}{{else}}n/a{{end}}</td>
+                      <td>
+                        <div class="d-flex flex-wrap gap-2 gateway-admin-actions">
+                          <form action="/admin/vms/{{.ID}}/start" method="post" class="m-0" data-admin-action="start">
+                            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+                            <button class="btn btn-sm btn-outline-success" type="submit" {{if ne .State "stopped"}}disabled{{end}}><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Start</button>
+                          </form>
+                          <form action="/admin/vms/{{.ID}}/stop" method="post" class="m-0" data-admin-action="stop">
+                            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+                            <button class="btn btn-sm btn-outline-warning" type="submit" title="Ask the guest to shut down gracefully." {{if ne .State "running"}}disabled{{end}}><i class="bi bi-stop-fill me-1" aria-hidden="true"></i>Stop</button>
+                          </form>
+                          {{if eq .State "stopped"}}
+                          <details class="gateway-remove-menu">
+                            <summary class="btn btn-sm btn-outline-danger" data-remove><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove</summary>
+                            <form action="/admin/vms/{{.ID}}/delete" method="post" class="mt-2" data-admin-action="delete-vm">
+                              <input type="hidden" name="csrf" value="{{$.CSRF}}">
+                              <p class="small mb-2">Permanently delete <strong>{{.Name}}</strong>, owned by {{.Owner}}, and all its saved files?</p>
+                              <button class="btn btn-sm btn-danger" type="submit">Delete permanently</button>
+                            </form>
+                          </details>
+                          {{else}}<button class="btn btn-sm btn-outline-danger" type="button" disabled title="Stop this DevBox before removing it."><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove</button>{{end}}
+                        </div>
+                      </td>
+                    </tr>
+                    {{end}}
+                  </tbody>
+                </table>
+              </div>
+              {{else}}<p class="text-body-secondary mb-0">No virtual machines found.</p>{{end}}
+            </div>
+            <noscript><p class="form-text mt-3 mb-0">Refresh this page to update the inventory.</p></noscript>
+          </div>
+        </div>
+      </main>
+      <section id="base-images-panel" class="container pb-4" aria-labelledby="base-images-title">
+        <div class="terminal-modal__backdrop" data-close-modal hidden></div>
+        <div class="card" id="base-images-dialog" tabindex="-1" aria-labelledby="base-images-title" aria-describedby="base-images-description">
+          <div class="card-body" id="base-images-body">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+              <div><h2 class="h5 mb-1" id="base-images-title">Base Images</h2><p class="text-body-secondary mb-0" id="base-images-description">Manage the disk images available when a DevBox is created.</p></div>
+              <button class="btn btn-outline-secondary btn-sm" type="button" data-close-modal hidden><i class="bi bi-x-lg me-1" aria-hidden="true"></i>Close</button>
+            </div>
+            <div class="alert alert-danger mb-3" id="image-error" role="alert" tabindex="-1" hidden></div>
+            <div class="alert alert-success mb-3" id="image-message" role="status" hidden></div>
+            <form action="/admin/images" method="post" enctype="multipart/form-data" class="row g-3 align-items-end mb-3" id="image-upload-form">
+              <input type="hidden" name="csrf" value="{{.CSRF}}">
+              <div class="col-12 col-md-8">
+                <label class="form-label" for="image-file">Upload Base Image</label>
+                <input class="form-control" id="image-file" name="image" type="file" accept=".qcow2,.img,.raw" aria-describedby="image-upload-help image-upload-limit" required>
+                <p class="form-text mb-1" id="image-upload-help">Use a standalone QCOW2 disk with UEFI boot and cloud-init support. Filenames may end in .qcow2, .img, or .raw. Compressed images are prepared automatically.</p>
+                <p class="form-text mb-0" id="image-upload-limit">Maximum upload: <span data-bytes="{{.MaxImageUploadBytes}}">{{.MaxImageUploadBytes}} bytes</span>.</p>
+              </div>
+              <div class="col-12 col-md-4 d-grid"><button class="btn btn-primary" id="image-upload-button" type="submit"><i class="bi bi-upload me-1" aria-hidden="true"></i>Upload</button></div>
+            </form>
+            <div class="mb-4" id="image-progress" hidden>
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <span class="d-inline-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span id="image-progress-label" role="status" aria-live="polite" aria-atomic="true">Uploading image...</span></span>
+                <button class="btn btn-sm btn-outline-secondary" id="image-upload-cancel" type="button">Cancel upload</button>
+              </div>
+              <progress class="gateway-upload-progress" id="image-progress-bar" max="100" value="0" aria-labelledby="image-progress-label">0%</progress>
+              <p class="small text-body-secondary mt-2 mb-0" id="image-progress-detail">Keep this page open until the image is ready.</p>
+            </div>
+            <h3 class="h6 mt-2">Available Images</h3>
+            <div id="image-list">
+              {{if .Images}}
+              <div class="table-responsive" tabindex="0" role="region" aria-label="Available base images">
+                <table class="table table-dark table-hover align-middle mb-0 gateway-image-table">
+                  <caption class="visually-hidden">Base images available for new DevBoxes. Removing an image does not remove existing DevBoxes.</caption>
+                  <thead><tr><th scope="col">Name</th><th scope="col">Stored size</th><th scope="col">Disk capacity</th><th scope="col">Added</th><th scope="col">Actions</th></tr></thead>
+                  <tbody>
+                    {{range .Images}}
+                    <tr data-image-id="{{.ID}}" data-image-name="{{.Name}}">
+                      <th scope="row" class="fw-semibold gateway-image-name">{{.Name}}{{if .Default}}<span class="badge text-bg-secondary ms-2">Default</span>{{end}}</th>
+                      <td class="text-nowrap"><span data-bytes="{{.SizeBytes}}">{{.SizeBytes}} bytes</span></td>
+                      <td class="text-nowrap"><span data-bytes="{{.VirtualSizeBytes}}">{{.VirtualSizeBytes}} bytes</span></td>
+                      <td class="text-nowrap"><time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.CreatedAt.Format "2006-01-02"}}</time></td>
+                      <td>
+                        {{if .Default}}<span class="small text-body-secondary">Protected</span>{{else}}
+                        <details class="gateway-remove-menu">
+                          <summary class="btn btn-sm btn-outline-danger" data-remove><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove</summary>
+                          <form action="/admin/images/{{.ID}}/delete" method="post" class="mt-2" data-admin-action="delete-image">
+                            <input type="hidden" name="csrf" value="{{$.CSRF}}">
+                            <p class="small mb-2">Remove <strong>{{.Name}}</strong> from the catalog? Existing DevBoxes keep their disks.</p>
+                            <button class="btn btn-sm btn-danger" type="submit">Delete image</button>
+                          </form>
+                        </details>
+                        {{end}}
+                      </td>
+                    </tr>
+                    {{end}}
+                  </tbody>
+                </table>
+              </div>
+              {{else}}<p class="text-body-secondary mb-0">No base images available. Upload an image to make it available for new DevBoxes.</p>{{end}}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

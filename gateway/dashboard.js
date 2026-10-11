@@ -11,6 +11,8 @@
   let modal = null;
   let previousFocus = null;
   let pending = false;
+  let creationActive = false;
+  let creationPercent = 0;
   let mutationGeneration = 0;
   let refreshing = false;
   let measuring = false;
@@ -35,7 +37,7 @@
   }
 
   function closeModal() {
-    if (!modal) return;
+    if (!modal || creationActive) return;
     modal.hidden = true;
     modal.setAttribute("aria-hidden", "true");
     modal = null;
@@ -58,14 +60,17 @@
     actions.replaceChildren(alert);
   }
 
-  function busy(value) {
+  function busy(value, creating = false) {
     pending = value;
     openCreate.setAttribute("aria-disabled", String(value));
     if (value) {
       disabledButtons = new Map();
-      document.querySelectorAll("button:not([data-close-modal])").forEach((button) => {
-        disabledButtons.set(button, button.disabled);
-        button.disabled = true;
+      const controls = Array.from(document.querySelectorAll("button"));
+      if (creating) controls.push(...createForm.querySelectorAll('input:not([type="hidden"]), select'));
+      controls.forEach((control) => {
+        if (!creating && control.hasAttribute("data-close-modal")) return;
+        disabledButtons.set(control, control.disabled);
+        control.disabled = true;
       });
     } else {
       disabledButtons.forEach((disabled, button) => { button.disabled = disabled; });
@@ -75,6 +80,7 @@
 
   function sessionExpired(response) {
     if (response.status === 401 || new URL(response.url).pathname === "/login") {
+      creationActive = false;
       window.location.assign("/login");
       return true;
     }
@@ -90,15 +96,17 @@
     if (!next || !nextMain) throw new Error("The gateway returned an unexpected page. Refresh and try again.");
     // Another tab may have changed the signed-in account. Reload all account
     // context before adopting its CSRF token, inventory, or provisioning fields.
-    if (nextMain.dataset.user !== main.dataset.user) {
+    if (nextMain.dataset.user !== main.dataset.user || nextMain.dataset.admin !== main.dataset.admin) {
+      creationActive = false;
       window.location.reload();
       return false;
     }
     const csrf = page.querySelector('input[name="csrf"]');
     if (csrf) {
-      document.querySelectorAll('input[name="csrf"]').forEach((input) => { input.value = csrf.value; });
+      document.querySelectorAll('input[name="csrf"]').forEach((input) => { input.value = input.defaultValue = csrf.value; });
     }
     list.replaceChildren(...Array.from(next.childNodes, (node) => document.importNode(node, true)));
+    updateImages(page);
     enableInfo();
     if (modal && modal.id === "info-modal") {
       const row = Array.from(list.querySelectorAll("[data-vm-id]"))
@@ -107,6 +115,30 @@
       else closeModal();
     }
     return true;
+  }
+
+  function updateImages(page) {
+    const select = document.getElementById("vm-base-image");
+    const next = page.getElementById("vm-base-image");
+    if (!next || select.innerHTML === next.innerHTML) return;
+    const selected = select.value;
+    const needsChoice = select.selectedOptions[0]?.dataset.reselect === "true";
+    select.replaceChildren(...Array.from(next.childNodes, (node) => document.importNode(node, true)));
+    const exists = selected !== "" && Array.from(select.options).some((option) => option.value === selected);
+    if (exists) select.value = selected;
+    else if (selected !== "" || needsChoice) {
+      // Do not silently provision a different image if an administrator removed
+      // the user's selection while the create dialog was open.
+      const placeholder = new Option("Choose a base image", "", true, true);
+      placeholder.disabled = true;
+      placeholder.dataset.reselect = "true";
+      select.prepend(placeholder);
+      select.value = "";
+    }
+    const unavailable = !Array.from(select.options).some((option) => option.value !== "");
+    const button = document.getElementById("create-button");
+    if (pending) disabledButtons.set(button, unavailable);
+    else button.disabled = unavailable;
   }
 
   function responseError(text) {
@@ -121,6 +153,7 @@
   function updateInfo(row) {
     document.getElementById("info-subtitle").textContent = row.dataset.vmName;
     document.getElementById("info-user").textContent = row.dataset.vmOwner;
+    document.getElementById("info-image").textContent = row.dataset.vmImage || "Configured base image";
     document.getElementById("info-state").textContent = row.dataset.vmState;
     const created = new Date(row.dataset.vmCreated);
     document.getElementById("info-created").textContent = Number.isNaN(created.getTime())
@@ -134,6 +167,7 @@
     event.preventDefault();
     if (pending) return;
     document.getElementById("create-error").hidden = true;
+    document.getElementById("create-progress").hidden = true;
     showModal("create-modal", "vm-name");
   });
 
@@ -186,6 +220,108 @@
     }
   });
 
+  const creationInterrupted = "The progress connection was interrupted. Check the dashboard before trying to create this DevBox again.";
+
+  function renderCreationProgress(phase, copiedBytes = 0, totalBytes = 0) {
+    const preparing = phase === "preparing";
+    const copying = phase === "copying";
+    const labels = {
+      preparing: "Preparing DevBox...",
+      copying: "Creating qcow2 disk image...",
+      configuring: "Disk image copied; configuring DevBox...",
+      finalizing: "Disk image copied; finalizing DevBox...",
+      complete: "DevBox created.",
+    };
+    if (!Object.hasOwn(labels, phase)) return;
+    if (copying) {
+      if (!Number.isSafeInteger(copiedBytes) || !Number.isSafeInteger(totalBytes) || copiedBytes < 0 || totalBytes <= 0) {
+        throw new Error(creationInterrupted);
+      }
+      creationPercent = Math.max(creationPercent, Math.min(100, copiedBytes / totalBytes * 100));
+    } else if (!preparing) creationPercent = 100;
+    const label = document.getElementById("create-progress-label");
+    if (label.textContent !== labels[phase]) label.textContent = labels[phase];
+    document.getElementById("create-progress").hidden = false;
+    document.getElementById("create-progress-spinner").hidden = !preparing;
+    document.getElementById("create-progress-track").hidden = preparing;
+    document.getElementById("create-progress-value").textContent = preparing ? "" : `${Math.round(creationPercent)}%`;
+    const bar = document.getElementById("create-progress-bar");
+    bar.value = creationPercent;
+    bar.textContent = `${Math.round(creationPercent)}%`;
+    bar.classList.toggle("gateway-progress-finalizing", phase === "configuring" || phase === "finalizing");
+  }
+
+  async function readCreationStream(response) {
+    if (!response.body) throw new Error(creationInterrupted);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    const maxLineBytes = 64 * 1024;
+    let buffered = "";
+    let bufferedBytes = 0;
+    let complete = false;
+
+    function consumeLine() {
+      const line = buffered.trim();
+      buffered = "";
+      bufferedBytes = 0;
+      if (!line) return;
+      let event;
+      try { event = JSON.parse(line); }
+      catch { throw new Error(creationInterrupted); }
+      if (!event || typeof event !== "object" || Array.isArray(event) || typeof event.phase !== "string") {
+        throw new Error(creationInterrupted);
+      }
+      if (event.phase === "error") {
+        throw new Error(typeof event.error === "string" && event.error.trim() ? event.error : "Failed to create DevBox.");
+      }
+      renderCreationProgress(event.phase, event.copiedBytes, event.totalBytes);
+      complete = event.phase === "complete";
+    }
+
+    function append(bytes) {
+      bufferedBytes += bytes.byteLength;
+      if (bufferedBytes > maxLineBytes) throw new Error(creationInterrupted);
+      buffered += decoder.decode(bytes, { stream: true });
+    }
+
+    try {
+      while (!complete) {
+        let chunk;
+        try { chunk = await reader.read(); }
+        catch { throw new Error(creationInterrupted); }
+        if (chunk.value) {
+          let start = 0;
+          for (let index = 0; index < chunk.value.byteLength; index++) {
+            if (chunk.value[index] !== 10) continue;
+            append(chunk.value.subarray(start, index + 1));
+            consumeLine();
+            start = index + 1;
+            if (complete) break;
+          }
+          if (!complete) append(chunk.value.subarray(start));
+        }
+        if (chunk.done && !complete) {
+          buffered += decoder.decode();
+          consumeLine();
+          if (!complete) throw new Error(creationInterrupted);
+        }
+      }
+    } finally {
+      // A terminal result is authoritative even if closing the reader fails.
+      try { await reader.cancel(); } catch { /* The connection may already be closed. */ }
+      reader.releaseLock();
+    }
+  }
+
+  async function creationInventory() {
+    const response = await fetch("/", {
+      credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(10000),
+    });
+    if (sessionExpired(response)) return false;
+    if (!response.ok) throw new Error("Could not refresh the inventory.");
+    return updateInventory(await response.text());
+  }
+
   document.addEventListener("submit", async (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement) || !form.dataset.vmAction) return;
@@ -197,17 +333,24 @@
       create: "Preparing DevBox...", start: "Starting DevBox...", stop: "Shutting down DevBox...",
       delete: "Removing DevBox...", rdp: "Preparing RDP connection...",
     };
+    let creationComplete = false;
+    let closeOnSuccess = false;
     mutationGeneration++;
-    busy(true);
+    creationActive = action === "create";
+    busy(true, creationActive);
     notice(progress[action], "secondary", true);
-    if (action === "create") {
+    if (creationActive) {
+      creationPercent = 0;
+      createForm.setAttribute("aria-busy", "true");
       document.getElementById("create-error").hidden = true;
-      document.getElementById("create-progress").hidden = false;
+      renderCreationProgress("preparing");
+      document.querySelector("#create-modal [role=dialog]").focus();
     }
     if (action === "delete") document.getElementById("remove-error").hidden = true;
     try {
       const response = await fetch(form.action, {
         method: "POST", credentials: "same-origin", cache: "no-store", body,
+        headers: action === "create" ? { Accept: "application/x-ndjson" } : {},
       });
       if (sessionExpired(response)) return;
       if (!response.ok) throw new Error(responseError(await response.text()));
@@ -225,8 +368,18 @@
         window.setTimeout(() => URL.revokeObjectURL(objectURL), 60000);
         notice("RDP file downloaded. Open it within two minutes and keep this page signed in. Keep the username in the file unchanged; sign in with your DevBox account inside the desktop.", "success");
       } else {
-        if (!updateInventory(await response.text())) return;
-        closeModal();
+        const mediaType = (response.headers.get("Content-Type") || "").split(";", 1)[0].trim().toLowerCase();
+        if (action === "create" && mediaType === "application/x-ndjson") {
+          await readCreationStream(response);
+          creationComplete = true;
+          creationActive = false;
+          closeOnSuccess = true;
+          if (!await creationInventory()) return;
+        } else {
+          if (!updateInventory(await response.text())) return;
+          creationComplete = action === "create";
+        }
+        closeOnSuccess = true;
         if (action === "create") createForm.reset();
         const done = {
           create: "DevBox created. Start it when you are ready to connect.", start: "DevBox started.",
@@ -235,18 +388,29 @@
         notice(done[action], "success");
       }
     } catch (error) {
-      const message = error instanceof TypeError
-        ? "The gateway connection was interrupted. Refresh to check the DevBox before retrying."
-        : error.message;
-      notice(message, "danger");
-      const errorID = action === "create" ? "create-error" : action === "delete" ? "remove-error" : null;
-      if (errorID) {
-        const errorBox = document.getElementById(errorID);
-        errorBox.textContent = message;
-        errorBox.hidden = false;
+      if (creationComplete) {
+        // Provisioning succeeded; a failed follow-up GET must not invite a
+        // second creation attempt or turn an authoritative success into failure.
+        createForm.reset();
+        notice("DevBox created, but the inventory could not be refreshed. Refresh this page to see it.", "warning");
+      } else {
+        const message = error instanceof TypeError
+          ? action === "create" ? creationInterrupted : "The gateway connection was interrupted. Refresh to check the DevBox before retrying."
+          : error.message;
+        notice(message, "danger");
+        const errorID = action === "create" ? "create-error" : action === "delete" ? "remove-error" : null;
+        if (errorID) {
+          const errorBox = document.getElementById(errorID);
+          errorBox.textContent = message;
+          errorBox.hidden = false;
+          if (action === "create") errorBox.focus();
+        }
       }
     } finally {
+      creationActive = false;
       busy(false);
+      createForm.setAttribute("aria-busy", "false");
+      if (closeOnSuccess) closeModal();
       document.getElementById("create-progress").hidden = true;
     }
   });
@@ -307,6 +471,11 @@
     }
   }
 
+  window.addEventListener("beforeunload", (event) => {
+    if (!creationActive) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
   enableInfo();
   void measureLatency();
   window.setInterval(measureLatency, 2000);

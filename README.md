@@ -79,7 +79,7 @@ already built kernel.
 | --- | --- |
 | CPU and boot | KVM acceleration, multiple vCPUs, direct Linux and PVH boot, x86-64 UKI loading, Linux ISO discovery through El Torito and boot configs, native OVMF UEFI disk boot |
 | Storage | Modern virtio-blk, writable raw/qcow2 disks, read-only ISO media, NoCloud provisioning |
-| Gateway | Native HTTPS dashboard, LDAP authentication, per-user persistent desktops, single-use RDP downloads |
+| Gateway | HTTPS dashboard, LDAP user/admin roles, QCOW2 image catalog, per-user desktops, single-use RDP downloads |
 | Networking | Modern virtio-net, built-in IPv4 DHCP/DNS and outbound TCP/UDP, or a host-managed TAP interface |
 | Display and input | Modern virtio-gpu 2D framebuffer, PNG output, VNC/RDP keyboard and mouse input |
 | RDP graphics | TLS, bitmap updates or H.264 AVC420 with bundled software encoding or optional NVIDIA NVENC, hardware cursor updates, live single-monitor resizing |
@@ -228,15 +228,18 @@ gokvm/KVM child process with its own persistent disk, UEFI variables, NoCloud se
 and private loopback RDP listener. Managed guests use `-net user-isolated`, which
 blocks access to host loopback services while keeping DHCP, DNS, and outbound
 networking. Neither QEMU nor guest XRDP runs the desktop.
-`qemu-img` is used only for one-time conversion of compressed source images.
+`qemu-img` from `qemu-utils` is used only to import compressed or unsupported
+QCOW2 layouts into a format gokvm can open; it never runs a guest.
 
 The login and dashboard reuse DevBox Gateway’s dark Bootstrap theme, icons,
 DevBox table, and dialogs. Assets are bundled in the binary and served locally.
 The dashboard refreshes VM status and shows live connection latency; its controls
 use gokvm’s create, start, stop, remove, and RDP-download operations.
+Administrators can view all owners’ desktops, manage their lifecycle, and upload
+or remove shared base images.
 
-With the Rocky XFCE source image in the repository root, Docker Compose, and
-OpenSSL installed:
+With the Rocky XFCE source image in the repository root and Docker Compose,
+OpenSSL, and `qemu-utils` installed:
 
 ```bash
 make gateway
@@ -253,9 +256,10 @@ dashboard to see later state changes.
 
 The bundled GLAuth directory uses the copied DevBox-Gateway users and groups over
 verified LDAPS on `127.0.0.1:1636`. Access requires the `team10_r` group;
-`testuser` / `dogood` and `administrator` / `dogood` also qualify. These are public
-demo credentials for local development. `make gateway` no longer generates or
-uses `.gokvm-gateway/auth.json.credentials.json`; there is no local-password
+`testuser` / `dogood` also qualifies. Sign in with **`administrator` / `dogood`**
+to access the **Admin** page: this account is a direct member of `devbox-admins`.
+These are public demo credentials for local development. `make gateway` no
+longer generates or uses `.gokvm-gateway/auth.json.credentials.json`; there is no local-password
 fallback. See [the LDAP setup](testldap/README.md) for all accounts, external
 directory settings, certificate handling, and integration tests.
 
@@ -266,6 +270,36 @@ working disk are not modified; the gateway uses a separate converted base and
 clones it for every VM. Existing workspaces keep their owners: desktops created
 as `developer` are not automatically reassigned to `johndoe`.
 
+On **Admin → Base Images**, select an **Upload Base Image** file and press
+**Upload** to add a standalone `.qcow2` disk to the shared catalog. Each validated upload becomes selectable in **Create DevBox**
+for every allowed user. Use bootable x86-64 UEFI images with cloud-init and a
+supported graphical desktop installed; uploading a disk validates its storage
+format, not whether its guest will boot or provision successfully. Images with
+backing files, encryption, or external data files are rejected. Compressed images
+are converted with `qemu-img` during import when necessary.
+
+Uploads and their converted files are limited to **20 GiB**, and upload/import
+requests have a **30-minute** timeout. Set `-image-upload-limit` in bytes and
+`-image-upload-timeout` as a Go duration to change these limits, for example:
+
+```bash
+make gateway GATEWAY_ARGS="-image-upload-limit 42949672960 -image-upload-timeout 1h"
+```
+
+Only one upload runs at a time. Uploaded templates persist under the private
+state directory’s `images/` catalog. The configured `-image` / `GATEWAY_IMAGE`
+remains the protected default and cannot be removed through the UI. Each VM has
+an independent full clone, so removing an uploaded template leaves existing VMs
+intact. Reserve disk space for the source, converted image, and guest clones.
+
+**Create DevBox** shows live disk-copy progress, followed by configuration and
+finalization status. Fast filesystem clones may jump directly to 100%; the VM
+remains stopped until you select **Start**.
+
+Administrators can start, stop, and delete any owner’s VM on the Admin page;
+deleting a VM still requires it to be stopped. RDP downloads and guest console
+access remain limited to the VM’s owner, including for administrators.
+
 For LDAP deployments, build gokvm and supply a TLS identity trusted by clients:
 
 ```bash
@@ -274,12 +308,19 @@ For LDAP deployments, build gokvm and supply a TLS identity trusted by clients:
   -tls-cert /etc/gokvm/fullchain.pem -tls-key /etc/gokvm/key.pem \
   -ldap-url ldaps://directory.example.com -ldap-base-dn dc=example,dc=com \
   -ldap-domain example.com -ldap-username-attribute sAMAccountName \
-  -ldap-filter '(userPrincipalName=%s)'
+  -ldap-filter '(userPrincipalName=%s)' \
+  -ldap-admin-group 'CN=Desktop Admins,OU=Groups,DC=example,DC=com'
 ```
 
 `-ldap-required-group` restricts direct `memberOf` membership; `-ldap-ca` supplies
-a private directory CA. `ldap://` uses StartTLS, and `ldaps://` verifies TLS from
-connection establishment. Authentication binds using the submitted username,
+a private directory CA. `-ldap-admin-group` grants administrator access to direct
+members of a named group or full group DN; an empty value disables administrator
+access. `make gateway` sets `GATEWAY_LDAP_ADMIN_GROUP=devbox-admins`. Group names
+are matched case-insensitively, nested groups are not expanded, and admins must
+still satisfy the required login group. Roles are captured at login; sign out
+and in again after directory membership changes. Explicit `-auth-file` accounts
+receive ordinary user access. `ldap://` uses StartTLS, and `ldaps://` verifies TLS
+from connection establishment. Authentication binds using the submitted username,
 optionally followed by `@domain`, and searches for exactly one directory entry.
 The username attribute must contain one valid lowercase Linux account name, or
 an email address whose domain matches `-ldap-domain`; its local part becomes the
@@ -324,8 +365,8 @@ Seeds contain password hashes and private per-VM TLS keys live beside them.
 Only one gateway may own a state directory at a time. The host account and other
 local host users must be trusted: loopback RDP is a private transport, not a
 separate local-user authentication boundary. This native mode implements
-the desktop provisioning/login/RDP workflow; the old application's libvirt,
-Splunk, Sauron, and administrator integrations have not been migrated.
+the desktop provisioning/login/RDP workflow and administrator image/VM management.
+The old application's libvirt, Splunk, and Sauron integrations have not been migrated.
 
 ### Cloud-init provisioning
 
@@ -434,7 +475,11 @@ Use firmware's boot manager for other installed EFI paths. A blank qcow2 file
 is only empty storage; it is not a bootable OS image.
 
 RDP/VNC presents firmware graphics through virtio-gpu and supplies PS/2 keyboard
-and mouse input. Press Escape during firmware startup to enter its boot menu.
+and mouse input during firmware startup. Once the guest initializes its
+virtio-input driver, pointer input switches to an absolute tablet so remote
+cursor positions remain aligned without mouse acceleration drift. Keyboard
+input continues through PS/2. Press Escape during firmware startup to enter
+its boot menu.
 With `-rdp`, the VM has no serial port or host terminal input; the remote display
 shows the guest's graphical screen. Host terminal messages are gokvm diagnostics.
 

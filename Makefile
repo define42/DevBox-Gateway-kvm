@@ -21,6 +21,7 @@ GATEWAY_LDAP_DOMAIN ?= example.com
 GATEWAY_LDAP_FILTER ?= (mail=%s)
 GATEWAY_LDAP_USERNAME_ATTRIBUTE ?= mail
 GATEWAY_LDAP_REQUIRED_GROUP ?= ou=team10_r,ou=groups,dc=glauth,dc=com
+GATEWAY_LDAP_ADMIN_GROUP ?= devbox-admins
 GATEWAY_LDAP_CA ?= ./testldap/.tls/cert.pem
 OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
@@ -235,4 +236,5 @@ gateway: generate
 		-ldap-url "$(GATEWAY_LDAP_URL)" -ldap-base-dn "$(GATEWAY_LDAP_BASE_DN)" \
 		-ldap-domain "$(GATEWAY_LDAP_DOMAIN)" -ldap-filter '$(GATEWAY_LDAP_FILTER)' \
 		-ldap-username-attribute "$(GATEWAY_LDAP_USERNAME_ATTRIBUTE)" \
-		-ldap-required-group "$(GATEWAY_LDAP_REQUIRED_GROUP)" -ldap-ca "$(GATEWAY_LDAP_CA)" $(GATEWAY_ARGS)
+		-ldap-required-group "$(GATEWAY_LDAP_REQUIRED_GROUP)" \
+		-ldap-admin-group "$(GATEWAY_LDAP_ADMIN_GROUP)" -ldap-ca "$(GATEWAY_LDAP_CA)" $(GATEWAY_ARGS)

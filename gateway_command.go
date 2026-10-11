@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/define42/gokvm/gateway"
 )
@@ -35,6 +36,10 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	flags.IntVar(&manager.MemoryMiB, "memory", 4096, "MiB per desktop")
 	flags.IntVar(&manager.MaxVMsPerUser, "max-vms-per-user", 3, "desktop quota per account")
 	flags.IntVar(&manager.MaxRunning, "max-running", 4, "global running desktop limit")
+	flags.Int64Var(&manager.MaxImageUploadBytes, "image-upload-limit", gateway.DefaultMaxImageUploadBytes,
+		"maximum uploaded qcow2 file size in bytes")
+	flags.DurationVar(&config.UploadTimeout, "image-upload-timeout", 30*time.Minute,
+		"maximum image upload and import duration")
 	flags.StringVar(&config.ListenAddr, "listen", "127.0.0.1:8443", "shared HTTPS and RDP TCP listener")
 	flags.StringVar(&config.PublicAddress, "public-address", "localhost:8443",
 		"hostname:port written to downloaded RDP files")
@@ -48,6 +53,8 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	flags.StringVar(&ldap.UsernameAttribute, "ldap-username-attribute", "uid",
 		"canonical account attribute: bare Linux name or name@ldap-domain")
 	flags.StringVar(&ldap.RequiredGroup, "ldap-required-group", "", "optional required memberOf group DN")
+	flags.StringVar(&ldap.AdminGroup, "ldap-admin-group", "",
+		"direct memberOf group name or DN granting administrator access; empty disables admins")
 	flags.StringVar(&ldap.CAFile, "ldap-ca", "", "private LDAP CA PEM file")
 	flags.BoolVar(&ldap.AllowInsecure, "ldap-insecure-loopback", false,
 		"allow plaintext LDAP only on a loopback IP for tests")
@@ -59,6 +66,7 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	}
 	config.DesktopImage = filepath.Base(manager.BaseImage)
 	config.DesktopCPUs, config.DesktopMemoryMiB = manager.CPUs, manager.MemoryMiB
+	config.MaxImageUploadBytes = manager.MaxImageUploadBytes
 	var err error
 	if authFile != "" {
 		if !loopbackAddress(config.ListenAddr) {

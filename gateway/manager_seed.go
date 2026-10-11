@@ -175,8 +175,21 @@ func NewTLSIdentity(host string) ([]byte, []byte, error) {
 }
 
 func (m *Manager) prepare(ctx context.Context, record VM, passwordHash string) error {
+	return m.prepareImage(ctx, record, passwordHash, m.config.BaseImage)
+}
+
+func (m *Manager) prepareImage(ctx context.Context, record VM, passwordHash, imagePath string) error {
+	return m.prepareImageWithProgress(ctx, record, passwordHash, imagePath, nil)
+}
+
+func (m *Manager) prepareImageWithProgress(
+	ctx context.Context, record VM, passwordHash, imagePath string, report func(CreateProgress),
+) error {
 	if !validID(record.ID) {
 		return fmt.Errorf("invalid VM identity: %w", ErrInvalid)
+	}
+	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "preparing"}); err != nil {
+		return err
 	}
 	seed, err := DesktopSeed(record.Owner, passwordHash, record.Name, "vm-"+record.ID, m.config.Keyboard)
 	if err != nil {
@@ -194,8 +207,11 @@ func (m *Manager) prepare(ctx context.Context, record VM, passwordHash string) e
 	defer func() {
 		_ = os.RemoveAll(staging) //nolint:gosec // Private staging path uses the strictly validated VM ID.
 	}()
-	if err := cloneFile(ctx, m.config.BaseImage, filepath.Join(staging, "disk.img")); err != nil {
+	if err := cloneFileWithProgress(ctx, imagePath, filepath.Join(staging, "disk.img"), report); err != nil {
 		return fmt.Errorf("clone VM base image: %w", err)
+	}
+	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "configuring"}); err != nil {
+		return err
 	}
 	if err := cloneFile(ctx, m.config.VarsTemplate, filepath.Join(staging, "vars.fd")); err != nil {
 		return fmt.Errorf("clone VM firmware variables: %w", err)
@@ -204,6 +220,9 @@ func (m *Manager) prepare(ctx context.Context, record VM, passwordHash string) e
 		return err
 	}
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "finalizing"}); err != nil {
 		return err
 	}
 	if err := unix.Renameat2(

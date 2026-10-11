@@ -28,6 +28,7 @@ func bundledLDAPConfig(t *testing.T) LDAPConfig {
 		UserFilter:        "(mail=%s)",
 		UsernameAttribute: "mail",
 		RequiredGroup:     "ou=team10_r,ou=groups,dc=glauth,dc=com",
+		AdminGroup:        "devbox-admins",
 		CAFile:            ca,
 	}
 }
@@ -95,5 +96,37 @@ func TestBundledLDAPRequiresTrustedCertificate(t *testing.T) {
 	owner, err := auth.Authenticate(t.Context(), "johndoe", "dogood")
 	if !errors.Is(err, ErrAuthentication) || owner != "" {
 		t.Fatalf("untrusted directory accepted: owner %q, error %v", owner, err)
+	}
+}
+
+func TestBundledLDAPAdministratorRole(t *testing.T) {
+	t.Parallel()
+	config := bundledLDAPConfig(t)
+	for _, tc := range []struct {
+		name, username, adminGroup string
+		wantAdmin                  bool
+	}{
+		{name: "administrator", username: "administrator", adminGroup: "devbox-admins", wantAdmin: true},
+		{name: "ordinary user", username: "johndoe", adminGroup: "devbox-admins"},
+		{name: "other groups", username: "testuser", adminGroup: "devbox-admins"},
+		{name: "administrator role disabled", username: "administrator"},
+		{
+			name: "full administrator DN", username: "administrator",
+			adminGroup: "ou=devbox-admins,ou=groups,dc=glauth,dc=com", wantAdmin: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := config
+			cfg.AdminGroup = tc.adminGroup
+			auth, err := NewLDAPAuthenticator(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			identity, err := authenticateIdentity(t.Context(), auth, tc.username, "dogood")
+			if err != nil || identity.Username != tc.username || identity.IsAdmin != tc.wantAdmin {
+				t.Fatalf("identity = %#v, %v; want %q, admin %v", identity, err, tc.username, tc.wantAdmin)
+			}
+		})
 	}
 }

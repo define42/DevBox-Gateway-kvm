@@ -29,18 +29,22 @@ type ManagerConfig struct {
 	Encoder, Keyboard                                  string
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	StartTimeout, StopTimeout                          time.Duration
+	MaxImageUploadBytes                                int64
 }
 
 // Manager persists each VM's disk, firmware variables, seed and TLS identity.
 // Each running guest is an isolated gokvm child process. Close stops all children.
 type Manager struct {
-	config ManagerConfig
-	mu     sync.Mutex
-	vms    map[string]*managedVM
-	active int
-	closed bool
-	lock   *os.File
-	jobs   sync.WaitGroup
+	config       ManagerConfig
+	mu           sync.Mutex
+	vms          map[string]*managedVM
+	active       int
+	closed       bool
+	lock         *os.File
+	jobs         sync.WaitGroup
+	imageMu      sync.RWMutex
+	images       map[string]Image
+	imageImports chan struct{}
 	//nolint:containedctx // Owns the manager lifetime; never stores a caller context.
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -86,7 +90,16 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 		return nil, fmt.Errorf("state directory is already in use: %w", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	m := &Manager{config: config, vms: make(map[string]*managedVM), lock: lock, ctx: ctx, cancel: cancel}
+	m := &Manager{
+		config: config, vms: make(map[string]*managedVM), images: make(map[string]Image),
+		imageImports: make(chan struct{}, 1), lock: lock, ctx: ctx, cancel: cancel,
+	}
+	if err := m.loadImages(); err != nil {
+		cancel()
+		_ = lock.Close()
+
+		return nil, err
+	}
 	if err := m.load(); err != nil {
 		cancel()
 		_ = lock.Close()
@@ -136,6 +149,12 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 }
 
 func normalizeManagerLimits(c *ManagerConfig) error {
+	if c.MaxImageUploadBytes == 0 {
+		c.MaxImageUploadBytes = DefaultMaxImageUploadBytes
+	}
+	if c.MaxImageUploadBytes < 1 || c.MaxImageUploadBytes > maxImageVirtualSize {
+		return fmt.Errorf("invalid image upload size limit: %w", ErrInvalid)
+	}
 	if c.CPUs == 0 {
 		c.CPUs = 2
 	}
@@ -211,6 +230,12 @@ func (m *Manager) load() error {
 		}
 		if record.ID != entry.Name() || !validOwner(record.Owner) || !validVMName(record.Name) || record.CreatedAt.IsZero() {
 			return fmt.Errorf("invalid saved VM metadata: %w", ErrInvalid)
+		}
+		if record.ImageID == "" {
+			record.ImageID, record.ImageName = DefaultImageID, m.images[DefaultImageID].Name
+		}
+		if record.ImageID != DefaultImageID && !validID(record.ImageID) {
+			return fmt.Errorf("invalid saved VM image identity: %w", ErrInvalid)
 		}
 		key := record.Owner + "/" + record.Name
 		if names[key] {
@@ -305,6 +330,19 @@ func (m *Manager) List(ctx context.Context, owner string) ([]VM, error) {
 
 // Create makes a fresh standalone disk and seed; the immutable base is untouched.
 func (m *Manager) Create(ctx context.Context, owner, name, passwordHash string) (VM, error) {
+	return m.CreateWithImage(ctx, owner, name, passwordHash, DefaultImageID)
+}
+
+// CreateWithImage clones a selected catalog image into a new standalone VM.
+func (m *Manager) CreateWithImage(ctx context.Context, owner, name, passwordHash, imageID string) (VM, error) {
+	return m.CreateWithProgress(ctx, owner, name, passwordHash, imageID, nil)
+}
+
+// CreateWithProgress reports actual creation stages and disk bytes synchronously.
+// The callback must return promptly and must not call back into the manager.
+func (m *Manager) CreateWithProgress(
+	ctx context.Context, owner, name, passwordHash, imageID string, report func(CreateProgress),
+) (VM, error) {
 	ctx, finish, err := m.operation(ctx)
 	if err != nil {
 		return VM{}, err
@@ -317,7 +355,14 @@ func (m *Manager) Create(ctx context.Context, owner, name, passwordHash string) 
 	if err := ctx.Err(); err != nil {
 		return VM{}, err
 	}
+	m.imageMu.RLock()
+	defer m.imageMu.RUnlock()
+	image, imagePath, err := m.selectedImage(imageID)
+	if err != nil {
+		return VM{}, err
+	}
 	v := &managedVM{record: VM{
+		ImageID: image.ID, ImageName: image.Name,
 		ID: strings.ToLower(rand.Text()), Name: name, Owner: owner,
 		State: "creating", CreatedAt: time.Now().UTC(),
 	}}
@@ -326,7 +371,7 @@ func (m *Manager) Create(ctx context.Context, owner, name, passwordHash string) 
 	if err := m.reserveVM(v); err != nil {
 		return VM{}, err
 	}
-	if err := m.prepare(ctx, v.record, passwordHash); err != nil {
+	if err := m.prepareImageWithProgress(ctx, v.record, passwordHash, imagePath, report); err != nil {
 		m.mu.Lock()
 		delete(m.vms, v.record.ID)
 		m.mu.Unlock()
@@ -837,12 +882,25 @@ func writeAtomic(dir, name string, data []byte) (writeErr error) {
 	return directory.Sync()
 }
 
-func cloneFile(ctx context.Context, source, target string) (cloneErr error) {
+func cloneFile(ctx context.Context, source, target string) error {
+	return cloneFileWithProgress(ctx, source, target, nil)
+}
+
+func cloneFileWithProgress(
+	ctx context.Context, source, target string, report func(CreateProgress),
+) (cloneErr error) {
 	input, err := os.Open(source) //nolint:gosec // Validated operator-configured base image or firmware template.
 	if err != nil {
 		return err
 	}
 	defer input.Close()
+	info, err := input.Stat()
+	if err != nil {
+		return err
+	}
+	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "copying", TotalBytes: info.Size()}); err != nil {
+		return err
+	}
 	//nolint:gosec // Fixed filename in a generated private staging directory; O_EXCL prevents replacement.
 	output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err != nil {
@@ -850,24 +908,17 @@ func cloneFile(ctx context.Context, source, target string) (cloneErr error) {
 	}
 	defer func() { cloneErr = errors.Join(cloneErr, output.Close()) }()
 	if err := unix.IoctlFileClone(int(output.Fd()), int(input.Fd())); err == nil {
-		return output.Sync()
-	}
-	buffer := make([]byte, 1<<20)
-	for {
-		if err := ctx.Err(); err != nil {
+		if err := output.Sync(); err != nil {
 			return err
 		}
-		n, err := input.Read(buffer)
-		if n > 0 {
-			if _, writeErr := output.Write(buffer[:n]); writeErr != nil {
-				return writeErr
-			}
-		}
-		if errors.Is(err, io.EOF) {
-			return output.Sync()
-		}
-		if err != nil {
-			return err
-		}
+
+		return reportCreationProgress(ctx, report, CreateProgress{
+			Phase: "copying", CopiedBytes: info.Size(), TotalBytes: info.Size(),
+		})
 	}
+	if err := copyFileWithProgress(ctx, input, output, info.Size(), report); err != nil {
+		return err
+	}
+
+	return output.Sync()
 }

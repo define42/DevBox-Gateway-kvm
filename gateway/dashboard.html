@@ -13,7 +13,7 @@
   </head>
   <body class="bg-body-tertiary min-vh-100">
     <div id="app">
-      <main class="container py-4" id="dashboard-main" data-user="{{.User}}">
+      <main class="container py-4" id="dashboard-main" data-user="{{.User}}" data-admin="{{.Admin}}">
         <div class="card shadow-sm">
           <div class="card-body">
             <div class="dashboard-header mb-4">
@@ -26,6 +26,7 @@
                 <span id="jitter-indicator" class="badge rounded-pill text-bg-secondary jitter-indicator" title="Live RTT jitter (variation between samples)"><i class="bi bi-graph-up me-1" aria-hidden="true"></i><span>Jitter: &ndash;&ndash;</span></span>
               </div>
               <div class="dashboard-actions d-flex flex-wrap align-items-center gap-2">
+                {{if .Admin}}<a class="btn btn-outline-primary btn-sm" id="admin-view-link" href="/admin"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Admin</a>{{end}}
                 <a class="btn btn-primary" id="open-create-button" href="#create-fallback"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create DevBox</a>
                 <form method="post" action="/logout" class="m-0">
                   <input type="hidden" name="csrf" value="{{.CSRF}}">
@@ -41,7 +42,7 @@
                   <thead><tr><th scope="col">Name</th><th scope="col">Connect</th><th scope="col">State</th><th scope="col">Memory (GB)</th><th scope="col">vCPU</th><th scope="col">Disk</th><th scope="col">Actions</th></tr></thead>
                   <tbody>
                     {{range .VMs}}
-                    <tr data-vm-id="{{.ID}}" data-vm-name="{{.Name}}" data-vm-owner="{{.Owner}}" data-vm-state="{{.State}}" data-vm-created="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
+                    <tr data-vm-id="{{.ID}}" data-vm-name="{{.Name}}" data-vm-owner="{{.Owner}}" data-vm-image="{{.ImageName}}" data-vm-state="{{.State}}" data-vm-created="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">
                       <td class="fw-semibold">{{.Name}}{{if .Error}}<div class="small text-warning fw-normal mt-1">This DevBox needs attention. Try starting it again or contact your administrator.</div>{{end}}</td>
                       <td class="align-top">
                         <div class="d-flex flex-column gap-2"><div class="d-flex flex-wrap gap-2">
@@ -92,8 +93,9 @@
                 <h2 class="h5" id="create-fallback-title">Create DevBox</h2>
                 <form action="/vms" method="post" class="row g-3 align-items-end">
                   <input type="hidden" name="csrf" value="{{.CSRF}}">
-                  <div class="col-12 col-md-8"><label class="form-label" for="fallback-name">New DevBox Name</label><input class="form-control" id="fallback-name" name="name" pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?" maxlength="63" required></div>
-                  <div class="col-12 col-md-4 d-grid"><button class="btn btn-primary" type="submit">Create DevBox</button></div>
+                  <div class="col-12 col-md-4"><label class="form-label" for="fallback-name">New DevBox Name</label><input class="form-control" id="fallback-name" name="name" pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?" maxlength="63" required></div>
+                  <div class="col-12 col-md-4"><label class="form-label" for="fallback-image">Base Image</label><select class="form-select" id="fallback-image" name="image" required>{{range .Images}}<option value="{{.ID}}" {{if .Default}}selected{{end}}>{{.Name}}</option>{{else}}<option value="">No base images available</option>{{end}}</select></div>
+                  <div class="col-12 col-md-4 d-grid"><button class="btn btn-primary" type="submit" {{if not .Images}}disabled{{end}}>Create DevBox</button></div>
                 </form>
                 <p class="form-text">The DevBox account uses your gateway username and the password you used to sign in. Refresh this page to update the inventory.</p>
               </section>
@@ -109,15 +111,23 @@
               <div><h2 class="h5 mb-1" id="create-title">Create DevBox</h2><p class="text-body-secondary mb-0">Provision a new virtual machine.</p></div>
               <button class="btn btn-outline-secondary btn-sm" type="button" data-close-modal><i class="bi bi-x-lg me-1" aria-hidden="true"></i>Close</button>
             </div>
-            <div class="alert alert-danger mb-3" id="create-error" role="alert" hidden></div>
-            <div class="d-flex align-items-center gap-2 mb-3" id="create-progress" role="status" hidden><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Preparing DevBox...</span></div>
+            <div class="alert alert-danger mb-3" id="create-error" role="alert" tabindex="-1" hidden></div>
+            <div class="mb-3" id="create-progress" hidden>
+              <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                <span class="d-inline-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm" id="create-progress-spinner" aria-hidden="true"></span><span id="create-progress-label" role="status" aria-live="polite" aria-atomic="true">Preparing DevBox...</span></span>
+                <span class="text-body-secondary" id="create-progress-value" aria-hidden="true"></span>
+              </div>
+              <div class="progress" id="create-progress-track" hidden>
+                <progress class="gateway-create-progress" id="create-progress-bar" max="100" value="0" aria-labelledby="create-progress-label">0%</progress>
+              </div>
+            </div>
             <form class="row g-3 align-items-end" id="create-form" action="/vms" method="post" data-vm-action="create">
               <input type="hidden" name="csrf" value="{{.CSRF}}">
               <div class="col-12 col-md-6 col-lg-4"><label class="form-label" for="vm-name">New DevBox Name</label><input class="form-control" id="vm-name" name="name" autocomplete="off" pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?" maxlength="63" title="Lowercase letters, numbers, and hyphens only. Must start/end with a letter or number. Max 63 characters." autocapitalize="none" spellcheck="false" required></div>
-              <div class="col-12 col-md-6 col-lg-4"><label class="form-label" for="vm-base-image">Base Image</label><select class="form-select" id="vm-base-image" title="Disk image cloned for the new DevBox."><option>{{if .BaseImage}}{{.BaseImage}}{{else}}Configured base image{{end}}</option></select></div>
+              <div class="col-12 col-md-6 col-lg-4"><label class="form-label" for="vm-base-image">Base Image</label><select class="form-select" id="vm-base-image" name="image" title="Disk image cloned for the new DevBox." required>{{range .Images}}<option value="{{.ID}}" {{if .Default}}selected{{end}}>{{.Name}}</option>{{else}}<option value="">No base images available</option>{{end}}</select></div>
               <div class="col-12 col-md-6 col-lg-4"><label class="form-label" for="vm-username">Username</label><input class="form-control" id="vm-username" value="{{.User}}" autocomplete="off" readonly></div>
               <div class="col-12"><p class="form-text mb-0">The DevBox account is created with the password you used to sign in to this gateway.</p></div>
-              <div class="col-12 col-md-6 col-lg-4 d-grid align-self-end"><button class="btn btn-primary" id="create-button" type="submit"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create DevBox</button></div>
+              <div class="col-12 col-md-6 col-lg-4 d-grid align-self-end"><button class="btn btn-primary" id="create-button" type="submit" {{if not .Images}}disabled{{end}}><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create DevBox</button></div>
             </form>
           </div>
         </div>
@@ -133,7 +143,7 @@
             <dl class="row mb-0">
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">User</dt><dd class="col-8 col-sm-9 mb-2" id="info-user"></dd>
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">State</dt><dd class="col-8 col-sm-9 mb-2 text-capitalize" id="info-state"></dd>
-              <dt class="col-4 col-sm-3 text-body-secondary fw-normal">Image</dt><dd class="col-8 col-sm-9 mb-2 text-break">{{if .BaseImage}}{{.BaseImage}}{{else}}Configured base image{{end}}</dd>
+              <dt class="col-4 col-sm-3 text-body-secondary fw-normal">Image</dt><dd class="col-8 col-sm-9 mb-2 text-break" id="info-image"></dd>
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">Created</dt><dd class="col-8 col-sm-9 mb-2" id="info-created"></dd>
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">Memory</dt><dd class="col-8 col-sm-9 mb-2">{{if .MemoryGB}}{{.MemoryGB}} GB{{else}}n/a{{end}}</dd>
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">vCPU</dt><dd class="col-8 col-sm-9 mb-0">{{if .CPUs}}{{.CPUs}}{{else}}n/a{{end}}</dd>

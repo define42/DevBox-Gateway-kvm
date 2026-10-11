@@ -20,6 +20,7 @@ const (
 
 type browserSession struct {
 	owner, clientIP, csrf, passwordHash string
+	IsAdmin                             bool
 	expires                             time.Time
 	connections                         map[*connectionLease]struct{}
 }
@@ -95,6 +96,10 @@ func clientIP(address string) string {
 }
 
 func (s *Server) newSession(owner, ip, hash string) (string, error) {
+	return s.newIdentitySession(Identity{Username: owner}, ip, hash)
+}
+
+func (s *Server) newIdentitySession(identity Identity, ip, hash string) (string, error) {
 	raw, err := randomToken()
 	if err != nil {
 		return "", err
@@ -111,7 +116,8 @@ func (s *Server) newSession(owner, ip, hash string) (string, error) {
 		return "", fmt.Errorf("%w: too many active sessions", ErrConflict)
 	}
 	s.store.sessions[key] = &browserSession{
-		owner:        owner,
+		owner:        identity.Username,
+		IsAdmin:      identity.IsAdmin,
 		clientIP:     ip,
 		passwordHash: hash,
 		csrf:         csrf,

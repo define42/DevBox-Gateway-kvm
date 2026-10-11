@@ -351,6 +351,18 @@ func (m *Machine) AddPS2Input() virtio.VNCInput {
 	return dev
 }
 
+// AddUEFIInput retains PS/2 firmware controls and hands guest pointer input to
+// an absolute tablet when the guest driver is ready.
+func (m *Machine) AddUEFIInput() virtio.VNCInput {
+	legacy := m.AddPS2Input()
+	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)
+	m.connectVirtioIRQ(pointer.ModernTransport, virtioInputPointerIRQ)
+	m.pci.AddDevices(pointer)
+	m.deviceWG.Go(pointer.IOThreadEntry)
+
+	return virtio.NewFirmwareInput(legacy, pointer)
+}
+
 func (m *Machine) AddVirtioInput() virtio.VNCInput {
 	keyboard := virtio.NewInputKeyboard(virtioInputKeyboardIRQ, m.InjectVirtioInputKeyboardIRQ, m.mem)
 	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)

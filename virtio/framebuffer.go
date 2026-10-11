@@ -381,6 +381,10 @@ func (d *framebuffer) sendPointerEvent(buttonMask uint8, x, y uint16) {
 	width, height := d.width, d.height
 	d.mu.Unlock()
 
+	sendPointerEventInBounds(input, buttonMask, x, y, width, height)
+}
+
+func sendPointerEventInBounds(input VNCInput, buttonMask uint8, x, y uint16, width, height int) {
 	if bounded, ok := input.(interface {
 		PointerEventInBounds(uint8, uint16, uint16, int, int)
 	}); ok {

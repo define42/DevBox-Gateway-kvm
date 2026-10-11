@@ -23,6 +23,7 @@ type Server struct {
 	store       sessionStore
 	authSlots   chan struct{}
 	served      atomic.Bool
+	uploading   atomic.Bool
 	mu          sync.Mutex
 	listener    net.Listener
 	connections map[*trackedConn]struct{}
@@ -68,6 +69,16 @@ func New(c Config) (*Server, error) {
 	}
 	if c.MaxSessions < 1 || c.MaxSessions > 10000 || c.MaxConnections < 1 || c.MaxConnections > 4096 {
 		return nil, fmt.Errorf("%w: invalid session/connection limit", ErrInvalid)
+	}
+	if c.MaxImageUploadBytes == 0 {
+		c.MaxImageUploadBytes = DefaultMaxImageUploadBytes
+	}
+	if c.UploadTimeout == 0 {
+		c.UploadTimeout = 30 * time.Minute
+	}
+	if c.MaxImageUploadBytes < 1 || c.MaxImageUploadBytes > 1<<40 ||
+		c.UploadTimeout < time.Minute || c.UploadTimeout > 24*time.Hour {
+		return nil, fmt.Errorf("%w: invalid image upload limit or timeout", ErrInvalid)
 	}
 	certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
 	if err != nil {

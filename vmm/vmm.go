@@ -198,7 +198,7 @@ func (v *VMM) Init() (initErr error) {
 		var input virtio.VNCInput
 		if v.hasRemoteDisplay() {
 			if v.UEFI != "" {
-				input = m.AddPS2Input()
+				input = m.AddUEFIInput()
 			} else {
 				input = m.AddVirtioInput()
 			}
