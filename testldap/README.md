@@ -98,5 +98,5 @@ Image uploads default to 20 GiB and 30 minutes. Override them with
 `GATEWAY_ARGS="-image-upload-limit 42949672960 -image-upload-timeout 1h"`.
 The size limit also applies to normalized images. Install `qemu-utils` to import
 compressed QCOW2 images; `qemu-img` is used only for conversion, and gokvm runs
-all VMs. See [the gateway documentation](../README.md#native-desktop-gateway) for
+all VMs. See [the gateway documentation](../docs/gateway.md) for
 image requirements and storage behavior.
