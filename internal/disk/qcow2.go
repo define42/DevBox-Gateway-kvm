@@ -27,6 +27,9 @@ const (
 
 	qcow2RefcountOrder16 = 4
 
+	// Bound resident refcount block data independently of virtual disk size.
+	qcow2RefcountCacheBytes = 4 * 1024 * 1024
+
 	qcow2OFlagZero       = uint64(1)
 	qcow2OFlagCompressed = uint64(1) << 62
 	qcow2OFlagCopied     = uint64(1) << 63
@@ -57,6 +60,11 @@ type qcow2Header struct {
 	headerLength          uint32
 }
 
+type qcow2RefcountBlock struct {
+	offset uint64
+	data   []byte
+}
+
 type qcow2Image struct {
 	file *os.File
 
@@ -69,6 +77,10 @@ type qcow2Image struct {
 	refcountTableOffset  uint64
 	refcountTable        []uint64
 	refcountBlockEntries uint64
+
+	refcountCache     map[uint64]int
+	refcountBlocks    []qcow2RefcountBlock
+	refcountCacheNext int
 
 	l2Entries uint64
 	l2Cache   map[uint64][]uint64
@@ -677,6 +689,7 @@ func (q *qcow2Image) appendRefcountBlock(offset uint64, oldSize int64) error {
 		return errors.Join(err, q.file.Truncate(oldSize))
 	}
 	q.refcountTable[tableIndex] = offset
+	q.cacheRefcountBlock(offset, block)
 
 	return nil
 }
@@ -687,12 +700,54 @@ func (q *qcow2Image) refcount(clusterOff uint64) (uint16, error) {
 		return 0, err
 	}
 
-	var b [2]byte
-	if _, err := q.file.ReadAt(b[:], int64(refBlockOff+blockIndex*2)); err != nil {
-		return 0, err
+	if index, ok := q.refcountCache[refBlockOff]; ok {
+		return binary.BigEndian.Uint16(q.refcountBlocks[index].data[blockIndex*2:]), nil
 	}
 
-	return binary.BigEndian.Uint16(b[:]), nil
+	block := make([]byte, int(q.clusterSize))
+	if _, err := q.file.ReadAt(block, int64(refBlockOff)); err != nil {
+		return 0, err
+	}
+	q.cacheRefcountBlock(refBlockOff, block)
+
+	return binary.BigEndian.Uint16(block[blockIndex*2:]), nil
+}
+
+// cacheRefcountBlock uses FIFO replacement: refcounts are clustered, so one
+// block read serves many validation checks and allocated-cluster overwrites.
+// The image mutex protects the cache after the initial single-threaded open.
+func (q *qcow2Image) cacheRefcountBlock(offset uint64, block []byte) {
+	if q.refcountCache == nil {
+		q.refcountCache = make(map[uint64]int)
+	}
+	if index, ok := q.refcountCache[offset]; ok {
+		q.refcountBlocks[index].data = block
+
+		return
+	}
+
+	limit := int(qcow2RefcountCacheBytes / q.clusterSize)
+	index := len(q.refcountBlocks)
+	entry := qcow2RefcountBlock{offset: offset, data: block}
+	if index < limit {
+		q.refcountBlocks = append(q.refcountBlocks, entry)
+	} else {
+		index = q.refcountCacheNext
+		old := q.refcountBlocks[index]
+		if old.data != nil {
+			delete(q.refcountCache, old.offset)
+		}
+		q.refcountBlocks[index] = entry
+		q.refcountCacheNext = (index + 1) % limit
+	}
+	q.refcountCache[offset] = index
+}
+
+func (q *qcow2Image) invalidateRefcountBlock(offset uint64) {
+	if index, ok := q.refcountCache[offset]; ok {
+		q.refcountBlocks[index].data = nil
+		delete(q.refcountCache, offset)
+	}
 }
 
 func (q *qcow2Image) setRefcount(clusterOff uint64, refcount uint16) error {
@@ -708,9 +763,22 @@ func (q *qcow2Image) setRefcount(clusterOff uint64, refcount uint16) error {
 	var b [2]byte
 
 	binary.BigEndian.PutUint16(b[:], refcount)
-	_, err = q.file.WriteAt(b[:], int64(refBlockOff+blockIndex*2))
+	n, err := q.file.WriteAt(b[:], int64(refBlockOff+blockIndex*2))
+	if err == nil && n != len(b) {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		// A partial metadata write may have changed the on-disk value. Do not
+		// retain the old value while allocation rollback attempts to repair it.
+		q.invalidateRefcountBlock(refBlockOff)
 
-	return err
+		return err
+	}
+	if index, ok := q.refcountCache[refBlockOff]; ok {
+		binary.BigEndian.PutUint16(q.refcountBlocks[index].data[blockIndex*2:], refcount)
+	}
+
+	return nil
 }
 
 func (q *qcow2Image) refcountLocation(clusterOff uint64) (uint64, uint64, bool, error) {

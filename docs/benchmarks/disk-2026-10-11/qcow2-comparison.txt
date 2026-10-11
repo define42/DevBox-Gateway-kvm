@@ -1,0 +1,38 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/gokvm/internal/disk
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                        │ /tmp/gokvm-disk-perf/qcow2-before.txt │ /tmp/gokvm-disk-perf/qcow2-after.txt │
+                        │                sec/op                 │    sec/op     vs base                │
+QCOW2Open-8                                        1129.7µ ± 3%   131.1µ ± 55%  -88.40% (p=0.000 n=10)
+QCOW2Read4K-8                                       1.518µ ± 1%   1.169µ ±  2%  -22.93% (p=0.000 n=10)
+QCOW2Write4K/buffered-8                             3.590µ ± 7%   1.891µ ±  1%  -47.33% (p=0.000 n=10)
+QCOW2Write4K/sync-8                                 3.138m ± 4%   3.253m ±  2%   +3.69% (p=0.005 n=10)
+geomean                                             66.29µ        31.16µ        -52.99%
+
+                        │ /tmp/gokvm-disk-perf/qcow2-before.txt │  /tmp/gokvm-disk-perf/qcow2-after.txt  │
+                        │                 B/op                  │     B/op      vs base                  │
+QCOW2Open-8                                      256.7Ki ± 0%     321.0Ki ± 0%  +25.03% (p=0.000 n=10)
+QCOW2Read4K-8                                      0.000 ± 0%       0.000 ± 0%        ~ (p=1.000 n=10) ¹
+QCOW2Write4K/buffered-8                            0.000 ± 0%       0.000 ± 0%        ~ (p=1.000 n=10) ¹
+QCOW2Write4K/sync-8                                0.000 ± 0%       0.000 ± 0%        ~ (p=1.000 n=10) ¹
+geomean                                                       ²                  +5.74%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                        │ /tmp/gokvm-disk-perf/qcow2-before.txt │ /tmp/gokvm-disk-perf/qcow2-after.txt │
+                        │               allocs/op               │ allocs/op   vs base                  │
+QCOW2Open-8                                        12.00 ± 0%     16.00 ± 0%  +33.33% (p=0.000 n=10)
+QCOW2Read4K-8                                      0.000 ± 0%     0.000 ± 0%        ~ (p=1.000 n=10) ¹
+QCOW2Write4K/buffered-8                            0.000 ± 0%     0.000 ± 0%        ~ (p=1.000 n=10) ¹
+QCOW2Write4K/sync-8                                0.000 ± 0%     0.000 ± 0%        ~ (p=1.000 n=10) ¹
+geomean                                                       ²                +7.46%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                        │ /tmp/gokvm-disk-perf/qcow2-before.txt │ /tmp/gokvm-disk-perf/qcow2-after.txt │
+                        │                  B/s                  │     B/s       vs base                │
+QCOW2Read4K-8                                      2.514Gi ± 1%   3.261Gi ± 2%  +29.73% (p=0.000 n=10)
+QCOW2Write4K/buffered-8                            1.063Gi ± 6%   2.018Gi ± 1%  +89.86% (p=0.000 n=10)
+QCOW2Write4K/sync-8                                1.249Mi ± 4%   1.202Mi ± 2%   -3.82% (p=0.003 n=10)
+geomean                                            151.8Mi        202.4Mi       +33.31%

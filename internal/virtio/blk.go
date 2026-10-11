@@ -16,7 +16,8 @@ import (
 const (
 	SectorSize = 512
 
-	blkFeatureRO = 1 << 5
+	blkFeatureRO    = 1 << 5
+	blkFeatureFlush = 1 << 9
 
 	blkNumQueues = 1
 	blkQueue     = 0
@@ -72,6 +73,7 @@ type Blk struct {
 	closeOnce sync.Once
 	closeErr  error
 	queueMu   sync.Mutex
+	dirty     bool // Protected by queueMu; retained across device resets.
 
 	irq         uint8
 	IRQInjector IRQInjector
@@ -122,10 +124,10 @@ func (v *Blk) GetDeviceHeader() pci.DeviceHeader {
 // is added by the transport.
 func (v *Blk) DeviceFeatures() uint64 {
 	if v.readOnly {
-		return blkFeatureRO
+		return blkFeatureRO | blkFeatureFlush
 	}
 
-	return 0
+	return blkFeatureFlush
 }
 
 func (v *Blk) NumQueues() int { return blkNumQueues }
@@ -221,6 +223,7 @@ type blkPendingRequest struct {
 	offset     int64
 	result     byte
 	write      bool
+	flush      bool
 }
 
 func (v *Blk) IO() error {
@@ -241,9 +244,10 @@ func (v *Blk) IO() error {
 	if q.Size != 0 && q.Size <= QueueSize {
 		queueSize = q.Size
 	}
-	// Snapshot a bounded batch. Publish no completion until its writes are
-	// durable, allowing one Sync to cover every queued write in the batch.
-	// BenchmarkBlkWriteBatch reduces eight queued writes from eight Syncs to one.
+	// Drivers negotiating FLUSH control durability boundaries explicitly.
+	// Other drivers retain writethrough: one Sync covers a bounded batch,
+	// and no write completes before that Sync succeeds.
+	writeback := v.negotiatedFeatures()&blkFeatureFlush != 0
 	count := LoadU16(&q.Avail.Idx) - v.LastAvailIdx[sel]
 	if count == 0 {
 		return ErrNoTxPacket
@@ -257,7 +261,7 @@ func (v *Blk) IO() error {
 	// never reread unchecked addresses or next indices after this pass.
 	for i := uint16(0); i < count; i++ {
 		head := q.Avail.Ring[(v.LastAvailIdx[sel]+i)%queueSize]
-		if err := v.snapshotRequest(q, queueSize, head, &pending[i]); err != nil {
+		if err := v.snapshotRequest(q, queueSize, head, &pending[i], writeback); err != nil {
 			return err
 		}
 	}
@@ -270,11 +274,15 @@ func (v *Blk) IO() error {
 		}
 		var ioErr error
 		switch {
+		case c.flush:
+			ioErr = v.syncImage()
 		case c.write && v.readOnly:
 			ioErr = errReadOnlyBlk
 		case c.write:
+			// A failed write can still have changed data or QCOW2 metadata.
+			v.dirty = true
 			_, ioErr = v.image.WriteAt(c.data, c.offset)
-			needsSync = needsSync || ioErr == nil
+			needsSync = true
 		default:
 			_, ioErr = v.image.ReadAt(c.data, c.offset)
 		}
@@ -282,8 +290,8 @@ func (v *Blk) IO() error {
 			c.result = 1 // VIRTIO_BLK_S_IOERR
 		}
 	}
-	if needsSync {
-		if err := v.image.Sync(); err != nil {
+	if needsSync && !writeback {
+		if err := v.syncImage(); err != nil {
 			for i := uint16(0); i < count; i++ {
 				if pending[i].write {
 					pending[i].result = 1
@@ -304,7 +312,7 @@ func (v *Blk) IO() error {
 }
 
 // snapshotRequest retains only validated guest slices and command fields.
-func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPendingRequest) error {
+func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPendingRequest, writeback bool) error {
 	c.id = uint32(descID)
 	var seen [QueueSize]bool
 	for j := uint16(0); j < queueSize; j++ {
@@ -322,24 +330,28 @@ func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPen
 		if j == 0 {
 			typ := binary.LittleEndian.Uint32(data)
 			c.write = typ == 1
+			c.flush = typ == 4 && writeback
 			c.offset = int64(binary.LittleEndian.Uint64(data[8:]) * SectorSize)
-			if typ != 0 && typ != 1 {
-				// Only IN/OUT are advertised. In particular, FLUSH must not
-				// be mistaken for a read; reject it using its status buffer.
+			if typ != 0 && typ != 1 && !c.flush {
+				// Unsupported commands, including unnegotiated FLUSH, must
+				// never be mistaken for data reads or writes.
 				c.result = 2 // VIRTIO_BLK_S_UNSUPP
 			}
-		} else if c.result != 2 && j == 1 {
+		} else if c.result != 2 && !c.flush && j == 1 {
 			c.data = data
 		}
 		last := j == 2
-		if c.result == 2 {
+		if c.result == 2 || c.flush {
 			last = desc.Flags&descFNext == 0
 		}
 		if last {
-			if j == 0 || len(data) == 0 || (c.result == 2 && desc.Flags&descFWrite == 0) {
+			if j == 0 || len(data) == 0 || ((c.result == 2 || c.flush) && desc.Flags&descFWrite == 0) {
 				return ErrBlkDesc
 			}
 			c.status = &data[0]
+			if c.flush {
+				c.length = 1 // Only the status byte is written by FLUSH.
+			}
 
 			break
 		}
@@ -362,11 +374,26 @@ func (v *Blk) IOPort() uint64 { return 0 }
 
 func (v *Blk) Size() uint64 { return 0 }
 
+func (v *Blk) syncImage() error {
+	if err := v.image.Sync(); err != nil {
+		return err
+	}
+	v.dirty = false
+
+	return nil
+}
+
 func (v *Blk) Close() error {
 	log.Println("virtio-blk: Close called")
 	v.closeOnce.Do(func() {
 		close(v.done)
-		v.closeErr = v.image.Close()
+		v.queueMu.Lock()
+		defer v.queueMu.Unlock()
+		var syncErr error
+		if v.dirty {
+			syncErr = v.syncImage()
+		}
+		v.closeErr = errors.Join(syncErr, v.image.Close())
 	})
 
 	return v.closeErr

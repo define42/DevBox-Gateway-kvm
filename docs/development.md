@@ -249,6 +249,28 @@ disable the serial console, so this file is a host process log rather than a
 guest serial transcript. Do not include password hashes, seed contents, private
 keys, browser cookies, or downloaded RDP tokens in issue reports.
 
+### Disk benchmarks
+
+The [isolated host/guest disk harness](../scripts/diskbench/README.md) runs the
+same 4 KiB random-read and durable-write workloads against temporary host files
+and raw/QCOW2 disks in a minimal Linux guest. It records latency and IOPS, checks
+written data, and compares logical disk contents after reopening. Run baseline
+and candidate sequentially on the same filesystem; distinguish warm host-cache
+reads from physical storage access.
+
+Focused Go benchmarks cover QCOW2 metadata and the block worker:
+
+```bash
+go test ./internal/disk -run '^$' -bench '^BenchmarkQCOW2' -benchmem -count=10
+go test ./internal/virtio -run '^$' -bench '^BenchmarkBlkWrite' -benchmem -count=10
+```
+
+`BenchmarkBlkWriteFlushGroup` compares 32 individually submitted writes per
+durability boundary in writethrough and negotiated writeback modes. These Go
+benchmarks do not include a running guest or KVM notification overhead.
+The [2026-10-11 evaluation](benchmarks/disk-2026-10-11.md) records the measured
+flush and QCOW2 cache changes, including workload limits and raw samples.
+
 ## Protocol and implementation references
 
 - [Linux KVM API](https://docs.kernel.org/virt/kvm/api.html)

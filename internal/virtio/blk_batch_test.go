@@ -81,6 +81,8 @@ func TestBlkBatchDurability(t *testing.T) {
 			q.Avail.Idx = 3
 			v.VirtQueue[blkQueue] = q
 			backing.onSync = func() {
+				// Close may retry a failed sync after these requests complete.
+				backing.onSync = nil
 				if q.Used.Idx != 0 {
 					t.Fatal("published a completion before Sync finished")
 				}

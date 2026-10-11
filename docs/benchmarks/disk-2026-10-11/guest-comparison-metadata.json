@@ -1,0 +1,28 @@
+{
+  "baseline_commit": "46a2dcfbc1f137355469377341ab5512fea7136a",
+  "rounds": 3,
+  "repetitions_per_round": 2,
+  "ops_per_workload": 512,
+  "working_set_bytes": 67108864,
+  "block_bytes": 4096,
+  "queue_depth": 1,
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "order": [
+    "before1",
+    "after1",
+    "after2",
+    "before2",
+    "before3",
+    "after3"
+  ],
+  "verification": "All six invocations completed in-workload readback, qemu-img check, and logical byte-for-byte equality among both host modes and both guest formats.",
+  "read_cache_note": "Warm working set. Guest O_DIRECT bypasses guest cache; VM host backend remains buffered. Host buffered/direct are separate controls.",
+  "sync32_note": "File.Sync after each 32 writes and final partial group, included in timing; per-write mean amortized, durability at group boundary.",
+  "serial_note": "Serial enabled only in benchmark runner; no product default altered.",
+  "before_runner_sha256": "4fe7a6448efc1fd91a9edc3d44121b614ed24bb1049106ffb8a775c443e0a612",
+  "after_runner_sha256": "64cf4ca19a520c22f980e3bd035544c2b3383df91cbfa2e0c5c1983c3dda1bf5"
+}

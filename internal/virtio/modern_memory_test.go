@@ -127,7 +127,7 @@ func TestDeviceDMAGuestRAM(t *testing.T) {
 			q.Desc[1] = SplitDesc{Addr: tc.addr, Len: 16, Flags: descFNext, Next: 2}
 			q.Desc[2] = SplitDesc{Addr: 0x200, Len: 1, Flags: descFWrite}
 			b := &Blk{ModernTransport: tr}
-			err = b.snapshotRequest(q, QueueSize, 0, new(blkPendingRequest))
+			err = b.snapshotRequest(q, QueueSize, 0, new(blkPendingRequest), false)
 			if (err == nil) != tc.want || err != nil && !errors.Is(err, ErrBlkDesc) {
 				t.Fatalf("block DMA validation: %v", err)
 			}

@@ -275,10 +275,19 @@ a disk bootloader: use `-uefi`, or provide a direct kernel, UKI, or supported IS
 qemu-img create -f qcow2 blank.qcow2 4G
 ```
 
-Partition and format a blank disk in the guest before using it. Block writes are
-synchronized before successful completion is reported to the guest. Writes
-already pending in one queue batch share a sync; writeback caching and the
-optional FLUSH command are not advertised.
+Partition and format a blank disk in the guest before using it. The virtio block
+device advertises FLUSH support. A guest that negotiates it uses writeback
+caching: ordinary writes can complete in the host page cache, and an explicit
+guest flush synchronizes the image before reporting success. Guest filesystem
+barriers and application `fsync` calls therefore determine durability boundaries.
+Unflushed writes can be lost after a host crash, as with a physical writeback disk.
+
+Guests that do not negotiate FLUSH retain writethrough behavior: pending writes
+share one sync per queue batch before completion. Closing a device waits for
+active I/O and synchronizes dirty data. Device reset retains that dirty state;
+reset itself is not a flush. The QCOW2 refcount cache is bounded to 4 MiB of
+block data and keeps metadata writes immediate; it does not defer them until
+eviction.
 
 The qcow2 backend supports standalone v2/v3 images with 16-bit refcounts.
 Backing files, internal snapshots, encryption, compressed or shared data

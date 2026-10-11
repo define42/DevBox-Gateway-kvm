@@ -189,6 +189,18 @@ func NewModernTransport(dev ModernDevice, mem []byte, inject func() error) *Mode
 	return t
 }
 
+// negotiatedFeatures returns only offered features accepted by the driver.
+// Register writes and device workers can run on different host threads.
+func (t *ModernTransport) negotiatedFeatures() uint64 {
+	t.commonMu.RLock()
+	defer t.commonMu.RUnlock()
+	if t.deviceStatus&0x08 == 0 { // VIRTIO_CONFIG_S_FEATURES_OK
+		return 0
+	}
+
+	return (uint64(t.driverFeature[1])<<32 | uint64(t.driverFeature[0])) & t.features
+}
+
 // MMIOBARIndex reports which BAR carries the modern structures.
 func (t *ModernTransport) MMIOBARIndex() int { return 0 }
 
