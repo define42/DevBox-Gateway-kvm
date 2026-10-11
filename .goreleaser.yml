@@ -44,7 +44,7 @@ release:
     ```sh
     docker pull {{ .Env.RELEASE_IMAGE }}:{{ .Tag }}
     ```
-    The matching Compose certificate helper is
-    `{{ .Env.RELEASE_IMAGE }}-certificates:{{ .Tag }}`.
+    The matching Compose LDAP image is
+    `{{ .Env.RELEASE_IMAGE }}-ldap:{{ .Tag }}`.
     See the [Docker guide](https://github.com/{{ .Env.GITHUB_REPOSITORY }}/blob/{{ .Tag }}/docs/docker.md)
     for KVM access, LDAP, TLS, and NVIDIA setup.

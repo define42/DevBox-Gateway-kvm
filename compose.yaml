@@ -1,27 +1,15 @@
 name: devbox-gateway-kvm
 
 services:
-  certificates:
+  ldap:
     build:
       context: .
-      target: certificates
-    image: devbox-gateway-kvm:certificates
-    network_mode: none
-    environment:
-      GATEWAY_HOST: ${GATEWAY_HOST:-localhost}
-    volumes:
-      - gateway-tls:/certs/gateway
-      - ldap-tls:/certs/ldap
-    restart: "no"
-
-  ldap:
-    image: glauth/glauth@sha256:6d448805cf54fc2ca3bca2b87f89dffe571a354a69a667b5a910111be3cf430e
-    depends_on:
-      certificates:
-        condition: service_completed_successfully
+      target: ldap
+    image: devbox-gateway-kvm:ldap
     restart: unless-stopped
     volumes:
-      - ldap-tls:/app/config:ro
+      - ldap-tls:/app/config
+      - ldap-ca:/ldap-ca
 
   gateway:
     build:
@@ -30,10 +18,8 @@ services:
     image: devbox-gateway-kvm:local
     platform: linux/amd64
     depends_on:
-      certificates:
-        condition: service_completed_successfully
       ldap:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     stop_grace_period: 45s
     devices:
@@ -44,7 +30,7 @@ services:
       - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-8443}:8443"
     volumes:
       - gateway-state:/var/lib/gokvm
-      - gateway-tls:/etc/gokvm/tls:ro
+      - ldap-ca:/etc/gokvm/ldap:ro
     command:
       - serve
       - -state
@@ -53,10 +39,11 @@ services:
       - 0.0.0.0:8443
       - -public-address
       - ${GATEWAY_HOST:-localhost}:${GATEWAY_PORT:-8443}
-      - -tls-cert
-      - /etc/gokvm/tls/cert.pem
-      - -tls-key
-      - /etc/gokvm/tls/key.pem
+      - -acme=${GATEWAY_ACME:-false}
+      - -acme-email
+      - "${GATEWAY_ACME_EMAIL:-}"
+      - -acme-ca
+      - "${GATEWAY_ACME_CA:-production}"
       - -ldap-url
       - ldaps://ldap:389
       - -ldap-base-dn
@@ -72,7 +59,7 @@ services:
       - -ldap-admin-group
       - devbox-admins
       - -ldap-ca
-      - /etc/gokvm/tls/ldap-ca.pem
+      - /etc/gokvm/ldap/cert.pem
       - -encoder
       - ${GATEWAY_ENCODER:-auto}
       - -cpus
@@ -84,5 +71,5 @@ services:
 
 volumes:
   gateway-state:
-  gateway-tls:
   ldap-tls:
+  ldap-ca:

@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 )
 
 var (
@@ -63,6 +65,8 @@ type IdentityAuthenticator interface {
 
 // Config supplies the public listener, TLS identity, authentication and VM backend.
 type Config struct {
+	// TLSManager supplies a live certificate shared by HTTPS and RDP.
+	TLSManager *cert.Manager
 	// Presentation describes the configured desktop resources and login access group.
 	DesktopImage, RequiredGroup                  string
 	DesktopCPUs, DesktopMemoryMiB                int

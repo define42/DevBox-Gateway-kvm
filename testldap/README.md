@@ -4,8 +4,8 @@ This directory brings the DevBox-Gateway demo LDAP users and groups into
 DevBox-Gateway-kvm.
 [`default-config.cfg`](default-config.cfg) is copied unchanged from
 [DevBox-Gateway commit `e4fbf205`](https://github.com/define42/DevBox-Gateway/blob/e4fbf205adb7663167190f1082c41ff81681d3d8/testldap/default-config.cfg),
-with its [MIT license](LICENSE). Both Compose setups run GLAuth with a pinned
-image digest and require TLS.
+with its [MIT license](LICENSE). Both Compose setups use a pinned GLAuth image
+as their binary source and require TLS.
 
 ## Gateway and LDAP in Docker
 
@@ -16,9 +16,10 @@ from the repository root. The gateway is published on `127.0.0.1:8443` by
 default. LDAP is reachable only inside the Compose network as `ldaps://ldap:389`;
 it has no published host port.
 
-A one-time certificate service generates the gateway and LDAP certificates in
-named volumes. The gateway trusts the LDAP certificate explicitly and verifies
-the `ldap` hostname. The accounts and group rules below are shared by both
+The LDAP container generates its own TLS identity on first startup and reuses
+it on later starts. It shares only its public certificate with the gateway,
+which verifies both the certificate and the `ldap` hostname. The gateway manages
+its own self-signed or ACME certificate independently. The accounts and group rules below are shared by both
 setups. `docker compose down` stops the complete container stack while
 preserving its named volumes.
 

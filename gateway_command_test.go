@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 	"github.com/define42/DevBox-Gateway-kvm/internal/cloudinit"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
 )
@@ -147,23 +148,56 @@ func TestLocalTLSIdentityPersists(t *testing.T) {
 		t.Fatal(err)
 	}
 	config := gateway.Config{ListenAddr: "127.0.0.1:8443", PublicAddress: "localhost:8443"}
-	if err := serveIdentity(dir, &config); err != nil {
+	if err := serveIdentity(dir, &config, cert.Options{ACMECA: "production"}); err != nil {
 		t.Fatal(err)
 	}
-	before, err := os.ReadFile(config.KeyFile)
+	before, err := os.ReadFile(filepath.Join(dir, "gateway.key"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	config.CertFile, config.KeyFile = "", ""
-	if err := serveIdentity(dir, &config); err != nil {
+	config.TLSManager.Close()
+	if err := serveIdentity(dir, &config, cert.Options{ACMECA: "production"}); err != nil {
 		t.Fatal(err)
 	}
-	after, err := os.ReadFile(config.KeyFile)
+	defer config.TLSManager.Close()
+	after, err := os.ReadFile(filepath.Join(dir, "gateway.key"))
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatal("TLS identity changed")
 	}
-	remote := gateway.Config{ListenAddr: "0.0.0.0:8443", PublicAddress: "gateway.example.com:8443"}
-	if err := serveIdentity(dir, &remote); !errors.Is(err, errCommandUsage) {
-		t.Fatalf("remote self-signed default: %v", err)
+}
+
+func TestRemoteTLSIdentityGenerated(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	config := gateway.Config{ListenAddr: "0.0.0.0:8443", PublicAddress: "gateway.example.com:8443"}
+	if err := serveIdentity(dir, &config, cert.Options{ACMECA: "production"}); err != nil {
+		t.Fatalf("generate remote self-signed identity: %v", err)
+	}
+	defer config.TLSManager.Close()
+	if config.TLSManager == nil {
+		t.Fatal("no TLS manager configured")
+	}
+}
+
+func TestGatewayTLSModesRejectConflicts(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name, certificate, key string
+		acme                   bool
+	}{
+		{name: "missing key", certificate: "server.crt"},
+		{name: "missing certificate", key: "server.key"},
+		{name: "static and ACME", certificate: "server.crt", key: "server.key", acme: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config := gateway.Config{PublicAddress: "gateway.example.com:443", CertFile: test.certificate, KeyFile: test.key}
+			if err := serveIdentity(t.TempDir(), &config, cert.Options{ACME: test.acme}); !errors.Is(err, errCommandUsage) {
+				t.Fatalf("invalid TLS mode accepted: %v", err)
+			}
+		})
 	}
 }

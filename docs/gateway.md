@@ -206,10 +206,42 @@ the catalog but preserves existing VMs, whose disks are independent. A
 filesystem reflink may initially share storage blocks without creating a QCOW2
 backing-file dependency.
 
+## Gateway certificates and ACME
+
+Without TLS flags, the gateway generates a self-signed certificate for the host
+in `-public-address` and persists it as `<state>/gateway.crt` and
+`<state>/gateway.key`. This works on loopback and LAN listeners. Trust the
+certificate in your browser and RDP client before using it. A generated certificate
+is refreshed at startup when it expires or the public hostname changes, preserving
+its private key.
+
+Supply `-tls-cert /path/to/fullchain.pem -tls-key /path/to/key.pem` to use your
+own matching PEM identity. The gateway reads these regular files without modifying
+them; symlinks are rejected. The private key must be owned by the gateway user
+with no group or other permissions (for example, mode `0600`).
+
+For automatic public certificates, use `-acme` with a public DNS hostname in
+`-public-address`. `-acme-email` sets the account contact address and `-acme-ca`
+selects `production` (the default), `staging`, or a custom ACME directory URL.
+Enabling ACME accepts the CA's subscriber agreement. ACME and supplied PEM files
+are mutually exclusive.
+
+Public TCP **443** must reach the shared gateway listener for the TLS-ALPN-01
+challenge. Port 80 is not required. Certificate management starts after the
+listener is bound; a self-signed certificate serves as fallback while initial
+issuance is pending or retrying. Certificates switch automatically after issuance
+and renew while the gateway is running. The hostname allowlist contains only
+`-public-address`'s hostname; RDP clients without SNI use that same identity.
+
+ACME accounts, cached certificates, and renewal state persist under
+`<state>/acme`. Keep that directory across restarts and include it in private
+state backups. See the [Docker TLS guide](docker.md#tls-and-acme) for Compose
+settings and a migration from the former certificate helper service.
+
 ## LDAP and remote access
 
-For a remote deployment, use a certificate trusted by both web browsers and RDP
-clients. The host must have matching OVMF firmware. An administrator uploads
+For a remote deployment, enable ACME or supply a certificate trusted by both web
+browsers and RDP clients. The host must have matching OVMF firmware. An administrator uploads
 image templates after startup:
 
 ```bash
@@ -282,7 +314,10 @@ configuration file; configure the executable with these flags.
 | `-image-upload-timeout` | `30m` | Overall upload/import timeout, from `1m` to `24h`. |
 | `-listen` | `127.0.0.1:8443` | Shared HTTPS/RDP TCP listener. |
 | `-public-address` | `localhost:8443` | Public hostname and port used by the gateway and RDP files. |
-| `-tls-cert`, `-tls-key` | Unset | Matching PEM certificate and key, required for remote access. |
+| `-tls-cert`, `-tls-key` | Unset | Optional matching PEM certificate and key; otherwise use automatic self-signed TLS or ACME. |
+| `-acme` | `false` | Obtain and renew a public certificate through TLS-ALPN-01 on public port 443. |
+| `-acme-email` | Empty | ACME account contact email. |
+| `-acme-ca` | `production` | ACME directory: `production`/`prod`, `staging`, or custom URL. |
 | `-auth-file` | Unset | Private bcrypt JSON authentication file for loopback development; excludes LDAP and grants no admin role. |
 | `-ldap-url` | Unset | Directory URL, `ldaps://` or `ldap://`. |
 | `-ldap-base-dn` | Required with LDAP | Search base DN. |
@@ -350,7 +385,8 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | Path under `-state` | Contents |
 | --- | --- |
 | `manager.lock` | Exclusive manager lock. |
-| `gateway.crt`, `gateway.key` | Generated development TLS identity when no certificate is supplied. |
+| `gateway.crt`, `gateway.key` | Persistent self-signed identity and ACME fallback. |
+| `acme/` | ACME account credentials, certificate cache, and renewal state. |
 | `images/<image-id>/image.json` | Uploaded template metadata. |
 | `images/<image-id>/disk.qcow2` | Validated, normalized template. |
 | `vms/<vm-id>/vm.json` | Persistent name, owner, state, and source-image identity. |

@@ -161,13 +161,14 @@ Open **https://localhost:8443**, accept the local self-signed certificate, and
 sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload
 a QCOW2 desktop image; users can then select it in **Create DevBox**. The catalog
 starts empty. Templates are stored under `/var/lib/gokvm/images` in the
-`gateway-state` volume, alongside persistent desktop state. The stack generates
-TLS certificates in separate named volumes. `docker compose down` stops and
+`gateway-state` volume, alongside persistent desktop state. The gateway manages
+its own TLS certificate and ACME storage; LDAP generates its separate TLS identity
+in its own persistent volume. `docker compose down` stops and
 removes the services while preserving those volumes.
 
 The `scratch`-based gateway image includes OVMF, `qemu-img`, and NVENC support
 with automatic software fallback. The [Docker guide](docs/docker.md) covers
-image uploads, storage, configuration, external LDAP/TLS, and the optional
+image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 `compose.nvidia.yaml` override for NVIDIA GPUs.
 
 ## Features and behavior
@@ -237,7 +238,7 @@ kernels, PVH, Unified Kernel Images, and recognized Linux ISO layouts. See
 ### Deployment boundaries
 
 The local example binds to loopback. Remote access requires an explicit public
-address, a trusted TLS certificate/key pair, and your LDAP directory settings.
+address, ACME or a trusted TLS certificate/key pair, and your LDAP directory settings.
 Keep `.gokvm-gateway/` private and back it up with the service stopped. The state
 contains guest password hashes and private TLS keys.
 
@@ -290,7 +291,7 @@ for example `v2026.10.11-195952-g012345abcdef`. A rerun reuses the same version.
 Pull requests and scheduled checks do not publish releases.
 
 Releases include a Linux amd64 binary archive and SHA-256 checksums. The gateway
-and certificate helper containers are published to GHCR with the same version
+and LDAP containers are published to GHCR with the same version
 and full commit SHA; see [published container images](docs/docker.md#published-container-images).
 For development checks and VM test fixtures, follow the
 [development guide](docs/development.md). Include a reproduction or focused test

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
 )
 
@@ -24,6 +24,7 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	var manager gateway.ManagerConfig
 	var config gateway.Config
 	var ldap gateway.LDAPConfig
+	var certificates cert.Options
 	var authFile string
 	flags.StringVar(&manager.DataDir, "state", ".gokvm-gateway", "private persistent VM state directory")
 	flags.StringVar(&manager.BaseImage, "image", "",
@@ -46,8 +47,17 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	flags.StringVar(&config.ListenAddr, "listen", "127.0.0.1:8443", "shared HTTPS and RDP TCP listener")
 	flags.StringVar(&config.PublicAddress, "public-address", "localhost:8443",
 		"hostname:port written to downloaded RDP files")
-	flags.StringVar(&config.CertFile, "tls-cert", "", "public TLS certificate (required for remote access)")
-	flags.StringVar(&config.KeyFile, "tls-key", "", "public TLS private key")
+	flags.StringVar(
+		&config.CertFile, "tls-cert", "",
+		"optional PEM server certificate; otherwise generate a self-signed certificate or use ACME",
+	)
+	flags.StringVar(&config.KeyFile, "tls-key", "", "PEM private key matching -tls-cert")
+	flags.BoolVar(
+		&certificates.ACME, "acme", false,
+		"obtain and renew a certificate for the public hostname using ACME TLS-ALPN-01",
+	)
+	flags.StringVar(&certificates.ACMEEmail, "acme-email", "", "ACME account email address")
+	flags.StringVar(&certificates.ACMECA, "acme-ca", "production", "ACME CA: production, staging, or directory URL")
 	flags.StringVar(&authFile, "auth-file", "", "private bcrypt JSON file for loopback development; excludes LDAP")
 	flags.StringVar(&ldap.URL, "ldap-url", "", "LDAP URL; ldap:// upgrades with StartTLS")
 	flags.StringVar(&ldap.BaseDN, "ldap-base-dn", "", "LDAP search base DN")
@@ -85,9 +95,10 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	if err != nil {
 		return err
 	}
-	if err := serveIdentity(manager.DataDir, &config); err != nil {
+	if err := serveIdentity(manager.DataDir, &config, certificates); err != nil {
 		return err
 	}
+	defer config.TLSManager.Close()
 	backend, err := gateway.NewManager(manager)
 	if err != nil {
 		return err
@@ -124,54 +135,29 @@ func loopbackAddress(address string) bool {
 	return host == "localhost" || ip != nil && ip.IsLoopback()
 }
 
-func serveIdentity(state string, c *gateway.Config) error {
+func serveIdentity(state string, c *gateway.Config, options cert.Options) error {
 	if (c.CertFile == "") != (c.KeyFile == "") {
 		return fmt.Errorf("-tls-cert and -tls-key must be supplied together: %w", errCommandUsage)
 	}
-	if c.CertFile != "" {
-		return nil
-	}
-	if !loopbackAddress(c.ListenAddr) || !loopbackAddress(c.PublicAddress) {
-		return fmt.Errorf("remote access requires -tls-cert and -tls-key: %w", errCommandUsage)
-	}
-	if err := os.MkdirAll(state, 0o700); err != nil {
-		return err
-	}
-	info, err := os.Lstat(state)
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() || info.Mode().Perm()&0o077 != 0 {
-		return fmt.Errorf("state directory must be private (0700): %w", errCommandUsage)
-	}
-	c.CertFile, c.KeyFile = filepath.Join(state, "gateway.crt"), filepath.Join(state, "gateway.key")
-	_, certErr := os.Lstat(c.CertFile)
-	_, keyErr := os.Lstat(c.KeyFile)
-	if certErr == nil && keyErr == nil {
-		_, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
-
-		return err
-	}
-	if !errors.Is(certErr, os.ErrNotExist) || !errors.Is(keyErr, os.ErrNotExist) {
-		return fmt.Errorf("incomplete local TLS identity; supply a matching certificate/key pair: %w", errCommandUsage)
+	if options.ACME && c.CertFile != "" {
+		return fmt.Errorf("choose ACME or a supplied TLS certificate/key pair: %w", errCommandUsage)
 	}
 	host, _, err := net.SplitHostPort(c.PublicAddress)
 	if err != nil {
-		return err
+		return fmt.Errorf("public address needs a hostname and port: %w", errCommandUsage)
 	}
-	cert, key, err := gateway.NewTLSIdentity(host)
+	options.Hostname, options.StateDir = host, state
+	options.CertFile, options.KeyFile = c.CertFile, c.KeyFile
+	c.TLSManager, err = cert.New(options)
 	if err != nil {
-		return err
+		return fmt.Errorf("configure gateway TLS: %w", err)
 	}
-	if err := createPrivateFile(c.KeyFile, key); err != nil {
-		return err
+	if options.ACME {
+		log.Printf("Gateway TLS: ACME for %s; public TCP 443 must reach this listener", host)
+	} else if options.CertFile == "" {
+		log.Printf("Gateway TLS: persistent self-signed certificate in %s", state)
 	}
-	if err := createPrivateFile(c.CertFile, cert); err != nil {
-		_ = os.Remove(c.KeyFile)
-
-		return err
-	}
-	log.Printf("Created local self-signed TLS identity: %s", c.CertFile)
+	c.CertFile, c.KeyFile = "", ""
 
 	return nil
 }

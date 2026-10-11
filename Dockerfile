@@ -45,7 +45,7 @@ USER 10001:10001
 WORKDIR /var/lib/gokvm
 EXPOSE 8443/tcp
 ENTRYPOINT ["/usr/local/bin/gokvm"]
-# Serving requires explicit image, TLS and LDAP configuration; see docs/docker.md.
+# Serving requires authentication configuration; see docs/docker.md.
 CMD ["serve", "-help"]
 
 # Optional troubleshooting image; these tools stay out of the default image.
@@ -103,17 +103,29 @@ chroot --userspec=10001:10001 /rootfs /usr/local/bin/gokvm serve -help
 chroot --userspec=10001:10001 /rootfs /usr/bin/qemu-img --version
 EOF
 
-# Compose runs this small helper once; OpenSSL stays out of the gateway image.
-FROM debian:trixie-slim AS certificates
+# LDAP initializes its own private identity; OpenSSL stays out of the gateway.
+FROM glauth/glauth@sha256:6d448805cf54fc2ca3bca2b87f89dffe571a354a69a667b5a910111be3cf430e AS glauth
+FROM debian:trixie-slim AS ldap
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
     && rm -rf /var/lib/apt/lists/* \
-    && install -d -m 0700 -o 10001 -g 10001 /certs/gateway /certs/ldap
-COPY --chmod=0755 docker/init-certificates.sh /usr/local/bin/gokvm-init-certificates
+    && install -d -m 0700 -o 10001 -g 10001 /app/config \
+    && install -d -m 0755 -o 10001 -g 10001 /ldap-ca
+COPY --from=glauth /app/glauth /app/glauth
+RUN /app/glauth --version
+COPY --chmod=0755 docker/start-ldap.sh /usr/local/bin/gokvm-start-ldap
 COPY testldap/default-config.cfg /usr/local/share/gokvm-ldap/config.cfg
 COPY testldap/LICENSE /usr/local/share/gokvm-ldap/LICENSE
+LABEL org.opencontainers.image.title="DevBox-Gateway-kvm LDAP" \
+      org.opencontainers.image.source="https://github.com/define42/DevBox-Gateway-kvm" \
+      org.opencontainers.image.description="Development LDAP directory with persistent TLS identity"
 USER 10001:10001
-ENTRYPOINT ["/usr/local/bin/gokvm-init-certificates"]
+EXPOSE 389/tcp
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=5 \
+    CMD openssl s_client -connect 127.0.0.1:389 -servername ldap \
+        -verify_hostname ldap -verify_return_error -CAfile /app/config/cert.pem \
+        </dev/null >/dev/null 2>&1
+ENTRYPOINT ["/usr/local/bin/gokvm-start-ldap"]
 
 # Scratch removes the distribution tools, not NVENC's dynamic dependencies.
 FROM scratch AS runtime

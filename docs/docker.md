@@ -44,21 +44,25 @@ Then sign in as `johndoe` or `testuser` (also password **`dogood`**), select
 compatible templates. These are public development credentials; the gateway is
 published only on host loopback by default, and LDAP has no published host port.
 
-The `certificates` service runs once at startup to prepare private TLS keys in
-named volumes. It creates a gateway certificate for `localhost`, `127.0.0.1`,
-and `GATEWAY_HOST`, plus an LDAP certificate for the internal name `ldap`.
-The gateway explicitly trusts the LDAP certificate, so LDAP certificate
-verification stays enabled. Valid certificates are reused across restarts;
-expired certificates or a changed hostname that no longer matches cause
-initialization to fail rather than replace existing keys.
+The gateway manages its own certificate: by default it generates and persists a
+self-signed identity for `GATEWAY_HOST`. It can instead load a supplied PEM pair
+or obtain and renew an ACME certificate. See [TLS and ACME](#tls-and-acme) below.
+The generated certificate is refreshed at startup when it expires or `GATEWAY_HOST`
+changes, preserving its private key. There is no separate certificate-initialization
+service.
+
+LDAP generates its own private TLS identity before starting. Its public
+certificate is shared with the gateway through a separate read-only mount; the
+LDAP private key stays in the LDAP container's volume. Compose waits for a
+verified LDAP TLS handshake before starting the gateway.
 
 The stack uses these named volumes:
 
 | Volume | Contents |
 | --- | --- |
-| `gateway-state` | Desktop disks, firmware variables, seeds, uploaded images, and metadata |
-| `gateway-tls` | Gateway certificate/key and the trusted LDAP certificate |
+| `gateway-state` | Desktop state, uploaded images, gateway TLS identity, and ACME storage |
 | `ldap-tls` | LDAP certificate/key and directory configuration |
+| `ldap-ca` | LDAP public certificate shared with the gateway |
 
 Compose prefixes these names with its project name, `devbox-gateway-kvm`.
 Uploaded QCOW2 templates and their metadata live in `/var/lib/gokvm/images`
@@ -71,11 +75,9 @@ stopped.
 `GATEWAY_BIND`, `GATEWAY_HOST`, and `GATEWAY_PORT` default to `127.0.0.1`,
 `localhost`, and `8443`. The public hostname and port also appear in downloaded
 RDP files. For remote access, replace the demo directory credentials, configure
-TLS trusted by your clients, and set a reachable public hostname and bind
-address. Changing `GATEWAY_HOST` requires a matching gateway certificate;
-existing private keys are never overwritten automatically. Use a local Compose
-override to mount your own certificate/key and trusted LDAP CA when configuring
-external services; see the standalone example below for the gateway flags.
+ACME or TLS trusted by your clients, and set a reachable public hostname and bind
+address. The gateway's built-in self-signed mode also works on LAN addresses;
+clients must explicitly trust that certificate.
 
 The `.env` settings also control the encoder, vCPUs, guest memory, and maximum
 running desktops. Defaults are automatic encoding, 2 vCPUs, 4096 MiB per guest,
@@ -97,13 +99,60 @@ This stack is separate from the native `make gateway` / `make ldap` workflow.
 Stop whichever gateway currently uses port 8443 before starting the other, or
 choose a different `GATEWAY_PORT` for Compose.
 
+## TLS and ACME
+
+The gateway supports three certificate modes for both HTTPS and RDP:
+
+| Mode | Configuration | Persistence |
+| --- | --- | --- |
+| Automatic self-signed | Default; no TLS or ACME flags | `gateway.crt` and `gateway.key` in `gateway-state` |
+| Supplied certificate | `-tls-cert` and `-tls-key` together | Read from the supplied PEM paths |
+| ACME | `-acme`, optionally `-acme-email` and `-acme-ca` | Account, certificates, and renewal state under `gateway-state/acme` |
+
+To enable ACME in Compose, set these values in `.env`:
+
+```dotenv
+GATEWAY_HOST=desktops.example.com
+GATEWAY_BIND=0.0.0.0
+GATEWAY_PORT=443
+GATEWAY_ACME=true
+GATEWAY_ACME_EMAIL=admin@example.com
+GATEWAY_ACME_CA=production
+```
+
+Point the public hostname's DNS records to this host and allow public TCP **443**
+to reach the gateway. The container still listens on port 8443 internally;
+Compose maps host 443 to that listener. ACME uses **TLS-ALPN-01** on the same
+listener as HTTPS and RDP. It does not need port 80. A TLS-terminating HTTP proxy
+cannot forward this challenge or the native RDP connection.
+
+`production` (or `prod`) uses Let's Encrypt. `staging` uses its test CA, whose
+certificates clients do not trust; a custom ACME directory URL is also accepted.
+Enabling ACME accepts the selected CA's subscriber agreement. The gateway serves
+its self-signed fallback while initial issuance is pending or retrying, then
+switches to the issued certificate automatically. It renews certificates while
+running and reuses cached certificates after a restart. The managed public
+hostname is the only name eligible for issuance.
+
+For supplied certificates, mount your certificate and key read-only and pass
+`-tls-cert` and `-tls-key`, as shown in the standalone example below. Do not
+combine supplied certificates with `-acme`. Supplied identities are never
+modified. Keep the gateway state volume when rebuilding or restarting.
+
+When upgrading from the older three-service stack, use
+`docker compose up --build -d --remove-orphans` to remove the obsolete
+`certificates` container. The old `gateway-tls` volume is no longer used and is
+not deleted. To retain that exact frontend certificate, mount it read-only and
+configure its `cert.pem` and `key.pem` as a supplied pair. Existing LDAP keys,
+directory configuration, image templates, and VM disks remain in their volumes.
+
 ## Published container images
 
 After the checks pass for a push to `main`, CI publishes the pushed head commit
 as a GitHub release and two Linux amd64 container images:
 
 - `ghcr.io/define42/devbox-gateway-kvm`: the gateway runtime with NVENC support.
-- `ghcr.io/define42/devbox-gateway-kvm-certificates`: the Compose TLS initializer.
+- `ghcr.io/define42/devbox-gateway-kvm-ldap`: LDAP with automatic private TLS setup.
 
 New GHCR packages default to private. After the first release, set both packages
 to **Public** in their GitHub package settings for anonymous pulls, or sign in
@@ -129,8 +178,8 @@ named `compose.published.yaml`:
 services:
   gateway:
     image: ghcr.io/define42/devbox-gateway-kvm:${RELEASE_TAG:?Set RELEASE_TAG}
-  certificates:
-    image: ghcr.io/define42/devbox-gateway-kvm-certificates:${RELEASE_TAG:?Set RELEASE_TAG}
+  ldap:
+    image: ghcr.io/define42/devbox-gateway-kvm-ldap:${RELEASE_TAG:?Set RELEASE_TAG}
 ```
 
 Choose a tag from [GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases),
@@ -175,10 +224,12 @@ After startup, an administrator uploads QCOW2 templates through the web UI.
 
 The example below uses an external LDAP directory and a TLS certificate trusted
 by the clients. Replace the example hostname, directory settings, and host paths.
-The mounted certificate directory must be readable by UID 10001;
-directories also need search permission. Keep the TLS private key private, for
-example owned by UID 10001 with mode `0600` in a directory owned by UID 10001
-with mode `0700`.
+Use regular PEM files, not symlinks. The private key must be owned by UID 10001
+and have no group or other permissions (for example, mode `0600`). The certificate
+must be readable by UID 10001, and its directories must allow traversal. A
+directory owned by UID 10001 with mode `0700` satisfies these requirements.
+If your existing certificate manager uses symlinks, copy the resolved certificate
+and key into this mounted directory.
 
 ```bash
 docker volume create devbox-gateway-kvm-state

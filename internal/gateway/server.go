@@ -14,6 +14,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 )
 
 // Server serves HTTPS and TLS-protected RDP on one TCP listener.
@@ -33,7 +35,7 @@ type Server struct {
 
 // New validates configuration and loads the HTTPS/RDP certificate.
 func New(c Config) (*Server, error) {
-	if c.Authenticator == nil || c.Backend == nil || c.CertFile == "" || c.KeyFile == "" {
+	if c.Authenticator == nil || c.Backend == nil || (c.TLSManager == nil && (c.CertFile == "" || c.KeyFile == "")) {
 		return nil, fmt.Errorf("%w: authentication, backend, and TLS certificate/key are required", ErrInvalid)
 	}
 	if c.ListenAddr == "" {
@@ -80,23 +82,15 @@ func New(c Config) (*Server, error) {
 		c.UploadTimeout < time.Minute || c.UploadTimeout > 24*time.Hour {
 		return nil, fmt.Errorf("%w: invalid image upload limit or timeout", ErrInvalid)
 	}
-	certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+	tlsConfig, err := serverTLSConfig(c)
 	if err != nil {
-		return nil, fmt.Errorf("load gateway TLS identity: %w", err)
+		return nil, err
 	}
 
 	return &Server{
 		config: c,
-		tls: &tls.Config{
-			Certificates: []tls.Certificate{
-				certificate,
-			},
-			MinVersion: tls.VersionTLS12,
-			NextProtos: []string{
-				"http/1.1",
-			},
-		},
-		store: newSessionStore(),
+		tls:    tlsConfig,
+		store:  newSessionStore(),
 		authSlots: make(
 			chan struct{},
 			8,
@@ -105,6 +99,24 @@ func New(c Config) (*Server, error) {
 			map[*trackedConn]struct{},
 		),
 	}, nil
+}
+
+func serverTLSConfig(c Config) (*tls.Config, error) {
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}}
+	if c.TLSManager != nil {
+		if c.CertFile != "" || c.KeyFile != "" {
+			return nil, fmt.Errorf("%w: TLS manager and certificate files cannot be combined", ErrInvalid)
+		}
+		tlsConfig = c.TLSManager.TLSConfig()
+	} else {
+		certificate, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load gateway TLS identity: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+	}
+
+	return tlsConfig, nil
 }
 
 // Addr returns the bound listener address once Serve has started.
@@ -126,6 +138,10 @@ func (s *Server) Serve(ctx context.Context) error {
 	var lc net.ListenConfig
 	ln, err := lc.Listen(ctx, "tcp", s.config.ListenAddr)
 	if err != nil {
+		if s.config.TLSManager != nil {
+			s.config.TLSManager.Close()
+		}
+
 		return err
 	}
 
@@ -138,6 +154,14 @@ func (s *Server) serve(ctx context.Context, ln net.Listener) error {
 	s.mu.Lock()
 	s.listener = ln
 	s.mu.Unlock()
+	if s.config.TLSManager != nil {
+		defer s.config.TLSManager.Close()
+		if err := s.config.TLSManager.Start(ctx, ln.Addr()); err != nil {
+			_ = ln.Close()
+
+			return err
+		}
+	}
 	https := &channelListener{addr: ln.Addr(), incoming: make(chan net.Conn), done: make(chan struct{})}
 	httpServer := &http.Server{
 		Handler:           s.routes(),
@@ -268,6 +292,9 @@ func (s *Server) dispatch(ctx context.Context, raw net.Conn, https *channelListe
 	}
 	secure := tls.Server(buffered, s.tls)
 	if err := secure.HandshakeContext(ctx); err != nil {
+		return
+	}
+	if secure.ConnectionState().NegotiatedProtocol == cert.ChallengeProtocol {
 		return
 	}
 	_ = secure.SetDeadline(time.Time{})
