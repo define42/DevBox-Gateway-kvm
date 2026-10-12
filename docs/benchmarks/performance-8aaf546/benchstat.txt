@@ -1,0 +1,563 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                         │ docs/benchmarks/performance-8aaf546/conversion.txt │
+                         │                       sec/op                       │
+I420Damage/1080p/Full-4                                          1.663m ± 18%
+I420Damage/1080p/64x32-4                                         1.648µ ±  9%
+I420Damage/4K/Full-4                                             6.757m ±  7%
+I420Damage/4K/64x32-4                                            1.736µ ±  4%
+geomean                                                          75.30µ
+
+                         │ docs/benchmarks/performance-8aaf546/conversion.txt │
+                         │                        B/s                         │
+I420Damage/1080p/Full-4                                         4.645Gi ± 22%
+I420Damage/1080p/64x32-4                                        4.630Gi ±  8%
+I420Damage/4K/Full-4                                            4.574Gi ±  7%
+I420Damage/4K/64x32-4                                           4.396Gi ±  4%
+geomean                                                         4.560Gi
+
+                         │ docs/benchmarks/performance-8aaf546/conversion.txt │
+                         │                        B/op                        │
+I420Damage/1080p/Full-4                                          0.000 ± 0%
+I420Damage/1080p/64x32-4                                         0.000 ± 0%
+I420Damage/4K/Full-4                                             0.000 ± 0%
+I420Damage/4K/64x32-4                                            0.000 ± 0%
+geomean                                                                     ¹
+¹ summaries must be >0 to compute geomean
+
+                         │ docs/benchmarks/performance-8aaf546/conversion.txt │
+                         │                     allocs/op                      │
+I420Damage/1080p/Full-4                                          0.000 ± 0%
+I420Damage/1080p/64x32-4                                         0.000 ± 0%
+I420Damage/4K/Full-4                                             0.000 ± 0%
+I420Damage/4K/64x32-4                                            0.000 ± 0%
+geomean                                                                     ¹
+¹ summaries must be >0 to compute geomean
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/disk
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                        │ docs/benchmarks/performance-8aaf546/disk.txt │
+                        │                    sec/op                    │
+QCOW2Open-4                                               216.2µ ± 53%
+QCOW2Read4K-4                                             1.521µ ±  6%
+QCOW2Write4K/buffered-4                                   2.344µ ±  3%
+QCOW2Write4K/sync-4                                       3.122m ±  2%
+geomean                                                   39.38µ
+
+                        │ docs/benchmarks/performance-8aaf546/disk.txt │
+                        │                     B/op                     │
+QCOW2Open-4                                             386.0Ki ± 0%
+QCOW2Read4K-4                                             0.000 ± 0%
+QCOW2Write4K/buffered-4                                   0.000 ± 0%
+QCOW2Write4K/sync-4                                       0.000 ± 0%
+geomean                                                              ¹
+¹ summaries must be >0 to compute geomean
+
+                        │ docs/benchmarks/performance-8aaf546/disk.txt │
+                        │                  allocs/op                   │
+QCOW2Open-4                                               21.00 ± 0%
+QCOW2Read4K-4                                             0.000 ± 0%
+QCOW2Write4K/buffered-4                                   0.000 ± 0%
+QCOW2Write4K/sync-4                                       0.000 ± 0%
+geomean                                                              ¹
+¹ summaries must be >0 to compute geomean
+
+                        │ docs/benchmarks/performance-8aaf546/disk.txt │
+                        │                     B/s                      │
+QCOW2Read4K-4                                             2.508Gi ± 6%
+QCOW2Write4K/buffered-4                                   1.627Gi ± 3%
+QCOW2Write4K/sync-4                                       1.249Mi ± 2%
+geomean                                                   174.9Mi
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                       sec/op                        │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          11.44m ± 10%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          18.95m ± 12%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             15.57m ± 27%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             18.59m ±  9%
+geomean                                                                                       15.83m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                     bytes/frame                     │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                            107.1 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          3.608Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                               243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             3.722Ki ± 0%
+geomean                                                                                         778.3
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                    cpu-sec/frame                    │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          10.39m ±  8%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          17.37m ±  7%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             5.163m ± 21%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             9.087m ± 26%
+geomean                                                                                       9.593m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                      frames/op                      │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                            4.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                            4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                               4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                               4.000 ± 0%
+geomean                                                                                         4.000
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                      frames/s                       │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                           349.5 ±  9%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                           211.0 ± 10%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                              257.0 ± 21%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                              215.2 ±  9%
+geomean                                                                                        252.7
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                    p50-sec/frame                    │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          9.805m ±  3%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          16.36m ±  4%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             11.50m ± 26%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             14.33m ±  6%
+geomean                                                                                       12.75m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                    p95-sec/frame                    │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          14.88m ± 19%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          25.02m ± 12%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             16.49m ± 24%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             20.70m ± 17%
+geomean                                                                                       18.88m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                  service-sec/frame                  │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          10.37m ±  8%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          17.34m ±  9%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             11.60m ± 20%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             14.53m ± 11%
+geomean                                                                                       13.19m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                   wall-sec/frame                    │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          2.861m ± 10%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          4.739m ± 12%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             3.893m ± 27%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             4.648m ±  9%
+geomean                                                                                       3.958m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                        B/op                         │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                          92.47Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                          106.8Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                             2.050Ki ± 3%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                             16.33Ki ± 0%
+geomean                                                                                       23.98Ki
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoder-cpu.txt │
+                                                     │                      allocs/op                      │
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                            119.0 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                            127.0 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                               16.00 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                               16.00 ± 0%
+geomean                                                                                         44.35
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                      sec/op                      │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                       7.580m ±  6%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                       8.881m ±  7%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                       13.10m ±  9%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       13.34m ±  2%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       15.74m ±  5%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       20.06m ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                          6.126m ±  3%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                          8.823m ± 22%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                          15.23m ±  5%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          6.115m ± 27%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          12.63m ± 15%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          18.73m ±  6%
+geomean                                                                                    11.32m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                   bytes/frame                    │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                         107.1 ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                         107.1 ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                         107.1 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       3.608Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       3.608Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       3.608Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                            243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                            243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                            243.3 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          3.722Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          3.722Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          3.722Ki ± 0%
+geomean                                                                                      778.3
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                    frames/op                     │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                         1.000 ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                         2.000 ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                         4.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                         1.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                         2.000 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                         4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                            1.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                            2.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                            4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                            1.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                            2.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                            4.000 ± 0%
+geomean                                                                                      2.000
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                     frames/s                     │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                        131.9 ±  6%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                        225.2 ±  6%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                        305.4 ± 10%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                        74.95 ±  2%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                        127.0 ±  5%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                        199.5 ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                           163.2 ±  3%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                           226.8 ± 18%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                           262.6 ±  5%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                           163.7 ± 21%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                           158.4 ± 17%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                           213.6 ±  6%
+geomean                                                                                     176.7
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                  p50-sec/frame                   │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                       7.339m ±  2%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                       8.263m ±  2%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                       10.50m ±  7%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       13.15m ±  2%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       14.59m ±  1%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       16.68m ±  1%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                          5.907m ±  6%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                          7.855m ± 19%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                          11.29m ±  5%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          5.851m ± 30%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          11.32m ± 16%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          14.65m ±  7%
+geomean                                                                                    10.03m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                  p95-sec/frame                   │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                       8.683m ± 40%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                       12.44m ± 23%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                       15.35m ±  3%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       15.08m ±  8%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       21.94m ± 25%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       25.95m ±  4%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                          7.090m ±  4%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                          9.436m ± 21%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                          16.21m ±  9%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          7.740m ± 27%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          15.17m ± 17%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          20.52m ±  9%
+geomean                                                                                    13.52m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                service-sec/frame                 │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                       7.569m ±  6%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                       8.572m ±  7%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                       11.78m ± 10%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       13.33m ±  2%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       15.34m ±  5%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       18.22m ±  3%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                          6.108m ±  3%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                          7.309m ± 20%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                          11.27m ±  7%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          6.101m ± 27%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          10.66m ± 14%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          14.68m ±  8%
+geomean                                                                                    10.26m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                  wall-sec/frame                  │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                       7.580m ±  6%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                       4.440m ±  7%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                       3.274m ±  9%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       13.34m ±  2%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       7.870m ±  5%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       5.014m ±  5%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                          6.126m ±  3%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                          4.412m ± 22%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                          3.809m ±  5%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          6.115m ± 27%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          6.315m ± 15%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          4.683m ±  6%
+geomean                                                                                    5.660m
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                       B/op                       │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                       23.12Ki ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                       46.24Ki ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                       92.47Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                       26.70Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                       53.41Ki ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                       106.8Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                            524.0 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                          1.023Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                          2.052Ki ± 3%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                          4.079Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                          8.158Ki ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                          16.32Ki ± 0%
+geomean                                                                                    11.99Ki
+
+                                                     │ docs/benchmarks/performance-8aaf546/encoders.txt │
+                                                     │                    allocs/op                     │
+ConcurrentDesktops/software/1080p/Widget/1Sessions-4                                         29.00 ± 0%
+ConcurrentDesktops/software/1080p/Widget/2Sessions-4                                         59.00 ± 0%
+ConcurrentDesktops/software/1080p/Widget/4Sessions-4                                         119.0 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/1Sessions-4                                         31.00 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/2Sessions-4                                         63.00 ± 0%
+ConcurrentDesktops/software/1080p/Scroll/4Sessions-4                                         127.0 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/1Sessions-4                                            4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/2Sessions-4                                            8.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Widget/4Sessions-4                                            16.00 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/1Sessions-4                                            4.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/2Sessions-4                                            8.000 ± 0%
+ConcurrentDesktops/nvenc/1080p/Scroll/4Sessions-4                                            16.00 ± 0%
+geomean                                                                                      22.05
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                      │ docs/benchmarks/performance-8aaf546/gpu-transfer.txt │
+                                      │                        sec/op                        │
+ReviewGPUTransfer/1920x1080/Full-4                                              1.174m ±  3%
+ReviewGPUTransfer/1920x1080/Browser-4                                           1.021m ± 11%
+ReviewGPUTransfer/3840x2160/Full-4                                              4.959m ± 10%
+ReviewGPUTransfer/3840x2160/Browser-4                                           4.666m ±  5%
+geomean                                                                         2.295m
+
+                                      │ docs/benchmarks/performance-8aaf546/gpu-transfer.txt │
+                                      │                         B/s                          │
+ReviewGPUTransfer/1920x1080/Full-4                                             6.583Gi ±  3%
+ReviewGPUTransfer/1920x1080/Browser-4                                          6.448Gi ± 10%
+ReviewGPUTransfer/3840x2160/Full-4                                             6.231Gi ±  9%
+ReviewGPUTransfer/3840x2160/Browser-4                                          6.126Gi ±  4%
+geomean                                                                        6.345Gi
+
+                                      │ docs/benchmarks/performance-8aaf546/gpu-transfer.txt │
+                                      │                         B/op                         │
+ReviewGPUTransfer/1920x1080/Full-4                                              0.000 ± 0%
+ReviewGPUTransfer/1920x1080/Browser-4                                           0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Full-4                                              0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Browser-4                                           0.000 ± 0%
+geomean                                                                                    ¹
+¹ summaries must be >0 to compute geomean
+
+                                      │ docs/benchmarks/performance-8aaf546/gpu-transfer.txt │
+                                      │                      allocs/op                       │
+ReviewGPUTransfer/1920x1080/Full-4                                              0.000 ± 0%
+ReviewGPUTransfer/1920x1080/Browser-4                                           0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Full-4                                              0.000 ± 0%
+ReviewGPUTransfer/3840x2160/Browser-4                                           0.000 ± 0%
+geomean                                                                                    ¹
+¹ summaries must be >0 to compute geomean
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                      │ docs/benchmarks/performance-8aaf546/net-rx.txt │
+                                      │                     sec/op                     │
+ReviewNetRx/segments=1/empty=false-4                                       167.9n ± 7%
+ReviewNetRx/segments=2/empty=false-4                                       243.3n ± 3%
+ReviewNetRx/segments=16/empty=false-4                                      723.8n ± 5%
+ReviewNetRx/segments=1/empty=true-4                                        89.71n ± 7%
+ReviewNetRx/segments=2/empty=true-4                                        148.8n ± 2%
+geomean                                                                    208.6n
+
+                                      │ docs/benchmarks/performance-8aaf546/net-rx.txt │
+                                      │                      B/s                       │
+ReviewNetRx/segments=1/empty=false-4                                      8.397Gi ± 6%
+ReviewNetRx/segments=2/empty=false-4                                      5.793Gi ± 3%
+ReviewNetRx/segments=16/empty=false-4                                     1.948Gi ± 4%
+geomean                                                                   4.559Gi
+
+                                      │ docs/benchmarks/performance-8aaf546/net-rx.txt │
+                                      │                      B/op                      │
+ReviewNetRx/segments=1/empty=false-4                                        24.00 ± 0%
+ReviewNetRx/segments=2/empty=false-4                                        72.00 ± 0%
+ReviewNetRx/segments=16/empty=false-4                                       744.0 ± 0%
+ReviewNetRx/segments=1/empty=true-4                                         24.00 ± 0%
+ReviewNetRx/segments=2/empty=true-4                                         72.00 ± 0%
+geomean                                                                     74.02
+
+                                      │ docs/benchmarks/performance-8aaf546/net-rx.txt │
+                                      │                   allocs/op                    │
+ReviewNetRx/segments=1/empty=false-4                                        1.000 ± 0%
+ReviewNetRx/segments=2/empty=false-4                                        2.000 ± 0%
+ReviewNetRx/segments=16/empty=false-4                                       5.000 ± 0%
+ReviewNetRx/segments=1/empty=true-4                                         1.000 ± 0%
+ReviewNetRx/segments=2/empty=true-4                                         2.000 ± 0%
+geomean                                                                     1.821
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/gateway
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                         │ docs/benchmarks/performance-8aaf546/password-hash.txt │
+                                         │                        sec/op                         │
+PerfReviewGuestPasswordHash/bytes_12-4                                               38.97m ± 5%
+PerfReviewGuestPasswordHash/bytes_72-4                                               65.70m ± 3%
+PerfReviewGuestPasswordHash/bytes_1024-4                                             404.4m ± 3%
+geomean                                                                              101.2m
+
+                                         │ docs/benchmarks/performance-8aaf546/password-hash.txt │
+                                         │                         B/op                          │
+PerfReviewGuestPasswordHash/bytes_12-4                                              6.104Mi ± 0%
+PerfReviewGuestPasswordHash/bytes_72-4                                              6.104Mi ± 0%
+PerfReviewGuestPasswordHash/bytes_1024-4                                            6.106Mi ± 0%
+geomean                                                                             6.105Mi
+
+                                         │ docs/benchmarks/performance-8aaf546/password-hash.txt │
+                                         │                       allocs/op                       │
+PerfReviewGuestPasswordHash/bytes_12-4                                               100.0k ± 0%
+PerfReviewGuestPasswordHash/bytes_72-4                                               100.0k ± 0%
+PerfReviewGuestPasswordHash/bytes_1024-4                                             100.0k ± 0%
+geomean                                                                              100.0k
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                           │ docs/benchmarks/performance-8aaf546/rdp.txt │
+                           │                   sec/op                    │
+BitmapDamage/1080p/Full-4                                   28.42m ±  4%
+BitmapDamage/1080p/64x32-4                                  29.96µ ± 18%
+BitmapDamage/4K/Full-4                                      114.9m ±  9%
+BitmapDamage/4K/64x32-4                                     33.65µ ±  7%
+GraphicsTransport/64KiB-4                                   14.38µ ± 22%
+GraphicsTransport/256KiB-4                                  55.54µ ±  4%
+GraphicsTransport/1MiB-4                                    270.6µ ± 22%
+geomean                                                     355.1µ
+
+                           │ docs/benchmarks/performance-8aaf546/rdp.txt │
+                           │                    B/op                     │
+BitmapDamage/1080p/Full-4                                   18.00Ki ± 0%
+BitmapDamage/1080p/64x32-4                                  18.00Ki ± 0%
+BitmapDamage/4K/Full-4                                      18.00Ki ± 0%
+BitmapDamage/4K/64x32-4                                     18.00Ki ± 0%
+GraphicsTransport/64KiB-4                                   72.00Ki ± 0%
+GraphicsTransport/256KiB-4                                  264.0Ki ± 0%
+GraphicsTransport/1MiB-4                                    1.008Mi ± 0%
+geomean                                                     57.43Ki
+
+                           │ docs/benchmarks/performance-8aaf546/rdp.txt │
+                           │                  allocs/op                  │
+BitmapDamage/1080p/Full-4                                     1.000 ± 0%
+BitmapDamage/1080p/64x32-4                                    1.000 ± 0%
+BitmapDamage/4K/Full-4                                        1.000 ± 0%
+BitmapDamage/4K/64x32-4                                       1.000 ± 0%
+GraphicsTransport/64KiB-4                                     1.000 ± 0%
+GraphicsTransport/256KiB-4                                    1.000 ± 0%
+GraphicsTransport/1MiB-4                                      1.000 ± 0%
+geomean                                                       1.000
+
+                           │ docs/benchmarks/performance-8aaf546/rdp.txt │
+                           │                     B/s                     │
+GraphicsTransport/64KiB-4                                  4.243Gi ± 18%
+GraphicsTransport/256KiB-4                                 4.396Gi ±  4%
+GraphicsTransport/1MiB-4                                   3.609Gi ± 18%
+geomean                                                    4.068Gi
+
+                           │ docs/benchmarks/performance-8aaf546/rdp.txt │
+                           │                  writes/op                  │
+GraphicsTransport/64KiB-4                                     5.000 ± 0%
+GraphicsTransport/256KiB-4                                    17.00 ± 0%
+GraphicsTransport/1MiB-4                                      66.00 ± 0%
+geomean                                                       17.77
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                  │ docs/benchmarks/performance-8aaf546/virtio.txt │
+                                  │                     sec/op                     │
+BlkWriteFlushGroup/writethrough-4                                     99.86m ±  5%
+BlkWriteFlushGroup/writeback-4                                        3.536m ± 10%
+FramebufferDamage/Full1080p-4                                         2.754m ± 12%
+FramebufferDamage/Small64x32-4                                        4.856µ ±  3%
+GPUDesktop/Convert-4                                                  2.677m ±  7%
+GPUDesktop/Convert64x64-4                                             14.17µ ±  3%
+GPUDesktop/FlushCursor-4                                              3.899m ±  5%
+GPUDesktop/TransferFull-4                                             369.3µ ±  5%
+GPUDesktop/TransferBrowser-4                                          241.8µ ± 28%
+NetTx/packets=1/segments=2-4                                          123.5n ±  5%
+NetTx/packets=8/segments=2-4                                          533.9n ±  5%
+NetTx/packets=1/segments=16-4                                         243.5n ±  4%
+geomean                                                               100.0µ
+
+                                  │ docs/benchmarks/performance-8aaf546/virtio.txt │
+                                  │                      B/s                       │
+BlkWriteFlushGroup/writethrough-4                                    1.254Mi ±  5%
+BlkWriteFlushGroup/writeback-4                                       35.35Mi ±  9%
+GPUDesktop/TransferFull-4                                            7.935Gi ±  5%
+GPUDesktop/TransferBrowser-4                                         9.468Gi ± 22%
+NetTx/packets=1/segments=2-4                                         11.42Gi ±  5%
+NetTx/packets=8/segments=2-4                                         21.13Gi ±  5%
+NetTx/packets=1/segments=16-4                                        5.791Gi ±  4%
+geomean                                                              1.237Gi
+
+                                  │ docs/benchmarks/performance-8aaf546/virtio.txt │
+                                  │                    syncs/op                    │
+BlkWriteFlushGroup/writethrough-4                                       32.00 ± 0%
+BlkWriteFlushGroup/writeback-4                                          1.000 ± 0%
+geomean                                                                 5.657
+
+                                  │ docs/benchmarks/performance-8aaf546/virtio.txt │
+                                  │                      B/op                      │
+BlkWriteFlushGroup/writethrough-4                                     0.000 ± 0%
+BlkWriteFlushGroup/writeback-4                                        0.000 ± 0%
+FramebufferDamage/Full1080p-4                                         144.0 ± 0%
+FramebufferDamage/Small64x32-4                                        144.0 ± 0%
+GPUDesktop/Convert-4                                                  0.000 ± 0%
+GPUDesktop/Convert64x64-4                                             0.000 ± 0%
+GPUDesktop/FlushCursor-4                                            3.000Mi ± 0%
+GPUDesktop/TransferFull-4                                             0.000 ± 0%
+GPUDesktop/TransferBrowser-4                                          0.000 ± 0%
+NetTx/packets=1/segments=2-4                                          0.000 ± 0%
+NetTx/packets=8/segments=2-4                                          0.000 ± 0%
+NetTx/packets=1/segments=16-4                                         0.000 ± 0%
+geomean                                                                          ¹
+¹ summaries must be >0 to compute geomean
+
+                                  │ docs/benchmarks/performance-8aaf546/virtio.txt │
+                                  │                   allocs/op                    │
+BlkWriteFlushGroup/writethrough-4                                     0.000 ± 0%
+BlkWriteFlushGroup/writeback-4                                        0.000 ± 0%
+FramebufferDamage/Full1080p-4                                         2.000 ± 0%
+FramebufferDamage/Small64x32-4                                        2.000 ± 0%
+GPUDesktop/Convert-4                                                  0.000 ± 0%
+GPUDesktop/Convert64x64-4                                             0.000 ± 0%
+GPUDesktop/FlushCursor-4                                              2.000 ± 0%
+GPUDesktop/TransferFull-4                                             0.000 ± 0%
+GPUDesktop/TransferBrowser-4                                          0.000 ± 0%
+NetTx/packets=1/segments=2-4                                          0.000 ± 0%
+NetTx/packets=8/segments=2-4                                          0.000 ± 0%
+NetTx/packets=1/segments=16-4                                         0.000 ± 0%
+geomean                                                                          ¹
+¹ summaries must be >0 to compute geomean
+
+FILE: conversion.txt
+
+FILE: disk.txt
+
+FILE: encoder-cpu.txt
+
+FILE: encoders.txt
+
+FILE: gpu-transfer.txt
+
+FILE: net-rx.txt
+
+FILE: password-hash.txt
+
+FILE: rdp.txt
+
+FILE: virtio.txt

@@ -69,6 +69,13 @@ func (r *rawImage) ReadAt(b []byte, off int64) (int, error) {
 }
 
 func (r *rawImage) WriteAt(b []byte, off int64) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+	if off < 0 || off > r.size || int64(len(b)) > r.size-off {
+		return 0, errors.New("raw: write exceeds disk size")
+	}
+
 	return r.file.WriteAt(b, off)
 }
 

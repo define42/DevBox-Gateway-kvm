@@ -246,11 +246,6 @@ when comparing changes; an RDP connection alone does not prove desktop readiness
 Detailed performance options and display limitations are in the
 [runtime guide](runtime.md).
 
-Managed VM host logs are written to `STATE/vms/VM_ID/console.log`. RDP-mode guests
-disable the serial console, so this file is a host process log rather than a
-guest serial transcript. Do not include password hashes, seed contents, private
-keys, browser cookies, or downloaded RDP tokens in issue reports.
-
 ### Disk benchmarks
 
 The [isolated host/guest disk harness](../scripts/diskbench/README.md) runs the

@@ -125,7 +125,7 @@ jobs:
       run: |
         go test -race ./internal/audio
         go test -race ./internal/rdp/...
-        go test -race ./internal/virtio ./internal/vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror)'
+        go test -race ./internal/virtio ./internal/vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror|Blk)'
 
   release-check:
     name: Check release configuration

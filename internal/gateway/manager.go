@@ -307,6 +307,12 @@ func (m *Manager) load() error {
 			return fmt.Errorf("duplicate saved desktop name: %w", ErrInvalid)
 		}
 		names[key] = true
+		// Older versions appended unbounded child output here. Managed guests
+		// no longer persist process output, so reclaim any legacy log on load.
+		logPath := filepath.Join(m.directory(entry.Name()), "console.log")
+		if err := os.Remove(logPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("remove legacy VM console log: %w", err)
+		}
 		record.State, record.Error = "stopped", ""
 		m.vms[record.ID] = newManagedVM(record)
 	}
@@ -608,11 +614,6 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 	if err != nil {
 		return nil, err
 	}
-	logFile, err := openPrivateFile(filepath.Join(dir, "console.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY)
-	if err != nil {
-		return nil, err
-	}
-	defer logFile.Close()
 	args := []string{
 		"boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
 		"-d", filepath.Join(dir, "disk.img"), "-cloud-init", filepath.Join(dir, "seed.iso"),
@@ -622,7 +623,8 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
-	cmd.Stdout, cmd.Stderr = logFile, logFile
+	// Leave stdout and stderr unset so os/exec connects them to the null
+	// device. Guest-controlled output must not consume persistent host storage.
 	cmd.ExtraFiles = []*os.File{listenerFile} // ExtraFiles[0] is descriptor 3 in the child.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
 	if err := cmd.Start(); err != nil {
@@ -683,7 +685,7 @@ func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	v.run = nil
 	v.record.State = "stopped"
 	if run.err != nil && v.record.Error == "" {
-		v.record.Error = "Desktop stopped unexpectedly; inspect its host log."
+		v.record.Error = "Desktop stopped unexpectedly."
 	}
 	if err := m.save(v.record); err != nil {
 		v.record.Error = "Could not save desktop state."
@@ -726,7 +728,7 @@ func (m *Manager) Stop(ctx context.Context, owner, id string) error {
 		v.run = nil
 		v.record.State, v.record.Error = "stopped", ""
 		if run.err != nil {
-			v.record.Error = "Desktop stopped unexpectedly; inspect its host log."
+			v.record.Error = "Desktop stopped unexpectedly."
 
 			return errors.Join(fmt.Errorf("desktop shutdown failed: %w", run.err), m.save(v.record))
 		}
@@ -814,7 +816,7 @@ func (m *Manager) failedStart(v *managedVM, run *managedProcess, startErr error)
 		v.record.State = "stopped"
 	default:
 	}
-	v.record.Error = "Desktop startup failed; inspect its host log."
+	v.record.Error = "Desktop startup failed."
 
 	return errors.Join(startErr, cleanupErr, m.save(v.record))
 }

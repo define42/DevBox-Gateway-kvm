@@ -382,7 +382,6 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | `vms/<vm-id>/vars.fd` | Writable firmware settings for this VM. |
 | `vms/<vm-id>/seed.iso` | NoCloud provisioning, including the password hash. |
 | `vms/<vm-id>/rdp.crt`, `rdp.key` | Private VM-console TLS identity. |
-| `vms/<vm-id>/console.log` | Appended child-process diagnostics. |
 
 The `images` directory is created automatically and starts empty for a new
 state directory without `BASE_IMAGE`. The Compose stack stores it at

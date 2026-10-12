@@ -220,8 +220,7 @@ Each VM's RDP server is part of gokvm. The guest uses its normal graphical login
 and desktop session; the generated cloud-init configuration disables guest XRDP.
 The console can show firmware, boot output directed to the display, and the
 running desktop. Managed boot begins before you connect, so early screens may
-have passed; RDP does not replay them. Host diagnostic logs are separate from the
-guest screen.
+have passed; RDP does not replay them.
 
 Browser and RDP connections must reach the gateway from the same client IP.
 Logging out revokes outstanding connection grants and closes that session's RDP

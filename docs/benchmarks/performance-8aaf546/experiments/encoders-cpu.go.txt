@@ -1,0 +1,119 @@
+package avc
+
+import (
+	"fmt"
+	"sort"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+)
+
+// BenchmarkConcurrentDesktops models independent office desktop encoders sharing
+// one host. Each operation encodes one changed frame per session concurrently.
+// Fixtures and encoder reference chains are private to each session. The initial
+// IDR is warmed before timing; network, guest rendering and pacing are excluded.
+func BenchmarkConcurrentDesktops(b *testing.B) {
+	for _, backend := range []Backend{BackendSoftware, BackendNVENC} {
+		for _, workload := range []string{"Widget", "Scroll"} {
+			for _, sessions := range []int{1, 2, 4} {
+				b.Run(fmt.Sprintf("%s/1080p/%s/%dSessions", backend, workload, sessions), func(b *testing.B) {
+					benchmarkConcurrentDesktops(b, backend, workload, sessions)
+				})
+			}
+		}
+	}
+}
+
+type desktopEncodeResult struct {
+	latency time.Duration
+	bytes   int
+	err     error
+}
+
+func benchmarkConcurrentDesktops(b *testing.B, backend Backend, workload string, sessions int) {
+	jobs := make([]chan int, 0, sessions)
+	results := make(chan desktopEncodeResult, sessions)
+	var workers sync.WaitGroup
+	b.Cleanup(func() {
+		for _, job := range jobs {
+			close(job)
+		}
+		workers.Wait()
+	})
+	for range sessions {
+		frames, regions := slicedDesktopFrames(1920, 1080, workload == "Scroll")
+		encoder, err := NewEncoderWithOptions(1920, 1080, Options{Threads: 1, Backend: backend})
+		if err != nil {
+			b.Fatalf("initialize requested %s backend: %v", backend, err)
+		}
+		if encoder.Backend() != backend {
+			encoder.Close()
+			b.Fatalf("requested %s backend, got %s", backend, encoder.Backend())
+		}
+		if _, err := encoder.Encode(frames[0], true); err != nil {
+			encoder.Close()
+			b.Fatalf("warm %s IDR: %v", backend, err)
+		}
+		job := make(chan int, 1)
+		jobs = append(jobs, job)
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			defer encoder.Close()
+			for frame := range job {
+				started := time.Now()
+				data, err := encoder.EncodeDamage(frames[frame%2], regions, false)
+				elapsed := time.Since(started)
+				if err == nil && len(data) == 0 {
+					err = fmt.Errorf("changed %s desktop produced an empty access unit", workload)
+				}
+				results <- desktopEncodeResult{latency: elapsed, bytes: len(data), err: err}
+			}
+		}()
+	}
+
+	// Bound latency storage even when the benchmark calibrator chooses a large
+	// b.N. One sample is one complete EncodeDamage call, including scheduling
+	// while it runs; time waiting in the dispatch queue is excluded.
+	latencies := make([]time.Duration, 0, min(b.N, 16384)*sessions)
+	var encodedBytes int64
+	var totalLatency time.Duration
+	b.ReportAllocs()
+	var cpuStart, cpuEnd syscall.Rusage
+	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &cpuStart); err != nil { b.Fatal(err) }
+	b.ResetTimer()
+	for frame := 1; frame <= b.N; frame++ {
+		for _, job := range jobs {
+			job <- frame
+		}
+		for range sessions {
+			result := <-results
+			if result.err != nil {
+				b.Fatal(result.err)
+			}
+			encodedBytes += int64(result.bytes)
+			totalLatency += result.latency
+			if len(latencies) < cap(latencies) {
+				latencies = append(latencies, result.latency)
+			}
+		}
+	}
+	b.StopTimer()
+	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &cpuEnd); err != nil { b.Fatal(err) }
+	frames := float64(b.N) * float64(sessions)
+	cpuNanos := func(r syscall.Rusage) int64 { return (r.Utime.Sec+r.Stime.Sec)*1e9+(r.Utime.Usec+r.Stime.Usec)*1000 }
+	b.ReportMetric(float64(cpuNanos(cpuEnd)-cpuNanos(cpuStart))/frames, "cpu-ns/frame")
+	b.ReportMetric(frames/b.Elapsed().Seconds(), "frames/s")
+	b.ReportMetric(float64(encodedBytes)/frames, "bytes/frame")
+	b.ReportMetric(float64(totalLatency.Nanoseconds())/frames, "service-ns/frame")
+	b.ReportMetric(float64(b.Elapsed().Nanoseconds())/frames, "wall-ns/frame")
+	sort.Slice(latencies, func(i, j int) bool { return latencies[i] < latencies[j] })
+	if len(latencies) != 0 {
+		b.ReportMetric(float64(latencies[(len(latencies)-1)*50/100].Nanoseconds()), "p50-ns/frame")
+		b.ReportMetric(float64(latencies[(len(latencies)-1)*95/100].Nanoseconds()), "p95-ns/frame")
+	}
+	// Standard ns/op, B/op and allocs/op describe a group of sessions frames;
+	// divide by the session count when comparing per-frame allocation costs.
+	b.ReportMetric(float64(sessions), "frames/op")
+}

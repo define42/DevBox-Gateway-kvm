@@ -1,0 +1,28 @@
+File: avc.test
+Build ID: 2b045163e3b5e3919d78b3d8626e8e1b566b2475
+Type: alloc_space
+Time: 2026-10-11 23:01:59 CEST
+Showing nodes accounting for 468.22MB, 97.36% of 480.90MB total
+Dropped 57 nodes (cum <= 2.40MB)
+Showing top 20 nodes out of 44
+      flat  flat%   sum%        cum   cum%
+  128.36MB 26.69% 26.69%   128.36MB 26.69%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.AllocPicture
+  126.63MB 26.33% 53.02%   126.63MB 26.33%  image.NewRGBA
+  108.34MB 22.53% 75.55%   178.69MB 37.16%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.RequestMemorySvc
+   48.30MB 10.04% 85.60%    48.30MB 10.04%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.(*CDownsampling).AllocateSampleBuffer (inline)
+   24.31MB  5.06% 90.65%   278.95MB 58.00%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.newEncoderWithNVENC
+   15.36MB  3.19% 93.85%    15.36MB  3.19%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.InitMbListD
+    6.55MB  1.36% 95.21%     7.05MB  1.47%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsPSliceMdEnc
+    6.06MB  1.26% 96.47%    68.16MB 14.17%  github.com/define42/DevBox-Gateway-kvm/pkg/h264.(*Encoder).Encode
+    3.75MB  0.78% 97.25%     3.75MB  0.78%  github.com/define42/DevBox-Gateway-kvm/pkg/h264.collectBitstream (inline)
+    0.55MB  0.11% 97.36%   254.63MB 52.95%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsInitEncoderExt
+         0     0% 97.36%    50.03MB 10.40%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).Encode (inline)
+         0     0% 97.36%    68.16MB 14.17%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).EncodeDamage
+         0     0% 97.36%   254.63MB 52.95%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).useSoftware
+         0     0% 97.36%    68.16MB 14.17%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*openH264Encoder).encode
+         0     0% 97.36%   455.61MB 94.74%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.BenchmarkConcurrentDesktops.func1
+         0     0% 97.36%   278.95MB 58.00%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.NewEncoderWithOptions (inline)
+         0     0% 97.36%   455.61MB 94.74%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.benchmarkConcurrentDesktops
+         0     0% 97.36%    18.13MB  3.77%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.benchmarkConcurrentDesktops.func2
+         0     0% 97.36%   254.63MB 52.95%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.newCodecEncoder
+         0     0% 97.36%   254.63MB 52.95%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.newCodecEncoderWithConfig

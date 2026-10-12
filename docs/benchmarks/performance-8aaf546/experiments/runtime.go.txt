@@ -1,0 +1,111 @@
+package virtio
+
+import (
+	"fmt"
+	"io"
+	"sync"
+	"testing"
+	"time"
+)
+
+// A controlled delay demonstrates completion ordering, not real disk latency.
+func TestReviewReadCompletionWaitsForLaterFlush(t *testing.T) {
+	backing := &batchImage{data: make([]byte, 4*SectorSize)}
+	v, q, mem := newFlushTestDevice(t, backing, false)
+	negotiateBlkFlush(v)
+	readStatus := addFlushTestRequest(q, mem, 0, 0)
+	flushStatus := addFlushTestRequest(q, mem, 1, 4)
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var releaseOnce sync.Once
+	unblock := func() { releaseOnce.Do(func() { close(release) }) }
+	t.Cleanup(unblock)
+	backing.onSync = func() {
+		close(entered)
+		<-release
+	}
+	finished := make(chan error, 1)
+	go func() { finished <- v.IO() }()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("flush did not start")
+	}
+	if backing.reads != 1 {
+		t.Fatalf("read has not completed: reads=%d", backing.reads)
+	}
+	before := time.Now()
+	if q.Used.Idx != 0 || mem[readStatus] != 0xff || mem[flushStatus] != 0xff {
+		t.Fatalf("completion ordering changed: used=%d read=%d flush=%d", q.Used.Idx, mem[readStatus], mem[flushStatus])
+	}
+	// Hold the later flush while the earlier read's completed data is available.
+	timer := time.NewTimer(100 * time.Millisecond)
+	<-timer.C
+	usedWhileBlocked := q.Used.Idx
+	unblock()
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("queue did not finish after releasing flush")
+	}
+	if q.Used.Idx != 2 || mem[readStatus] != 0 || mem[flushStatus] != 0 {
+		t.Fatalf("batch did not finish: used=%d read=%d flush=%d", q.Used.Idx, mem[readStatus], mem[flushStatus])
+	}
+	t.Logf("read_backing_completed=1 used_while_flush_blocked=%d used_after_flush=%d imposed_hold=%s observed_completion_wait=%s",
+		usedWhileBlocked, q.Used.Idx, 100*time.Millisecond, time.Since(before))
+}
+
+type reviewRXBackend struct {
+	packet [1514]byte
+	empty  bool
+}
+
+func (b *reviewRXBackend) Read(dst []byte) (int, error) {
+	if b.empty {
+		return 0, io.EOF
+	}
+	return copy(dst, b.packet[:]), nil
+}
+func (b *reviewRXBackend) Write(p []byte) (int, error) { return len(p), nil }
+func (b *reviewRXBackend) Ready() <-chan struct{}      { return nil }
+
+// This measures RX device code only, excluding the userspace network stack,
+// guest scheduling and KVM interrupt syscalls. The empty case reaches EAGAIN's
+// equivalent after descriptor gathering, as every drained RX loop does.
+func BenchmarkReviewNetRx(b *testing.B) {
+	for _, tc := range []struct {
+		segments int
+		empty    bool
+	}{{1, false}, {2, false}, {16, false}, {1, true}, {2, true}} {
+		b.Run(fmt.Sprintf("segments=%d/empty=%v", tc.segments, tc.empty), func(b *testing.B) {
+			const packetSize = 1514 + netHdrLen
+			mem := make([]byte, packetSize)
+			backend := &reviewRXBackend{empty: tc.empty}
+			v := NewNet(9, benchIRQInjector{}, backend, mem)
+			q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+			for s := 0; s < tc.segments; s++ {
+				start, end := s*packetSize/tc.segments, (s+1)*packetSize/tc.segments
+				q.Desc[s] = SplitDesc{Addr: uint64(start), Len: uint32(end - start), Flags: descFWrite}
+				if s+1 < tc.segments {
+					q.Desc[s].Flags |= descFNext
+					q.Desc[s].Next = uint16(s + 1)
+				}
+			}
+			v.VirtQueue[netRxQueue] = q
+			b.ReportAllocs()
+			if !tc.empty {
+				b.SetBytes(1514)
+			}
+			for b.Loop() {
+				v.LastAvailIdx[netRxQueue], q.Used.Idx, q.Avail.Idx = 0, 0, 1
+				err := v.Rx()
+				if (tc.empty && err != ErrNoRxPacket) || (!tc.empty && err != nil) {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

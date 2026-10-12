@@ -267,30 +267,41 @@ func (v *Blk) IO() error {
 	}
 
 	needsSync := false
+	var interruptErr error
 	for i := uint16(0); i < count; i++ {
 		c := &pending[i]
-		if c.result == 2 {
-			continue
+		if c.result == 0 {
+			var ioErr error
+			switch {
+			case c.flush:
+				ioErr = v.syncImage()
+			case c.write && v.readOnly:
+				ioErr = errReadOnlyBlk
+			case c.write:
+				// A failed write can still have changed data or QCOW2 metadata.
+				v.dirty = true
+				_, ioErr = v.image.WriteAt(c.data, c.offset)
+				needsSync = true
+			default:
+				_, ioErr = v.image.ReadAt(c.data, c.offset)
+			}
+			if ioErr != nil {
+				c.result = 1 // VIRTIO_BLK_S_IOERR
+			}
 		}
-		var ioErr error
-		switch {
-		case c.flush:
-			ioErr = v.syncImage()
-		case c.write && v.readOnly:
-			ioErr = errReadOnlyBlk
-		case c.write:
-			// A failed write can still have changed data or QCOW2 metadata.
-			v.dirty = true
-			_, ioErr = v.image.WriteAt(c.data, c.offset)
-			needsSync = true
-		default:
-			_, ioErr = v.image.ReadAt(c.data, c.offset)
-		}
-		if ioErr != nil {
-			c.result = 1 // VIRTIO_BLK_S_IOERR
+
+		// A writeback driver controls durability with FLUSH. Publish each
+		// finished request before starting potentially blocking later I/O.
+		if writeback {
+			if err := v.completeRequests(q, queueSize, pending[i:i+1]); err != nil && interruptErr == nil {
+				interruptErr = err
+			}
 		}
 	}
-	if needsSync && !writeback {
+	if writeback {
+		return interruptErr
+	}
+	if needsSync {
 		if err := v.syncImage(); err != nil {
 			for i := uint16(0); i < count; i++ {
 				if pending[i].write {
@@ -299,6 +310,14 @@ func (v *Blk) IO() error {
 			}
 		}
 	}
+
+	return v.completeRequests(q, queueSize, pending[:count])
+}
+
+// completeRequests transfers ownership of a consecutive completed prefix back
+// to the guest. Callers must not touch its guest buffers after Used.Idx moves.
+func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPendingRequest) error {
+	count := uint16(len(pending)) //nolint:gosec // pending is bounded by QueueSize.
 	usedIdx := LoadU16(&q.Used.Idx)
 	for i := uint16(0); i < count; i++ {
 		c := &pending[i]
@@ -306,7 +325,7 @@ func (v *Blk) IO() error {
 		q.Used.Ring[(usedIdx+i)%queueSize] = SplitUsedElem{ID: c.id, Len: c.length}
 	}
 	StoreAddU16(&q.Used.Idx, count)
-	v.LastAvailIdx[sel] += count
+	v.LastAvailIdx[blkQueue] += count
 
 	return v.Interrupt()
 }
@@ -331,7 +350,12 @@ func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPen
 			typ := binary.LittleEndian.Uint32(data)
 			c.write = typ == 1
 			c.flush = typ == 4 && writeback
-			c.offset = int64(binary.LittleEndian.Uint64(data[8:]) * SectorSize)
+			sector := binary.LittleEndian.Uint64(data[8:])
+			if sector > v.capacity {
+				c.result = 1 // VIRTIO_BLK_S_IOERR
+			} else {
+				c.offset = int64(sector * uint64(SectorSize))
+			}
 			if typ != 0 && typ != 1 && !c.flush {
 				// Unsupported commands, including unnegotiated FLUSH, must
 				// never be mistaken for data reads or writes.
@@ -359,6 +383,13 @@ func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPen
 	}
 	if c.status == nil {
 		return ErrBlkDesc
+	}
+	if c.result == 0 && !c.flush {
+		capacityBytes := v.capacity * uint64(SectorSize)
+		offset := uint64(c.offset)
+		if offset > capacityBytes || uint64(len(c.data)) > capacityBytes-offset {
+			c.result = 1 // VIRTIO_BLK_S_IOERR
+		}
 	}
 
 	return nil

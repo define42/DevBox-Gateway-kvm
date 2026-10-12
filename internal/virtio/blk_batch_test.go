@@ -48,6 +48,77 @@ func (d *batchImage) Sync() error {
 	return d.syncErr
 }
 
+func TestBlkRequestCapacity(t *testing.T) {
+	t.Parallel()
+
+	operations := []struct {
+		name string
+		typ  uint32
+	}{
+		{name: "read", typ: 0},
+		{name: "write", typ: 1},
+	}
+	ranges := []struct {
+		name    string
+		sector  uint64
+		dataLen uint32
+		invalid bool
+	}{
+		{name: "exact_capacity", sector: 0, dataLen: SectorSize},
+		{name: "starts_at_end", sector: 1, dataLen: 1, invalid: true},
+		{name: "straddles_end", sector: 0, dataLen: SectorSize + 1, invalid: true},
+		{name: "sector_overflow", sector: ^uint64(0), dataLen: 1, invalid: true},
+	}
+	for _, operation := range operations {
+		for _, requestRange := range ranges {
+			t.Run(operation.name+"_"+requestRange.name, func(t *testing.T) {
+				t.Parallel()
+
+				mem := make([]byte, 2048)
+				backing := &batchImage{data: make([]byte, SectorSize)}
+				v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
+				t.Cleanup(func() { _ = v.Close() })
+				q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+				binary.LittleEndian.PutUint32(mem, operation.typ)
+				binary.LittleEndian.PutUint64(mem[8:], requestRange.sector)
+				mem[32] = 0x5a
+				q.Desc[0] = SplitDesc{Addr: 0, Len: 16, Flags: descFNext, Next: 1}
+				dataFlags := uint16(descFNext)
+				if operation.typ == 0 {
+					dataFlags |= descFWrite
+				}
+				q.Desc[1] = SplitDesc{Addr: 32, Len: requestRange.dataLen, Flags: dataFlags, Next: 2}
+				q.Desc[2] = SplitDesc{Addr: 1024, Len: 1, Flags: descFWrite}
+				mem[1024] = 0xff
+				q.Avail.Idx = 1
+				v.VirtQueue[blkQueue] = q
+
+				if err := v.IO(); err != nil {
+					t.Fatal(err)
+				}
+				wantStatus := byte(0)
+				if requestRange.invalid {
+					wantStatus = 1
+				}
+				if mem[1024] != wantStatus || q.Used.Idx != 1 {
+					t.Fatalf("status=%d used=%d, want status=%d used=1", mem[1024], q.Used.Idx, wantStatus)
+				}
+				wantReads, wantWrites, wantSyncs := 0, 0, 0
+				if !requestRange.invalid && operation.typ == 0 {
+					wantReads = 1
+				}
+				if !requestRange.invalid && operation.typ == 1 {
+					wantWrites, wantSyncs = 1, 1
+				}
+				if backing.reads != wantReads || backing.writes != wantWrites || backing.syncs != wantSyncs {
+					t.Fatalf("backend I/O: reads=%d writes=%d syncs=%d, want %d/%d/%d",
+						backing.reads, backing.writes, backing.syncs, wantReads, wantWrites, wantSyncs)
+				}
+			})
+		}
+	}
+}
+
 func TestBlkBatchDurability(t *testing.T) {
 	t.Parallel()
 

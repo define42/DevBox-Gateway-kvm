@@ -56,6 +56,62 @@ func TestOpenRawImage(t *testing.T) {
 	}
 }
 
+func TestRawImageWriteBounds(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "disk.raw")
+	original := []byte("0123456789abcdef")
+	if err := os.WriteFile(path, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	img, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer img.Close()
+
+	for _, tc := range []struct {
+		name string
+		off  int64
+		data []byte
+	}{
+		{name: "negative", off: -1, data: []byte{1}},
+		{name: "at_end", off: int64(len(original)), data: []byte{1}},
+		{name: "straddles_end", off: int64(len(original) - 1), data: []byte{1, 2}},
+		{name: "far_past_end", off: 1 << 20, data: []byte{1}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if n, err := img.WriteAt(tc.data, tc.off); n != 0 || err == nil {
+				t.Fatalf("WriteAt = (%d, %v), want (0, error)", n, err)
+			}
+		})
+	}
+	if n, err := img.WriteAt(nil, int64(len(original))); n != 0 || err != nil {
+		t.Fatalf("empty WriteAt = (%d, %v), want (0, nil)", n, err)
+	}
+	if n, err := img.WriteAt([]byte{'X'}, int64(len(original)-1)); n != 1 || err != nil {
+		t.Fatalf("in-range WriteAt = (%d, %v), want (1, nil)", n, err)
+	}
+	if err := img.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Size() != int64(len(original)) {
+		t.Fatalf("raw image grew to %d bytes, want %d", info.Size(), len(original))
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := append(bytes.Clone(original[:len(original)-1]), 'X')
+	if !bytes.Equal(got, want) {
+		t.Fatalf("raw image contents=%q, want %q", got, want)
+	}
+}
+
 func TestOpenQCOW2CapacityAndUnallocatedRead(t *testing.T) {
 	t.Parallel()
 

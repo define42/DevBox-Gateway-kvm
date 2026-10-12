@@ -1,0 +1,13 @@
+go test ./internal/virtio -run ^$ -bench Benchmark(GPUDesktop|FramebufferDamage|NetTx|BlkWriteFlushGroup)$ -benchmem -benchtime=300ms -count=6
+go test ./internal/rdp -run ^$ -bench Benchmark(BitmapDamage|GraphicsTransport)$ -benchmem -benchtime=300ms -count=6
+go test ./internal/rdp/avc -run ^$ -bench ^BenchmarkI420Damage$ -benchmem -benchtime=300ms -count=6
+go test -tags=nvenc -overlay=/tmp/gokvm-review-8aaf546/encoders.json ./internal/rdp/avc -run ^$ -bench ^BenchmarkConcurrentDesktops$ -benchmem -benchtime=100x -count=6 -timeout=8m
+go test ./internal/disk -run ^$ -bench ^BenchmarkQCOW2 -benchmem -benchtime=200ms -count=6
+go test -overlay=/tmp/gokvm-review-8aaf546/gpu.json ./internal/virtio -run ^$ -bench ^BenchmarkReviewGPUTransfer$ -benchmem -benchtime=300ms -count=6
+go test -overlay=/tmp/gokvm-review-8aaf546/idle.json ./internal/virtio -run ^TestPerfIdleGatewayDevices$ -v -count=3
+go test -overlay=/tmp/gokvm-review-8aaf546/gateway-current.json ./internal/gateway -run ^TestPerfReview -v
+go test -overlay=/tmp/gokvm-review-8aaf546/gateway-current.json ./internal/gateway -run ^$ -bench ^BenchmarkPerfReviewGuestPasswordHash$ -benchmem -benchtime=200ms -count=6
+go test -overlay=/tmp/gokvm-review-8aaf546/runtime-current.json ./internal/virtio -run ^TestReviewReadCompletionWaitsForLaterFlush$ -count=3 -v
+go test -overlay=/tmp/gokvm-review-8aaf546/runtime-current.json ./internal/virtio -run ^$ -bench ^BenchmarkReviewNetRx$ -benchmem -benchtime=300ms -count=6
+go test -tags=nvenc -overlay=/tmp/gokvm-review-8aaf546/encoders-cpu.json ./internal/rdp/avc -run ^$ -bench ^BenchmarkConcurrentDesktops/(software|nvenc)/1080p/(Widget|Scroll)/4Sessions$ -benchmem -benchtime=100x -count=6 -timeout=5m
+go test -overlay=/tmp/gokvm-review-8aaf546/encoders-cpu.json ./internal/rdp/avc -run ^$ -bench ^BenchmarkConcurrentDesktops/software/1080p/Scroll/4Sessions$ -benchtime=200x -count=1 -cpuprofile=/home/define42/git/gokvm/docs/benchmarks/performance-8aaf546/encoder.cpu.pprof -memprofile=/home/define42/git/gokvm/docs/benchmarks/performance-8aaf546/encoder.alloc.pprof -o /tmp/gokvm-review-8aaf546/avc.test

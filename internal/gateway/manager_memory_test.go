@@ -43,7 +43,7 @@ func TestManagerMemoryAdmission(t *testing.T) {
 				t.Fatalf("Start = %v, want %v", err, tt.wantErr)
 			}
 			if tt.wantErr != nil {
-				if _, err := os.Stat(filepath.Join(m.directory(vm.ID), "console.log")); !errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat(filepath.Join(m.directory(vm.ID), "helper.pid")); !errors.Is(err, os.ErrNotExist) {
 					t.Fatalf("rejected start reached child launch: %v", err)
 				}
 				vms, err := m.List(t.Context(), vm.Owner)

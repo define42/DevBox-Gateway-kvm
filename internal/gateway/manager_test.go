@@ -46,27 +46,6 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 		}
 	}
 
-	t.Cleanup(func() {
-		if !t.Failed() {
-			return
-		}
-		paths, err := filepath.Glob(filepath.Join(config.DataDir, "vms", "*", "console.log"))
-		if err != nil {
-			t.Logf("find VM console logs: %v", err)
-
-			return
-		}
-		for _, path := range paths {
-			data, err := os.ReadFile(path)
-			if err != nil {
-				t.Logf("read %s: %v", path, err)
-
-				continue
-			}
-			t.Logf("VM console log %s:\n%s", path, data)
-		}
-	})
-
 	return config
 }
 
@@ -129,6 +108,10 @@ func TestManagerOwnershipQuotaAndPersistence(t *testing.T) {
 	if _, err := NewManager(m.config); err == nil {
 		t.Fatal("second manager acquired an active state directory")
 	}
+	legacyLog := filepath.Join(m.directory(other.ID), "console.log")
+	if err := os.WriteFile(legacyLog, []byte("legacy child output"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	if err := m.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -140,6 +123,9 @@ func TestManagerOwnershipQuotaAndPersistence(t *testing.T) {
 	list, err = reopened.List(t.Context(), "bob")
 	if err != nil || len(list) != 1 || list[0].ID != other.ID || list[0].State != "stopped" {
 		t.Fatalf("saved VM did not reload: %+v, %v", list, err)
+	}
+	if _, err := os.Stat(legacyLog); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("legacy console log was not removed: %v", err)
 	}
 	if err := reopened.Delete(t.Context(), "alice", first.ID); err != nil {
 		t.Fatal(err)
@@ -337,12 +323,11 @@ func TestManagerStartReportsEarlyExit(t *testing.T) {
 		!strings.Contains(err.Error(), "exit status 2") {
 		t.Fatalf("startup failure omitted the process exit diagnostic: %v", err)
 	}
-	data, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "console.log"))
-	if err != nil || !strings.Contains(string(data), "forced startup failure") {
-		t.Fatalf("startup console log = %q, %v", data, err)
+	if _, err := os.Stat(filepath.Join(m.directory(vm.ID), "console.log")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("startup created a console log: %v", err)
 	}
 	managerAssertReaped(t, m.directory(vm.ID))
-	data, err = os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.address"))
+	data, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.address"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,97 @@
+package gateway
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestPerfReviewCreationTimeoutParent(t *testing.T) {
+	s, base, raw, sess := webFixture(t)
+	s.config.CreationTimeout = 30 * time.Minute
+	var remaining time.Duration
+	s.config.Backend = &progressTestBackend{webBackend: base, create: func(
+		ctx context.Context, _, _, _, _ string, _ func(CreateProgress),
+	) (VM, error) {
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			t.Fatal("creation has no deadline")
+		}
+		remaining = time.Until(deadline)
+
+		return VM{}, nil
+	}}
+	w := httptest.NewRecorder()
+	s.routes().ServeHTTP(w, creationRequest(t, raw, sess.csrf))
+	t.Logf("configured creation timeout=%s; actual backend context remaining=%s", s.config.CreationTimeout, remaining)
+	if remaining <= 119*time.Second || remaining > 2*time.Minute {
+		t.Fatalf("expected inherited two-minute cap, observed %s", remaining)
+	}
+}
+
+func TestPerfReviewSharedIPLoginAndRDPBudget(t *testing.T) {
+	s, _, _, _ := webFixture(t)
+	s.config.Authenticator = testAuthenticator(func(_ context.Context, username, password string) (string, error) {
+		if password != "review-password" {
+			return "", ErrAuthentication
+		}
+
+		return username, nil
+	})
+	for i := range 6 {
+		challenge, err := randomToken()
+		if err != nil {
+			t.Fatal(err)
+		}
+		form := url.Values{
+			"csrf": {challenge}, "username": {fmt.Sprintf("office%d", i)}, "password": {"review-password"},
+		}
+		r := httptest.NewRequest(http.MethodPost, "https://gateway.test/login", strings.NewReader(form.Encode()))
+		r.RemoteAddr = "127.0.0.1:4444"
+		r.Header.Set("Origin", "https://gateway.test")
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r.AddCookie(&http.Cookie{Name: loginCookie, Value: challenge})
+		w := httptest.NewRecorder()
+		s.routes().ServeHTTP(w, r)
+		if w.Code != http.StatusSeeOther {
+			t.Fatalf("valid browser login %d failed: status%d", i+1, w.Code)
+		}
+	}
+	accepted, rejected := 0, 0
+	for i := range 6 {
+		username := fmt.Sprintf("office%d", i)
+		err := s.authenticateRDP(context.Background(), "127.0.0.1", username,
+			rdpCredentials{Username: username, Password: "review-password"})
+		if err == nil {
+			accepted++
+		} else if errors.Is(err, ErrAuthentication) {
+			rejected++
+		} else {
+			t.Fatal(err)
+		}
+	}
+	t.Logf("same sourceIP: six successful browser logins, then RDP passwords accepted=%d rejected=%d", accepted, rejected)
+	if accepted != 4 || rejected != 2 {
+		t.Fatalf("unexpected shared login budget: accepted=%d rejected=%d", accepted, rejected)
+	}
+}
+
+func BenchmarkPerfReviewGuestPasswordHash(b *testing.B) {
+	for _, length := range []int{12, 72, 1024} {
+		b.Run(fmt.Sprintf("bytes_%d", length), func(b *testing.B) {
+			password := strings.Repeat("p", length)
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := GuestPasswordHash(password); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

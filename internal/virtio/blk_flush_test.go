@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -85,6 +86,95 @@ func addFlushTestRequest(q *SplitQueue, mem []byte, index int, typ uint32) int {
 	q.Avail.Idx = uint16(index + 1)
 
 	return status
+}
+
+func TestBlkWritebackPublishesBeforeLaterFlush(t *testing.T) {
+	t.Parallel()
+
+	entered, release := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	releaseFlush := func() { releaseOnce.Do(func() { close(release) }) }
+	defer releaseFlush()
+
+	backing := &batchImage{data: make([]byte, 4*SectorSize)}
+	backing.onSync = func() {
+		close(entered)
+		<-release
+	}
+	v, q, mem := newFlushTestDevice(t, backing, false)
+	negotiateBlkFlush(v)
+	readStatus := addFlushTestRequest(q, mem, 0, 0)
+	flushStatus := addFlushTestRequest(q, mem, 1, 4)
+	trailingStatus := addFlushTestRequest(q, mem, 2, 0)
+
+	done := make(chan error, 1)
+	go func() { done <- v.IO() }()
+
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("FLUSH did not reach Sync")
+	}
+	if got := mem[readStatus]; got != 0 {
+		t.Fatalf("read status=%d, want success before FLUSH", got)
+	}
+	if q.Used.Idx != 1 || q.Used.Ring[0].ID != 0 {
+		t.Fatalf("published completions=(idx=%d, first ID=%d), want read only", q.Used.Idx, q.Used.Ring[0].ID)
+	}
+	if mem[flushStatus] != 0xff || mem[trailingStatus] != 0xff {
+		t.Fatal("published FLUSH or trailing read while Sync was blocked")
+	}
+	if backing.reads != 1 {
+		t.Fatalf("backend reads=%d, want only the leading read", backing.reads)
+	}
+	if !v.interruptPending() {
+		t.Fatal("leading read completion did not raise an interrupt")
+	}
+
+	releaseFlush()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("I/O did not finish after releasing FLUSH")
+	}
+	if q.Used.Idx != 3 || backing.reads != 2 || backing.syncs != 1 {
+		t.Fatalf("final state: used=%d reads=%d syncs=%d", q.Used.Idx, backing.reads, backing.syncs)
+	}
+	for i, status := range []int{readStatus, flushStatus, trailingStatus} {
+		if mem[status] != 0 || q.Used.Ring[i].ID != uint32(i*3) {
+			t.Fatalf("request %d: status=%d used ID=%d", i, mem[status], q.Used.Ring[i].ID)
+		}
+	}
+}
+
+func TestBlkWritebackInterruptFailureDrainsBatch(t *testing.T) {
+	t.Parallel()
+
+	backing := &batchImage{data: make([]byte, 2*SectorSize)}
+	v, q, mem := newFlushTestDevice(t, backing, false)
+	negotiateBlkFlush(v)
+	irqErr := errors.New("inject block IRQ")
+	v.SetIRQLine(func(bool) error { return irqErr })
+	statuses := []int{
+		addFlushTestRequest(q, mem, 0, 0),
+		addFlushTestRequest(q, mem, 1, 0),
+	}
+
+	if err := v.IO(); !errors.Is(err, irqErr) {
+		t.Fatalf("IO error=%v, want %v", err, irqErr)
+	}
+	if q.Used.Idx != 2 || v.LastAvailIdx[blkQueue] != 2 || backing.reads != 2 {
+		t.Fatalf("drain after IRQ failure: used=%d last avail=%d reads=%d",
+			q.Used.Idx, v.LastAvailIdx[blkQueue], backing.reads)
+	}
+	for i, status := range statuses {
+		if mem[status] != 0 || q.Used.Ring[i].ID != uint32(i*3) {
+			t.Fatalf("request %d: status=%d used ID=%d", i, mem[status], q.Used.Ring[i].ID)
+		}
+	}
 }
 
 func TestBlkFlushNegotiation(t *testing.T) {
