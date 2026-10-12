@@ -38,3 +38,30 @@ func TestRcDivRoundF32(t *testing.T) {
 		t.Errorf("got %d", got)
 	}
 }
+
+func TestRcUpdatePredictedFrameBits(t *testing.T) {
+	ctx := &sWelsEncCtx{pWelsSvcRc: make([]SWelsSvcRc, 1)}
+	logged := false
+	ctx.sLogCtx.PfLog = func(any, int32, string, []any) { logged = true }
+
+	ctx.pWelsSvcRc[0].iFrameDqBits = 1200
+	RcUpdatePredictedFrameBits(ctx)
+	if got := ctx.pWelsSvcRc[0].iPredFrameBit; got != 1200 {
+		t.Fatalf("initial prediction = %d, want 1200", got)
+	}
+
+	ctx.pWelsSvcRc[0].iFrameDqBits = 800
+	RcUpdatePredictedFrameBits(ctx)
+	if got := ctx.pWelsSvcRc[0].iPredFrameBit; got != 1000 {
+		t.Fatalf("smoothed prediction = %d, want 1000", got)
+	}
+	if logged {
+		t.Fatal("prediction update emitted a codec trace")
+	}
+
+	if allocs := testing.AllocsPerRun(100, func() {
+		RcUpdatePredictedFrameBits(ctx)
+	}); allocs != 0 {
+		t.Fatalf("prediction update allocated %v objects, want 0", allocs)
+	}
+}

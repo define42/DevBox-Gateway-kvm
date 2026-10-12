@@ -64,9 +64,6 @@ func (p *CWelsSliceEncodingTask) InitTask() WelsErrorType {
 		p.m_iThreadIdx = p.QueryEmptyThread(p.m_pCtx.pSliceThreading.bThreadBsBufferUsage[:])
 	}
 
-	common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DEBUG,
-		"[MT] CWelsSliceEncodingTask()InitTask for m_iSliceIdx %d, lock thread %d",
-		p.m_iSliceIdx, p.m_iThreadIdx)
 	if p.m_iThreadIdx < 0 || p.m_iThreadIdx >= MAX_THREADS_NUM ||
 		p.m_pCtx.pSliceThreading.pThreadBsBuffer[p.m_iThreadIdx] == nil {
 		common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_WARNING,
@@ -105,17 +102,7 @@ func (p *CWelsSliceEncodingTask) releaseThreadBuffer() {
 }
 
 func (p *CWelsSliceEncodingTask) FinishTask() {
-	common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DEBUG,
-		"[MT] CWelsSliceEncodingTask()FinishTask for m_iSliceIdx %d, unlock thread %d",
-		p.m_iSliceIdx, p.m_iThreadIdx)
 	p.releaseThreadBuffer()
-}
-
-func sliceTypeChar(eSliceType common.EWelsSliceType) string {
-	if eSliceType == common.P_SLICE {
-		return "P"
-	}
-	return "I"
 }
 
 // writePrefixNal writes the prefix NAL (if needed) into the task's slice bs.
@@ -157,12 +144,6 @@ func (p *CWelsSliceEncodingTask) ExecuteTask() WelsErrorType {
 
 	p.m_pCtx.pFuncList.pfDeblocking.pfDeblockingFilterSlice(p.m_pCtx.pCurDqLayer, p.m_pCtx.pFuncList, p.m_pSlice)
 
-	common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DETAIL,
-		"@pSlice=%-6d sliceType:%s idc:%d size:%-6d", p.m_iSliceIdx,
-		sliceTypeChar(p.m_pCtx.eSliceType),
-		p.m_eNalRefIdc,
-		p.m_iSliceSize)
-
 	return ENC_RETURN_SUCCESS
 }
 
@@ -175,26 +156,13 @@ func (p *CWelsLoadBalancingSlicingEncodingTask) InitTask() WelsErrorType {
 	}
 
 	p.m_iSliceStart = common.WelsTime()
-	common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DEBUG,
-		"[MT] CWelsLoadBalancingSlicingEncodingTask()InitTask for m_iSliceIdx %d at time=%d",
-		p.m_iSliceIdx, p.m_iSliceStart)
 
 	return ENC_RETURN_SUCCESS
 }
 
 func (p *CWelsLoadBalancingSlicingEncodingTask) FinishTask() {
 	p.CWelsSliceEncodingTask.FinishTask()
-	pParamInternal := &p.m_pCtx.pSvcParam.sDependencyLayers[p.m_pCtx.uiDependencyId]
 	p.m_pSlice.uiSliceConsumeTime = uint32(common.WelsTime() - p.m_iSliceStart)
-	common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DEBUG,
-		"[MT] CWelsLoadBalancingSlicingEncodingTask()FinishTask, coding_idx %d, um_iSliceIdx %d, uiSliceConsumeTime %d, m_iSliceSize %d, iFirstMbInSlice %d, count_num_mb_in_slice %d at time=%d",
-		pParamInternal.iCodingIndex,
-		p.m_iSliceIdx,
-		p.m_pSlice.uiSliceConsumeTime,
-		p.m_iSliceSize,
-		p.m_pSlice.sSliceHeaderExt.sSliceHeader.iFirstMbInSlice,
-		p.m_pSlice.iCountMbNumInSlice,
-		(int64(p.m_pSlice.uiSliceConsumeTime) + p.m_iSliceStart))
 }
 
 // CWelsConstrainedSizeSlicingEncodingTask
@@ -258,18 +226,6 @@ func (p *CWelsConstrainedSizeSlicingEncodingTask) ExecuteTask() WelsErrorType {
 			return iReturn
 		}
 		p.m_pCtx.pFuncList.pfDeblocking.pfDeblockingFilterSlice(pCurDq, p.m_pCtx.pFuncList, p.m_pSlice)
-
-		common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DETAIL,
-			"@pSlice=%-6d sliceType:%s idc:%d size:%-6d\n",
-			iLocalSliceIdx,
-			sliceTypeChar(p.m_pCtx.eSliceType),
-			p.m_eNalRefIdc,
-			p.m_iSliceSize)
-
-		common.WelsLog(&p.m_pCtx.sLogCtx, api.WELS_LOG_DEBUG,
-			"[MT] CWelsConstrainedSizeSlicingEncodingTask(), coding_idx %d, iPartitionId %d, m_iThreadIdx %d, iLocalSliceIdx %d, m_iSliceSize %d, ParamValidationExt(), invalid uiMaxNalSizeiEndMbInPartition %d, pCurDq->LastCodedMbIdxOfPartition[%d] %d\n",
-			pParamInternal.iCodingIndex, kiPartitionId, p.m_iThreadIdx, iLocalSliceIdx, p.m_iSliceSize,
-			kiEndMbIdxInPartition, kiPartitionId, pCurDq.LastCodedMbIdxOfPartition[kiPartitionId])
 
 		iAnyMbLeftInPartition = kiEndMbIdxInPartition - pCurDq.LastCodedMbIdxOfPartition[kiPartitionId]
 		iLocalSliceIdx += kiSliceIdxStep

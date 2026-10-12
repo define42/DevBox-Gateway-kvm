@@ -1008,9 +1008,8 @@ func RcVBufferCalculationPadding(pEncCtx *sWelsEncCtx) {
 	}
 }
 
-func RcTraceFrameBits(pEncCtx *sWelsEncCtx, uiTimeStamp int64, iFrameSize int32) {
+func RcUpdatePredictedFrameBits(pEncCtx *sWelsEncCtx) {
 	pWelsSvcRc := &pEncCtx.pWelsSvcRc[pEncCtx.uiDependencyId]
-	pParamInternal := &pEncCtx.pSvcParam.sDependencyLayers[pEncCtx.uiDependencyId]
 	if pWelsSvcRc.iPredFrameBit != 0 {
 		// explicit conversions keep the products from being fused
 		pWelsSvcRc.iPredFrameBit = int32(float64(LAST_FRAME_PREDICT_WEIGHT*float64(pWelsSvcRc.iFrameDqBits)) +
@@ -1018,21 +1017,6 @@ func RcTraceFrameBits(pEncCtx *sWelsEncCtx, uiTimeStamp int64, iFrameSize int32)
 	} else {
 		pWelsSvcRc.iPredFrameBit = pWelsSvcRc.iFrameDqBits
 	}
-
-	iUsed := iFrameSize << 3
-	if pWelsSvcRc.iFrameDqBits > 0 {
-		iUsed = pWelsSvcRc.iFrameDqBits
-	}
-	common.WelsLog(&pEncCtx.sLogCtx, api.WELS_LOG_DEBUG,
-		"[Rc]Layer %d: Frame timestamp = %d, Frame type = %d, encoding_qp = %d, average qp = %d, max qp = %d, min qp = %d, index = %d, "+
-			"iTid = %d, used = %d, bitsperframe = %d, target = %d, remainingbits = %d, skipbuffersize = %d",
-		pEncCtx.uiDependencyId, uiTimeStamp, pEncCtx.eSliceType, pEncCtx.iGlobalQp, pWelsSvcRc.iAverageFrameQp,
-		pWelsSvcRc.iMaxFrameQp,
-		pWelsSvcRc.iMinFrameQp,
-		pParamInternal.iFrameIndex, pEncCtx.uiTemporalId,
-		iUsed,
-		pWelsSvcRc.iBitsPerFrame,
-		pWelsSvcRc.iTargetBits, pWelsSvcRc.iRemainingBits, pWelsSvcRc.iBufferSizeSkip)
 }
 
 func RcUpdatePictureQpBits(pEncCtx *sWelsEncCtx, iCodedBits int32) {

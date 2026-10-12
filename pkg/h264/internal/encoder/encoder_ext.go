@@ -3584,7 +3584,7 @@ func WelsEncoderEncodeExt(pCtx *sWelsEncCtx, pFbi *api.SFrameBSInfo, pSrcPic *ap
 
 		pCtx.pFuncList.pfRc.pfWelsRcPictureInfoUpdate(pCtx, iLayerSize)
 		iFrameSize += iLayerSize
-		RcTraceFrameBits(pCtx, pFbi.UiTimeStamp, iFrameSize)
+		RcUpdatePredictedFrameBits(pCtx)
 		pCtx.pDecPic.iFrameAverageQp = pCtx.pWelsSvcRc[iCurDid].iAverageFrameQp
 
 		//update scc related
@@ -3747,19 +3747,6 @@ func WelsEncoderEncodeExt(pCtx *sWelsEncCtx, pFbi *api.SFrameBSInfo, pSrcPic *ap
 
 	pFbi.ILayerNum = iLayerNum
 
-	common.WelsLog(pLogCtx, api.WELS_LOG_DEBUG, "WelsEncoderEncodeExt() OutputInfo iLayerNum = %d,iFrameSize = %d",
-		iLayerNum, iFrameSize)
-	for i := int32(0); i < iLayerNum; i++ {
-		iFirstNalLen := int32(0)
-		if len(pFbi.SLayerInfo[i].PNalLengthInByte) > 0 {
-			iFirstNalLen = pFbi.SLayerInfo[i].PNalLengthInByte[0]
-		}
-		common.WelsLog(pLogCtx, api.WELS_LOG_DEBUG,
-			"WelsEncoderEncodeExt() OutputInfo iLayerId = %d,iNalType = %d,iNalCount = %d, first Nal Length=%d,uiSpatialId = %d,uiTemporalId = %d,iSubSeqId = %d",
-			i,
-			pFbi.SLayerInfo[i].UiLayerType, pFbi.SLayerInfo[i].INalCount, iFirstNalLen,
-			pFbi.SLayerInfo[i].UiSpatialId, pFbi.SLayerInfo[i].UiTemporalId, pFbi.SLayerInfo[i].ISubSeqId)
-	}
 	common.WelsEmms()
 
 	pLayerBsInfo().EFrameType = eFrameType

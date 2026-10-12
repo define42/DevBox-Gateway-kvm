@@ -626,9 +626,6 @@ func WelsBuildRefList(pCtx *sWelsEncCtx, iPOC int32, iBestLtrRefIdx int32) bool 
 					pCtx.pCurDqLayer.pRefOri[pCtx.iNumRef0] = pRef
 					pCtx.pRefList0[pCtx.iNumRef0] = pRef
 					pCtx.iNumRef0++
-					common.WelsLog(&pCtx.sLogCtx, api.WELS_LOG_DETAIL,
-						"WelsBuildRefList pCtx->uiTemporalId = %d,pRef->iFrameNum = %d,pRef->uiTemporalId = %d",
-						pCtx.uiTemporalId, pRef.iFrameNum, pRef.uiTemporalId)
 				}
 			}
 		}
