@@ -170,6 +170,44 @@ contains client preferences for these features.
 `make rdp` connects to the standalone console on port 3390, such as one started
 with `make qcow2`. It does not use the gateway's downloaded routing credentials.
 
+## Connection admission and edge protection
+
+Unauthenticated sockets use a separate pending pool, so idle clients cannot
+consume the authenticated HTTPS/RDP connection pool. Defaults allow 64 pending
+and 128 authenticated connections globally, at most 32 total and eight pending
+per source. TCP admissions use global and per-source token buckets: 128 and eight
+connections per second respectively, each with an equal-size burst. Excess
+connections are closed before protocol negotiation or TLS work.
+
+A connection must authenticate within ten seconds of TCP acceptance. Completing
+TLS, fetching the login page, or sending partial requests does not reset this
+budget. HTTPS requires a valid browser session or a successful login; RDP requires
+credential validation. Browser clients can reconnect if a login-page connection
+expires while the user is entering credentials. Existing password-attempt limits
+are independent of these connection limits.
+
+Per-source limits use the TCP peer address, normalize IPv4-mapped addresses, and
+group IPv6 addresses by /64. Forwarded headers do not change this identity. Shared
+NATs and IPv6 prefixes share their allowance: size per-source capacity and rates
+for legitimate concurrent browsers and RDP clients. All limits and the pending
+timeout are configurable through [connection admission settings](configuration.md#connection-admission).
+
+For Internet-facing deployments, also configure SYN/new-connection rate limiting
+and connection caps at the source-preserving layer-4 firewall or network edge.
+The in-process admission limits run after TCP acceptance; they cannot protect the
+kernel's SYN backlog, upstream bandwidth, or a saturated network link. A
+distributed attack can still fill the pending pool and prevent new logins even
+though existing authenticated connections keep their separate capacity.
+
+Apply edge protection to both IPv4 and IPv6 on the published gateway port, and
+verify it covers the actual packet path, including container port forwarding.
+Preserve the client source address and allow both HTTPS and native RDP on the
+same TCP listener. Do not place an ordinary HTTP reverse proxy in front of it.
+The [opt-in nftables example and deployment guide](edge-rate-limiting.md) cover
+native listeners and Docker's published port before destination NAT. No rules
+are installed automatically; adapt and validate them for your deployment, then
+test legitimate browser/RDP access before exposure.
+
 ## Shared base images and administration
 
 Administrators open **Admin** to view all owners' VMs, start or stop them, delete

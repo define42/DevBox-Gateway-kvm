@@ -281,6 +281,14 @@ both clients must reach this published port using the configured hostname. A
 normal HTTP reverse proxy cannot carry the RDP connection. Browser and RDP
 connections must preserve the same client source address.
 
+Compose exposes the separate pre-authentication pool, per-source connection caps,
+and TCP admission rates through the [connection admission settings](configuration.md#connection-admission).
+For Internet access, also enforce source-preserving layer-4 SYN/new-connection
+limits on the published port for both IPv4 and IPv6. Ensure the policy covers
+Docker's port-forwarding path; the gateway does not install host firewall rules.
+See [edge protection](gateway.md#connection-admission-and-edge-protection) and the
+[opt-in nftables deployment guide](edge-rate-limiting.md) for a pre-DNAT example.
+
 The state volume holds VM disks, firmware variables, seeds, uploaded templates,
 and metadata. A fresh named volume inherits the image's private directory
 permissions. Existing state must be owned by UID 10001 and private (`0700` for

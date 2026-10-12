@@ -80,6 +80,13 @@ func (s *Server) routes() http.Handler {
 		// no-referrer makes browser form POSTs send Origin: null, failing the origin guard below.
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+		_, _, hasSession := s.requestSession(r)
+		if !hasSession && s.httpConnectionAuthenticated(r) {
+			// Even rejected requests cannot keep revoked/expired sessions'
+			// authenticated capacity alive on the same socket.
+			w.Header().Set("Connection", "close")
+			r.Close = true
+		}
 		if !sameAuthority(r.Host, s.config.PublicAddress) {
 			http.Error(w, "Unknown gateway address.", http.StatusMisdirectedRequest)
 
@@ -101,6 +108,15 @@ func (s *Server) routes() http.Handler {
 
 				return
 			}
+		}
+		// Validate a session before reading a potentially slow request body.
+		// TLS, login-page cookies, and public assets never reserve authenticated capacity.
+		if hasSession && !s.promoteHTTPConnection(r) {
+			connectionBusy(w, r)
+
+			return
+		}
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			if imageUploadRequest(r) {
 				mux.ServeHTTP(w, r)
 
@@ -279,6 +295,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	r.Form.Del("password")
 	if err != nil || r.Context().Err() != nil {
 		s.showLogin(w, http.StatusServiceUnavailable, "Sign in is temporarily unavailable.")
+
+		return
+	}
+	if !s.promoteHTTPConnection(r) {
+		connectionBusy(w, r)
 
 		return
 	}

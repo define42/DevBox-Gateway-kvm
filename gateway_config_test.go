@@ -38,6 +38,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m",
 		"VM_CREATE_TIMEOUT": "40m", "VM_START_TIMEOUT": "50s", "VM_STOP_TIMEOUT": "25s", "SESSION_TTL": "4h",
 		"MAX_SESSIONS": "250", "MAX_CONCURRENT_CONNECTIONS": "64", "LISTEN_ADDR": "0.0.0.0:9443",
+		"MAX_HANDSHAKES": "48", "MAX_CONNECTIONS_PER_IP": "24", "MAX_HANDSHAKES_PER_IP": "6",
+		"CONNECTION_RATE_LIMIT": "100", "CONNECTION_RATE_LIMIT_PER_IP": "12", "HANDSHAKE_TIMEOUT": "15s",
 		"PUBLIC_ADDRESS": "desktop.example.com:443", "CERT_FILE": "/tls/cert.pem", "KEY_FILE": "/tls/key.pem",
 		"ACME_ENABLE": "false", "ACME_EMAIL": "admin@example.com", "ACME_CA": "staging", "AUTH_FILE": "",
 		"LDAP_URL": "ldaps://ldap.example.com:636", "LDAP_BASE_DN": "dc=example,dc=com",
@@ -64,6 +66,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 			DesktopCPUs: 6, DesktopMemoryMiB: 8192, MaxImageUploadBytes: 40 << 30,
 			CreationTimeout: 40 * time.Minute,
 			UploadTimeout:   45 * time.Minute, SessionTTL: 4 * time.Hour, MaxSessions: 250, MaxConnections: 64,
+			MaxHandshakes: 48, MaxConnectionsPerIP: 24, MaxHandshakesPerIP: 6,
+			ConnectionRateLimit: 100, ConnectionRateLimitPerIP: 12, HandshakeTimeout: 15 * time.Second,
 		},
 		ldap: gateway.LDAPConfig{
 			URL: "ldaps://ldap.example.com:636", BaseDN: "dc=example,dc=com", UserDomain: "example.com",
@@ -100,12 +104,17 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		"LDAP_URL": "ldaps://directory.example.com", "AUTH_FILE": "",
 		"VM_VCPU_COUNT": "8", "VM_MEMORY_BUDGET_MIB": "32768", "ACME_ENABLE": "true",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m", "ADMIN_GROUP": "admins",
+		"MAX_CONCURRENT_CONNECTIONS": "64", "MAX_HANDSHAKES": "48", "MAX_CONNECTIONS_PER_IP": "24",
+		"MAX_HANDSHAKES_PER_IP": "6", "CONNECTION_RATE_LIMIT": "100", "CONNECTION_RATE_LIMIT_PER_IP": "12",
+		"HANDSHAKE_TIMEOUT": "15s",
 	} {
 		t.Setenv(key, value)
 	}
 	options, err := readServeOptions([]string{
 		"-ldap-url=", "-auth-file=local.json", "-cpus=3", "-memory-budget=0", "-acme=false",
 		"-image-upload-limit=10737418240", "-image-upload-timeout=20m", "-ldap-admin-group=",
+		"-max-connections=80", "-max-handshakes=40", "-max-connections-per-ip=20", "-max-handshakes-per-ip=5",
+		"-connection-rate-limit=120", "-connection-rate-limit-per-ip=10", "-handshake-timeout=12s",
 	}, io.Discard)
 	if err != nil {
 		t.Fatal(err)
@@ -121,6 +130,12 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	}
 	if options.gateway.DesktopCPUs != 3 || options.gateway.MaxImageUploadBytes != 10<<30 {
 		t.Fatalf("derived settings ignored explicit flags: %#v", options.gateway)
+	}
+	if options.gateway.MaxConnections != 80 || options.gateway.MaxHandshakes != 40 ||
+		options.gateway.MaxConnectionsPerIP != 20 || options.gateway.MaxHandshakesPerIP != 5 ||
+		options.gateway.ConnectionRateLimit != 120 || options.gateway.ConnectionRateLimitPerIP != 10 ||
+		options.gateway.HandshakeTimeout != 12*time.Second {
+		t.Fatalf("connection admission overrides not applied: %#v", options.gateway)
 	}
 }
 

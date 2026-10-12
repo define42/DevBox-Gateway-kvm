@@ -29,6 +29,7 @@ type Server struct {
 	mu          sync.Mutex
 	listener    net.Listener
 	connections map[*trackedConn]struct{}
+	admission   connectionAdmission
 	requests    sync.WaitGroup
 	draining    bool
 }
@@ -73,6 +74,9 @@ func New(c Config) (*Server, error) {
 		return nil, fmt.Errorf("%w: invalid session/connection limit", ErrInvalid)
 	}
 	if err := validateProvisioningConfig(&c); err != nil {
+		return nil, err
+	}
+	if err := validateConnectionConfig(&c); err != nil {
 		return nil, err
 	}
 	tlsConfig, err := serverTLSConfig(c)
@@ -158,6 +162,7 @@ func (s *Server) serve(ctx context.Context, ln net.Listener) error {
 	https := &channelListener{addr: ln.Addr(), incoming: make(chan net.Conn), done: make(chan struct{})}
 	httpServer := &http.Server{
 		Handler:           s.routes(),
+		ConnContext:       connectionContext,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      2 * time.Minute,
@@ -226,6 +231,9 @@ func (s *Server) serve(ctx context.Context, ln net.Listener) error {
 				s.store.mu.Lock()
 				s.store.pruneLocked(now)
 				s.store.mu.Unlock()
+				s.mu.Lock()
+				s.pruneAdmissionLocked(now)
+				s.mu.Unlock()
 			}
 		}
 	})
@@ -238,18 +246,13 @@ func (s *Server) serve(ctx context.Context, ln net.Listener) error {
 
 			return err
 		}
-		s.mu.Lock()
-		if len(s.connections) >= s.config.MaxConnections {
-			s.mu.Unlock()
+		conn := s.admitConnection(ctx, raw)
+		if conn == nil {
 			_ = raw.Close()
 
 			continue
 		}
-		conn := &trackedConn{Conn: raw}
-		conn.closed = func() { s.mu.Lock(); delete(s.connections, conn); s.mu.Unlock() }
-		s.connections[conn] = struct{}{}
-		s.mu.Unlock()
-		workers.Go(func() { s.dispatch(ctx, conn, https) })
+		workers.Go(func() { s.dispatch(conn.ctx, conn, https) })
 	}
 }
 
@@ -268,7 +271,7 @@ func (s *Server) dispatch(ctx context.Context, raw net.Conn, https *channelListe
 			_ = raw.Close()
 		}
 	}()
-	_ = raw.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = raw.SetDeadline(time.Now().Add(s.config.HandshakeTimeout))
 	reader := bufio.NewReaderSize(raw, 4096)
 	prefix, err := reader.Peek(1)
 	if err != nil {
@@ -305,19 +308,6 @@ type bufferedConn struct {
 }
 
 func (c *bufferedConn) Read(b []byte) (int, error) { return c.reader.Read(b) }
-
-type trackedConn struct {
-	net.Conn
-	once   sync.Once
-	closed func()
-}
-
-func (c *trackedConn) Close() error {
-	err := c.Conn.Close()
-	c.once.Do(c.closed)
-
-	return err
-}
 
 type channelListener struct {
 	addr     net.Addr

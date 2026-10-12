@@ -81,6 +81,9 @@ func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
 		if !s.store.claimGrant(token, ip) {
 			return ErrAuthentication
 		}
+		if !s.promoteConnection(trackedConnection(raw)) {
+			return ErrAuthentication
+		}
 
 		return nil
 	}

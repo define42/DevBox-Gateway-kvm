@@ -1,0 +1,51 @@
+# Opt-in example; edit these values before loading. See docs/edge-rate-limiting.md.
+# Documentation addresses deliberately do not match a production gateway.
+define gateway_interface = "eth0"
+define gateway_ipv4 = 192.0.2.10
+define gateway_ipv6 = 2001:db8::10
+define gateway_port = 8443
+
+# Fail if already installed, instead of silently appending duplicate rules.
+create table inet gokvm_gateway_edge
+
+table inet gokvm_gateway_edge {
+    set syn_ipv4 {
+        type ipv4_addr
+        flags dynamic,timeout
+        timeout 1m
+        gc-interval 10s
+        size 32768
+    }
+
+    set syn_ipv6 {
+        type ipv6_addr
+        flags dynamic,timeout
+        timeout 1m
+        gc-interval 10s
+        size 32768
+    }
+
+    chain gateway_global {
+        # Only source-admitted SYNs consume this shared budget.
+        limit rate over 256/second burst 512 packets counter drop
+        counter return
+    }
+
+    chain gateway_syn {
+        # A full set or an over-limit source falls through to drop.
+        # goto skips this fallback when gateway_global returns to prerouting.
+        meta nfproto ipv4 update @syn_ipv4 { ip saddr limit rate 16/second burst 32 packets } counter goto gateway_global
+        meta nfproto ipv6 update @syn_ipv6 { ip6 saddr & ffff:ffff:ffff:ffff:: limit rate 16/second burst 32 packets } counter goto gateway_global
+        counter drop
+    }
+
+    chain prerouting {
+        # Before conntrack (-200) and Docker's destination NAT (-100).
+        type filter hook prerouting priority -300; policy accept;
+
+        # Match the public/published port, not a translated container port.
+        # Other destinations/ports and packets without an initial SYN are untouched.
+        iifname $gateway_interface ip daddr $gateway_ipv4 tcp dport $gateway_port tcp flags & (fin | syn | rst | ack) == syn jump gateway_syn
+        iifname $gateway_interface ip6 daddr $gateway_ipv6 tcp dport $gateway_port tcp flags & (fin | syn | rst | ack) == syn jump gateway_syn
+    }
+}

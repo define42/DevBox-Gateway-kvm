@@ -77,4 +77,13 @@ type Config struct {
 	MaxImageUploadBytes                          int64
 	UploadTimeout, CreationTimeout               time.Duration
 	MaxSessions, MaxConnections                  int
+	// Pending connections cannot consume the authenticated MaxConnections pool.
+	MaxHandshakes int
+	// MaxConnectionsPerIP includes pending and authenticated connections;
+	// MaxHandshakesPerIP counts only pending connections.
+	MaxConnectionsPerIP, MaxHandshakesPerIP int
+	// Admission rates are per second, each with a burst equal to its rate.
+	ConnectionRateLimit, ConnectionRateLimitPerIP int
+	// HandshakeTimeout covers TCP acceptance through application authentication.
+	HandshakeTimeout time.Duration
 }

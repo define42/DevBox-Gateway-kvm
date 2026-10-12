@@ -60,6 +60,13 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.SESSION_TTL:                "8h0m0s",
 		config.MAX_SESSIONS:               "1024",
 		config.MAX_CONCURRENT_CONNECTIONS: "128",
+
+		config.MAX_HANDSHAKES:               "64",
+		config.MAX_CONNECTIONS_PER_IP:       "32",
+		config.MAX_HANDSHAKES_PER_IP:        "8",
+		config.CONNECTION_RATE_LIMIT:        "128",
+		config.CONNECTION_RATE_LIMIT_PER_IP: "8",
+		config.HANDSHAKE_TIMEOUT:            "10s",
 	}
 	if len(settings.Keys()) != len(want) {
 		t.Fatalf("registered %d settings, want %d", len(settings.Keys()), len(want))

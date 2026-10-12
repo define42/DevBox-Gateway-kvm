@@ -92,7 +92,33 @@ agreement. See [certificates and ACME](gateway.md#gateway-certificates-and-acme)
 | `LDAP_AUTH_TIMEOUT` | `10s` | `-ldap-timeout` | LDAP authentication timeout. |
 | `SESSION_TTL` | `8h` | `-session-ttl` | Browser session lifetime, from `1m` to `24h`. |
 | `MAX_SESSIONS` | `1024` | `-max-sessions` | Maximum browser sessions, from 1 to 10000. |
-| `MAX_CONCURRENT_CONNECTIONS` | `128` | `-max-connections` | Maximum accepted HTTPS/RDP connections, from 1 to 4096. |
+
+## Connection admission
+
+| Environment variable | Default | Flag override | Purpose |
+| --- | --- | --- | --- |
+| `MAX_CONCURRENT_CONNECTIONS` | `128` | `-max-connections` | Maximum authenticated HTTPS/RDP connections, from 1 to 4096; excludes the pending pool. |
+| `MAX_HANDSHAKES` | `64` | `-max-handshakes` | Maximum pending, unauthenticated connections, from 1 to 4096. |
+| `MAX_CONNECTIONS_PER_IP` | `32` | `-max-connections-per-ip` | Maximum pending and authenticated connections combined per source, from 1 to 4096. |
+| `MAX_HANDSHAKES_PER_IP` | `8` | `-max-handshakes-per-ip` | Maximum pending connections per source, from 1 to 4096. |
+| `CONNECTION_RATE_LIMIT` | `128` | `-connection-rate-limit` | Global TCP admission rate per second, from 1 to 100000, with an equal-size burst. |
+| `CONNECTION_RATE_LIMIT_PER_IP` | `8` | `-connection-rate-limit-per-ip` | TCP admission rate per source per second, from 1 to 100000, with an equal-size burst. |
+| `HANDSHAKE_TIMEOUT` | `10s` | `-handshake-timeout` | Total time from TCP acceptance to application authentication, from `1s` to `1m`. |
+
+Pending connections have separate capacity from authenticated connections. With
+the defaults, the global ceiling is 64 pending plus 128 authenticated connections.
+Completing TLS alone does not authenticate a connection: HTTPS must present a
+valid browser session or complete login, and RDP must validate its credentials.
+The pending timeout covers protocol negotiation, TLS, and application
+authentication together; sending more bytes does not extend it. Zero selects the
+default for these settings; it does not disable a limit.
+
+Source limits use the actual TCP peer, not forwarded HTTP headers. IPv4-mapped
+IPv6 addresses share their IPv4 bucket; IPv6 addresses share a bucket per /64.
+Tune per-source limits for offices behind one NAT or IPv6 prefix, allowing for
+browser parallel connections as well as RDP. The separate password-attempt
+limits still apply. See [connection admission and edge protection](gateway.md#connection-admission-and-edge-protection)
+for deployment requirements.
 
 ## Compose and existing deployments
 
