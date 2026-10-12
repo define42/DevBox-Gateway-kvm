@@ -43,7 +43,10 @@ func run(ctx context.Context, args []string) error {
 	}
 
 	if bootArgs != nil {
-		var h264Encoder string
+		var h264Encoder, rdpProfile string
+		if bootArgs.RDP != "" {
+			rdpProfile = bootArgs.RDPProfile
+		}
 		if bootArgs.RDPH264 {
 			h264Encoder = bootArgs.RDPH264Encoder
 		}
@@ -64,6 +67,7 @@ func run(ctx context.Context, args []string) error {
 			GPU:            bootArgs.GPU,
 			VNC:            bootArgs.VNC,
 			RDP:            bootArgs.RDP,
+			RDPProfile:     rdpProfile,
 			RDPWait:        bootArgs.RDPWait,
 			RDPCert:        bootArgs.RDPCert,
 			RDPKey:         bootArgs.RDPKey,

@@ -39,7 +39,7 @@ func TestEncoderBackendSelection(t *testing.T) {
 			codec := &recordingCodec{}
 			var probes int
 			encoder, err := newEncoderWithNVENC(640, 480, Options{Threads: 2, Backend: test.backend},
-				func(int, int) (codecEncoder, error) {
+				func(int, int, int) (codecEncoder, error) {
 					probes++
 					if test.hardwareErr != nil {
 						return nil, test.hardwareErr
@@ -105,13 +105,14 @@ func TestEncoderBackendFailure(t *testing.T) {
 			t.Parallel()
 			// A real codec supplies the initial stream; the wrapper injects a
 			// device failure without requiring a GPU in normal test runs.
-			codec, _, err := newCodecEncoder(64, 48, 1)
+			const frameRate = 30
+			codec, _, err := newCodecEncoder(64, 48, 1, frameRate)
 			if err != nil {
 				t.Fatal(err)
 			}
 			hardware := &failingHardwareCodec{codecEncoder: codec}
-			encoder, err := newEncoderWithNVENC(64, 48, Options{Threads: 2, Backend: backend},
-				func(int, int) (codecEncoder, error) { return hardware, nil })
+			encoder, err := newEncoderWithNVENC(64, 48, Options{Threads: 2, Backend: backend, FrameRate: frameRate},
+				func(int, int, int) (codecEncoder, error) { return hardware, nil })
 			if err != nil {
 				hardware.close()
 				t.Fatal(err)
@@ -159,6 +160,10 @@ func TestEncoderBackendFailure(t *testing.T) {
 			}
 			if !bytes.Equal(first, firstCopy) {
 				t.Fatal("fallback invalidated a previously returned frame")
+			}
+			checkSoftwareFrameRate(t, encoder, frameRate)
+			if got, want := encoder.codec.(*openH264Encoder).frame.Timestamp, int64(2*1000/frameRate); got != want {
+				t.Fatalf("fallback timestamp = %d, want %d", got, want)
 			}
 			checkSoftwareFallbackImage(t, data, img)
 			if data, err := encoder.EncodeDamage(img, []image.Rectangle{}, false); data != nil || err != nil {

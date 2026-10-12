@@ -48,7 +48,7 @@ func TestEncoderDamageMatchesFullConversion(t *testing.T) {
 			t.Parallel()
 			codec := &damageCodec{}
 			encoder := &Encoder{
-				codec: codec, width: test.width, height: test.height,
+				codec: codec, frameRate: FrameRate, width: test.width, height: test.height,
 				i420: make([]byte, test.width*test.height*3/2),
 			}
 			parent := image.NewRGBA(image.Rect(-7, -9, test.sourceWidth+3, test.sourceHeight+5))
@@ -93,7 +93,7 @@ func TestEncoderDamageMatchesFullConversion(t *testing.T) {
 func TestEncoderDamageRetryAndRefresh(t *testing.T) {
 	t.Parallel()
 	codec := &damageCodec{}
-	encoder := &Encoder{codec: codec, width: 32, height: 32, i420: make([]byte, 32*32*3/2)}
+	encoder := &Encoder{codec: codec, frameRate: FrameRate, width: 32, height: 32, i420: make([]byte, 32*32*3/2)}
 	img := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	if _, err := encoder.EncodeDamage(img, []image.Rectangle{}, false); err != nil || codec.calls != 1 {
 		t.Fatalf("initial frame with empty damage: calls %d, err %v", codec.calls, err)

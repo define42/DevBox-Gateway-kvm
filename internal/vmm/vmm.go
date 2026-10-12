@@ -18,6 +18,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/iso9660"
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/term"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sync/errgroup"
@@ -34,6 +35,8 @@ var errAudioConfig = errors.New("audio must be 'none' or 'rdp'; 'rdp' requires a
 var errRDPH264ThreadsConfig = errors.New("RDP H.264 slices must be 0 (auto) or 1..16; a slice count requires H.264")
 
 var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software, nvenc, or auto and requires H.264")
+
+var errRDPProfileConfig = errors.New("RDP profile must be office or smooth and requires an RDP listener")
 
 var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
 
@@ -72,6 +75,7 @@ type Config struct {
 	GPU            string
 	VNC            string
 	RDP            string
+	RDPProfile     string
 	RDPWait        bool
 	RDPCert        string
 	RDPKey         string
@@ -110,6 +114,9 @@ func New(c Config) *VMM {
 }
 
 func (v *VMM) validateRDPPerformanceConfig() error {
+	if _, err := rdp.ProfileFrameRate(v.RDPProfile); err != nil || (v.RDPProfile != "" && v.RDP == "") {
+		return errRDPProfileConfig
+	}
 	if v.RDPListenerFile != nil && v.RDP == "" {
 		return errRDPListenerConfig
 	}

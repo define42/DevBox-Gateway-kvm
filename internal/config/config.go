@@ -20,6 +20,7 @@ const (
 	UEFI_CODE                  = "UEFI_CODE"
 	UEFI_VARS_TEMPLATE         = "UEFI_VARS_TEMPLATE"
 	H264_ENCODER               = "H264_ENCODER"
+	RDP_PROFILE                = "RDP_PROFILE"
 	VM_KEYBOARD                = "VM_KEYBOARD"
 	VM_VCPU_COUNT              = "VM_VCPU_COUNT"
 	VM_MEMORY_MIB              = "VM_MEMORY_MIB"
@@ -111,6 +112,7 @@ func NewSettings(printSettings bool) *Settings {
 	s.SetString(UEFI_CODE, "OVMF CODE firmware", "/usr/share/OVMF/OVMF_CODE_4M.fd")
 	s.SetString(UEFI_VARS_TEMPLATE, "Matching pristine OVMF variables template", "/usr/share/OVMF/OVMF_VARS_4M.fd")
 	s.SetString(H264_ENCODER, "H.264 encoder: auto, nvenc, software", "auto")
+	s.SetString(RDP_PROFILE, "Desktop graphics profile: office (30 FPS), smooth (60 FPS)", "office")
 	s.SetString(VM_KEYBOARD, "Guest keyboard layout", "us")
 	s.SetInt(VM_VCPU_COUNT, "vCPUs per desktop", 2)
 	s.SetInt(VM_MEMORY_MIB, "MiB per desktop", 4096)

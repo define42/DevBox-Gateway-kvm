@@ -398,6 +398,32 @@ drive redirection, microphone input, and multiple monitors are not implemented.
 FreeRDP 3.32.1 has been tested with TinyCore and Slax desktop rendering and input;
 Microsoft Remote Desktop has not been validated.
 
+### RDP graphics profiles
+
+Standalone `boot` keeps its 60 FPS AVC420 cap by default (`smooth`). Use
+`-rdp-profile office` for a 30 FPS cap; bitmap output remains capped at 30 FPS
+with either profile. For example:
+
+```bash
+./gokvm boot -iso ./TinyCore-current.iso -m 512M \
+  -rdp 127.0.0.1:3389 -rdp-h264 -rdp-profile office
+```
+
+Managed desktops default to `office`; configure them with `RDP_PROFILE` or
+`serve -rdp-profile`. Both modes accept only `office` and `smooth`. The selected
+H.264 cap is applied before copying the framebuffer for encoding and converting
+colors. H.264 still encodes a full picture for each changed output frame:
+the office cap reduces how often this work runs rather than making the codec
+encode individual dirty rectangles. Pending damage is combined into the next
+frame; unchanged screens do not incur periodic encoding. Input, cursor updates,
+and audio are not rate-limited by the graphics profile.
+
+Use `smooth` when 60 FPS AVC420 animation is worth the higher encoding load. A profile
+sets an upper bound, not a guaranteed frame rate. Changing a managed desktop's
+profile requires restarting its VM.
+See the [four-stream work-budget measurements](benchmarks/office-profile-2026-10-12/README.md)
+for a reproducible comparison and its limits.
+
 ### VNC and PNG
 
 ```bash

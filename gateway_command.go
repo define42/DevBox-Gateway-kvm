@@ -117,6 +117,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	stringFlag(&options.manager.Firmware, "uefi", config.UEFI_CODE)
 	stringFlag(&options.manager.VarsTemplate, "uefi-vars-template", config.UEFI_VARS_TEMPLATE)
 	stringFlag(&options.manager.Encoder, "encoder", config.H264_ENCODER)
+	stringFlag(&options.manager.RDPProfile, "rdp-profile", config.RDP_PROFILE)
 	stringFlag(&options.manager.Keyboard, "keyboard", config.VM_KEYBOARD)
 	intFlag(&options.manager.CPUs, "cpus", config.VM_VCPU_COUNT)
 	intFlag(&options.manager.MemoryMiB, "memory", config.VM_MEMORY_MIB)

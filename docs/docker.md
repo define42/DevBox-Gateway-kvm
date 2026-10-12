@@ -86,7 +86,10 @@ address. The gateway's built-in self-signed mode also works on LAN addresses;
 clients must explicitly trust that certificate.
 
 All gateway settings are passed through environment variables from `.env` or
-the shell. Set `H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`, and
+the shell. Set `RDP_PROFILE=office` (the default) for a 30 FPS H.264 cap, or
+`smooth` for 60 FPS. Bitmap fallback remains capped at 30 FPS. Restart managed
+VMs to apply a profile change. Set
+`H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`, and
 `MAX_RUNNING_VMS` to change the defaults of automatic encoding, 2 vCPUs,
 4096 MiB per guest, and 4 running desktops. Allow enough host memory for guest
 RAM plus the overhead described below. See the

@@ -81,6 +81,60 @@ func createManagerVM(t *testing.T, manager *Manager, owner, name string) VM {
 	return vm
 }
 
+func TestManagerRDPProfiles(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name, profile, want string
+	}{
+		{name: "default office", want: "office"},
+		{name: "office", profile: "office", want: "office"},
+		{name: "smooth", profile: "smooth", want: "smooth"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config := managerTestConfig(t, "graceful")
+			config.RDPProfile = test.profile
+			m, err := NewManager(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := m.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			// The helper allocates no guest RAM.
+			m.readResident = func(int) (uint64, error) { return 0, nil }
+			m.readMemory = func() (hostMemory, error) {
+				return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
+			}
+			vm := createManagerVM(t, m, "alice", "desktop")
+			if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+				t.Fatal(err)
+			}
+			profile, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.rdp-profile"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(profile) != test.want {
+				t.Fatalf("child RDP profile = %q, want %q", profile, test.want)
+			}
+		})
+	}
+}
+
+func TestManagerRejectsInvalidRDPProfile(t *testing.T) {
+	t.Parallel()
+	config := managerTestConfig(t, "graceful")
+	config.RDPProfile = "fastest"
+	if m, err := NewManager(config); !errors.Is(err, ErrInvalid) {
+		if m != nil {
+			_ = m.Close()
+		}
+		t.Fatalf("invalid RDP profile accepted: %v", err)
+	}
+}
+
 func TestManagerOwnershipQuotaAndPersistence(t *testing.T) {
 	t.Parallel()
 	m := newTestManager(t, "graceful")
@@ -521,6 +575,10 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.address"), []byte(args["-rdp"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper address:", err)
+		os.Exit(2)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-profile"), []byte(args["-rdp-profile"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper profile:", err)
 		os.Exit(2)
 	}
 	if args["-net"] != "user-isolated" {

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 )
 
 var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'seed', or 'auth-user' subcommands")
@@ -15,6 +16,8 @@ var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'se
 var ErrRDPOptions = errors.New("RDP certificate and key must be provided together with -rdp")
 
 var ErrRDPH264 = errors.New("-rdp-h264 requires -rdp")
+
+var ErrRDPProfile = errors.New("-rdp-profile must be office or smooth and requires -rdp")
 
 var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software, nvenc, or auto and requires -rdp-h264")
 
@@ -55,6 +58,7 @@ type BootArgs struct {
 	GPU            string
 	VNC            string
 	RDP            string
+	RDPProfile     string
 	RDPFD          int
 	RDPWait        bool
 	RDPCert        string
@@ -98,6 +102,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		`If empty, no VNC server is created. (default "")`)
 	bootCmd.StringVar(&c.RDP, "rdp", "", "RDP console listen address, for example 127.0.0.1:3389 "+
 		"(one connection at a time, TLS, no authentication)")
+	bootCmd.StringVar(&c.RDPProfile, "rdp-profile", rdp.ProfileSmooth,
+		"RDP display profile: office (30 FPS) or smooth (60 FPS); requires -rdp")
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
 		"inherited TCP listener descriptor (>=3) matching -rdp; 0 opens a new listener")
 	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false, "wait for an RDP client before starting the guest (requires -rdp)")
@@ -129,7 +135,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if c.NCPUs < 1 || c.NCPUs > ebda.MaxVCPUs {
 		return nil, ErrCPUCount
 	}
-	var threadsSet, encoderSet bool
+	var threadsSet, encoderSet, profileSet bool
 	bootCmd.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "p":
@@ -138,6 +144,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 			threadsSet = true
 		case "rdp-h264-encoder":
 			encoderSet = true
+		case "rdp-profile":
+			profileSet = true
 		}
 	})
 	if c.CloudInit != "" && c.Disk == "" {
@@ -149,7 +157,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if err := selectUKIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
-	if err := validateRDPOptions(c, threadsSet, encoderSet); err != nil {
+	if err := validateRDPOptions(c, threadsSet, encoderSet, profileSet); err != nil {
 		return nil, err
 	}
 	if (c.Network != "" && c.Network != "none" && c.Network != "user" && c.Network != "user-isolated") ||
@@ -167,7 +175,10 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	return c, nil
 }
 
-func validateRDPOptions(c *BootArgs, threadsSet, encoderSet bool) error {
+func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) error {
+	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil || c.RDPProfile == "" || (profileSet && c.RDP == "") {
+		return ErrRDPProfile
+	}
 	if c.RDPFD != 0 && (c.RDPFD < 3 || c.RDP == "") {
 		return ErrRDPFD
 	}

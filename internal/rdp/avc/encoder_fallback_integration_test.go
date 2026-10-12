@@ -21,14 +21,14 @@ func TestNVENCHardwareFallback(t *testing.T) {
 	if os.Getenv("GOKVM_TEST_NVENC") != "1" {
 		t.Skip("set GOKVM_TEST_NVENC=1 to test the NVIDIA GPU")
 	}
-	const width, height = 640, 360
-	codec, err := newNVENCEncoder(width, height)
+	const width, height, frameRate = 640, 360, 30
+	codec, err := newNVENCEncoder(width, height, frameRate)
 	if err != nil {
 		t.Fatal(err)
 	}
 	hardware := &failingHardwareCodec{codecEncoder: codec}
-	encoder, err := newEncoderWithNVENC(width, height, Options{Backend: BackendAuto, Threads: 1},
-		func(int, int) (codecEncoder, error) { return hardware, nil })
+	encoder, err := newEncoderWithNVENC(width, height, Options{Backend: BackendAuto, Threads: 1, FrameRate: frameRate},
+		func(int, int, int) (codecEncoder, error) { return hardware, nil })
 	if err != nil {
 		hardware.close()
 		t.Fatal(err)
@@ -61,5 +61,6 @@ func TestNVENCHardwareFallback(t *testing.T) {
 	if !hasNAL(packets[2], 7) || !hasNAL(packets[2], 8) || !hasNAL(packets[2], 5) {
 		t.Fatal("software replacement lacks SPS/PPS/IDR")
 	}
+	checkSoftwareFrameRate(t, encoder, frameRate)
 	checkNVENCDecoded(t, bytes.Join(packets, nil), expected)
 }

@@ -37,6 +37,7 @@ type RDPConfig struct {
 	TLS         *tls.Config
 	H264        bool
 	H264Encoder string // Empty selects the software encoder.
+	Profile     string // office (30 FPS) or smooth (60 FPS); empty selects smooth.
 	Audio       bool
 	H264Threads int // Slice request; zero chooses a bounded automatic count.
 	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
@@ -53,6 +54,7 @@ type RDPDisplay struct {
 	h264           bool
 	h264Backend    avc.Backend
 	h264Slices     int
+	frameRate      int
 	stats          bool
 	audio          *audio.Hub
 	connMu         sync.Mutex
@@ -84,6 +86,10 @@ func NewRDPDisplayWithTLS(addr string, config *tls.Config) (*RDPDisplay, error) 
 // NewRDPDisplayWithConfig enables AVC420 for capable clients when H264 is set.
 // Other clients retain bitmap updates.
 func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error) {
+	frameRate, err := rdp.ProfileFrameRate(options.Profile)
+	if err != nil {
+		return nil, err
+	}
 	backend := avc.Backend(options.H264Encoder)
 	switch backend {
 	case "", avc.BackendSoftware, avc.BackendNVENC, avc.BackendAuto:
@@ -103,11 +109,11 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	slices := rdpEncoderSlices(runtime.GOMAXPROCS(0), options.GuestCPUs, options.H264Threads)
 	if options.H264 {
 		// Fail before opening the listener if the H.264 encoder cannot initialize.
-		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{Backend: backend, Threads: slices})
+		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{Backend: backend, Threads: slices, FrameRate: frameRate})
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("rdp: H.264 encoder=%s requested=%s", encoder.Backend(), backend)
+		log.Printf("rdp: H.264 encoder=%s requested=%s max_fps=%d", encoder.Backend(), backend, frameRate)
 		if reason := encoder.FallbackReason(); reason != nil {
 			log.Printf("rdp: H.264 using software fallback: %v", reason)
 		}
@@ -138,13 +144,13 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	display := &RDPDisplay{
 		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
-		h264Backend: backend, h264Slices: slices,
+		h264Backend: backend, h264Slices: slices, frameRate: frameRate,
 	}
 	if options.Audio {
 		display.audio = audio.NewHub()
 	}
 	if options.H264 {
-		display.linearInterval = time.Second / avc.FrameRate
+		display.linearInterval = time.Second / time.Duration(frameRate)
 	}
 	display.wg.Add(1)
 	go display.acceptLoop()
@@ -442,7 +448,7 @@ func (d *RDPDisplay) writeFrames(
 	}
 	writer := &rdpFrameWriter{
 		session: session, bitmap: bitmap, width: width, height: height, force: true,
-		backend: d.h264Backend, slices: d.h264Slices,
+		backend: d.h264Backend, slices: d.h264Slices, frameRate: d.frameRate,
 		stats: rdpFrameStats{enabled: d.stats, peer: conn.RemoteAddr().String()},
 	}
 	writer.stats.start = writer.stats.begin()
@@ -537,6 +543,7 @@ type rdpFrameWriter struct {
 	width     int
 	height    int
 	graphics  bool
+	frameRate int
 	sequence  uint64
 	force     bool
 	nextFrame time.Time
@@ -571,6 +578,8 @@ func (w *rdpFrameWriter) updateSize() error {
 }
 
 func (w *rdpFrameWriter) writeWhenReady(display *framebuffer, timer *time.Timer) (<-chan time.Time, error) {
+	// Gate capture and full-picture encoding together. Publications while
+	// waiting remain in the framebuffer's damage history, not an encode queue.
 	deadline := w.frameDeadline()
 	if delay := time.Until(deadline); delay > 0 {
 		timer.Reset(delay)
@@ -625,7 +634,11 @@ func (w *rdpFrameWriter) updateGraphics(conn net.Conn) bool {
 
 func (w *rdpFrameWriter) frameInterval() time.Duration {
 	if w.graphics {
-		base := time.Second / avc.FrameRate
+		frameRate := w.frameRate
+		if frameRate == 0 {
+			frameRate = avc.FrameRate
+		}
+		base := time.Second / time.Duration(frameRate)
 		if w.session != nil {
 			return w.session.GraphicsFrameInterval(base)
 		}
@@ -694,7 +707,7 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 	if w.avc == nil {
 		width, height := w.session.Size()
 		encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
-			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.enabled,
+			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.enabled, FrameRate: w.frameRate,
 		})
 		if err != nil {
 			return false, err
@@ -702,10 +715,11 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 		w.avc = encoder
 		force = true // A new encoder starts an independent reference chain.
 		log.Printf(
-			"rdp: client %s H.264 encoder=%s slices=%d",
+			"rdp: client %s H.264 encoder=%s slices=%d max_fps=%d",
 			w.stats.peer,
 			encoder.Backend(),
 			encoder.Threads(),
+			encoder.FrameRate(),
 		)
 		if reason := encoder.FallbackReason(); reason != nil {
 			log.Printf("rdp: client %s H.264 using software fallback: %v", w.stats.peer, reason)

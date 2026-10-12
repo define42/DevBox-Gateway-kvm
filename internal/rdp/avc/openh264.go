@@ -29,16 +29,16 @@ type openH264Encoder struct {
 	width, height int
 }
 
-func newCodecEncoder(width, height, threads int) (codecEncoder, int, error) {
-	return newCodecEncoderWithConfig(width, height, threads, codecConfig{
+func newCodecEncoder(width, height, threads, frameRate int) (codecEncoder, int, error) {
+	return newCodecEncoderWithConfig(width, height, threads, frameRate, codecConfig{
 		intraPeriod:          codecIntraPeriod,
 		loopFilterDisableIDC: codecLoopFilterDisableIDC,
 	})
 }
 
-func newCodecEncoderWithConfig(width, height, threads int, config codecConfig) (codecEncoder, int, error) {
+func newCodecEncoderWithConfig(width, height, threads, frameRate int, config codecConfig) (codecEncoder, int, error) {
 	slices := min(threads, (height+15)/16)
-	param, err := openh264.DefaultEncoderParams(width, height, api.UNSPECIFIED_BIT_RATE, FrameRate)
+	param, err := openh264.DefaultEncoderParams(width, height, api.UNSPECIFIED_BIT_RATE, float32(frameRate))
 	if err != nil {
 		return nil, 0, fmt.Errorf("%w: defaults: %w", ErrCodec, err)
 	}

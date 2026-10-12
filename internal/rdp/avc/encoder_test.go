@@ -159,7 +159,7 @@ func (c *recordingCodec) close() { c.closed++ }
 func TestEncoderRefreshAndClose(t *testing.T) {
 	t.Parallel()
 	codec := &recordingCodec{}
-	encoder := &Encoder{codec: codec, width: 16, height: 16, i420: make([]byte, 16*16*3/2)}
+	encoder := &Encoder{codec: codec, frameRate: FrameRate, width: 16, height: 16, i420: make([]byte, 16*16*3/2)}
 	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
 	for _, force := range []bool{false, false, true} {
 		if _, err := encoder.Encode(img, force); err != nil {
@@ -187,7 +187,7 @@ func TestEncoderRefreshAndClose(t *testing.T) {
 func TestRejectMalformedRGBA(t *testing.T) {
 	t.Parallel()
 	codec := &recordingCodec{}
-	encoder := &Encoder{codec: codec, width: 16, height: 16, i420: make([]byte, 16*16*3/2)}
+	encoder := &Encoder{codec: codec, frameRate: FrameRate, width: 16, height: 16, i420: make([]byte, 16*16*3/2)}
 	defer encoder.Close()
 	for _, img := range []*image.RGBA{
 		nil,

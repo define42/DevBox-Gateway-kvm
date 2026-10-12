@@ -1,0 +1,23 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                    │   smooth60   │               office30               │
+                    │    sec/op    │    sec/op     vs base                │
+OfficeProfileBudget   1296.1m ± 7%   619.6m ± 12%  -52.20% (p=0.000 n=10)
+
+                    │     smooth60     │                 office30                 │
+                    │ encoded_bytes/op │ encoded_bytes/op  vs base                │
+OfficeProfileBudget        886.6k ± 0%        442.9k ± 0%  -50.04% (p=0.000 n=10)
+
+                    │  smooth60  │              office30              │
+                    │ frames/op  │ frames/op   vs base                │
+OfficeProfileBudget   240.0 ± 0%   120.0 ± 0%  -50.00% (p=0.000 n=10)
+
+                    │   smooth60   │               office30               │
+                    │     B/op     │     B/op      vs base                │
+OfficeProfileBudget   6.261Mi ± 0%   3.132Mi ± 0%  -49.98% (p=0.000 n=10)
+
+                    │  smooth60   │              office30               │
+                    │  allocs/op  │  allocs/op   vs base                │
+OfficeProfileBudget   7.646k ± 0%   3.837k ± 0%  -49.82% (p=0.000 n=10)

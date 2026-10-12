@@ -19,7 +19,7 @@ func TestNVENCHardwarePublicEncoder(t *testing.T) {
 	for _, backend := range []Backend{BackendNVENC, BackendAuto} {
 		t.Run(string(backend), func(t *testing.T) {
 			const width, height = 640, 360
-			options := Options{Backend: backend, Threads: 4}
+			options := Options{Backend: backend, Threads: 4, FrameRate: 30}
 			encoder, err := NewEncoderWithOptions(width, height, options)
 			if err != nil {
 				t.Fatal(err)
@@ -90,6 +90,9 @@ func TestNVENCHardwarePublicEncoder(t *testing.T) {
 
 func checkActiveNVENC(t *testing.T, encoder *Encoder) {
 	t.Helper()
+	if encoder.FrameRate() != 30 {
+		t.Fatalf("frame rate = %d, want 30", encoder.FrameRate())
+	}
 	if encoder.Backend() != BackendNVENC || encoder.Threads() != 0 || encoder.FallbackReason() != nil {
 		t.Fatalf("backend=%s threads=%d fallback=%v, want nvenc with no fallback",
 			encoder.Backend(), encoder.Threads(), encoder.FallbackReason())

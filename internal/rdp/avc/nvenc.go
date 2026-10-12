@@ -12,8 +12,8 @@ type nvencEncoder struct {
 	codec *nvenc.Encoder
 }
 
-func newNVENCEncoder(width, height int) (codecEncoder, error) {
-	codec, err := nvenc.New(width, height, FrameRate, codecQP)
+func newNVENCEncoder(width, height, frameRate int) (codecEncoder, error) {
+	codec, err := nvenc.New(width, height, frameRate, codecQP)
 	if err != nil {
 		return nil, fmt.Errorf("%w: initialize nvenc: %w", ErrCodec, err)
 	}

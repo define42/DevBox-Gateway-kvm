@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"golang.org/x/sys/unix"
 )
 
@@ -30,6 +31,7 @@ const defaultMaxCreations = 2
 type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	Encoder, Keyboard                                  string
+	RDPProfile                                         string // office (30 FPS) by default; smooth selects 60 FPS.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	MemoryBudgetMiB                                    int // Zero selects an automatic host-memory budget.
 	MaxCreations                                       int // Bounds provisioning I/O across all owners.
@@ -205,6 +207,12 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 }
 
 func normalizeManagerLimits(c *ManagerConfig) error {
+	if c.RDPProfile == "" {
+		c.RDPProfile = rdp.ProfileOffice
+	}
+	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil {
+		return fmt.Errorf("invalid RDP profile %q: %w", c.RDPProfile, ErrInvalid)
+	}
 	if c.MaxImageUploadBytes == 0 {
 		c.MaxImageUploadBytes = DefaultMaxImageUploadBytes
 	}
@@ -621,6 +629,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp", address, "-rdp-fd", "3",
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
+		"-rdp-profile", m.config.RDPProfile,
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
 	// Leave stdout and stderr unset so os/exec connects them to the null

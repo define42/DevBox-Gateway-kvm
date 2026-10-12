@@ -32,7 +32,7 @@ func TestNVENCHardware(t *testing.T) {
 
 func testNVENCRoundTrip(t *testing.T, width, height int) {
 	t.Helper()
-	codec, err := newNVENCEncoder(width, height)
+	codec, err := newNVENCEncoder(width, height, FrameRate)
 	if err != nil {
 		t.Fatal(err)
 	}

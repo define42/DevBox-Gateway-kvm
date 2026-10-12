@@ -163,7 +163,21 @@ own VMs.
 Use TLS in the RDP client; NLA/CredSSP is not supported. Clients must send the
 entered password in the TLS-protected Client Info packet. The guest console accepts
 one RDP connection at a time. Managed VMs enable H.264, with bitmap fallback for
-clients without AVC420 support. Clipboard redirection is not implemented, and
+clients without AVC420 support. The default `RDP_PROFILE=office` caps graphics at
+30 FPS to reduce shared-host encoding cost; select `RDP_PROFILE=smooth` (or
+`serve -rdp-profile smooth`) for a 60 FPS AVC420 cap. Bitmap fallback stays at
+30 FPS with either profile. The cap is applied before copying the framebuffer for
+encoding, converting colors, and invoking the full-picture H.264 codec.
+Changes between frames are coalesced without losing pending damage; idle screens
+are not encoded. This controls graphics only, not input, cursor updates, or audio.
+
+Four continuously changing AVC420 sessions target at most 120 encoded frames per second
+with `office`, instead of 240 with `smooth`. These are workload caps, not measured
+throughput or guarantees of session density; CPU, resolution, content, and the
+selected encoder still determine actual performance. See the
+[runtime profile reference](runtime.md#rdp-graphics-profiles) for standalone use.
+
+Clipboard redirection is not implemented, and
 managed VMs currently do not enable audio, even though the downloaded file
 contains client preferences for these features.
 
@@ -356,8 +370,9 @@ read from environment variables; explicit flags remain available as overrides.
 See the [configuration reference](configuration.md) for every variable, default,
 and corresponding flag, or run `./gokvm serve -help`.
 
-CPU, RAM, and encoder settings apply when a VM process starts; they are
-gateway-wide settings, not per-image sizing. Quotas limit VM counts, not total allocated disk bytes.
+CPU, RAM, encoder, and RDP profile settings apply when a VM process starts; they
+are gateway-wide settings, not per-image sizing. Restart running VMs after
+changing the profile. Quotas limit VM counts, not total allocated disk bytes.
 
 Before starting the first desktop, the gateway sets its automatic memory budget
 from Linux `MemAvailable`, leaves 1 GiB for the host, and applies any smaller

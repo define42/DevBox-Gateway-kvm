@@ -28,7 +28,7 @@ func (v *VMM) newRDPDisplay() (*virtio.RDPDisplay, error) {
 		}
 	}
 	display, err := virtio.NewRDPDisplayWithConfig(v.RDP, virtio.RDPConfig{
-		TLS: config, Listener: listener, H264: v.RDPH264, Audio: v.Audio == "rdp",
+		TLS: config, Listener: listener, H264: v.RDPH264, Audio: v.Audio == "rdp", Profile: v.RDPProfile,
 		H264Encoder: v.RDPH264Encoder,
 		H264Threads: v.RDPH264Threads, Stats: v.RDPStats, GuestCPUs: v.NCPUs,
 	})

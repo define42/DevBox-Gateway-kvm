@@ -28,12 +28,24 @@ func clearServeEnvironment(t *testing.T) {
 }
 
 //nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeDefaultRDPProfile(t *testing.T) {
+	clearServeEnvironment(t)
+	options, err := readServeOptions([]string{"-auth-file=local.json"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options.manager.RDPProfile != "office" {
+		t.Fatalf("default RDP profile = %q, want office", options.manager.RDPProfile)
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
 func TestServeEnvironmentConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/gokvm",
 		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
-		"H264_ENCODER": "software", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6", "VM_MEMORY_MIB": "8192",
+		"H264_ENCODER": "software", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6", "VM_MEMORY_MIB": "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m",
 		"VM_CREATE_TIMEOUT": "40m", "VM_START_TIMEOUT": "50s", "VM_STOP_TIMEOUT": "25s", "SESSION_TTL": "4h",
@@ -57,7 +69,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 		manager: gateway.ManagerConfig{
 			DataDir: "/srv/desktops", Binary: "/opt/gokvm", BaseImage: "/srv/images/desktop.qcow2",
 			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
-			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
+			RDPProfile: "smooth",
+			CPUs:       6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxImageUploadBytes: 40 << 30, StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
 		},
 		gateway: gateway.Config{
@@ -102,7 +115,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
 		"LDAP_URL": "ldaps://directory.example.com", "AUTH_FILE": "",
-		"VM_VCPU_COUNT": "8", "VM_MEMORY_BUDGET_MIB": "32768", "ACME_ENABLE": "true",
+		"VM_VCPU_COUNT": "8", "VM_MEMORY_BUDGET_MIB": "32768", "ACME_ENABLE": "true", "RDP_PROFILE": "smooth",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m", "ADMIN_GROUP": "admins",
 		"MAX_CONCURRENT_CONNECTIONS": "64", "MAX_HANDSHAKES": "48", "MAX_CONNECTIONS_PER_IP": "24",
 		"MAX_HANDSHAKES_PER_IP": "6", "CONNECTION_RATE_LIMIT": "100", "CONNECTION_RATE_LIMIT_PER_IP": "12",
@@ -111,7 +124,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		t.Setenv(key, value)
 	}
 	options, err := readServeOptions([]string{
-		"-ldap-url=", "-auth-file=local.json", "-cpus=3", "-memory-budget=0", "-acme=false",
+		"-ldap-url=", "-auth-file=local.json", "-cpus=3", "-memory-budget=0", "-acme=false", "-rdp-profile=office",
 		"-image-upload-limit=10737418240", "-image-upload-timeout=20m", "-ldap-admin-group=",
 		"-max-connections=80", "-max-handshakes=40", "-max-connections-per-ip=20", "-max-handshakes-per-ip=5",
 		"-connection-rate-limit=120", "-connection-rate-limit-per-ip=10", "-handshake-timeout=12s",
@@ -121,6 +134,9 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	}
 	if options.ldap.URL != "" || options.authFile != "local.json" || options.ldap.AdminGroup != "" {
 		t.Fatalf("string overrides not applied: %#v", options)
+	}
+	if options.manager.RDPProfile != "office" {
+		t.Fatalf("RDP profile override = %q, want office", options.manager.RDPProfile)
 	}
 	if options.manager.CPUs != 3 || options.manager.MemoryBudgetMiB != 0 || options.certificates.ACME {
 		t.Fatalf("integer/boolean overrides not applied: %#v", options)
