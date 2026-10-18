@@ -100,48 +100,110 @@ CGO_ENABLED=1 go test -race ./internal/virtio ./internal/vmm \
 make test
 ```
 
-This prepares guest fixtures, runs generation and linting, then runs
-`go test -timeout 30m -coverprofile c.out ./...` in a fresh user/network namespace.
-It brings namespace loopback up before testing and finishes with
-`go mod tidy -diff`.
+This runs generation and lints the default packages plus the integration-tagged
+VMM and `legacyboot`-tagged machine code, then runs
+`go test -count=1 -timeout 30m -coverprofile c.out ./...` in a fresh user/network
+namespace with loopback enabled. It also runs the required `make test-qcow2`
+firmware/disk smoke test and finishes with `go mod tidy -diff`. It does not
+download or build Linux kernels, a u-root initrd, or the old `vda.img` fixture.
+
+On Debian/Ubuntu, install the full suite's host tools with:
+
+```bash
+sudo apt-get install qemu-utils util-linux iproute2 ovmf \
+  build-essential binutils gnu-efi dosfstools mtools
+```
 
 The full suite needs KVM access, `/dev/net/tun`, permission to create user and
 network namespaces, `unshare`, and `ip`. TAP tests create interfaces in that
-namespace. Some older machine tests require root as seen inside the namespace.
+namespace. Some machine tests require root as seen inside the namespace.
 Running `go test -short ./...` is not a substitute: KVM and TAP tests do not all
 honor short mode or skip when devices are unavailable.
 
-| Fixture in the repository root | Preparation and use |
-| --- | --- |
-| `bzImage`, `vmlinux`, `vmlinux_PVH`, `CLOUDHV.fd` | `make test` invokes the kernel targets in the Makefile; used by loader and machine boot tests |
-| `initrd` | `make initrd` prepares the u-root guest environment used by machine tests |
-| `vda.img` | `make vda.img` uses `genext2fs` to create the sample guest filesystem |
-| `TinyCore-current.iso` | Used by `TestTinyCoreVNCDesktopBoot`; the test skips in short mode, without root/KVM, or when the ISO is missing |
+### Required QCOW2/UEFI smoke test
 
-[`scripts/get_kernel.bash`](../scripts/get_kernel.bash) downloads candidate
-artifacts and compares their embedded configuration with
-[`linux.config`](../linux.config) or [`linux_pvh.config`](../linux_pvh.config).
-It builds a kernel locally if the configuration differs, so allow download time,
-disk space, and the host dependencies required by that kernel build. Updating a
-config file does not update an existing kernel until the target is rebuilt.
+```bash
+make test-qcow2
+```
 
-[`scripts/get_initrd.bash`](../scripts/get_initrd.bash) downloads a candidate
-initrd and rebuilds it when its script/configuration marker differs. It uses
-u-root and host tools, shared libraries, terminfo, and PCI IDs. Check the
-Makefile's `checkbinaries` target and the script before building on a new host;
-`lsinitramfs`, `curl`, and the listed guest utilities are also needed.
+This builds a tiny EFI application, places it at `EFI/BOOT/BOOTX64.EFI` in a
+temporary 64 MiB FAT32 disk, and converts the disk to QCOW2 with `qemu-img`.
+The native gokvm KVM runtime boots OVMF with an isolated writable VARS copy.
+The test requires the application to report a serial success marker and request
+a successful firmware shutdown. QEMU is used only for image conversion, not to
+run the guest. No Linux kernel, initrd, downloaded desktop image, or live gateway
+disk is used. This checks firmware discovery, QCOW2/virtio-block boot, EFI
+execution, and shutdown; it does not establish full OS or desktop readiness.
 
-The [CI workflow](../.github/workflows/ci.yml) runs the full suite ten times,
-with lint and coverage on the first run. A separate job checks the pure-Go and
-NVENC-tagged builds plus selected race tests. The
-[vulnerability workflow](../.github/workflows/govulncheck.yml) runs `govulncheck`
-against the module. Integration-tagged and physical GPU tests below are opt-in;
-the NVENC CI build does not prove that a host GPU can encode.
+Use matching plain, non-SMM OVMF CODE and VARS images. The Make target defaults
+to `/usr/share/OVMF/OVMF_CODE_4M.fd` and
+`/usr/share/OVMF/OVMF_VARS_4M.fd`; override them with `OVMF_CODE` and `OVMF_VARS`:
+
+```bash
+make test-qcow2 OVMF_CODE=/path/to/OVMF_CODE.fd OVMF_VARS=/path/to/OVMF_VARS.fd
+```
+
+For a direct Go invocation, use the corresponding test environment variables:
+
+```bash
+GOKVM_REQUIRE_UEFI_TEST=1 \
+GOKVM_TEST_OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
+GOKVM_TEST_OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd \
+  go test -tags=integration ./internal/vmm \
+  -run '^TestUEFIQCOW2Boot$' -count=1 -timeout 3m -v
+```
+
+`GOKVM_REQUIRE_UEFI_TEST=1` makes missing tools, firmware, or KVM access a test
+failure instead of a skip. `make test-qcow2` sets it automatically, including
+when called by `make test` and CI.
+
+The [CI workflow](../.github/workflows/ci.yml) runs the default Go suite and the
+QCOW2/UEFI smoke test ten times, with lint and coverage on the first run. A
+separate job checks the pure-Go and NVENC-tagged builds plus selected race tests.
+The [vulnerability workflow](../.github/workflows/govulncheck.yml) runs
+`govulncheck` against the module. Other integration-tagged tests, legacy boot
+tests, and physical GPU checks below remain opt-in; the NVENC CI build does not
+prove that a host GPU can encode.
 
 ## Optional integration checks
 
 Use the check that matches the change. These commands can launch guests or a
 local LDAP service, and some need several GiB of free RAM.
+
+### Legacy direct-kernel and PVH boot
+
+```bash
+make test-legacy
+```
+
+This prepares the standalone fixtures below and runs the machine package with
+`-tags=legacyboot` in a user/network namespace. The tag adds four boot tests:
+bzImage, ELF vmlinux, Linux PVH, and EDK2/CloudHv PVH. They exercise optional
+direct-boot modes retained from the original VMM, not the gateway's QCOW2/UEFI
+boot path, and are excluded from default `go test ./...` and `make test`.
+
+| Fixture in the repository root | Preparation and use |
+| --- | --- |
+| `bzImage`, `vmlinux`, `vmlinux_PVH`, `CLOUDHV.fd` | `make test-legacy` invokes the kernel targets; used by the tagged machine boot tests |
+| `initrd` | `make initrd` prepares the u-root guest environment used by legacy Linux boot tests |
+| `vda.img` | `make vda.img` uses `genext2fs` to create the sample guest filesystem |
+
+[`scripts/get_kernel.bash`](../scripts/get_kernel.bash) downloads candidate
+artifacts and compares their embedded configuration with
+[`linux.config`](../linux.config) or [`linux_pvh.config`](../linux_pvh.config).
+It builds a kernel locally if the configuration differs, so allow download time,
+disk space, and a kernel build toolchain: a C compiler, make, binutils, flex,
+bison, bc, libelf/OpenSSL development files, and xz tools. Updating a config file
+does not update an existing kernel until the target is rebuilt.
+
+[`scripts/get_initrd.bash`](../scripts/get_initrd.bash) downloads a candidate
+initrd and rebuilds it when its script/configuration marker differs. It uses
+u-root and host tools, shared libraries, terminfo, and PCI IDs. Check the
+Makefile's `checkbinaries` target and the script before building on a new host;
+`git`, `lsinitramfs`, `curl`, `genext2fs`, `ping`, and the listed guest utilities
+are also needed. These scripts remain for `make test-legacy` and standalone
+direct-kernel examples; the gateway and default CI do not use them to prepare
+boot fixtures.
 
 ### Image import and ISO discovery
 
@@ -194,6 +256,12 @@ This covers independent decoding, forced IDR refreshes, unusual frame dimensions
 color metadata, output ownership, and software fallback after a hardware error.
 
 ### Guest lifecycle and desktops
+
+The untagged `TestTinyCoreVNCDesktopBoot` is also included in the default Go
+suite. It uses the repository-root `TinyCore-current.iso` and skips in short
+mode, without root/KVM, or when the ISO is missing. The ISO is tracked, so a
+normal CI checkout includes it. This existing conditional desktop check is
+separate from the required QCOW2/UEFI firmware smoke test above.
 
 The tagged lifecycle tests require `/dev/kvm`; the headless boot test also needs
 non-terminal stdin. They use synthetic guest code instead of the kernel fixtures:

@@ -3,47 +3,52 @@
 # get_kernel.bash - download or build bzImage and vmlinux
 # ----------------------------------------------------------------------
 
+set -euo pipefail
+
 bzImage=${1:-bzImage}
 vmlinux=${2:-vmlinux}
 config=${3:-linux.config}
 
 # Download pre-compiled bzImage
-curl -s -O -L -C - --retry 5 \
-  https://github.com/bobuhiro11/bins/raw/main/gokvm/${bzImage}
+curl -fsSL --retry 5 -o "${bzImage}" \
+  "https://github.com/bobuhiro11/bins/raw/main/gokvm/${bzImage}"
 
 # Download pre-compiled EDK2/CloudHv firmware image (CLOUDHV.fd)
-curl -s -O -L -C - --retry 5 \
+curl -fsSL --retry 5 -o CLOUDHV.fd \
   https://github.com/bobuhiro11/bins/raw/main/gokvm/CLOUDHV.fd
 
 # Download extract-ikconfig script
-curl -s -O -L -C - --retry 5 \
+curl -fsSL --retry 5 -o extract-ikconfig \
   https://raw.githubusercontent.com/torvalds/linux/master/scripts/extract-ikconfig
 chmod a+x ./extract-ikconfig
 
 # Download extract-vmlinux script
-curl -s -O -L -C - --retry 5 \
+curl -fsSL --retry 5 -o extract-vmlinux \
   https://raw.githubusercontent.com/torvalds/linux/master/scripts/extract-vmlinux
 chmod a+x ./extract-vmlinux
 
-# Check that bzImage was compiled with the requested configuration
-diff -u <(./extract-ikconfig ${bzImage}) ${config}
+# Keep extraction outside the conditional so failures stop the script.
+downloaded_config=$(./extract-ikconfig "${bzImage}")
 
-# If needed, we build bzImage in local
-if [ $? -ne 0 ]; then
+# A configuration mismatch is expected when the prebuilt kernel is outdated.
+if ! diff -u <(printf '%s\n' "${downloaded_config}") "${config}"; then
   version=$(awk '/Kernel Configuration/ {print $3}' "${config}")
   # Initial releases use linux-X.Y.tar.xz, although Kconfig records X.Y.0.
   version=${version%.0}
-  major_version=$(echo $version | awk -F\. '{print $1}')
-  curl -s -O -L -C - --retry 5 \
-    https://cdn.kernel.org/pub/linux/kernel/v${major_version}.x/linux-${version}.tar.xz \
-    -o linux.tar.xz
+  major_version=${version%%.*}
+  archive="linux-${version}.tar.xz"
+  build_dir="_linux/linux-${version}"
+  curl -fsSL -C - --retry 5 -o "${archive}" \
+    "https://cdn.kernel.org/pub/linux/kernel/v${major_version}.x/${archive}"
 
-  tar Jxf ./linux.tar.xz --one-top-level=_linux --strip-components 1
-  cp "${config}" _linux/.config
-  make -C _linux olddefconfig
-  make -j$(nproc) -C _linux
-  cp _linux/arch/x86/boot/bzImage ${bzImage}
+  # Do not mix source files or build products from different kernel versions.
+  mkdir -p "${build_dir}"
+  tar -Jxf "${archive}" -C "${build_dir}" --strip-components 1
+  cp "${config}" "${build_dir}/.config"
+  make -C "${build_dir}" olddefconfig
+  make -j"$(nproc)" -C "${build_dir}"
+  cp "${build_dir}/arch/x86/boot/bzImage" "${bzImage}"
 fi
 
 # Extract vmlinux from bzImage
-./extract-vmlinux ${bzImage} > ${vmlinux}
+./extract-vmlinux "${bzImage}" > "${vmlinux}"

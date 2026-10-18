@@ -32,7 +32,8 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y qemu-kvm qemu-utils libmnl-dev genext2fs util-linux iproute2
+        sudo apt-get install -y qemu-utils util-linux iproute2 ovmf \
+          build-essential binutils gnu-efi dosfstools mtools
         sudo chmod 666 /dev/kvm
 
     - name: Display system information
@@ -74,10 +75,10 @@ jobs:
       run: |
         for i in $(seq 2 10); do
           echo "=== Test iteration $i/10 ==="
-          go clean -testcache
           unshare --user --net --map-root-user \
             sh -c 'ip link set lo up && exec "$@"' sh \
-            go test -timeout 30m ./...
+            go test -count=1 -timeout 30m ./...
+          make test-qcow2
           echo "=== Iteration $i/10 passed ==="
         done
 

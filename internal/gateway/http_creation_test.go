@@ -195,18 +195,23 @@ func TestCreationProgressBrokenStreamCancelsBackend(t *testing.T) {
 
 func TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout(t *testing.T) {
 	t.Parallel()
+	// net/http also applies WriteTimeout to the TLS handshake; allow loaded CI
+	// enough time to reach the handler before testing the longer creation stream.
+	const ordinaryWriteTimeout = time.Second
+
 	s, base, raw, sess := webFixture(t)
-	s.config.CreationTimeout = 2 * time.Second
+	s.config.CreationTimeout = 10 * ordinaryWriteTimeout
 	s.config.Backend = &progressTestBackend{webBackend: base, create: func(
 		ctx context.Context, _, _, _, _ string, report func(CreateProgress),
 	) (VM, error) {
-		time.Sleep(100 * time.Millisecond)
+		// Creation must outlive the ordinary response deadline.
+		time.Sleep(2 * ordinaryWriteTimeout)
 		report(CreateProgress{Phase: "copying", CopiedBytes: 100, TotalBytes: 100})
 
 		return VM{}, ctx.Err()
 	}}
 	server := httptest.NewUnstartedServer(s.routes())
-	server.Config.WriteTimeout = 25 * time.Millisecond
+	server.Config.WriteTimeout = ordinaryWriteTimeout
 	server.StartTLS()
 	defer server.Close()
 	r := creationRequest(t, raw, sess.csrf)

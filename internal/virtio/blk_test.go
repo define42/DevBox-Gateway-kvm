@@ -174,22 +174,41 @@ func TestReadOnlyBlkRejectsWrites(t *testing.T) {
 	}
 }
 
+func blockReadFixture(t *testing.T) (string, []byte) {
+	t.Helper()
+
+	// Only sector 2 is populated, so reading a different sector cannot pass.
+	// Block I/O does not require a partition table or filesystem.
+	expected := bytes.Repeat([]byte{0x13, 0x57, 0x9b, 0xdf}, virtio.SectorSize/4)
+	data := make([]byte, 4*virtio.SectorSize)
+	copy(data[2*virtio.SectorSize:], expected)
+
+	path := filepath.Join(t.TempDir(), "disk.raw")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	return path, expected
+}
+
 func TestIO(t *testing.T) {
 	t.Parallel()
 
+	rawPath, expected := blockReadFixture(t)
 	mem := make([]byte, 0x1000000)
 
 	v, err := virtio.NewBlk(
-		"../../vda.img", 10, &mockInjector{}, mem,
+		rawPath, 10, &mockInjector{}, mem,
 	)
-
-	if os.IsNotExist(err) {
-		t.Skipf("../../vda.img does not exist, skipping")
-	}
-
 	if err != nil {
 		t.Fatalf("err: %v\n", err)
 	}
+
+	t.Cleanup(func() {
+		if err := v.Close(); err != nil {
+			t.Errorf("close block device: %v", err)
+		}
+	})
 
 	q := newSplitQueue()
 	q.Avail.Idx = 1
@@ -229,10 +248,7 @@ func TestIO(t *testing.T) {
 		t.Fatalf("status: expected 0, got %d", mem[0x700])
 	}
 
-	// The ext2 superblock magic (0xef53) lives at offset 0x38 of sector 2.
-	expected := []byte{0x53, 0xef}
-	actual := mem[0x438:0x43a]
-
+	actual := mem[0x400 : 0x400+virtio.SectorSize]
 	if !bytes.Equal(expected, actual) {
 		t.Fatalf("expected: %v, actual: %v", expected, actual)
 	}
@@ -241,12 +257,9 @@ func TestIO(t *testing.T) {
 func TestIOWithQCOW2(t *testing.T) {
 	t.Parallel()
 
-	if _, err := os.Stat("../../vda.img"); os.IsNotExist(err) {
-		t.Skipf("../../vda.img does not exist, skipping")
-	}
-
+	rawPath, expected := blockReadFixture(t)
 	qcow2Path := filepath.Join(t.TempDir(), "vda.qcow2")
-	runQEMUImg(t, "convert", "-f", "raw", "-O", "qcow2", "../../vda.img", qcow2Path)
+	runQEMUImg(t, "convert", "-f", "raw", "-O", "qcow2", rawPath, qcow2Path)
 
 	mem := make([]byte, 0x1000000)
 
@@ -254,6 +267,12 @@ func TestIOWithQCOW2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v\n", err)
 	}
+
+	t.Cleanup(func() {
+		if err := v.Close(); err != nil {
+			t.Errorf("close block device: %v", err)
+		}
+	})
 
 	q := newSplitQueue()
 	q.Avail.Idx = 1
@@ -284,14 +303,15 @@ func TestIOWithQCOW2(t *testing.T) {
 		t.Fatalf("err: %v\n", err)
 	}
 
+	if !v.IRQInjector.(*mockInjector).called {
+		t.Fatal("IRQ not injected")
+	}
+
 	if mem[0x700] != 0 {
 		t.Fatalf("status: expected 0, got %d", mem[0x700])
 	}
 
-	// The ext2 superblock magic (0xef53) lives at offset 0x38 of sector 2.
-	expected := []byte{0x53, 0xef}
-	actual := mem[0x438:0x43a]
-
+	actual := mem[0x400 : 0x400+virtio.SectorSize]
 	if !bytes.Equal(expected, actual) {
 		t.Fatalf("expected: %v, actual: %v", expected, actual)
 	}

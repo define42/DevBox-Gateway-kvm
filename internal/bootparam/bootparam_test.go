@@ -3,59 +3,112 @@ package bootparam_test
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
-	"os"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/bootparam"
 )
 
-func bpnew(n string) (*bootparam.BootParam, error) {
-	f, err := os.Open(n)
-	if err != nil {
-		return nil, fmt.Errorf("Skipping this test: %w", err)
+func bootHeaderFixture(t *testing.T, header bootparam.SetupHeader) *bytes.Reader {
+	t.Helper()
+
+	var image bytes.Buffer
+	image.Write(make([]byte, 0x1f1))
+
+	if err := binary.Write(&image, binary.LittleEndian, header); err != nil {
+		t.Fatal(err)
 	}
 
-	return bootparam.New(f)
+	return bytes.NewReader(image.Bytes())
+}
+
+func validBootHeader() bootparam.SetupHeader {
+	return bootparam.SetupHeader{
+		SetupSects:  4,
+		BootFlag:    0xaa55,
+		Header:      bootparam.MagicSignature,
+		Version:     0x0206,
+		Code32Start: 0x100000,
+		CmdlineSize: 2048,
+	}
 }
 
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	// Do a test open for the bzimage. If it fails for any reason,
-	// just skip this test.
-	if _, err := bpnew("../../bzImage"); err != nil {
-		t.Skipf("Skipping this test: %v", err)
+	header := validBootHeader()
+	b, err := bootparam.New(bootHeaderFixture(t, header))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if b.Hdr != header {
+		t.Fatalf("decoded header = %#v, want %#v", b.Hdr, header)
 	}
 }
 
 func TestNewNotbzImage(t *testing.T) {
 	t.Parallel()
 
-	if _, err := bpnew("../../README.md"); err == nil {
-		t.Fatal(err)
+	header := validBootHeader()
+	header.Header = 0
+
+	if _, err := bootparam.New(bootHeaderFixture(t, header)); !errors.Is(err, bootparam.ErrorSignatureNotMatch) {
+		t.Fatalf("invalid signature: got %v, want %v", err, bootparam.ErrorSignatureNotMatch)
+	}
+}
+
+func TestNewOldProtocol(t *testing.T) {
+	t.Parallel()
+
+	header := validBootHeader()
+	header.Version = 0x0205
+
+	if _, err := bootparam.New(bootHeaderFixture(t, header)); !errors.Is(err, bootparam.ErrorOldProtocolVersion) {
+		t.Fatalf("old protocol: got %v, want %v", err, bootparam.ErrorOldProtocolVersion)
+	}
+}
+
+func TestNewTruncatedHeader(t *testing.T) {
+	t.Parallel()
+
+	image := bytes.NewReader(make([]byte, 0x1f2))
+	if _, err := bootparam.New(image); !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("truncated header: got %v, want %v", err, io.ErrUnexpectedEOF)
 	}
 }
 
 func TestBytes(t *testing.T) {
 	t.Parallel()
 
-	b, err := bpnew("../../bzImage")
+	header := validBootHeader()
+	b, err := bootparam.New(bootHeaderFixture(t, header))
 	if err != nil {
-		t.Skipf("Skipping this test: %v", err)
+		t.Fatal(err)
 	}
 
-	if _, err := b.Bytes(); err != nil {
+	raw, err := b.Bytes()
+	if err != nil {
 		t.Fatal(err)
+	}
+
+	decoded, err := bootparam.New(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if decoded.Hdr != header {
+		t.Fatalf("serialized header = %#v, want %#v", decoded.Hdr, header)
 	}
 }
 
 func TestAddE820Entry(t *testing.T) {
 	t.Parallel()
 
-	b, err := bpnew("../../bzImage")
+	b, err := bootparam.New(bootHeaderFixture(t, validBootHeader()))
 	if err != nil {
-		t.Skipf("Skipping this test: %v", err)
+		t.Fatal(err)
 	}
 
 	b.AddE820Entry(
@@ -64,7 +117,11 @@ func TestAddE820Entry(t *testing.T) {
 		bootparam.E820Ram,
 	)
 
-	rawBootParam, _ := b.Bytes()
+	rawBootParam, err := b.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if rawBootParam[0x1E8] != 1 {
 		t.Fatalf("invalid e820_entries: %d", rawBootParam[0x1E8])
 	}

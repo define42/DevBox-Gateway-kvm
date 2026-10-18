@@ -215,6 +215,12 @@ artifacts and build tools and may compile a kernel locally. See the
 The sample kernel configurations enable KVM guest clocks and paravirtual
 spinlocks; rebuilding the images is necessary to apply configuration changes.
 
+These sample kernels and the u-root initrd are not used by gateway QCOW2/UEFI
+boot or default CI. Their direct-kernel and PVH integration tests are optional:
+run `make test-legacy` to prepare the fixtures and enable them. See the
+[development guide](development.md#legacy-direct-kernel-and-pvh-boot) for host
+requirements; default CI instead exercises QCOW2/UEFI disk boot.
+
 ### Linux live ISO
 
 ```bash

@@ -118,16 +118,36 @@ generate: $(GOPATH)/bin/stringer
 golangci: golangci-lint
 	$(MAKE) generate
 	./golangci-lint run ./...
+	./golangci-lint run --build-tags=integration ./internal/vmm
+	./golangci-lint run --build-tags=legacyboot ./internal/machine
 
 .PHONY: test
-test: bzImage vmlinux vmlinux_PVH initrd vda.img CLOUDHV.fd
+test:
 	$(MAKE) generate
 	$(MAKE) golangci
 	# A fresh network namespace starts with loopback down.
 	unshare --user --net --map-root-user \
 		sh -c 'ip link set lo up && exec "$$@"' sh \
-		"$(GO)" test -timeout 30m -coverprofile c.out ./...
+		"$(GO)" test -count=1 -timeout 30m -coverprofile c.out ./...
+	$(MAKE) test-qcow2
 	$(GO) mod tidy -diff
+
+# Exercise the gateway's disk/firmware path without external kernel fixtures.
+.PHONY: test-qcow2
+test-qcow2:
+	GOKVM_REQUIRE_UEFI_TEST=1 \
+		GOKVM_TEST_OVMF_CODE="$(OVMF_CODE)" \
+		GOKVM_TEST_OVMF_VARS="$(OVMF_VARS)" \
+		"$(GO)" test -tags=integration -count=1 -timeout 3m \
+		-run '^TestUEFIQCOW2Boot$$' ./internal/vmm -v
+
+# Optional direct-kernel/PVH boot modes retained from the original VMM.
+.PHONY: test-legacy
+test-legacy: bzImage vmlinux vmlinux_PVH initrd vda.img CLOUDHV.fd
+	$(MAKE) generate
+	unshare --user --net --map-root-user \
+		sh -c 'ip link set lo up && exec "$$@"' sh \
+		"$(GO)" test -tags=legacyboot -count=1 -timeout 30m ./internal/machine
 
 .PHONY: clean
 clean:
