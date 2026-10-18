@@ -2,9 +2,10 @@
 
 This isolated Linux/amd64 harness measures the same Go workload against a host
 file and a guest virtio block device, backed by raw and QCOW2 images. The guest
-uses one vCPU, 256 MiB RAM, the repository's `bzImage`, and a minimal initramfs.
-Serial exists only in this benchmark runner; it does not change product serial
-settings. No network, desktop, filesystem, or guest shell is needed.
+uses one vCPU, 256 MiB RAM, an externally supplied kernel, and a minimal initramfs
+built by the harness. Serial exists only in this benchmark runner; it does not
+change product serial settings. No network, desktop, filesystem, or guest shell
+is needed.
 
 The driver creates a **new** result directory and disposable disks beneath it.
 Choose a directory on the same host filesystem as the real VM disks. It never
@@ -12,22 +13,31 @@ opens an existing VM disk. Linux `/dev/kvm`, Go, Python 3, `cpio`, and `qemu-img
 must already be available. Run benchmarks sequentially with other VMs and heavy
 disk workloads stopped.
 
+Set `KERNEL` explicitly to a readable, compatible Linux kernel. Relative paths
+are resolved against the caller's working directory before the harness enters
+the repository root; the examples below use absolute paths.
+The kernel needs built-in PCI, virtio PCI, virtio-block, and initramfs support;
+the generated initramfs contains no driver modules. No kernel or kernel build
+configuration is bundled. Missing or unreadable `KERNEL` inputs are rejected
+before the result directory is created. Use the same kernel for baseline and
+candidate measurements.
+
 ```sh
 # Set GO to an installed Go binary if the default go command is unavailable.
-GO=/path/to/go OPS=4096 REPETITIONS=6 SIZE_MIB=64 \
+KERNEL=/absolute/path/to/bzImage GO=/path/to/go OPS=4096 REPETITIONS=6 SIZE_MIB=64 \
   bash scripts/diskbench/run.sh /same/filesystem/diskbench-before
 
 # Preserve the baseline runner BEFORE modifying production disk code.
 CGO_ENABLED=0 go build -o /tmp/diskbench-before ./scripts/diskbench/runner
-RUNNER=/tmp/diskbench-before OPS=512 REPETITIONS=6 \
+KERNEL=/absolute/path/to/bzImage RUNNER=/tmp/diskbench-before OPS=512 REPETITIONS=6 \
   bash scripts/diskbench/run.sh /same/filesystem/baseline
 
 # Build the changed runtime and measure with identical settings.
-OPS=512 REPETITIONS=6 \
+KERNEL=/absolute/path/to/bzImage OPS=512 REPETITIONS=6 \
   bash scripts/diskbench/run.sh /same/filesystem/candidate
 
 # A boot/data-integrity smoke test, not a performance measurement:
-OPS=8 REPETITIONS=1 SIZE_MIB=1 \
+KERNEL=/absolute/path/to/bzImage OPS=8 REPETITIONS=1 SIZE_MIB=1 \
   bash scripts/diskbench/run.sh /same/filesystem/diskbench-smoke
 ```
 

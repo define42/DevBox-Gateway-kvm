@@ -4,8 +4,17 @@ set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 if [[ $# != 1 ]]; then
-    echo "usage: $0 NEW_RESULT_DIRECTORY" >&2
+    echo "usage: KERNEL=/path/to/bzImage $0 NEW_RESULT_DIRECTORY" >&2
     exit 2
+fi
+kernel=${KERNEL:-}
+if [[ -z $kernel || ! -f $kernel || ! -r $kernel ]]; then
+    echo "Set KERNEL to a readable Linux kernel image; this repository does not download or build one." >&2
+    exit 2
+fi
+# Preserve a caller-relative path when the workload build changes directory.
+if [[ $kernel != /* ]]; then
+    kernel="$PWD/$kernel"
 fi
 result_dir=$1
 mkdir -- "$result_dir"
@@ -18,7 +27,6 @@ cleanup() {
 trap cleanup EXIT
 
 go_bin=${GO:-go}
-kernel=${KERNEL:-"$repo_dir/bzImage"}
 size_mib=${SIZE_MIB:-64}
 ops=${OPS:-4096}
 repetitions=${REPETITIONS:-6}

@@ -101,11 +101,11 @@ make test
 ```
 
 This runs generation and lints the default packages plus the integration-tagged
-VMM and `legacyboot`-tagged machine code, then runs
+VMM code, then runs
 `go test -count=1 -timeout 30m -coverprofile c.out ./...` in a fresh user/network
 namespace with loopback enabled. It also runs the required `make test-qcow2`
 firmware/disk smoke test and finishes with `go mod tidy -diff`. It does not
-download or build Linux kernels, a u-root initrd, or the old `vda.img` fixture.
+download or build Linux kernels or a standalone initrd.
 
 On Debian/Ubuntu, install the full suite's host tools with:
 
@@ -161,49 +161,14 @@ The [CI workflow](../.github/workflows/ci.yml) runs the default Go suite and the
 QCOW2/UEFI smoke test ten times, with lint and coverage on the first run. A
 separate job checks the pure-Go and NVENC-tagged builds plus selected race tests.
 The [vulnerability workflow](../.github/workflows/govulncheck.yml) runs
-`govulncheck` against the module. Other integration-tagged tests, legacy boot
-tests, and physical GPU checks below remain opt-in; the NVENC CI build does not
-prove that a host GPU can encode.
+`govulncheck` against the module. Other integration-tagged tests and physical GPU
+checks below remain opt-in; the NVENC CI build does not prove that a host GPU can
+encode.
 
 ## Optional integration checks
 
 Use the check that matches the change. These commands can launch guests or a
 local LDAP service, and some need several GiB of free RAM.
-
-### Legacy direct-kernel and PVH boot
-
-```bash
-make test-legacy
-```
-
-This prepares the standalone fixtures below and runs the machine package with
-`-tags=legacyboot` in a user/network namespace. The tag adds four boot tests:
-bzImage, ELF vmlinux, Linux PVH, and EDK2/CloudHv PVH. They exercise optional
-direct-boot modes retained from the original VMM, not the gateway's QCOW2/UEFI
-boot path, and are excluded from default `go test ./...` and `make test`.
-
-| Fixture in the repository root | Preparation and use |
-| --- | --- |
-| `bzImage`, `vmlinux`, `vmlinux_PVH`, `CLOUDHV.fd` | `make test-legacy` invokes the kernel targets; used by the tagged machine boot tests |
-| `initrd` | `make initrd` prepares the u-root guest environment used by legacy Linux boot tests |
-| `vda.img` | `make vda.img` uses `genext2fs` to create the sample guest filesystem |
-
-[`scripts/get_kernel.bash`](../scripts/get_kernel.bash) downloads candidate
-artifacts and compares their embedded configuration with
-[`linux.config`](../linux.config) or [`linux_pvh.config`](../linux_pvh.config).
-It builds a kernel locally if the configuration differs, so allow download time,
-disk space, and a kernel build toolchain: a C compiler, make, binutils, flex,
-bison, bc, libelf/OpenSSL development files, and xz tools. Updating a config file
-does not update an existing kernel until the target is rebuilt.
-
-[`scripts/get_initrd.bash`](../scripts/get_initrd.bash) downloads a candidate
-initrd and rebuilds it when its script/configuration marker differs. It uses
-u-root and host tools, shared libraries, terminfo, and PCI IDs. Check the
-Makefile's `checkbinaries` target and the script before building on a new host;
-`git`, `lsinitramfs`, `curl`, `genext2fs`, `ping`, and the listed guest utilities
-are also needed. These scripts remain for `make test-legacy` and standalone
-direct-kernel examples; the gateway and default CI do not use them to prepare
-boot fixtures.
 
 ### Image import and ISO discovery
 
@@ -264,7 +229,8 @@ normal CI checkout includes it. This existing conditional desktop check is
 separate from the required QCOW2/UEFI firmware smoke test above.
 
 The tagged lifecycle tests require `/dev/kvm`; the headless boot test also needs
-non-terminal stdin. They use synthetic guest code instead of the kernel fixtures:
+non-terminal stdin. They use synthetic guest code and do not need a Linux kernel
+or initrd:
 
 ```bash
 go test -tags integration ./internal/machine ./internal/vmm \
@@ -318,10 +284,11 @@ Detailed performance options and display limitations are in the
 
 The [isolated host/guest disk harness](../scripts/diskbench/README.md) runs the
 same 4 KiB random-read and durable-write workloads against temporary host files
-and raw/QCOW2 disks in a minimal Linux guest. It records latency and IOPS, checks
-written data, and compares logical disk contents after reopening. Run baseline
-and candidate sequentially on the same filesystem; distinguish warm host-cache
-reads from physical storage access.
+and raw/QCOW2 disks in a minimal Linux guest. It requires an externally supplied
+compatible kernel via `KERNEL` and builds its own minimal initramfs. It records
+latency and IOPS, checks written data, and compares disk contents after reopening.
+Run baseline and candidate sequentially on the same filesystem; distinguish warm
+host-cache reads from physical storage access.
 
 Focused Go benchmarks cover QCOW2 metadata and the block worker:
 

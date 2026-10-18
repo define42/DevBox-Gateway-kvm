@@ -203,23 +203,21 @@ bootloader's configuration.
 ### Kernel and initrd
 
 ```bash
-./gokvm boot -k ./bzImage -i ./initrd
+./gokvm boot -k /path/to/bzImage -i /path/to/initrd
 ```
 
 This starts a serial-console VM. A kernel with a PVH entry point selects the PVH
-loader automatically. Press **Ctrl-a, then x** to exit. To prepare the repository's
-sample kernel and u-root initrd, use `make bzImage initrd`. The targets download
-artifacts and build tools and may compile a kernel locally. See the
-[Makefile](../Makefile), [kernel script](../scripts/get_kernel.bash), and
-[initrd script](../scripts/get_initrd.bash) for additional host requirements.
-The sample kernel configurations enable KVM guest clocks and paravirtual
-spinlocks; rebuilding the images is necessary to apply configuration changes.
+loader automatically. Press **Ctrl-a, then x** to exit. Supply your own compatible
+kernel and initrd; the repository no longer downloads or builds them and does
+not include a sample kernel configuration. The kernel and initrd must include
+the drivers needed for the guest's root filesystem and the virtual devices it
+uses, such as virtio-block for an attached disk.
 
-These sample kernels and the u-root initrd are not used by gateway QCOW2/UEFI
-boot or default CI. Their direct-kernel and PVH integration tests are optional:
-run `make test-legacy` to prepare the fixtures and enable them. See the
-[development guide](development.md#legacy-direct-kernel-and-pvh-boot) for host
-requirements; default CI instead exercises QCOW2/UEFI disk boot.
+Direct Linux and PVH loading remain available through the CLI. Gateway-managed
+desktops use QCOW2/UEFI instead: their disk's EFI bootloader loads its own kernel
+and initrd. The required CI boot check also uses QCOW2/UEFI, but with a small EFI
+test application rather than a Linux guest. Neither path needs standalone
+kernel/initrd files.
 
 ### Linux live ISO
 
@@ -277,7 +275,7 @@ media follows it as another virtio-blk device. Attaching a disk does not select
 a disk bootloader: use `-uefi`, or provide a direct kernel, UKI, or supported ISO.
 
 ```bash
-./gokvm boot -k ./bzImage -i ./initrd -d ./disk.qcow2
+./gokvm boot -k /path/to/bzImage -i /path/to/initrd -d ./disk.qcow2
 qemu-img create -f qcow2 blank.qcow2 4G
 ```
 
@@ -433,8 +431,8 @@ for a reproducible comparison and its limits.
 ### VNC and PNG
 
 ```bash
-./gokvm boot -k ./bzImage -i ./initrd -vnc 127.0.0.1:5900
-./gokvm boot -k ./bzImage -i ./initrd -g ./framebuffer.png
+./gokvm boot -k /path/to/bzImage -i /path/to/initrd -vnc 127.0.0.1:5900
+./gokvm boot -k /path/to/bzImage -i /path/to/initrd -g ./framebuffer.png
 ```
 
 VNC has no authentication or encryption; bind to loopback and tunnel remote
@@ -444,8 +442,8 @@ there is no guest 3D acceleration.
 
 For framebuffer console output, a custom Linux kernel needs
 `CONFIG_DRM_VIRTIO_GPU`, `CONFIG_DRM_FBDEV_EMULATION`, and
-`CONFIG_FRAMEBUFFER_CONSOLE` built in. The sample kernel configuration includes
-them. VNC-only mode can display serial fallback text before graphics takes over.
+`CONFIG_FRAMEBUFFER_CONSOLE` built in. VNC-only mode can display serial fallback
+text before graphics takes over.
 
 ### Resolution changes
 

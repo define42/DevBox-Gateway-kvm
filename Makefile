@@ -36,14 +36,6 @@ endif
 $(GOPATH)/bin/stringer:
 	$(GO) install golang.org/x/tools/cmd/stringer@latest
 
-$(GOPATH)/src/github.com/u-root/u-root:
-	git clone --depth=1 --branch v0.16.0 \
-	  https://github.com/u-root/u-root.git $@
-
-$(GOPATH)/bin/u-root: $(GOPATH)/src/github.com/u-root/u-root
-	cd $(GOPATH)/src/github.com/u-root/u-root \
-	  && $(GO) install .
-
 # Let Go track nested package sources and embedded assets through its build cache.
 .PHONY: gokvm
 gokvm:
@@ -54,62 +46,6 @@ golangci-lint:
 	curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_LINT_VERSION)/install.sh \
 		| sh -s -- -b . $(GOLANGCI_LINT_VERSION)
 
-vda.img:
-	$(eval dir = $(shell mktemp -d))
-	echo "index.html: this message is from /dev/vda in guest" > ${dir}/index.html
-	genext2fs -b 1024 -d ${dir} $@
-	file $@
-
-# checkbinaries runs which on all the commands we want to include.
-# Be sure to keep it up to date if you add new commands to the initrd
-# rule below.
-checkbinaries:
-	@which ethtool
-	@which lspci
-	@which lsblk
-	@which hexdump
-	@which mount
-	@which bash
-	@which nohup
-	@which clear
-	@which tic
-	@which awk
-	@which grep
-	@which cut
-
-initrd: checkbinaries ./scripts/get_initrd.bash .bashrc \
-  $(GOPATH)/bin/u-root \
-  $(GOPATH)/src/github.com/u-root/u-root
-	./scripts/get_initrd.bash
-
-bzImage vmlinux: linux.config ./scripts/get_kernel.bash
-	./scripts/get_kernel.bash
-
-bzImage_PVH vmlinux_PVH CLOUDHV.fd: linux_pvh.config ./scripts/get_kernel.bash
-	./scripts/get_kernel.bash \
-		bzImage_PVH \
-		vmlinux_PVH \
-		linux_pvh.config
-
-.PHONY: run
-run: initrd bzImage
-	$(MAKE) generate
-	$(GO) run . boot -c 4 -i "./initrd"
-
-.PHONY: runpvh
-runpvh: initrd vmlinux_PVH
-	$(MAKE) generate
-	$(GO) run . boot -c 4 -k "./vmlinuz_PVH" -i "./initrd"
-
-.PHONY: run-system-kernel
-run-system-kernel:
-	$(MAKE) generate
-	# Implemented based on fedora's default path.
-	# Other distributions need to be considered.
-	$(GO) run . boot -k $(shell ls -t /boot/vmlinuz*.x86_64 | head -n 1) \
-		-p "console=ttyS0 pci=off earlyprintk=serial nokaslr rdinit=/bin/sh" \
-		-i $(shell ls -t /boot/initramfs*.x86_64.img | head -n 1)
-
 .PHONY: generate
 generate: $(GOPATH)/bin/stringer
 	$(GO) generate ./...
@@ -119,7 +55,6 @@ golangci: golangci-lint
 	$(MAKE) generate
 	./golangci-lint run ./...
 	./golangci-lint run --build-tags=integration ./internal/vmm
-	./golangci-lint run --build-tags=legacyboot ./internal/machine
 
 .PHONY: test
 test:
@@ -141,22 +76,10 @@ test-qcow2:
 		"$(GO)" test -tags=integration -count=1 -timeout 3m \
 		-run '^TestUEFIQCOW2Boot$$' ./internal/vmm -v
 
-# Optional direct-kernel/PVH boot modes retained from the original VMM.
-.PHONY: test-legacy
-test-legacy: bzImage vmlinux vmlinux_PVH initrd vda.img CLOUDHV.fd
-	$(MAKE) generate
-	unshare --user --net --map-root-user \
-		sh -c 'ip link set lo up && exec "$$@"' sh \
-		"$(GO)" test -tags=legacyboot -count=1 -timeout 30m ./internal/machine
-
 .PHONY: clean
 clean:
-	rm -rf ./gokvm ./golangci-lint bzImage* vmlinux* CLOUDHV.fd _linux *_string.go
+	rm -f ./gokvm ./golangci-lint *_string.go
 
-.PHONY: qemu
-qemu: initrd bzImage
-	qemu-system-x86_64 -kernel ./bzImage -initrd ./initrd --nographic --enable-kvm \
-		--append "root=/dev/ram rw console=ttyS0 rdinit=/init" --enable-kvm
 .PHONY: tinycore
 tinycore: gokvm
 	./gokvm boot -iso TinyCore-current.iso -vnc 127.0.0.1:5900 -m 512M
