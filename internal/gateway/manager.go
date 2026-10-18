@@ -109,10 +109,11 @@ func (v *managedVM) unlock() {
 }
 
 type managedProcess struct {
-	cmd      *exec.Cmd
-	done     chan struct{}
-	err      error // Published by closing done.
-	endpoint Endpoint
+	cmd         *exec.Cmd
+	done        chan struct{}
+	err         error // Published by closing done.
+	endpoint    Endpoint
+	performance *processPerformance // Private to this launch; never persisted or reused.
 }
 
 // NewManager opens an exclusively owned state directory and loads saved VMs.
@@ -635,15 +636,32 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 	// Leave stdout and stderr unset so os/exec connects them to the null
 	// device. Guest-controlled output must not consume persistent host storage.
 	cmd.ExtraFiles = []*os.File{listenerFile} // ExtraFiles[0] is descriptor 3 in the child.
+	performanceConn, performanceFile, _ := newPerformancePipe()
+	if performanceFile != nil {
+		defer performanceFile.Close()
+		defer func() {
+			if performanceConn != nil {
+				_ = performanceConn.Close()
+			}
+		}()
+		cmd.ExtraFiles = append(cmd.ExtraFiles, performanceFile)
+		cmd.Args = append(cmd.Args, "-telemetry-fd", "4")
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 
-	return &managedProcess{
+	run := &managedProcess{
 		cmd: cmd, done: make(chan struct{}),
 		endpoint: Endpoint{Address: address, ServerName: "vm-" + v.record.ID, CertificatePEM: cert},
-	}, nil
+	}
+	if performanceConn != nil {
+		run.performance = newProcessPerformance(performanceConn)
+		performanceConn = nil // The reader now owns the connection.
+	}
+
+	return run, nil
 }
 
 func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
@@ -680,6 +698,9 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	defer m.jobs.Done()
 	run.err = run.cmd.Wait()
+	if run.performance != nil {
+		run.performance.close()
+	}
 	m.mu.Lock()
 	delete(m.processes, run)
 	m.active--

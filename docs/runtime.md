@@ -60,6 +60,7 @@ file. `boot -help` is the complete CLI reference.
 | `-rdp-h264-encoder software\|auto\|nvenc` | `software` | Software encoding, NVENC with fallback, or required NVENC; requires `-rdp-h264`. |
 | `-rdp-h264-threads count` | `0` | Software slices: zero selects one, or request 1–16 within the host CPU budget; requires `-rdp-h264`. |
 | `-rdp-stats` | `false` | Log RDP performance statistics; requires `-rdp`. |
+| `-telemetry-fd` | `0` (disabled) | Private inherited Unix datagram descriptor for managed-VM performance snapshots. Set automatically by the gateway; no standalone setup is needed. |
 | `-audio none\|rdp` | `none` | Virtio-snd playback through RDP; `rdp` requires `-rdp`. |
 | `-T count` | `0` | Instructions to skip between trace prints; zero disables tracing. |
 

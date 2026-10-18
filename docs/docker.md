@@ -49,6 +49,12 @@ Then sign in as `johndoe` or `testuser` (also password **`dogood`**), select
 compatible templates. These are public development credentials; the gateway is
 published only on host loopback by default, and LDAP has no published host port.
 
+Select **Performance** beside your desktop to view its host-process CPU/memory,
+active encoder, sent frames, and encoding/transport timings. The panel refreshes
+every five seconds while visible and is restricted to the desktop's owner.
+It needs no extra ports, guest agent, or image changes; see the
+[measurement definitions](gateway.md#view-vm-performance).
+
 The gateway manages its own certificate: by default it generates and persists a
 self-signed identity for the hostname in `PUBLIC_ADDRESS` (by default,
 `GATEWAY_HOST`). It can instead load a supplied PEM pair or obtain and renew an

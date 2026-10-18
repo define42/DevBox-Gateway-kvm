@@ -125,6 +125,36 @@ variables file, a NoCloud seed, and a private TLS identity. Existing VMs keep
 their owners and provisioned guest passwords. Renaming or changing a directory
 account does not migrate VM ownership or update an existing guest's password.
 
+### View VM performance
+
+Select **Performance** beside one of your desktops. This read-only panel updates
+every five seconds while open and visible, including when the desktop is idle.
+It uses measurements from the host-side VM process; no guest agent, QCOW2 image
+change, or RDP client extension is needed. The panel is in the web dashboard,
+not overlaid on the native RDP session.
+
+| Measurement | Meaning |
+| --- | --- |
+| VM process CPU | CPU time used by the VM process, including vCPU and encoding work. 100% means one host CPU core; values can exceed 100%. |
+| Host resident memory | RAM resident in the VM process, not the guest's used/free RAM. Configured guest memory is shown separately. |
+| Encoder | The active encoding backend: software, NVIDIA NVENC, or bitmap fallback. No active connection means no active encoder. |
+| Frames sent / sent FPS | Successful server frame sends since this VM process started, and the recent send rate. These are not frames displayed by the client; an idle screen can correctly show zero FPS. |
+| Encoding | Average H.264 codec time during the latest sample interval; excludes capture and color conversion. Unavailable for bitmap-only intervals. |
+| Transport write | Average time writing graphics data to the local RDP transport during the latest sample interval. Can include backpressure; it is not end-to-end network latency. |
+| ACK turnaround | The latest graphics acknowledgment turnaround, including network and client processing. It is not input latency or a pure network RTT. |
+
+Missing measurements are shown as unavailable, not as zero. Samples become stale
+after 15 seconds without an update. Restarting a desktop resets its process
+counters. Telemetry is kept only in memory and is collected through a private,
+bounded channel; a telemetry failure does not stop the VM or block RDP output.
+
+The authenticated `GET /vms/{id}/performance` endpoint checks VM ownership and
+disables caching. Users, including administrators, can see performance only for
+their own desktops. It does not expose host-wide usage or other users' sessions.
+After upgrading, rebuild/restart the gateway and start the desktops with the new
+binary to enable collection. No additional Docker ports or guest packages are
+required.
+
 ### RDP identity and routing
 
 The downloaded file contains your LDAP login name in `username` and a random

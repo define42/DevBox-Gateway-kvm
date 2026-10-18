@@ -44,6 +44,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /logout", s.logout)
 	mux.HandleFunc("POST /vms", s.createVM)
 	mux.HandleFunc("POST /vms/{id}/{action}", s.vmAction)
+	mux.HandleFunc("GET /vms/{id}/performance", s.vmPerformance)
 	mux.HandleFunc("GET /static/{asset...}", serveWebAsset)
 	mux.HandleFunc("GET /health/latency", func(w http.ResponseWriter, r *http.Request) {
 		if _, _, ok := s.requireSession(w, r); ok {

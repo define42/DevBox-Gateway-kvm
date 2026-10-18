@@ -13,6 +13,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/flag"
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/probe"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
 	"golang.org/x/sys/unix"
 )
@@ -95,6 +96,17 @@ func run(ctx context.Context, args []string) error {
 		}
 		c.RDPListenerFile = os.NewFile(uintptr(bootArgs.RDPFD), "inherited-rdp-listener")
 		defer c.RDPListenerFile.Close()
+	}
+
+	if bootArgs.TelemetryFD != 0 {
+		collector, stop, telemetryErr := telemetry.Start(ctx, bootArgs.TelemetryFD)
+		if telemetryErr != nil {
+			// Diagnostics must never make an otherwise valid VM unavailable.
+			log.Printf("VM telemetry disabled: %v", telemetryErr)
+		} else {
+			defer stop()
+			c.Telemetry = collector
+		}
 	}
 
 	return runBoot(ctx, *c)

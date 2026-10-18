@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 )
 
 func TestRDPStatsWaitWindows(t *testing.T) {
@@ -27,6 +29,80 @@ func TestRDPStatsWaitWindows(t *testing.T) {
 	wait.update(false, start.Add(5*time.Second))
 	if wait.total != time.Second {
 		t.Fatal("idle time was counted as client backpressure")
+	}
+}
+
+func TestRDPTelemetryWithoutLogs(t *testing.T) {
+	t.Parallel()
+	collector := telemetry.New()
+	connection := collector.Connect()
+	defer connection.Close()
+	stats := rdpFrameStats{telemetry: connection}
+	if stats.begin().IsZero() {
+		t.Fatal("managed telemetry did not enable timing independently of logs")
+	}
+	stats.encoded("nvenc", 2*time.Millisecond)
+	stats.written(3 * time.Millisecond)
+	stats.sent(100)
+	stats.captured("nvenc", image.Pt(1280, 720), image.Pt(1280, 720),
+		rdp.GraphicsStats{ACKTurnaround: 20 * time.Millisecond})
+	stats.report(1, true)
+	stats.encoded("software", 4*time.Millisecond)
+	stats.sent(200)
+	snapshot := collector.Snapshot()
+	if snapshot.Encoder != "software" || snapshot.FramesSent != 2 || snapshot.PayloadBytes != 300 ||
+		snapshot.EncodeCount != 2 || snapshot.EncodeNanos != uint64(6*time.Millisecond) ||
+		snapshot.WriteCount != 1 || snapshot.WriteNanos != uint64(3*time.Millisecond) ||
+		snapshot.ACKNanos != uint64(20*time.Millisecond) {
+		t.Fatalf("managed telemetry lost measurements or fallback: %+v", snapshot)
+	}
+	if stats.enabled || stats.frames != 0 {
+		t.Fatal("telemetry enabled log output or local log counters")
+	}
+	connection.Close()
+	if snapshot := collector.Snapshot(); snapshot.Connections != 0 || snapshot.Encoder != "" {
+		t.Fatalf("disconnected RDP telemetry still active: %+v", snapshot)
+	}
+}
+
+func TestRDPTelemetrySurvivesLogWindowReset(t *testing.T) {
+	t.Parallel()
+	collector := telemetry.New()
+	connection := collector.Connect()
+	defer connection.Close()
+	stats := rdpFrameStats{enabled: true, telemetry: connection}
+	stats.report(1, true)
+	stats.encoded("software", time.Millisecond)
+	stats.sent(100)
+	if stats.telemetry != connection || collector.Snapshot().FramesSent != 1 {
+		t.Fatal("log window reset detached process telemetry")
+	}
+}
+
+func TestRDPTelemetryMeasuresRealEncoderAcrossWriters(t *testing.T) {
+	t.Parallel()
+	collector := telemetry.New()
+	for pass := range 2 {
+		writer := &rdpFrameWriter{
+			session: &rdp.Session{Width: 16, Height: 16}, graphics: true,
+			backend: avc.BackendSoftware, stats: rdpFrameStats{telemetry: collector.Connect()},
+		}
+		defer writer.shutdown()
+		// A transport-less session runs the actual software codec but cannot
+		// send a frame: encoder attempts and successful sends are distinct.
+		sent, err := writer.write(vncFrame{width: 16, height: 16}, nil, true)
+		if err != nil || sent {
+			t.Fatalf("transport-less encode: sent=%v err=%v", sent, err)
+		}
+		snapshot := collector.Snapshot()
+		if snapshot.Encoder != "software" || snapshot.EncodeCount != uint64(pass+1) ||
+			snapshot.EncodeNanos == 0 || snapshot.FramesSent != 0 || snapshot.PayloadBytes != 0 {
+			t.Fatalf("real codec timing missing with logs disabled: %+v", snapshot)
+		}
+		writer.shutdown()
+		if idle := collector.Snapshot(); idle.Connections != 0 || idle.Encoder != "" {
+			t.Fatalf("writer shutdown retained gauges: %+v", idle)
+		}
 	}
 }
 

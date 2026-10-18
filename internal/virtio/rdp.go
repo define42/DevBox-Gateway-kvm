@@ -23,6 +23,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	rdpdamage "github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 )
 
 const rdpResizeDelay = 150 * time.Millisecond
@@ -42,6 +43,7 @@ type RDPConfig struct {
 	H264Threads int // Slice request; zero chooses a bounded automatic count.
 	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
 	Stats       bool
+	Telemetry   *telemetry.Collector // Optional process-owned performance counters.
 }
 
 // RDPDisplay exports the guest console to one RDP viewer at a time.
@@ -56,6 +58,7 @@ type RDPDisplay struct {
 	h264Slices     int
 	frameRate      int
 	stats          bool
+	telemetry      *telemetry.Collector
 	audio          *audio.Hub
 	connMu         sync.Mutex
 	conn           net.Conn // Includes an in-progress handshake; guarded by connMu.
@@ -147,6 +150,7 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
 		h264Backend: backend, h264Slices: slices, frameRate: frameRate,
+		telemetry: options.Telemetry,
 	}
 	if options.Audio {
 		display.audio = audio.NewHub()
@@ -451,7 +455,9 @@ func (d *RDPDisplay) writeFrames(
 	writer := &rdpFrameWriter{
 		session: session, bitmap: bitmap, width: width, height: height, force: true,
 		backend: d.h264Backend, slices: d.h264Slices, frameRate: d.frameRate,
-		stats: rdpFrameStats{enabled: d.stats, peer: conn.RemoteAddr().String()},
+		stats: rdpFrameStats{
+			enabled: d.stats, peer: conn.RemoteAddr().String(), telemetry: d.telemetry.Connect(),
+		},
 	}
 	writer.stats.start = writer.stats.begin()
 	defer writer.shutdown()
@@ -486,6 +492,9 @@ func (d *RDPDisplay) writeFrames(
 		}
 		if writer.updateGraphics(conn) {
 			writer.force = true
+		}
+		if writer.stats.telemetry != nil {
+			writer.stats.telemetry.Acknowledge(session.GraphicsStats().ACKTurnaround)
 		}
 		cursor, cursorChanged := d.cursorSnapshot()
 		if session.DisplayReady() {
@@ -597,7 +606,7 @@ func (w *rdpFrameWriter) writeWhenReady(display *framebuffer, timer *time.Timer)
 	if err != nil {
 		return nil, err
 	}
-	if w.stats.enabled {
+	if w.stats.measuring() {
 		encoder := "bitmap"
 		timing := rdp.GraphicsStats{FrameInterval: time.Second / 30}
 		if w.graphics {
@@ -629,6 +638,8 @@ func (w *rdpFrameWriter) updateGraphics(conn net.Conn) bool {
 		log.Printf("rdp: client %s using H.264 AVC420 graphics", conn.RemoteAddr())
 	} else {
 		w.close()
+		w.stats.telemetry.Encoded("bitmap", 0)
+		w.stats.telemetry.Acknowledge(0)
 	}
 
 	return true
@@ -670,6 +681,7 @@ func (w *rdpFrameWriter) close() {
 
 func (w *rdpFrameWriter) shutdown() {
 	w.stats.report(w.actualSlices(), true)
+	w.stats.telemetry.Close()
 	w.close()
 }
 
@@ -699,7 +711,7 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 			return err
 		})
 		w.stats.convert.add(w.stats.elapsed(start) - writeTime)
-		w.stats.write.add(writeTime)
+		w.stats.written(writeTime)
 		if err == nil {
 			w.stats.sent(bytes)
 		}
@@ -709,7 +721,7 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 	if w.avc == nil {
 		width, height := w.session.Size()
 		encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
-			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.enabled, FrameRate: w.frameRate,
+			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.measuring(), FrameRate: w.frameRate,
 		})
 		if err != nil {
 			return false, err
@@ -738,10 +750,10 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 			w.avc.FallbackReason(),
 		)
 	}
-	if w.stats.enabled {
+	if w.stats.measuring() {
 		stats := w.avc.LastStats()
 		w.stats.convert.add(stats.Conversion)
-		w.stats.encode.add(stats.Encoding)
+		w.stats.encoded(string(w.avc.Backend()), stats.Encoding)
 	}
 	if err != nil || len(data) == 0 {
 		return err == nil, err
@@ -761,7 +773,7 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 
 	start := w.stats.begin()
 	sent, err := w.session.WriteAVC420Damage(data, regions)
-	w.stats.write.add(w.stats.elapsed(start))
+	w.stats.written(w.stats.elapsed(start))
 	if sent {
 		w.stats.sent(len(data))
 	}

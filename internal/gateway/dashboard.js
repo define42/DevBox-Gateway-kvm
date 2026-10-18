@@ -3,6 +3,168 @@
 (() => {
   "use strict";
 
+  // Keep polling scoped to one visible dialog. A cancelled request retains its
+  // slot until it settles, so closing/reopening cannot overlap requests or let
+  // an old VM's response overwrite a newer selection.
+  function createPerformancePanel({ nodes, fetchSample, isVisible, sessionExpired,
+    schedule = setTimeout, unschedule = clearTimeout }) {
+    const metrics = ["cpu", "resident", "guest-memory", "connections", "encoder", "frames", "fps", "encode", "write", "ack"];
+    const statuses = {
+      stopped: ["Stopped", "secondary", "This DevBox is stopped. Runtime measurements are unavailable."],
+      starting: ["Starting", "secondary", "Waiting for the new VM process to produce a sample."],
+      live: ["Live", "success", "Measurements describe this VM process. Frame rates and timings cover the latest sampling interval."],
+      stale: ["Stale", "warning", "The last sample is out of date. Measurements are hidden until a fresh sample arrives."],
+      unavailable: ["Unavailable", "secondary", "Performance measurements are unavailable. This panel will retry automatically."],
+    };
+    const encoders = { "": "Not active", bitmap: "Bitmap", software: "Software H.264", nvenc: "NVIDIA NVENC", mixed: "Mixed" };
+    const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+    let selected = null;
+    let generation = 0;
+    let timer = null;
+    let active = null;
+
+    function text(name, value) {
+      if (nodes[name].textContent !== value) nodes[name].textContent = value;
+    }
+
+    function status(label, tone, message) {
+      text("status", label);
+      nodes.status.className = "badge text-bg-" + tone;
+      text("message", message);
+    }
+
+    function clear(label = "Loading", message = "Waiting for a performance sample.") {
+      for (const name of metrics) text(name, "Not sampled");
+      text("sampled-at", "Not sampled");
+      status(label, "secondary", message);
+    }
+
+    function invalidate() {
+      generation++;
+      if (timer !== null) unschedule(timer);
+      timer = null;
+      if (active) active.abort();
+    }
+
+    function finite(value) { return typeof value === "number" && Number.isFinite(value) && value >= 0; }
+    function count(value) { return finite(value) && Number.isSafeInteger(value); }
+
+    function validate(sample) {
+      if (!sample || typeof sample !== "object" || Array.isArray(sample) || !Object.hasOwn(statuses, sample.state) ||
+        !Object.hasOwn(encoders, sample.encoder) || !count(sample.guestMemoryBytes) ||
+        !count(sample.connections) || !count(sample.framesSent) ||
+        (sample.sampledAt !== null && (typeof sample.sampledAt !== "string" || !Number.isFinite(Date.parse(sample.sampledAt))))) {
+        throw new Error("Invalid performance sample");
+      }
+      for (const name of ["cpuPercent", "framesPerSecond", "encodeMs", "writeMs", "ackMs"]) {
+        if (sample[name] !== null && !finite(sample[name])) throw new Error("Invalid performance measurement");
+      }
+      if (sample.residentBytes !== null && !count(sample.residentBytes)) throw new Error("Invalid resident memory");
+      return sample;
+    }
+
+    function format(value, unit = "") { return value === null ? "Not sampled" : number.format(value) + unit; }
+
+    function bytes(value) {
+      if (value === null) return "Not sampled";
+      const gib = value >= 1024 ** 3;
+      return format(value / (gib ? 1024 ** 3 : 1024 ** 2), gib ? " GiB" : " MiB");
+    }
+
+    function render(sample) {
+      status(...statuses[sample.state]);
+      text("sampled-at", sample.sampledAt === null ? "Not sampled" : new Date(sample.sampledAt).toLocaleString());
+      text("guest-memory", bytes(sample.guestMemoryBytes));
+      if (sample.state !== "live") {
+        for (const name of metrics) if (name !== "guest-memory") text(name, "Unavailable");
+        return;
+      }
+      text("cpu", format(sample.cpuPercent, "%"));
+      text("resident", bytes(sample.residentBytes));
+      text("connections", number.format(sample.connections));
+      text("encoder", encoders[sample.encoder]);
+      text("frames", number.format(sample.framesSent));
+      text("fps", format(sample.framesPerSecond));
+      text("encode", format(sample.encodeMs, " ms"));
+      text("write", format(sample.writeMs, " ms"));
+      text("ack", format(sample.ackMs, " ms"));
+    }
+
+    async function poll() {
+      if (!selected || !isVisible() || active) return;
+      const current = generation;
+      const id = selected.id;
+      const controller = new AbortController();
+      active = controller;
+      nodes.metrics.setAttribute("aria-busy", "true");
+      try {
+        const response = await fetchSample("/vms/" + encodeURIComponent(id) + "/performance", {
+          credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" },
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
+        });
+        if (generation !== current || !selected || !isVisible()) return;
+        if (sessionExpired(response)) { close(); return; }
+        if (!response.ok) throw new Error("Performance request failed");
+        const sample = validate(await response.json());
+        if (generation === current && selected && isVisible()) render(sample);
+      } catch {
+        if (generation === current && selected && isVisible()) {
+          clear("Unavailable", "Could not load performance measurements. This panel will retry automatically.");
+        }
+      } finally {
+        active = null;
+        nodes.metrics.setAttribute("aria-busy", "false");
+        if (selected && isVisible()) {
+          if (generation !== current) void poll();
+          else timer = schedule(() => { timer = null; void poll(); }, 5000);
+        }
+      }
+    }
+
+    function open(row) {
+      invalidate();
+      selected = { id: row.vmId, state: row.vmState };
+      text("subtitle", row.vmName);
+      clear();
+      void poll();
+    }
+
+    function close() {
+      invalidate();
+      selected = null;
+      clear();
+    }
+
+    function update(row) {
+      if (!selected) return;
+      text("subtitle", row.vmName);
+      if (selected.state !== row.vmState) {
+        invalidate();
+        selected.state = row.vmState;
+        clear("Updating", "The DevBox state changed. Waiting for a fresh performance sample.");
+        void poll();
+      }
+    }
+
+    function visibilityChanged() {
+      if (!selected) return;
+      invalidate();
+      clear(isVisible() ? "Loading" : "Paused", isVisible()
+        ? "Waiting for a fresh performance sample."
+        : "Updates are paused while this page is hidden.");
+      void poll();
+    }
+
+    return { open, close, update, visibilityChanged };
+  }
+
+  // The controller can be exercised with Node's built-in test runner without
+  // adding browser packages or exposing a frontend API in the running page.
+  if (typeof document === "undefined") {
+    if (typeof module !== "undefined") module.exports = { createPerformancePanel };
+    return;
+  }
+
   const main = document.getElementById("dashboard-main");
   const list = document.getElementById("vm-list");
   const actions = document.getElementById("action-area");
@@ -21,9 +183,17 @@
   let disabledButtons = new Map();
   let imagesAvailable = Array.from(document.getElementById("vm-base-image").options)
     .some((option) => option.value !== "");
+  const performanceNodes = Object.fromEntries([
+    "subtitle", "status", "message", "sampled-at", "metrics", "cpu", "resident", "guest-memory",
+    "connections", "encoder", "frames", "fps", "encode", "write", "ack",
+  ].map((name) => [name, document.getElementById("performance-" + name)]));
+  const vmPerformance = createPerformancePanel({
+    nodes: performanceNodes, fetchSample: (...args) => fetch(...args), sessionExpired,
+    isVisible: () => !document.hidden && modal?.id === "performance-modal",
+  });
 
   function enableInfo() {
-    list.querySelectorAll("[data-info]").forEach((button) => { button.hidden = false; });
+    list.querySelectorAll("[data-info], [data-performance]").forEach((button) => { button.hidden = false; });
   }
 
   function showModal(id, focusID) {
@@ -40,12 +210,16 @@
 
   function closeModal() {
     if (!modal || creationActive) return;
+    const performanceVM = modal.id === "performance-modal" ? modal.dataset.vmId : null;
+    if (modal.id === "performance-modal") vmPerformance.close();
     modal.hidden = true;
     modal.setAttribute("aria-hidden", "true");
     modal = null;
     main.inert = false;
     document.body.classList.remove("gateway-modal-open");
-    const target = previousFocus && previousFocus.isConnected ? previousFocus : openCreate;
+    const replacement = performanceVM && Array.from(list.querySelectorAll("[data-vm-id]"))
+      .find((row) => row.dataset.vmId === performanceVM)?.querySelector("[data-performance]");
+    const target = previousFocus && previousFocus.isConnected ? previousFocus : replacement || openCreate;
     target.focus();
   }
 
@@ -124,6 +298,12 @@
       if (row) updateInfo(row);
       else closeModal();
     }
+    if (modal && modal.id === "performance-modal") {
+      const row = Array.from(list.querySelectorAll("[data-vm-id]"))
+        .find((item) => item.dataset.vmId === modal.dataset.vmId);
+      if (row) vmPerformance.update(row.dataset);
+      else closeModal();
+    }
     return true;
   }
 
@@ -193,6 +373,15 @@
     if (info) {
       updateInfo(info.closest("[data-vm-id]"));
       showModal("info-modal");
+      return;
+    }
+    const performanceButton = event.target.closest("[data-performance]");
+    if (performanceButton) {
+      if (pending) return;
+      const row = performanceButton.closest("[data-vm-id]");
+      showModal("performance-modal");
+      modal.dataset.vmId = row.dataset.vmId;
+      vmPerformance.open(row.dataset);
       return;
     }
     const remove = event.target.closest("[data-remove]");
@@ -493,6 +682,7 @@
   window.setInterval(measureLatency, 2000);
   window.setInterval(refreshInventory, 5000);
   document.addEventListener("visibilitychange", () => {
+    vmPerformance.visibilityChanged();
     if (!document.hidden) {
       void refreshInventory();
       void measureLatency();

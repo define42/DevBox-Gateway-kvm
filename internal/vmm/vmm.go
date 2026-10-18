@@ -19,6 +19,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/term"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sync/errgroup"
@@ -90,6 +91,8 @@ type Config struct {
 	// RDPListenerFile is borrowed from the caller, which keeps it open across
 	// guest resets. Each display owns a duplicate; nil binds RDP normally.
 	RDPListenerFile *os.File
+	// Telemetry is borrowed from the process owner and survives firmware resets.
+	Telemetry *telemetry.Collector
 }
 
 type VMM struct {

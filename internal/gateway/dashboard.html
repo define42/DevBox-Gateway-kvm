@@ -54,6 +54,7 @@
                             <button class="btn btn-sm {{if eq .State "running"}}btn-success{{else}}btn-outline-secondary{{end}}" type="submit" {{if ne .State "running"}}disabled title="RDP is unavailable until this DevBox is ready."{{else}}title="Download the RDP connection file"{{end}}><i class="bi bi-display me-1" aria-hidden="true"></i>RDP</button>
                           </form>
                           <button class="btn btn-sm btn-outline-secondary" type="button" data-info hidden><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Info</button>
+                          <button class="btn btn-sm btn-outline-secondary" type="button" data-performance aria-haspopup="dialog" aria-controls="performance-modal" hidden><i class="bi bi-activity me-1" aria-hidden="true"></i>Performance</button>
                         </div></div>
                       </td>
                       <td><span class="badge text-capitalize {{if eq .State "running"}}text-bg-success{{else if or (eq .State "creating") (eq .State "starting") (eq .State "stopping")}}text-bg-warning{{else}}text-bg-secondary{{end}}">{{.State}}</span></td>
@@ -92,6 +93,7 @@
               {{else}}<div class="text-body-secondary">No virtual machines found.</div>{{end}}
             </div>
             <noscript>
+              <p class="small text-body-secondary mt-3">Enable JavaScript to view live DevBox performance. VM start, stop, and RDP downloads remain available without it.</p>
               <section class="mt-4" id="create-fallback" aria-labelledby="create-fallback-title">
                 <h2 class="h5" id="create-fallback-title">Create DevBox</h2>
                 <form action="/vms" method="post" class="row g-3 align-items-end">
@@ -151,6 +153,33 @@
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">Memory</dt><dd class="col-8 col-sm-9 mb-2">{{if .MemoryGB}}{{.MemoryGB}} GB{{else}}n/a{{end}}</dd>
               <dt class="col-4 col-sm-3 text-body-secondary fw-normal">vCPU</dt><dd class="col-8 col-sm-9 mb-0">{{if .CPUs}}{{.CPUs}}{{else}}n/a{{end}}</dd>
             </dl>
+          </div>
+        </div>
+      </div>
+      <div id="performance-modal" class="terminal-modal" hidden aria-hidden="true">
+        <div class="terminal-modal__backdrop" data-close-modal></div>
+        <div class="terminal-modal__dialog terminal-modal__dialog--form performance-dialog" role="dialog" aria-modal="true" aria-labelledby="performance-title" aria-describedby="performance-description" tabindex="-1">
+          <div class="terminal-modal__body">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+              <div class="performance-heading"><h2 class="h5 mb-1" id="performance-title">DevBox Performance</h2><p class="text-body-secondary mb-0" id="performance-subtitle"></p></div>
+              <button class="btn btn-outline-secondary btn-sm" type="button" data-close-modal><i class="bi bi-x-lg me-1" aria-hidden="true"></i>Close</button>
+            </div>
+            <p class="small text-body-secondary mb-3" id="performance-description">Read-only measurements for this DevBox. Updates every five seconds while this panel is open and the page is visible.</p>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2"><span class="badge text-bg-secondary" id="performance-status" role="status" aria-live="polite" aria-atomic="true">Loading</span><span class="small text-body-secondary">Last sample: <span id="performance-sampled-at">Not sampled</span></span></div>
+            <p class="small text-body-secondary mb-3" id="performance-message">Waiting for a performance sample.</p>
+            <dl class="performance-grid mb-3" id="performance-metrics" aria-busy="false">
+              <div class="performance-metric"><dt>VM process CPU</dt><dd id="performance-cpu">Not sampled</dd><dd class="performance-hint">100% is one host CPU core; values can exceed 100%.</dd></div>
+              <div class="performance-metric"><dt>Host resident memory</dt><dd id="performance-resident">Not sampled</dd><dd class="performance-hint">Memory resident in the host process, not guest free RAM.</dd></div>
+              <div class="performance-metric"><dt>Configured guest RAM</dt><dd id="performance-guest-memory">Not sampled</dd><dd class="performance-hint">RAM configured for this DevBox.</dd></div>
+              <div class="performance-metric"><dt>Connections</dt><dd id="performance-connections">Not sampled</dd><dd class="performance-hint">Current RDP connections.</dd></div>
+              <div class="performance-metric"><dt>Encoder</dt><dd id="performance-encoder">Not sampled</dd><dd class="performance-hint">Active graphics encoding backend.</dd></div>
+              <div class="performance-metric"><dt>Frames sent</dt><dd id="performance-frames">Not sampled</dd><dd class="performance-hint">Cumulative for the current VM process.</dd></div>
+              <div class="performance-metric"><dt>FPS sent</dt><dd id="performance-fps">Not sampled</dd><dd class="performance-hint">Frames sent per second, not client-presented FPS.</dd></div>
+              <div class="performance-metric"><dt>Encoding average</dt><dd id="performance-encode">Not sampled</dd><dd class="performance-hint">H.264 codec time, excluding capture/conversion. Unavailable for bitmap-only intervals.</dd></div>
+              <div class="performance-metric"><dt>Transport write average</dt><dd id="performance-write">Not sampled</dd><dd class="performance-hint">Local RDP write time, including backpressure; not end-to-end latency.</dd></div>
+              <div class="performance-metric"><dt>ACK turnaround</dt><dd id="performance-ack">Not sampled</dd><dd class="performance-hint">Network and client acknowledgement time, not input latency.</dd></div>
+            </dl>
+            <p class="small text-body-secondary mb-0">Unavailable and not-yet-sampled measurements are shown as text, never as zero.</p>
           </div>
         </div>
       </div>

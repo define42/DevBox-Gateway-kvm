@@ -29,6 +29,10 @@ var ErrRDPWait = errors.New("-rdp-wait requires -rdp")
 
 var ErrRDPFD = errors.New("-rdp-fd must be 0 (disabled) or an inherited TCP listener descriptor >=3 with -rdp")
 
+var ErrTelemetryFD = errors.New(
+	"-telemetry-fd must be 0 (disabled) or an inherited descriptor >=3 distinct from -rdp-fd",
+)
+
 var ErrNetwork = errors.New("-net must be 'user', 'user-isolated', or 'none' and cannot be combined with -t")
 
 var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires -rdp")
@@ -60,6 +64,7 @@ type BootArgs struct {
 	RDP            string
 	RDPProfile     string
 	RDPFD          int
+	TelemetryFD    int
 	RDPWait        bool
 	RDPCert        string
 	RDPKey         string
@@ -106,6 +111,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"RDP display profile: office (30 FPS) or smooth (60 FPS); requires -rdp")
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
 		"inherited TCP listener descriptor (>=3) matching -rdp; 0 opens a new listener")
+	bootCmd.IntVar(&c.TelemetryFD, "telemetry-fd", 0,
+		"private inherited Unix datagram descriptor (>=3); 0 disables managed performance telemetry")
 	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false, "wait for an RDP client before starting the guest (requires -rdp)")
 	bootCmd.StringVar(&c.RDPCert, "rdp-cert", "",
 		"RDP TLS certificate PEM file (default: temporary self-signed certificate)")
@@ -160,6 +167,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if err := validateRDPOptions(c, threadsSet, encoderSet, profileSet); err != nil {
 		return nil, err
 	}
+	if err := validateTelemetryOptions(c); err != nil {
+		return nil, err
+	}
 	if (c.Network != "" && c.Network != "none" && c.Network != "user" && c.Network != "user-isolated") ||
 		(c.Network != "" && c.TapIfName != "") {
 		return nil, ErrNetwork
@@ -207,6 +217,14 @@ func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) er
 	}
 	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDP == "") {
 		return ErrAudio
+	}
+
+	return nil
+}
+
+func validateTelemetryOptions(c *BootArgs) error {
+	if c.TelemetryFD != 0 && (c.TelemetryFD < 3 || c.TelemetryFD == c.RDPFD) {
+		return ErrTelemetryFD
 	}
 
 	return nil

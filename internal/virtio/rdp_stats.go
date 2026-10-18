@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 )
 
 type rdpStageTime struct {
@@ -51,10 +52,12 @@ func (w *rdpWaitTime) update(waiting bool, now time.Time) {
 	}
 }
 
-// Stats belong to one frame writer. Disabled stats do not read the clock or
-// allocate. Report only during activity and at disconnect; no idle timer.
+// Stats belong to one frame writer. Without logs or telemetry they do not read
+// the clock or allocate. Log reports are activity-based; telemetry has its own
+// process-wide exporter and idle heartbeat.
 type rdpFrameStats struct {
 	enabled       bool
+	telemetry     *telemetry.Connection
 	peer          string
 	encoder       string
 	source        image.Point
@@ -72,7 +75,7 @@ type rdpFrameStats struct {
 }
 
 func (s *rdpFrameStats) begin() time.Time {
-	if !s.enabled {
+	if !s.measuring() {
 		return time.Time{}
 	}
 
@@ -80,7 +83,7 @@ func (s *rdpFrameStats) begin() time.Time {
 }
 
 func (s *rdpFrameStats) elapsed(start time.Time) time.Duration {
-	if !s.enabled {
+	if !s.measuring() {
 		return 0
 	}
 
@@ -100,6 +103,8 @@ func (s *rdpFrameStats) waiting(ack bool, nextFrame time.Time) {
 // captured samples the active encoder and pacing once per framebuffer capture.
 // Pacing describes the permitted send interval, not elapsed encode or wait time.
 func (s *rdpFrameStats) captured(encoder string, source, output image.Point, timing rdp.GraphicsStats) {
+	s.telemetry.Encoded(encoder, 0)
+	s.telemetry.Acknowledge(timing.ACKTurnaround)
 	if !s.enabled {
 		return
 	}
@@ -109,10 +114,25 @@ func (s *rdpFrameStats) captured(encoder string, source, output image.Point, tim
 }
 
 func (s *rdpFrameStats) sent(bytes int) {
+	s.telemetry.Sent(bytes)
 	if s.enabled && bytes != 0 {
 		s.frames++
 		s.bytes += uint64(bytes)
 	}
+}
+
+func (s *rdpFrameStats) measuring() bool {
+	return s.enabled || s.telemetry != nil
+}
+
+func (s *rdpFrameStats) encoded(backend string, elapsed time.Duration) {
+	s.encode.add(elapsed)
+	s.telemetry.Encoded(backend, elapsed)
+}
+
+func (s *rdpFrameStats) written(elapsed time.Duration) {
+	s.write.add(elapsed)
+	s.telemetry.Written(elapsed)
 }
 
 func (s *rdpFrameStats) report(slices int, final bool) {
@@ -158,7 +178,7 @@ func (s *rdpFrameStats) report(slices int, final bool) {
 		)
 	}
 	*s = rdpFrameStats{
-		enabled: true, peer: s.peer, start: now,
+		enabled: true, peer: s.peer, start: now, telemetry: s.telemetry,
 		encoder: s.encoder, source: s.source, output: s.output,
 		ack: rdpWaitTime{start: s.ack.start}, ackTurnaround: s.ackTurnaround,
 	}

@@ -92,6 +92,24 @@ jobs:
       if: always()
       run: make clean
 
+  test-dashboard:
+    name: Test dashboard behavior
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Check dashboard JavaScript syntax
+      run: node --check internal/gateway/dashboard.js
+    - name: Test performance panel lifecycle and accessibility contracts
+      run: node --test internal/gateway/dashboard.test.cjs
+
   test-avc:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -154,7 +172,7 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
-    needs: [test, test-avc, release-check]
+    needs: [test, test-dashboard, test-avc, release-check]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 45
     permissions:
