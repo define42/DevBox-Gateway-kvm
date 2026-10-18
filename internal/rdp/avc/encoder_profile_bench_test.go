@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+var errBenchmarkEmptyAccessUnit = errors.New("scroll frame produced empty access unit")
+
 // BenchmarkOfficeProfileBudget measures the work budget of one nominal second
 // for four software sessions. Each stream alternates the same two immutable
 // scrolling pictures on every encode, so both profiles encode identical changes
@@ -59,10 +61,12 @@ func BenchmarkOfficeProfileBudget(b *testing.B) {
 							data, err := stream.encoder.EncodeDamage(frames[stream.frame], regions, false)
 							if err != nil {
 								stream.err = err
+
 								return
 							}
 							if len(data) == 0 {
-								stream.err = errors.New("scroll frame produced empty access unit")
+								stream.err = errBenchmarkEmptyAccessUnit
+
 								return
 							}
 							stream.bytes += int64(len(data))

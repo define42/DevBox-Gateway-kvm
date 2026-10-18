@@ -189,7 +189,7 @@ type trackedConn struct {
 	net.Conn
 	server        *Server
 	ip            netip.Addr
-	ctx           context.Context
+	ctx           context.Context //nolint:containedctx // Its lifetime is deliberately tied to the tracked socket.
 	cancel        context.CancelFunc
 	once          sync.Once
 	timer         *time.Timer

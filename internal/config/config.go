@@ -152,7 +152,8 @@ func NewSettings(printSettings bool) *Settings {
 	s.SetInt(MAX_CONNECTIONS_PER_IP, "Maximum simultaneous connections per IPv4 address or IPv6 /64", 32)
 	s.SetInt(MAX_HANDSHAKES_PER_IP, "Maximum simultaneous pre-authentication connections per IPv4 address or IPv6 /64", 8)
 	s.SetInt(CONNECTION_RATE_LIMIT, "New TCP connections admitted per second globally, with an equal burst", 128)
-	s.SetInt(CONNECTION_RATE_LIMIT_PER_IP, "New TCP connections admitted per second per IPv4 address or IPv6 /64, with an equal burst", 8)
+	s.SetInt(CONNECTION_RATE_LIMIT_PER_IP,
+		"New TCP connections admitted per second per IPv4 address or IPv6 /64, with an equal burst", 8)
 	s.SetDuration(HANDSHAKE_TIMEOUT, "Maximum connection lifetime before application authentication", 10*time.Second)
 
 	if printSettings {

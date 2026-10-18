@@ -64,6 +64,8 @@ func TestRDPProfileFrameIntervals(t *testing.T) {
 }
 
 func TestRDPOfficePacingCoalescesDamageBeforeCapture(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		display := newFramebuffer()
 		defer display.shutdown()
@@ -111,8 +113,12 @@ func TestRDPOfficePacingCoalescesDamageBeforeCapture(t *testing.T) {
 // exercising real capture/encode pacing without a network clock or a test hook
 // in production. Pending refreshes remain paced even when output cannot be sent.
 func TestRDPProfilesBoundCaptureAndEncoding(t *testing.T) {
+	t.Parallel()
+
 	for _, profile := range []string{rdp.ProfileOffice, rdp.ProfileSmooth} {
 		t.Run(profile, func(t *testing.T) {
+			t.Parallel()
+
 			synctest.Test(t, func(t *testing.T) {
 				fps, err := rdp.ProfileFrameRate(profile)
 				if err != nil {

@@ -44,6 +44,7 @@ func TestFrameRateOptions(t *testing.T) {
 					encoder.Close()
 					t.Fatal("invalid rate returned an encoder")
 				}
+
 				return
 			}
 			defer encoder.Close()
@@ -81,6 +82,7 @@ func TestHardwareFrameRateOptions(t *testing.T) {
 					if test.hardwareErr != nil {
 						return nil, test.hardwareErr
 					}
+
 					return &recordingCodec{}, nil
 				})
 			if !errors.Is(err, test.wantErr) {
@@ -90,6 +92,7 @@ func TestHardwareFrameRateOptions(t *testing.T) {
 				if probes != 0 || encoder != nil {
 					t.Fatalf("invalid rate reached codec: probes %d, encoder %v", probes, encoder)
 				}
+
 				return
 			}
 			defer encoder.Close()

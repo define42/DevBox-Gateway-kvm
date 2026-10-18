@@ -18,6 +18,8 @@ type Image interface {
 
 const qcow2Magic = "QFI\xfb"
 
+var errRawWriteOutOfBounds = errors.New("raw: write exceeds disk size")
+
 type rawImage struct {
 	file     *os.File
 	size     int64
@@ -73,7 +75,7 @@ func (r *rawImage) WriteAt(b []byte, off int64) (int, error) {
 		return 0, nil
 	}
 	if off < 0 || off > r.size || int64(len(b)) > r.size-off {
-		return 0, errors.New("raw: write exceeds disk size")
+		return 0, errRawWriteOutOfBounds
 	}
 
 	return r.file.WriteAt(b, off)

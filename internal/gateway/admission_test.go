@@ -18,9 +18,13 @@ type admissionTestConn struct {
 	closed atomic.Bool
 }
 
-func (c *admissionTestConn) Read([]byte) (int, error)         { return 0, io.EOF }
-func (c *admissionTestConn) Write(p []byte) (int, error)      { return len(p), nil }
-func (c *admissionTestConn) Close() error                     { c.closed.Store(true); return nil }
+func (c *admissionTestConn) Read([]byte) (int, error)    { return 0, io.EOF }
+func (c *admissionTestConn) Write(p []byte) (int, error) { return len(p), nil }
+func (c *admissionTestConn) Close() error {
+	c.closed.Store(true)
+
+	return nil
+}
 func (c *admissionTestConn) LocalAddr() net.Addr              { return c.remote }
 func (c *admissionTestConn) RemoteAddr() net.Addr             { return c.remote }
 func (c *admissionTestConn) SetDeadline(time.Time) error      { return nil }
@@ -72,7 +76,10 @@ func TestAdmissionSeparatePools(t *testing.T) {
 		c.MaxConnections, c.MaxHandshakes = 1, 2
 	})
 	authenticated := mustAdmit(t, s, "192.0.2.1")
-	if !s.promoteConnection(authenticated) || !s.promoteConnection(authenticated) {
+	if !s.promoteConnection(authenticated) {
+		t.Fatal("initial promotion failed")
+	}
+	if !s.promoteConnection(authenticated) {
 		t.Fatal("authentication must be idempotent")
 	}
 	first := mustAdmit(t, s, "192.0.2.2")
@@ -126,6 +133,8 @@ func TestAdmissionPerSourceLimits(t *testing.T) {
 }
 
 func TestAdmissionRateLimitsPersistAcrossDisconnect(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		s := admissionTestServer(t, func(c *Config) {
 			c.ConnectionRateLimit, c.ConnectionRateLimitPerIP = 2, 1
@@ -149,6 +158,8 @@ func TestAdmissionRateLimitsPersistAcrossDisconnect(t *testing.T) {
 }
 
 func TestAdmissionAbsoluteDeadlineCancelsWork(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		s := admissionTestServer(t, nil)
 		pending := mustAdmit(t, s, "192.0.2.1")
@@ -206,6 +217,8 @@ func TestAdmissionConcurrentPromotionExpirationAndClose(t *testing.T) {
 }
 
 func TestAdmissionPeerStateBoundedAndReclaimed(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		s := admissionTestServer(t, nil)
 		active := mustAdmit(t, s, "192.0.2.1")
@@ -281,6 +294,8 @@ func TestConnectionAdmissionConfigValidation(t *testing.T) {
 }
 
 func TestAdmissionHTTPContextPreservesValuesAndCancellation(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		s := admissionTestServer(t, nil)
 		conn := mustAdmit(t, s, "192.0.2.1")

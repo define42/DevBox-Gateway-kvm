@@ -12,6 +12,8 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 )
 
+var errTestBlkIRQ = errors.New("inject block IRQ")
+
 type flushImage struct {
 	batchImage
 	events   []string
@@ -156,7 +158,7 @@ func TestBlkWritebackInterruptFailureDrainsBatch(t *testing.T) {
 	backing := &batchImage{data: make([]byte, 2*SectorSize)}
 	v, q, mem := newFlushTestDevice(t, backing, false)
 	negotiateBlkFlush(v)
-	irqErr := errors.New("inject block IRQ")
+	irqErr := errTestBlkIRQ
 	v.SetIRQLine(func(bool) error { return irqErr })
 	statuses := []int{
 		addFlushTestRequest(q, mem, 0, 0),

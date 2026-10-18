@@ -45,7 +45,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/gokvm",
 		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
-		"H264_ENCODER": "software", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6", "VM_MEMORY_MIB": "8192",
+		"H264_ENCODER": "software", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
+		"VM_MEMORY_MIB":        "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m",
 		"VM_CREATE_TIMEOUT": "40m", "VM_START_TIMEOUT": "50s", "VM_STOP_TIMEOUT": "25s", "SESSION_TTL": "4h",

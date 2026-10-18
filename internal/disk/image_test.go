@@ -56,6 +56,7 @@ func TestOpenRawImage(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,tparallel // Subtests share one image and verify its final contents in order.
 func TestRawImageWriteBounds(t *testing.T) {
 	t.Parallel()
 

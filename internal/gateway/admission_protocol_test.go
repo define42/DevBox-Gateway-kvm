@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -13,6 +14,16 @@ import (
 	"testing"
 	"time"
 )
+
+type admissionHTTPResult struct {
+	StatusCode int
+	Close      bool
+	cookies    []*http.Cookie
+}
+
+func (r admissionHTTPResult) Cookies() []*http.Cookie {
+	return r.cookies
+}
 
 func newAdmissionProtocolServer(t *testing.T, configure func(*Config)) (*Server, string, *tls.Config) {
 	t.Helper()
@@ -59,7 +70,7 @@ func dialAdmissionHTTPS(t *testing.T, address string, config *tls.Config) *tls.C
 	return connection
 }
 
-func admissionHTTPResponse(t *testing.T, connection net.Conn, request string) *http.Response {
+func admissionHTTPResponse(t *testing.T, connection net.Conn, request string) admissionHTTPResult {
 	t.Helper()
 	if _, err := io.WriteString(connection, request); err != nil {
 		t.Fatal(err)
@@ -76,7 +87,17 @@ func admissionHTTPResponse(t *testing.T, connection net.Conn, request string) *h
 		t.Fatal(err)
 	}
 
-	return response
+	return admissionHTTPResult{
+		StatusCode: response.StatusCode,
+		Close:      response.Close,
+		cookies:    response.Cookies(),
+	}
+}
+
+func isTimeoutError(err error) bool {
+	var timeout net.Error
+
+	return errors.As(err, &timeout) && timeout.Timeout()
 }
 
 func assertAdmissionProtocolCounts(t *testing.T, server *Server, pending, authenticated int) {
@@ -126,7 +147,7 @@ func TestAdmissionUnauthenticatedHTTPSExpires(t *testing.T) {
 			}
 			if _, err := connection.Read(make([]byte, 1)); err == nil {
 				t.Fatal("unauthenticated connection remained open")
-			} else if timeout, ok := err.(net.Error); ok && timeout.Timeout() {
+			} else if isTimeoutError(err) {
 				t.Fatal("HTTP deadlines extended the absolute authentication deadline")
 			}
 		})
@@ -271,7 +292,7 @@ func TestAdmissionRDPRequiresCredentialsNotOnlyRoutingToken(t *testing.T) {
 			if !test.allowed {
 				if _, err := connection.Read(make([]byte, 1)); err == nil {
 					t.Fatal("failed RDP credentials left the connection open")
-				} else if timeout, ok := err.(net.Error); ok && timeout.Timeout() {
+				} else if isTimeoutError(err) {
 					t.Fatal("failed RDP authentication did not close the connection")
 				}
 				server.mu.Lock()
@@ -361,7 +382,7 @@ func TestAdmissionHTTPSClosesConnectionAfterSessionRevocation(t *testing.T) {
 	}
 	if _, err := connection.Read(make([]byte, 1)); err == nil {
 		t.Fatal("revoked session kept authenticated connection open")
-	} else if timeout, ok := err.(net.Error); ok && timeout.Timeout() {
+	} else if isTimeoutError(err) {
 		t.Fatal("revoked session retained authenticated capacity after response")
 	}
 }

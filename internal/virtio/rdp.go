@@ -109,7 +109,9 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	slices := rdpEncoderSlices(runtime.GOMAXPROCS(0), options.GuestCPUs, options.H264Threads)
 	if options.H264 {
 		// Fail before opening the listener if the H.264 encoder cannot initialize.
-		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{Backend: backend, Threads: slices, FrameRate: frameRate})
+		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{
+			Backend: backend, Threads: slices, FrameRate: frameRate,
+		})
 		if err != nil {
 			return nil, err
 		}

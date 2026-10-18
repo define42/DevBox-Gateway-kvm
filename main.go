@@ -42,69 +42,70 @@ func run(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if bootArgs != nil {
-		var h264Encoder, rdpProfile string
-		if bootArgs.RDP != "" {
-			rdpProfile = bootArgs.RDPProfile
-		}
-		if bootArgs.RDPH264 {
-			h264Encoder = bootArgs.RDPH264Encoder
-		}
-		c := &vmm.Config{
-			Dev:            bootArgs.Dev,
-			Kernel:         bootArgs.Kernel,
-			Initrd:         bootArgs.Initrd,
-			ISO:            bootArgs.ISO,
-			UKI:            bootArgs.UKI,
-			UEFI:           bootArgs.UEFI,
-			UEFIVars:       bootArgs.UEFIVars,
-			Params:         bootArgs.Params,
-			ParamsSet:      bootArgs.ParamsSet,
-			TapIfName:      bootArgs.TapIfName,
-			Network:        bootArgs.Network,
-			Disk:           bootArgs.Disk,
-			CloudInit:      bootArgs.CloudInit,
-			GPU:            bootArgs.GPU,
-			VNC:            bootArgs.VNC,
-			RDP:            bootArgs.RDP,
-			RDPProfile:     rdpProfile,
-			RDPWait:        bootArgs.RDPWait,
-			RDPCert:        bootArgs.RDPCert,
-			RDPKey:         bootArgs.RDPKey,
-			RDPH264:        bootArgs.RDPH264,
-			RDPH264Encoder: h264Encoder,
-			RDPH264Threads: bootArgs.RDPH264Threads,
-			RDPStats:       bootArgs.RDPStats,
-			Audio:          bootArgs.Audio,
-			NCPUs:          bootArgs.NCPUs,
-			MemSize:        bootArgs.MemSize,
-			TraceCount:     bootArgs.TraceCount,
-		}
-
-		if bootArgs.RDPFD != 0 {
-			// Keep the inherited socket reserved across firmware-requested resets.
-			// Each VMM duplicates it for its own display lifecycle.
-			if _, err := unix.FcntlInt(uintptr(bootArgs.RDPFD), unix.F_SETFD, unix.FD_CLOEXEC); err != nil {
-				return fmt.Errorf("adopt inherited RDP listener: %w", err)
-			}
-			c.RDPListenerFile = os.NewFile(uintptr(bootArgs.RDPFD), "inherited-rdp-listener")
-			defer c.RDPListenerFile.Close()
-		}
-
-		return runBoot(ctx, *c)
+	if bootArgs == nil && probeArgs == nil {
+		return nil
+	}
+	if bootArgs == nil {
+		return probeHost()
 	}
 
-	if probeArgs != nil {
-		if err := probe.KVMCapabilities(); err != nil {
-			return err
-		}
-
-		if err := probe.CPUID(); err != nil {
-			return err
-		}
+	var h264Encoder, rdpProfile string
+	if bootArgs.RDP != "" {
+		rdpProfile = bootArgs.RDPProfile
+	}
+	if bootArgs.RDPH264 {
+		h264Encoder = bootArgs.RDPH264Encoder
+	}
+	c := &vmm.Config{
+		Dev:            bootArgs.Dev,
+		Kernel:         bootArgs.Kernel,
+		Initrd:         bootArgs.Initrd,
+		ISO:            bootArgs.ISO,
+		UKI:            bootArgs.UKI,
+		UEFI:           bootArgs.UEFI,
+		UEFIVars:       bootArgs.UEFIVars,
+		Params:         bootArgs.Params,
+		ParamsSet:      bootArgs.ParamsSet,
+		TapIfName:      bootArgs.TapIfName,
+		Network:        bootArgs.Network,
+		Disk:           bootArgs.Disk,
+		CloudInit:      bootArgs.CloudInit,
+		GPU:            bootArgs.GPU,
+		VNC:            bootArgs.VNC,
+		RDP:            bootArgs.RDP,
+		RDPProfile:     rdpProfile,
+		RDPWait:        bootArgs.RDPWait,
+		RDPCert:        bootArgs.RDPCert,
+		RDPKey:         bootArgs.RDPKey,
+		RDPH264:        bootArgs.RDPH264,
+		RDPH264Encoder: h264Encoder,
+		RDPH264Threads: bootArgs.RDPH264Threads,
+		RDPStats:       bootArgs.RDPStats,
+		Audio:          bootArgs.Audio,
+		NCPUs:          bootArgs.NCPUs,
+		MemSize:        bootArgs.MemSize,
+		TraceCount:     bootArgs.TraceCount,
 	}
 
-	return nil
+	if bootArgs.RDPFD != 0 {
+		// Keep the inherited socket reserved across firmware-requested resets.
+		// Each VMM duplicates it for its own display lifecycle.
+		if _, err := unix.FcntlInt(uintptr(bootArgs.RDPFD), unix.F_SETFD, unix.FD_CLOEXEC); err != nil {
+			return fmt.Errorf("adopt inherited RDP listener: %w", err)
+		}
+		c.RDPListenerFile = os.NewFile(uintptr(bootArgs.RDPFD), "inherited-rdp-listener")
+		defer c.RDPListenerFile.Close()
+	}
+
+	return runBoot(ctx, *c)
+}
+
+func probeHost() error {
+	if err := probe.KVMCapabilities(); err != nil {
+		return err
+	}
+
+	return probe.CPUID()
 }
 
 // runBoot recreates the complete VM on a firmware-requested reset. Closing the
