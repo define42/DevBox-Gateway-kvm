@@ -315,7 +315,7 @@ func (d *InputDevice) drain(idx int) {
 	_ = d.ReinjectIfPending()
 }
 
-// KeyEvent satisfies VNCInput for keyboard devices.
+// KeyEvent satisfies DisplayInput for keyboard devices.
 func (d *InputDevice) KeyEvent(down bool, keysym uint32) {
 	if d.kind != inputKindKeyboard {
 		return
@@ -334,7 +334,7 @@ func (d *InputDevice) KeyEvent(down bool, keysym uint32) {
 	d.enqueue(inputEvent{typ: evKey, code: code, value: value}, synEvent())
 }
 
-// PointerEvent satisfies VNCInput. Tablet callers should use PointerEventInBounds
+// PointerEvent satisfies DisplayInput. Tablet callers should use PointerEventInBounds
 // to supply the display dimensions; this legacy entry point assumes 1024x768.
 func (d *InputDevice) PointerEvent(buttonMask uint8, x, y uint16) {
 	if d.kind == inputKindTablet {
@@ -698,7 +698,7 @@ func NewInputPointer(irq uint8, inject func() error, mem []byte) *InputDevice {
 	return newInputDevice("gokvm mouse", inputKindPointer, irq, InputPointerMMIOBase, inject, mem)
 }
 
-// NewInputTablet creates an absolute pointer suitable for VNC and RDP input.
+// NewInputTablet creates an absolute pointer suitable for remote display input.
 func NewInputTablet(irq uint8, inject func() error, mem []byte) *InputDevice {
 	return newInputDevice("gokvm tablet", inputKindTablet, irq, InputPointerMMIOBase, inject, mem)
 }
@@ -908,7 +908,7 @@ func inputKeyCode(keysym uint32) (uint16, bool) {
 		',':    keyComma,
 		'.':    keyDot,
 		'/':    keySlash,
-		// VNC/RDP send modifier transitions separately. Shifted keysyms
+		// Remote displays send modifier transitions separately. Shifted keysyms
 		// still identify the same physical key on the US keyboard.
 		'!': key1,
 		'@': key2,

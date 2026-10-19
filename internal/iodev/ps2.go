@@ -136,7 +136,7 @@ func (p *PS2Controller) Size() uint64 {
 	return 0x5
 }
 
-// KeyEvent queues an XT Set 1 make/break sequence from an RFB keysym.
+// KeyEvent queues an XT Set 1 make/break sequence from an X11 keysym.
 func (p *PS2Controller) KeyEvent(down bool, keysym uint32) {
 	makeSeq, ok := ps2ScanCode(keysym)
 	if !ok {
@@ -155,7 +155,7 @@ func (p *PS2Controller) KeyEvent(down bool, keysym uint32) {
 	p.enqueue(seq, false)
 }
 
-// PointerEvent converts an absolute VNC pointer update into PS/2 mouse packets.
+// PointerEvent converts an absolute pointer update into PS/2 mouse packets.
 func (p *PS2Controller) PointerEvent(buttonMask uint8, x, y uint16) {
 	p.mu.Lock()
 	if !p.mouseEnabled || !p.mouseReporting {

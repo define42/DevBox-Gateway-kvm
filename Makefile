@@ -23,9 +23,6 @@ GATEWAY_LDAP_ADMIN_GROUP ?= devbox-admins
 GATEWAY_LDAP_CA ?= ./testldap/.tls/cert.pem
 OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
-RDP_CLIENT ?= $(shell if [ -x ./tools/freerdp/bin/xfreerdp ]; then \
-	printf '%s\n' ./tools/freerdp/bin/xfreerdp; \
-	else command -v xfreerdp3 2>/dev/null || command -v xfreerdp 2>/dev/null; fi)
 
 # Docker builds use their own Go toolchain.
 ifneq ($(MAKECMDGOALS),gateway-docker)
@@ -82,7 +79,7 @@ clean:
 
 .PHONY: tinycore
 tinycore: gokvm
-	./gokvm boot -iso TinyCore-current.iso -vnc 127.0.0.1:5900 -m 512M
+	./gokvm boot -iso TinyCore-current.iso -m 512M
 
 .PHONY: qcow2
 qcow2: generate
@@ -104,36 +101,18 @@ qcow2: generate
 		cat -- "$(OVMF_VARS)" > "$$tmp"; \
 		ln -- "$$tmp" "$(QCOW2_VARS)"; \
 	fi
-	CGO_ENABLED=1 $(GO) build -tags nvenc -o gokvm .
+	CGO_ENABLED=0 $(GO) build -o gokvm .
 	@set -eu; if [ ! -e "$(QCOW2_SEED)" ]; then \
 		./gokvm seed -out "$(QCOW2_SEED)" -user "$(QCOW2_USER)" -keyboard "$(QCOW2_KEYBOARD)"; \
 	fi
 	@echo "Guest login: $(QCOW2_SEED).credentials.json (generated on first boot preparation)."
+	@echo "Headless developer boot. Use make gateway and the dashboard for RDP access."
 	./gokvm boot -cloud-init "$(QCOW2_SEED)" -uefi "$(OVMF_CODE)" -uefi-vars "$(QCOW2_VARS)" -d "$(QCOW2_DISK)" \
-		-c 2 -m 4G -net user -rdp 127.0.0.1:3390 -rdp-wait \
-		-rdp-h264 -rdp-h264-encoder auto $(QCOW2_ARGS)
+		-c 2 -m 4G -net user $(QCOW2_ARGS)
 
 .PHONY: freerdp
 freerdp:
 	./tools/build-freerdp.sh
-
-.PHONY: rdp
-rdp:
-	@client="$(RDP_CLIENT)"; \
-	if ! command -v "$$client" >/dev/null 2>&1; then \
-		echo "FreeRDP client not found; run make freerdp or set RDP_CLIENT=/path/to/xfreerdp." >&2; \
-		exit 1; \
-	fi; \
-	if ! config=$$("$$client" /buildconfig 2>&1); then \
-		echo "Cannot check FreeRDP H.264 support: $$config" >&2; \
-		exit 1; \
-	fi; \
-	case "$$config" in \
-		*WITH_GFX_H264=ON*|*WITH_GFX_H264=TRUE*) ;; \
-		*) echo "FreeRDP H.264 support is required; run make freerdp or set RDP_CLIENT to an H.264-capable client." >&2; exit 1 ;; \
-	esac; \
-	exec "$$client" /v:127.0.0.1:3390 /sec:tls /u:console /p:console \
-		/cert:ignore /dynamic-resolution /gfx:AVC420
 
 # Local native Gateway: HTTPS UI/auth and token-routed RDP share port 8443.
 .PHONY: ldap ldap-stop gateway-ldap-test

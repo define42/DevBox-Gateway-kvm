@@ -10,128 +10,45 @@ import (
 	"time"
 )
 
-var _ ConsoleDisplay = (*VNCDisplay)(nil)
-
-func TestFramebufferSerialWritesAreBatched(t *testing.T) {
+func TestRDPVGATextFallback(t *testing.T) {
 	t.Parallel()
-
-	d := newFramebuffer()
-	d.serialInterval = time.Hour
+	d := &RDPDisplay{framebuffer: newFramebuffer()}
 	t.Cleanup(d.shutdown)
-	payload := []byte("Starting...\rReady\x1b[K\nroot@slax:~# ")
-	for i := range payload {
-		if n, err := d.writeSerial(payload[i : i+1]); n != 1 || err != nil {
-			t.Fatalf("write byte %d: got %d, %v", i, n, err)
-		}
-	}
-	if frame := d.snapshot(); frame.seq != 1 {
-		t.Fatalf("serial burst published %d frames before refresh, want 1", frame.seq)
-	}
-	if !d.refreshSerial() {
-		t.Fatal("serial renderer stopped before graphics took over")
-	}
-
-	expected := newVNCTextConsole()
-	expected.write([]byte("Ready\nroot@slax:~# "))
-	frame := d.snapshot()
-	if frame.seq != 2 || !bytes.Equal(frame.pix, expected.render().Pix) {
-		t.Fatal("batched serial frame lost characters, ordering, or terminal escapes")
-	}
-	d.refreshSerial()
-	if got := d.snapshot().seq; got != frame.seq {
-		t.Fatal("idle serial console published another frame")
-	}
-}
-
-func TestFramebufferSerialPromptIsEventuallyPublished(t *testing.T) {
-	t.Parallel()
-
-	d := newFramebuffer()
-	t.Cleanup(d.shutdown)
-	if _, err := d.writeSerial([]byte("boot\n")); err != nil {
-		t.Fatal(err)
-	}
-	_, _, published := d.changedFrame(1, false)
-	if _, err := d.writeSerial([]byte("login: ")); err != nil {
-		t.Fatal(err)
-	}
+	mem := make([]byte, vgaTextBase+vgaTextCols*vgaTextRows*2)
+	copy(mem[vgaTextBase:], []byte{'T', 0x0f, 'C', 0x0f})
+	_, _, changed := d.changedFrame(0, false)
+	d.StartVGATextFallback(mem)
 	select {
-	case <-published:
+	case <-changed:
 	case <-time.After(time.Second):
-		t.Fatal("serial prompt without a newline was never rendered")
+		t.Fatal("VGA fallback did not publish a frame")
 	}
-	expected := newVNCTextConsole()
-	expected.write([]byte("boot\nlogin: "))
-	if !bytes.Equal(d.snapshot().pix, expected.render().Pix) {
-		t.Fatal("published serial frame does not contain the complete prompt")
+	frame := d.snapshot()
+	if frame.width != vgaTextCols*vgaTextCellWidth || frame.height != vgaTextRows*vgaTextCellHeight {
+		t.Fatalf("VGA fallback dimensions: %dx%d", frame.width, frame.height)
 	}
-}
-
-func TestFramebufferPendingSerialCannotOverwriteTakeover(t *testing.T) {
-	t.Parallel()
-
-	for _, takeover := range []string{"gpu", "vga", "shutdown"} {
-		t.Run(takeover, func(t *testing.T) {
-			t.Parallel()
-			d := newFramebuffer()
-			d.serialInterval = time.Hour
-			t.Cleanup(d.shutdown)
-			for _, text := range []string{"initial", "pending"} {
-				if _, err := d.writeSerial([]byte(text)); err != nil {
-					t.Fatal(err)
-				}
-			}
-			img := image.NewRGBA(image.Rect(0, 0, 1, 1))
-			img.SetRGBA(0, 0, color.RGBA{R: 0xff, A: 0xff})
-			switch takeover {
-			case "gpu":
-				if err := d.Flush(1, 1, img); err != nil {
-					t.Fatal(err)
-				}
-			case "vga":
-				var last []byte
-				rendered := false
-				d.refreshFallback([]byte{1}, &last, &rendered, framebufferBlank,
-					func([]byte) *image.RGBA { return img })
-			case "shutdown":
-				d.shutdown()
-			}
-			before := d.snapshot()
-			if d.refreshSerial() {
-				t.Fatal("serial renderer continued after takeover")
-			}
-			after := d.snapshot()
-			if before.seq != after.seq || !bytes.Equal(before.pix, after.pix) {
-				t.Fatal("pending serial output replaced the final framebuffer")
-			}
-		})
+	if bytes.Count(frame.pix, []byte{0}) == len(frame.pix) {
+		t.Fatal("VGA fallback frame stayed blank")
 	}
 }
 
-func TestFramebufferTabletUsesCurrentDimensions(t *testing.T) {
+func TestRDPLinearFramebufferFallback(t *testing.T) {
 	t.Parallel()
-	d := newFramebuffer()
+	d := &RDPDisplay{framebuffer: newFramebuffer()}
 	t.Cleanup(d.shutdown)
-	tablet := NewInputTablet(6, nil, nil)
-	t.Cleanup(func() { _ = tablet.Close() })
-	d.SetInput(NewInputPair(nil, tablet))
-	for _, tt := range []struct {
-		size int
-		want int32
-	}{{4, 12287}, {8, 6143}} {
-		if err := d.Flush(tt.size, tt.size, image.NewRGBA(image.Rect(0, 0, tt.size, tt.size))); err != nil {
-			t.Fatal(err)
-		}
-		d.sendPointerEvent(0, 1, 1)
-		for _, want := range []inputEvent{
-			{typ: evAbs, code: absX, value: tt.want},
-			{typ: evAbs, code: absY, value: tt.want},
-			synEvent(),
-		} {
-			if got, ok := tablet.popPending(); !ok || got != want {
-				t.Fatalf("size %d: tablet event = %+v, %v; want %+v", tt.size, got, ok, want)
-			}
-		}
+	mem := make([]byte, 0x1000)
+	copy(mem[0x100:], []byte{0x10, 0x20, 0x30, 0, 0x40, 0x50, 0x60, 0})
+	_, _, changed := d.changedFrame(0, false)
+	d.StartLinearFramebufferFallback(mem, 0x100, 2, 1, 8)
+	select {
+	case <-changed:
+	case <-time.After(time.Second):
+		t.Fatal("linear framebuffer fallback did not publish a frame")
+	}
+	frame := d.snapshot()
+	want := []byte{0x30, 0x20, 0x10, 0xff, 0x60, 0x50, 0x40, 0xff}
+	if frame.width != 2 || frame.height != 1 || !bytes.Equal(frame.pix, want) {
+		t.Fatalf("linear framebuffer fallback: got %+v, want BGRX pixels converted to RGBA", frame)
 	}
 }
 
@@ -226,9 +143,6 @@ func TestFramebufferGPUFrameSupersedesFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := d.writeSerial([]byte("later serial output")); err != nil {
-		t.Fatal(err)
-	}
 	var last []byte
 	rendered := false
 	if d.refreshFallback([]byte{2}, &last, &rendered, framebufferBlank, func([]byte) *image.RGBA {
@@ -241,28 +155,6 @@ func TestFramebufferGPUFrameSupersedesFallback(t *testing.T) {
 
 	if frame := d.snapshot(); !bytes.Equal(frame.pix, img.Pix) {
 		t.Fatalf("GPU framebuffer was overwritten: %v", frame.pix)
-	}
-}
-
-func TestFramebufferShutdownWakesWaiters(t *testing.T) {
-	t.Parallel()
-
-	d := newFramebuffer()
-	finished := make(chan bool, 1)
-	go func() {
-		_, ok := d.frameForRequestUntil(true, 0, nil)
-		finished <- ok
-	}()
-
-	d.shutdown()
-	d.shutdown()
-	select {
-	case ok := <-finished:
-		if ok {
-			t.Fatal("frame waiter reported an update after shutdown")
-		}
-	case <-time.After(time.Second):
-		t.Fatal("shutdown left a frame waiter blocked")
 	}
 }
 
@@ -286,9 +178,6 @@ func TestFramebufferConcurrentFallbackStartAndShutdown(t *testing.T) {
 
 		d.StartLinearFramebufferFallback(mem, 0, 1, 1, 4)
 		before := d.snapshot().seq
-		if _, err := d.writeSerial([]byte("after shutdown")); err != nil {
-			t.Fatal(err)
-		}
 		if err := d.Flush(1, 1, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
 			t.Fatal(err)
 		}
@@ -426,17 +315,4 @@ func BenchmarkFramebufferRead(b *testing.B) {
 			d.changedFrame(0, false)
 		}
 	})
-}
-
-func BenchmarkFramebufferSerialByte(b *testing.B) {
-	d := newFramebuffer()
-	b.Cleanup(d.shutdown)
-	p := []byte{'x'}
-	b.ReportAllocs()
-	b.SetBytes(1)
-	for b.Loop() {
-		if _, err := d.writeSerial(p); err != nil {
-			b.Fatal(err)
-		}
-	}
 }

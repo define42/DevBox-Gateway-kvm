@@ -2,9 +2,11 @@ package gateway
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -23,7 +25,8 @@ func startEchoBackend(t *testing.T) Endpoint {
 func startTestBackend(t *testing.T, beforeCopy func(net.Conn) bool) Endpoint {
 	t.Helper()
 	certificate, certPEM, _, _ := testTLSIdentity(t, "backend.test")
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	address := "@gokvm-rdp-test-" + rand.Text()
+	ln, err := net.Listen("unix", address)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +83,7 @@ func startTestBackend(t *testing.T, beforeCopy func(net.Conn) bool) Endpoint {
 		}
 	})
 
-	return Endpoint{Address: ln.Addr().String(), ServerName: "backend.test", CertificatePEM: certPEM}
+	return Endpoint{Address: address, ServerName: "backend.test", CertificatePEM: certPEM}
 }
 
 func startGatewayForTest(t *testing.T, endpoint Endpoint) (*Server, *webBackend, []byte, string, browserSession) {
@@ -316,25 +319,57 @@ func TestGatewayMultiplexesHTTPSAndRDPAndLogoutClosesProxy(t *testing.T) {
 
 func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"valid", "wrong name", "wrong certificate", "non-loopback"} {
-		t.Run(name, func(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		wantInvalid bool
+	}{
+		{name: "valid"},
+		{name: "wrong name"},
+		{name: "wrong certificate"},
+		{name: "missing server name", wantInvalid: true},
+		{name: "missing certificate", wantInvalid: true},
+		{name: "TCP loopback", wantInvalid: true},
+		{name: "TCP non-loopback", wantInvalid: true},
+		{name: "pathname socket", wantInvalid: true},
+		{name: "empty abstract socket", wantInvalid: true},
+		{name: "embedded NUL", wantInvalid: true},
+		{name: "overlong abstract socket", wantInvalid: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			endpoint := startEchoBackend(t)
-			switch name {
+			switch test.name {
 			case "wrong name":
 				endpoint.ServerName = "attacker.test"
 			case "wrong certificate":
 				_, endpoint.CertificatePEM, _, _ = testTLSIdentity(t, "backend.test")
-			case "non-loopback":
+			case "missing server name":
+				endpoint.ServerName = ""
+			case "missing certificate":
+				endpoint.CertificatePEM = nil
+			case "TCP loopback":
+				endpoint.Address = "127.0.0.1:3389"
+			case "TCP non-loopback":
 				endpoint.Address = "192.0.2.1:3389"
+			case "pathname socket":
+				endpoint.Address = "/tmp/gokvm.sock"
+			case "empty abstract socket":
+				endpoint.Address = "@"
+			case "embedded NUL":
+				endpoint.Address = "@gokvm\x00attacker"
+			case "overlong abstract socket":
+				endpoint.Address = "@" + strings.Repeat("x", maxAbstractUnixSocketNameLen)
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			conn, err := dialRDPBackend(ctx, endpoint)
-			if name != "valid" {
+			if test.name != "valid" {
 				if err == nil {
 					conn.NetConn().Close()
 					t.Fatal("unverified backend accepted")
+				}
+				if test.wantInvalid && !errors.Is(err, ErrInvalid) {
+					t.Fatalf("invalid backend configuration returned %v; want ErrInvalid", err)
 				}
 
 				return
@@ -351,6 +386,25 @@ func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 				t.Fatalf("backend echo failed: %q %v", echo, err)
 			}
 		})
+	}
+}
+
+func TestRDPBackendAddressLengthBoundary(t *testing.T) {
+	t.Parallel()
+	prefix := "@gokvm-boundary-" + rand.Text()
+	maximum := prefix + strings.Repeat("x", maxAbstractUnixSocketNameLen-len(prefix))
+	if !validRDPBackendAddress(maximum) {
+		t.Fatal("maximum-length Linux abstract socket name rejected")
+	}
+	listener, err := net.Listen("unix", maximum)
+	if err != nil {
+		t.Fatalf("bind maximum-length Linux abstract socket: %v", err)
+	}
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if validRDPBackendAddress(maximum + "x") {
+		t.Fatal("overlong Linux abstract socket name accepted")
 	}
 }
 

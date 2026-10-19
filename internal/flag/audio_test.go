@@ -17,10 +17,9 @@ func TestAudioOptions(t *testing.T) {
 	}{
 		{name: "default"},
 		{name: "disabled", args: []string{"-audio", "none"}, want: "none"},
-		{name: "rdp", args: []string{"-audio", "rdp", "-rdp", "127.0.0.1:3390"}, want: "rdp"},
+		{name: "rdp", args: []string{"-audio", "rdp", "-rdp-fd", "3"}, want: "rdp"},
 		{name: "missing-listener", args: []string{"-audio", "rdp"}, bad: true},
-		{name: "vnc-only", args: []string{"-audio", "rdp", "-vnc", "127.0.0.1:5900"}, bad: true},
-		{name: "unknown", args: []string{"-audio", "alsa", "-rdp", ":3390"}, bad: true},
+		{name: "unknown", args: []string{"-audio", "alsa", "-rdp-fd", "3"}, bad: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

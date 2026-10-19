@@ -11,6 +11,9 @@ import (
 
 var ErrInvalidInput = errors.New("invalid RDP input")
 
+// maxHeldKeys bounds per-connection state, including arbitrary Unicode keysyms.
+const maxHeldKeys = 256
+
 // InputKind identifies a keyboard or absolute pointer update.
 type InputKind uint8
 
@@ -19,8 +22,8 @@ const (
 	InputPointer
 )
 
-// InputEvent uses X11 keysyms and RFB button bits so the display backends can
-// share a guest input sink. Buttons 0, 1, and 2 are left, middle, and right;
+// InputEvent uses X11 keysyms and pointer button bits for the guest input sink.
+// Bits 0, 1, and 2 are left, middle, and right;
 // bits 3 and 4 are momentary wheel up and down events.
 type InputEvent struct {
 	Kind    InputKind
@@ -33,7 +36,7 @@ type InputEvent struct {
 // InputDecoder maintains the input state for one activated RDP connection.
 // It is used by the connection's reader goroutine and is not concurrency safe.
 // Lock-state synchronization is ignored: the guest handles Caps/Num/Scroll Lock
-// through their ordinary key events, just as it does for the VNC backend.
+// through their ordinary key events.
 type InputDecoder struct {
 	held        map[uint32]struct{}
 	buttons     uint8
@@ -46,13 +49,11 @@ type InputDecoder struct {
 // Decode accepts either a complete uncompressed slow-path Share Data PDU, or
 // the fast-path header followed by event data with transport length bytes
 // already removed by ReadPacket. Invalid packets leave the decoder unchanged.
-// Callers must accept input only after connection activation.
+// At most 256 distinct keys may be held at any point in a packet. Callers must
+// accept input only after connection activation and close on a decode error.
 func (d *InputDecoder) Decode(data []byte, fastPath bool) ([]InputEvent, error) {
+	// Parse scalar state and packet-bounded events without changing held keys.
 	next := *d
-	next.held = maps.Clone(d.held)
-	if next.held == nil {
-		next.held = make(map[uint32]struct{})
-	}
 	var events []InputEvent
 	var err error
 	if fastPath {
@@ -63,9 +64,66 @@ func (d *InputDecoder) Decode(data []byte, fastPath bool) ([]InputEvent, error) 
 	if err != nil {
 		return nil, err
 	}
+	if err := next.applyKeys(events); err != nil {
+		return nil, err
+	}
 	*d = next
 
 	return events, nil
+}
+
+// applyKeys validates ordered changes before committing them. The overlay only
+// retains keys whose state differs from the original, so it holds at most
+// 2*maxHeldKeys entries even when a packet presses and releases many unique keys.
+func (d *InputDecoder) applyKeys(events []InputEvent) error {
+	heldCount := len(d.held)
+	if heldCount > maxHeldKeys {
+		return fmt.Errorf("%w: too many held keys", ErrInvalidInput)
+	}
+	changes := make(map[uint32]bool)
+	for _, event := range events {
+		if event.Kind != InputKey {
+			continue
+		}
+		_, original := d.held[event.Key]
+		held, changed := changes[event.Key]
+		if !changed {
+			held = original
+		}
+		if held == event.Down {
+			continue
+		}
+		if event.Down {
+			if heldCount == maxHeldKeys {
+				return fmt.Errorf("%w: too many held keys", ErrInvalidInput)
+			}
+			heldCount++
+		} else {
+			heldCount--
+		}
+		if event.Down == original {
+			delete(changes, event.Key)
+		} else {
+			changes[event.Key] = event.Down
+		}
+	}
+	// No failure can occur after this point. Remove released keys first so the
+	// committed map never temporarily exceeds the cap during a key replacement.
+	for key, down := range changes {
+		if !down {
+			delete(d.held, key)
+		}
+	}
+	if heldCount != 0 && d.held == nil {
+		d.held = make(map[uint32]struct{}, heldCount)
+	}
+	for key, down := range changes {
+		if down {
+			d.held[key] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 func (d *InputDecoder) fastPath(data []byte) ([]InputEvent, error) {
@@ -156,11 +214,6 @@ func (d *InputDecoder) slowPath(data []byte) ([]InputEvent, error) {
 func (d *InputDecoder) key(events []InputEvent, down bool, key uint32) []InputEvent {
 	if key == 0 {
 		return events
-	}
-	if down {
-		d.held[key] = struct{}{}
-	} else {
-		delete(d.held, key)
 	}
 
 	return append(events, InputEvent{Kind: InputKey, Down: down, Key: key})

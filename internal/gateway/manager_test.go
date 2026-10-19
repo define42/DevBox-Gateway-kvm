@@ -350,7 +350,7 @@ func TestManagerRetainsListenerDuringStartup(t *testing.T) {
 	t.Parallel()
 	m := newTestManager(t, "verify-listener")
 	vm := createManagerVM(t, m, "alice", "desktop")
-	// The child attempts to bind this address before adopting its descriptor.
+	// The child attempts to bind this abstract address after adopting its descriptor.
 	// Startup succeeds only if the reserved listener survived the exec handoff.
 	if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
 		t.Fatal(err)
@@ -394,7 +394,10 @@ func TestManagerStartReportsEarlyExit(t *testing.T) {
 
 func managerAssertAddressAvailable(t *testing.T, address string) {
 	t.Helper()
-	listener, err := net.Listen("tcp", address)
+	if !validRDPBackendAddress(address) {
+		t.Fatalf("child received invalid private RDP address %q", address)
+	}
+	listener, err := net.Listen("unix", address)
 	if err != nil {
 		t.Fatalf("stopped child retained its listener at %s: %v", address, err)
 	}
@@ -577,10 +580,6 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "helper.address"), []byte(args["-rdp"]), 0o600); err != nil {
-		fmt.Fprintln(os.Stderr, "write helper address:", err)
-		os.Exit(2)
-	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-profile"), []byte(args["-rdp-profile"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper profile:", err)
 		os.Exit(2)
@@ -607,16 +606,8 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 
 //nolint:err113 // Standalone test helper diagnostics are logged immediately before exit.
 func managerHelperListen(args map[string]string, behavior string) error {
-	if behavior == "verify-listener" {
-		contender, err := net.Listen("tcp", args["-rdp"])
-		if err == nil {
-			_ = contender.Close()
-
-			return errors.New("reserved RDP address became available before child startup")
-		}
-		if !errors.Is(err, syscall.EADDRINUSE) {
-			return fmt.Errorf("check reserved RDP address: %w", err)
-		}
+	if _, exists := args["-rdp"]; exists {
+		return errors.New("manager exposed the private RDP address in worker arguments")
 	}
 	fd, err := strconv.Atoi(args["-rdp-fd"])
 	if err != nil {
@@ -630,19 +621,49 @@ func managerHelperListen(args map[string]string, behavior string) error {
 		return errors.New("inherited RDP descriptor is unavailable")
 	}
 	defer file.Close()
+	listener, err := net.FileListener(file)
+	if err != nil {
+		return fmt.Errorf("adopt inherited RDP listener: %w", err)
+	}
+	if _, ok := listener.(*net.UnixListener); !ok || !validRDPBackendAddress(listener.Addr().String()) {
+		_ = listener.Close()
+
+		return errors.New("inherited RDP listener is not an abstract Unix socket")
+	}
+	address := listener.Addr().String()
+	dir := filepath.Dir(args["-d"])
+	if err := os.WriteFile(filepath.Join(dir, "helper.address"), []byte(address), 0o600); err != nil {
+		_ = listener.Close()
+
+		return fmt.Errorf("write helper address: %w", err)
+	}
+	if behavior == "verify-listener" {
+		contender, err := net.Listen("unix", address)
+		if err == nil {
+			_ = contender.Close()
+			_ = listener.Close()
+
+			return errors.New("reserved RDP address became available before child startup")
+		}
+		if !errors.Is(err, syscall.EADDRINUSE) {
+			_ = listener.Close()
+
+			return fmt.Errorf("check reserved RDP address: %w", err)
+		}
+	}
 	if behavior == "no-listener" {
-		return nil
+		return listener.Close()
 	}
 	if behavior == "startup-exit" {
+		_ = listener.Close()
+
 		return errors.New("forced startup failure")
 	}
 	certificate, err := tls.LoadX509KeyPair(args["-rdp-cert"], args["-rdp-key"])
 	if err != nil {
+		_ = listener.Close()
+
 		return fmt.Errorf("load RDP certificate: %w", err)
-	}
-	listener, err := net.FileListener(file)
-	if err != nil {
-		return fmt.Errorf("adopt inherited RDP listener: %w", err)
 	}
 	go func() {
 		for {

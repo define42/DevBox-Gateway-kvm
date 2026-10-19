@@ -1,7 +1,9 @@
-# Standalone VM runtime reference
+# VM runtime and gateway RDP reference
 
-Use `gokvm boot` to run a single VM directly. For the LDAP dashboard, image
-catalog, managed desktops, and authenticated RDP downloads, see the
+Use `gokvm boot` to run a single VM directly for development. RDP access is
+available only through the gateway UI: sign in, start your desktop, and open its
+downloaded RDP file. Standalone `boot -rdp <address>` listeners are not supported.
+For the LDAP dashboard, image catalog, managed desktops, and RDP downloads, see the
 [gateway guide](gateway.md). The [project README](../README.md) covers installation
 and the product overview.
 
@@ -43,30 +45,22 @@ file. `boot -help` is the complete CLI reference.
 | `-uki path-or-url` | Unset | Single-profile x86-64 UKI; cannot be combined with `-iso`, explicit `-k`, or `-i`. |
 | `-uefi path` | Unset | Local OVMF CODE image; requires `-uefi-vars` and `-d`. |
 | `-uefi-vars path` | Unset | Existing writable per-VM copy of matching OVMF VARS. |
-| `-p parameters` | Built-in kernel command line | Replace direct-boot arguments; unavailable with `-uefi`. RDP still applies its graphical-console policy. |
+| `-p parameters` | Built-in kernel command line | Replace direct-boot arguments; unavailable with `-uefi`. |
 | `-c count` | `1` | Guest vCPUs, from 1 to 64. |
 | `-m size` | `1G` | Guest RAM; `K`, `M`, and `G` are binary units. Unitless values mean GiB. |
 | `-d path` | Unset | Existing writable raw or supported qcow2 disk, normally `/dev/vda`. |
 | `-cloud-init path` | Unset | Validated local CIDATA seed, attached read-only after the primary disk; requires `-d`. |
 | `-net user\|user-isolated\|none` | `none` | Built-in networking, optional host loopback isolation, or no network; mutually exclusive with `-t`. |
 | `-t name` | Unset | Host TAP interface. |
-| `-g path` | Unset | Save the framebuffer as PNG. |
-| `-vnc address` | Unset | VNC listener, for example `127.0.0.1:5900`. |
-| `-rdp address` | Unset | TLS RDP console listener, for example `127.0.0.1:3389`. |
-| `-rdp-wait` | `false` | Wait until an RDP session is ready before starting guest CPUs. |
-| `-rdp-cert path` | Temporary self-signed certificate | PEM certificate; requires `-rdp-key` and `-rdp`. |
-| `-rdp-key path` | Unset | PEM private key; requires `-rdp-cert` and `-rdp`. |
-| `-rdp-h264` | `false` | Enable AVC420 for compatible clients; requires `-rdp`. |
-| `-rdp-h264-encoder software\|auto\|nvenc` | `software` | Software encoding, NVENC with fallback, or required NVENC; requires `-rdp-h264`. |
-| `-rdp-h264-threads count` | `0` | Software slices: zero selects one, or request 1–16 within the host CPU budget; requires `-rdp-h264`. |
-| `-rdp-stats` | `false` | Log RDP performance statistics; requires `-rdp`. |
-| `-telemetry-fd` | `0` (disabled) | Private inherited Unix datagram descriptor for managed-VM performance snapshots. Set automatically by the gateway; no standalone setup is needed. |
-| `-audio none\|rdp` | `none` | Virtio-snd playback through RDP; `rdp` requires `-rdp`. |
 | `-T count` | `0` | Instructions to skip between trace prints; zero disables tracing. |
 
-Any of `-g`, `-vnc`, or `-rdp` enables virtio-gpu. They can be combined; `-g` is
-not required for a remote console. Networking, display, and audio are otherwise
-disabled by default.
+Standalone boots use a serial console, with networking disabled by default.
+The gateway enables graphics for its managed workers automatically.
+
+The inherited `-rdp-fd` and `-telemetry-fd` descriptors and the worker's RDP
+tuning flags are internal gateway interfaces, not standalone access modes.
+Configure managed desktop graphics with the gateway's `H264_ENCODER` and
+`RDP_PROFILE` settings instead. No unsafe public-RDP override is provided.
 
 Guests larger than 3.25 GiB use separate low and high RAM regions, reserving PCI
 address space below 4 GiB. The requested `-m` value is RAM; the device address
@@ -92,13 +86,15 @@ run. For the Debian/Ubuntu 4 MiB layout:
 cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
 ./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 \
-  -m 2G -c 2 -net user -rdp 127.0.0.1:3390 -rdp-wait
+  -m 2G -c 2 -net user
 ```
 
-Connect an RDP client to `127.0.0.1:3390` to release the boot wait. The disk must
+This headless example exposes a host serial console; guest output depends on the
+installed bootloader and OS serial configuration. For an interactive desktop,
+import the disk into the gateway and connect through its UI. The disk must
 already contain an EFI System Partition and an x86-64 EFI bootloader. A fresh
-VARS store can discover `EFI/BOOT/BOOTX64.EFI`; use the firmware boot manager for
-other installed EFI paths. Press Escape during firmware startup for its menu.
+VARS store can discover `EFI/BOOT/BOOTX64.EFI`; other installed EFI paths may
+need a configured boot entry.
 
 CODE is read-only. The VARS copy is locked while the VM runs, updated by firmware
 writes, and flushed on shutdown. Keep it for subsequent runs; copying the
@@ -117,14 +113,12 @@ Prepare `rocky9-xfce-v2.4.16.qcow2` in the repository root from the
 [DevBox-Gateway v2.4.16 release](https://github.com/define42/DevBox-Gateway/releases/tag/v2.4.16),
 following the [sample image instructions](../README.md#prepare-the-sample-desktop).
 The release uses split `.img` files containing qcow2 data; the preparation step
-reassembles and converts them to the filename expected by the Make target. Install the
-[NVENC build dependencies](#optional-nvidia-nvenc) and `qemu-img` (`qemu-utils`
-on Debian/Ubuntu), then run:
+reassembles and converts them to the filename expected by the Make target.
+Install `qemu-img` (`qemu-utils` on Debian/Ubuntu), then run this headless
+developer boot helper:
 
 ```bash
 make qcow2
-# In another terminal:
-make rdp
 ```
 
 On the first run, the target preserves the source image and creates:
@@ -136,16 +130,15 @@ On the first run, the target preserves the source image and creates:
 | `rocky9-xfce-v2.4.16.gokvm.qcow2.seed.iso` | Persistent NoCloud account seed. |
 | `rocky9-xfce-v2.4.16.gokvm.qcow2.seed.iso.credentials.json` | Generated guest username and random password, mode 0600. |
 
-Read the credentials file to log in at the graphical desktop. The example
-creates a `rocky` account; the source image has no preset login. Later runs reuse
-the disk, VARS, seed, and credentials. These generated files are ignored by Git.
-The seed disables guest XRDP and the serial getty because the RDP connection
-presents gokvm's console and the guest's normal graphical login screen.
+The example creates a `rocky` account; the source image has no preset login.
+Later runs reuse the disk, VARS, seed, and credentials. These generated files
+are ignored by Git. The seed disables guest XRDP and the serial getty. For an
+interactive desktop, upload the original image through **Admin → Base Images**,
+create a managed VM, and use its downloaded RDP file.
 
-The target uses two vCPUs, 4 GiB RAM, user networking, and H.264 RDP on
-`127.0.0.1:3390`. It builds NVENC support and selects hardware encoding when
-available, with software fallback. Boot waits for an RDP viewer so firmware
-screens can be seen from the beginning.
+The target uses two vCPUs, 4 GiB RAM, user networking, and the host serial
+console. It starts immediately; guest serial output depends on the installed
+bootloader and OS configuration.
 
 | Make variable | Use |
 | --- | --- |
@@ -153,20 +146,20 @@ screens can be seen from the beginning.
 | `QCOW2_DISK`, `QCOW2_VARS`, `QCOW2_SEED` | Persistent output paths. |
 | `QCOW2_USER`, `QCOW2_KEYBOARD` | Account and keyboard layout, default `rocky` and `us`; set before creating the seed. |
 | `OVMF_CODE`, `OVMF_VARS` | Matching firmware code and VARS template. |
-| `QCOW2_ARGS` | Extra boot flags, such as `-m 6G -rdp-stats` or `-rdp-wait=false`. |
+| `QCOW2_ARGS` | Extra developer boot flags, such as `-m 6G`. |
 
 Changing account variables does not reprovision an existing seed or disk. For
-example, `make qcow2 QCOW2_ARGS="-m 6G -rdp-stats"` adjusts runtime settings while
+example, `make qcow2 QCOW2_ARGS="-m 6G"` adjusts runtime settings while
 preserving the existing VM files.
 
 ### Firmware, screen output, and shutdown
 
-RDP/VNC displays firmware graphics through virtio-gpu. Firmware input uses PS/2;
-once the guest initializes virtio-input, pointer input switches to an absolute
-tablet to avoid acceleration drift. The keyboard continues through PS/2.
+Gateway RDP displays firmware graphics through virtio-gpu. Firmware input uses
+PS/2; once the guest initializes virtio-input, pointer input switches to an
+absolute tablet to avoid acceleration drift. The keyboard continues through PS/2.
 
-With `-rdp`, the VM has no serial UART or host terminal input. Host terminal
-messages are gokvm diagnostics. OVMF's virtio-gpu graphics protocol does not
+Gateway-managed RDP VMs have no serial UART or host terminal input. Host
+terminal messages are gokvm diagnostics. OVMF's virtio-gpu graphics protocol does not
 provide a directly mapped linear framebuffer: after firmware exits, its last
 frame remains until a guest graphics driver publishes another frame. Early
 Linux text needs a guest-supported graphical console; gokvm does not synthesize
@@ -174,17 +167,17 @@ it from serial output.
 
 The Rocky example image's bootloader uses `console=ttyS0,115200n8`. Change its
 installed arguments to `console=tty0` for screen output once Linux has a
-graphical console. UEFI mode does not rewrite these arguments. RDP shows the
-current screen rather than replaying missed screens; `-rdp-wait` delays guest
-execution until a viewer is ready.
+graphical console. UEFI mode does not rewrite these arguments. Gateway RDP shows
+the current screen rather than replaying missed screens.
 
 Shut down from the guest when possible. For UEFI guests, sending SIGUSR1 to the
 `gokvm boot` process requests an ACPI power-button event; the guest decides how
 to handle it. SIGINT/SIGTERM, including Ctrl+C, stop
 the VM and close its disks and VARS store; they do not perform an orderly guest
-OS shutdown. The serial shortcut **Ctrl-a, then x** is available without `-rdp`.
+OS shutdown. The serial shortcut **Ctrl-a, then x** is available for standalone
+serial-console boots.
 A guest-requested reset closes and recreates the VM using the same disk and VARS;
-reconnect the RDP/VNC client afterward.
+reconnect the RDP client afterward.
 
 Large EFI applications can hit OVMF's virtio-blk limit of 1 GiB per read. A 1.6 GB
 UKI returned `EFI_BAD_BUFFER_SIZE` in an independent QEMU control; firmware may
@@ -197,9 +190,8 @@ See [EDK2's virtio-blk request validation](https://github.com/tianocore/edk2/blo
 These modes load a Linux kernel directly; they do not run BIOS/UEFI bootloader
 code. Their built-in kernel arguments describe gokvm's direct-boot environment.
 Use `-p` to replace those arguments when a guest needs a different root device or
-init program. In RDP mode, gokvm still selects `console=tty0` and removes serial
-and early-console arguments. UEFI disk boot instead preserves the installed
-bootloader's configuration.
+init program. UEFI disk boot instead preserves the installed bootloader's
+configuration.
 
 ### Kernel and initrd
 
@@ -223,37 +215,32 @@ kernel/initrd files.
 ### Linux live ISO
 
 ```bash
-./gokvm boot -iso ./TinyCore-current.iso -m 512M -vnc 127.0.0.1:5900
-./gokvm boot -iso ./slax.iso -m 2G -net user -rdp 127.0.0.1:3390
+./gokvm boot -iso ./TinyCore-current.iso -m 512M
+./gokvm boot -iso ./slax.iso -m 2G -net user
 ```
 
 ISO discovery reads El Torito metadata and common syslinux/isolinux or GRUB
 configurations, then loads the Linux kernel and initrd. The ISO is also attached
 as read-only virtio-blk media for the live system. This supports recognized Linux
 ISO layouts, not arbitrary operating-system installers. An explicit `-p`
-replaces the ISO arguments and added defaults, subject to the RDP console policy.
+replaces the ISO arguments and added defaults.
 
 `-iso` accepts HTTP(S) URLs, fully downloading the image to a temporary file kept
 for the VM's lifetime. Downloads are not cached between runs. For example:
 
 ```bash
 ./gokvm boot -iso http://www.tinycorelinux.net/17.x/x86/release/TinyCore-current.iso \
-  -m 512M -vnc 127.0.0.1:5900
+  -m 512M
 ```
 
-TinyCore remote boots receive an initrd overlay that starts the FLWM/Xvesa
-desktop. Right-click its desktop for the menu; the application dock is at the
-bottom. `make tinycore` runs the local ISO on VNC `127.0.0.1:5900`.
-
-The Slackware-based Slax image with Linux 6.1.38 was tested through desktop
-startup using its original boot parameters, without extracting a kernel or
-adding a driver blacklist.
+`make tinycore` runs the local ISO with the host serial console. Standalone ISO
+boots do not expose a graphical desktop; use the gateway with a supported
+QCOW2/UEFI disk for desktop access.
 
 ### Unified Kernel Image
 
 ```bash
-./gokvm boot -uki ./netdesk.efi -m 6G -c 2 -net user \
-  -rdp 127.0.0.1:3390
+./gokvm boot -uki ./netdesk.efi -m 6G -c 2 -net user
 ```
 
 `-uki` reads `.linux`, `.initrd`, and optional `.cmdline` sections from a
@@ -266,7 +253,7 @@ the payloads have loaded.
 
 [NetDesk](https://github.com/define42/NetDesk) includes its desktop in the UKI and
 needs no attached disk. Six GiB matches its reference VM configuration.
-Connect to the example above with `make rdp`.
+The standalone example exposes only a serial console, not the UKI's desktop.
 
 ## Storage and cloud-init
 
@@ -325,7 +312,7 @@ cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
 # Read seed.iso.credentials.json for the generated guest login.
 ./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
-  -m 4G -c 2 -net user -rdp 127.0.0.1:3390
+  -m 4G -c 2 -net user
 ```
 
 `-cloud-init` requires `-d`; the boot disk remains `/dev/vda`, and the CIDATA seed
@@ -369,53 +356,50 @@ ln -s certs/ca-certificates.crt /etc/ssl/cert.pem
 
 ## Remote display and input
 
-### Standalone RDP console
+### Gateway RDP console
 
 No guest XRDP daemon is needed: RDP presents the VM's screen and injects keyboard
-and pointer input. For a local TLS connection:
+and pointer input. Sign in to the gateway UI, start your desktop, select **RDP**,
+and open the downloaded file within two minutes:
 
 ```bash
-./gokvm boot -iso ./TinyCore-current.iso -m 512M -rdp 127.0.0.1:3389
-xfreerdp /v:127.0.0.1:3389 /sec:tls /u:console /p:console /cert:ignore
+xfreerdp /path/to/desktop.rdp
 ```
 
-The executable may be called `xfreerdp3`. **Standalone RDP has no account
-authentication**: these credentials are dummy values. TLS encrypts the session;
-it does not decide who may control the VM. Keep the listener on loopback and
-use an authenticated SSH tunnel for remote access, or use the
-[authenticated gateway](gateway.md). NLA/CredSSP is unsupported; choose TLS in
-clients with a security selector.
+The executable may be called `xfreerdp3`. Enter your current gateway password
+when prompted, then sign in to Linux using the guest account. Download a fresh
+file when reconnecting. The gateway checks the routing grant, account credentials,
+and VM ownership before granting console access; see the
+[gateway authentication flow](gateway.md). NLA/CredSSP is unsupported; use TLS
+as configured in the downloaded file.
 
-`/cert:ignore` accepts the temporary self-signed certificate in this local
-example. Supply persistent PEM files with `-rdp-cert console.crt -rdp-key
-console.key` when needed. The server accepts one RDP client at a time, including
-during handshake; another can connect after it disconnects.
+Each managed VM exposes only a private Unix socket, not a TCP listener. The
+backend verifies the connecting gateway process using kernel peer credentials.
+The inherited worker descriptor is not a public connection option, and no
+standalone RDP bind address or unsafe override is supported. The VM accepts one
+RDP client at a time; another can connect after it disconnects.
 
-RDP disables the serial port, serial text overlay, and host terminal input.
-Direct Linux/PVH, ISO, and UKI boots select the graphical console; UEFI boots
-leave the installed bootloader arguments unchanged. Use `-rdp-wait` to connect
-before guest execution begins. RDP and VNC may view the same VM simultaneously;
-viewers share keyboard and pointer control.
+Managed RDP desktops disable the serial port, serial text overlay, and host
+terminal input. UEFI boots leave installed bootloader arguments unchanged.
 
-The default transport sends bitmap updates in 16-, 24-, or 32-bit color.
-`-rdp-h264` adds AVC420. VGA/VESA and virtio-gpu output are supported. Clipboard,
+Managed VMs offer AVC420 with bitmap fallback in 16-, 24-, or 32-bit color.
+VGA/VESA and virtio-gpu output are supported. Clipboard,
 drive redirection, microphone input, and multiple monitors are not implemented.
 FreeRDP 3.32.1 has been tested with TinyCore and Slax desktop rendering and input;
 Microsoft Remote Desktop has not been validated.
 
 ### RDP graphics profiles
 
-Standalone `boot` keeps its 60 FPS AVC420 cap by default (`smooth`). Use
-`-rdp-profile office` for a 30 FPS cap; bitmap output remains capped at 30 FPS
-with either profile. For example:
+Managed desktops default to `RDP_PROFILE=office` for a 30 FPS AVC420 cap. Use
+`smooth` for a 60 FPS cap; bitmap output remains capped at 30 FPS with either
+profile. For example, with gateway prerequisites configured:
 
 ```bash
-./gokvm boot -iso ./TinyCore-current.iso -m 512M \
-  -rdp 127.0.0.1:3389 -rdp-h264 -rdp-profile office
+RDP_PROFILE=office make gateway
 ```
 
-Managed desktops default to `office`; configure them with `RDP_PROFILE` or
-`serve -rdp-profile`. Both modes accept only `office` and `smooth`. The selected
+Configure the gateway with `RDP_PROFILE` or `serve -rdp-profile`; only `office`
+and `smooth` are accepted. The selected
 H.264 cap is applied before copying the framebuffer for encoding and converting
 colors. H.264 still encodes a full picture for each changed output frame:
 the office cap reduces how often this work runs rather than making the codec
@@ -429,32 +413,22 @@ profile requires restarting its VM.
 See the [four-stream work-budget measurements](benchmarks/office-profile-2026-10-12/README.md)
 for a reproducible comparison and its limits.
 
-### VNC and PNG
+### Guest graphics
 
-```bash
-./gokvm boot -k /path/to/bzImage -i /path/to/initrd -vnc 127.0.0.1:5900
-./gokvm boot -k /path/to/bzImage -i /path/to/initrd -g ./framebuffer.png
-```
-
-VNC has no authentication or encryption; bind to loopback and tunnel remote
-access over authenticated SSH. VNC and PNG include the guest cursor in their
-images. They can be used alongside RDP. Virtio-gpu is a 2D framebuffer device;
-there is no guest 3D acceleration.
+Virtio-gpu is a 2D framebuffer device; there is no guest 3D acceleration.
 
 For framebuffer console output, a custom Linux kernel needs
 `CONFIG_DRM_VIRTIO_GPU`, `CONFIG_DRM_FBDEV_EMULATION`, and
-`CONFIG_FRAMEBUFFER_CONSOLE` built in. VNC-only mode can display serial fallback
-text before graphics takes over.
+`CONFIG_FRAMEBUFFER_CONSOLE` built in.
 
 ### Resolution changes
 
 ```bash
-xfreerdp /v:127.0.0.1:3390 /sec:tls /u:console /p:console \
-  /cert:ignore /size:1280x720 /dynamic-resolution /gfx:AVC420
+xfreerdp /path/to/desktop.rdp /size:1280x720 /dynamic-resolution /gfx:AVC420
 ```
 
 Omit `/gfx:AVC420` for bitmap mode. Both paths support live single-monitor
-resizing without reconnecting; audio and input remain on the connection. Rapid
+resizing without reconnecting; input remains on the connection. Rapid
 changes are combined over 150 ms. Dimensions must each be 200–4096 pixels, with
 at most 4096×2160 total pixels; odd values round down to even values. Unsupported
 layouts leave the current size active.
@@ -487,9 +461,11 @@ selected amd64 codec kernels use SIMD with scalar fallbacks.
 
 ```bash
 CGO_ENABLED=0 go build -o gokvm .
-./gokvm boot -iso ./TinyCore-current.iso -m 512M \
-  -rdp 127.0.0.1:3389 -rdp-h264
 ```
+
+Follow the [software-only gateway setup](gateway.md#build-without-nvenc) and set
+`H264_ENCODER=software`. All RDP connections still use the gateway UI's downloaded
+files.
 
 Clients without AVC420 support receive bitmap updates. AVC420 uses lossy YUV
 4:2:0, so small colored text can appear softer than bitmap output. AVC444 is
@@ -503,9 +479,10 @@ Debian/Ubuntu:
 ```bash
 sudo apt install build-essential pkg-config libavcodec-dev libavutil-dev
 CGO_ENABLED=1 go build -tags nvenc -o gokvm .
-./gokvm boot -iso ./slax.iso -m 2G -net user \
-  -rdp 127.0.0.1:3390 -rdp-h264 -rdp-h264-encoder nvenc -rdp-stats
 ```
+
+Select `H264_ENCODER=nvenc` to require hardware encoding, or `auto` to allow
+software fallback, in the [gateway configuration](configuration.md).
 
 Runtime requires an NVIDIA GPU with H.264 NVENC support, a working NVIDIA
 driver, and FFmpeg libraries containing `h264_nvenc`. gokvm links to these
@@ -526,8 +503,8 @@ ffmpeg -hide_banner -f lavfi -i testsrc2=size=1280x720:rate=30 \
 An ordinary build supports `software` and `auto`; requesting `nvenc` explicitly
 reports that cgo and the build tag are required. NVENC uses low-latency settings
 without B-frames or lookahead. Framebuffer copying and RGB-to-YUV conversion
-remain on the CPU. `-rdp-h264-threads` affects only software encoding; NVENC
-reports zero software slices. Intel VA-API and Quick Sync backends are not
+remain on the CPU. Software slice settings do not affect NVENC, which reports
+zero software slices. Intel VA-API and Quick Sync backends are not
 implemented.
 
 ### FreeRDP build and cursor troubleshooting
@@ -555,11 +532,14 @@ libraries are found relative to it, without `LD_LIBRARY_PATH`. OpenH264, X11,
 and audio libraries still come from the system. Downloads and build outputs
 are ignored by Git.
 
-`make rdp` prefers this local build, otherwise `xfreerdp3` or `xfreerdp` on PATH.
-It checks H.264 support and connects to port 3390 with AVC420, dynamic resolution,
-and the local certificate exception. Set `RDP_CLIENT=/path/to/xfreerdp` to choose
-another executable. This target works with `make qcow2` and any standalone
-listener started with `-rdp 127.0.0.1:3390`.
+Open a newly downloaded gateway file with the local client:
+
+```bash
+./tools/freerdp/bin/xfreerdp /path/to/desktop.rdp
+```
+
+The old direct `make rdp` helper is removed. Do not replace the downloaded file's
+routing and authentication settings with a direct VM address or dummy credentials.
 
 For X11 cursor rendering, check `WITH_XCURSOR=ON`. Virtio-gpu hardware cursor
 shapes, hotspots, and positions are separate RDP updates, so pointer-only motion
@@ -567,14 +547,15 @@ does not encode desktop video. Shapes are cached, transparent padding is
 trimmed, and large shapes are reduced to the supported 32×32 size. Older clients
 receive a color cursor without alpha blending. Software cursors remain in the
 image; clients without Xcursor support can show a duplicate local pointer.
-VNC/PNG continue composing the cursor into their images.
 
 ### Performance measurements
 
-Enable `-rdp-stats` to log five-second active-session windows and a disconnect
-summary. It works with bitmap and AVC420 sessions and reports the selected
-backend, source/output dimensions, frame rate, payload bytes, software slices,
-and average/maximum time spent copying, converting, encoding, and writing.
+Use the gateway's per-VM performance view and telemetry to compare bitmap and
+AVC420 sessions. Measurements include the selected backend, source/output
+dimensions, frame rate, payload bytes, software slices, and time spent copying,
+converting, encoding, and writing. See the [performance guide](performance.md)
+for sampling and optional CPU profiling. The worker's `-rdp-stats` flag is an
+internal diagnostic option, not a standalone RDP startup mode.
 
 `pacing` is the permitted frame interval; `ack_turnaround` samples the smoothed
 send-to-acknowledgement time, including client processing. `ack_wait` measures
@@ -582,17 +563,11 @@ time waiting for a free acknowledgement slot after the pacing deadline. Zero
 `ack_wait` does not rule out reduced frame rate from adaptive pacing or guest
 rendering. Reported frame rate includes idle time in the reporting window.
 
-```bash
-./gokvm boot -iso ./slax.iso -m 2G -net user \
-  -rdp 127.0.0.1:3390 -rdp-h264 -rdp-h264-threads 1 -rdp-stats
-```
-
-The default `-rdp-h264-threads 0` uses one slice/worker. Explicit values request
-1–16 slices within a budget based on Go's CPU limit, guest vCPUs, and a CPU
-reserved for host work, with a minimum of one. The codec schedules fixed slices
-on at most four workers and may use fewer for small pictures. Compare 1, 2, and
-4 on the same workload; more slices can reduce encoding time while adding
-headers and reducing compression. NVENC ignores this setting.
+The gateway's default software encoder uses one slice/worker. The codec can
+schedule fixed slices on at most four workers and may use fewer for small
+pictures. More slices can reduce encoding time while adding headers and reducing
+compression; NVENC does not use software slices. Slice-count tuning is an
+internal worker option, not an exposed gateway setting.
 
 Changed H.264 frames can be sent at up to 60 fps; bitmap output is capped at
 30 fps. Dirty rectangles reduce pixel conversion/copying, bitmap updates use
@@ -602,34 +577,18 @@ frames. IDR frames are sent for initialization, resize, refresh, and recovery;
 the software path disables deblocking to reduce latency. A two-frame decode
 window and acknowledgement-based pacing also bound the work sent to a client.
 
-VGA/VESA fallbacks and VNC serial fallback publish full frames. Browser rendering
-can remain CPU-bound inside the guest because there is no 3D acceleration,
+VGA/VESA fallbacks publish full frames. Browser rendering can remain CPU-bound
+inside the guest because there is no 3D acceleration,
 even when host NVENC is active. Confirm the negotiated encoder in the server log
 before attributing choppy scrolling to hardware encoding.
 
 ## Audio
 
-`-audio rdp` exposes virtio-snd playback and sends sound over the RDP connection.
-The guest needs its `virtio_snd` driver; the tested Slax image includes it.
-
-```bash
-./gokvm boot -iso ./slax.iso -m 2G -net user \
-  -rdp 127.0.0.1:3390 -rdp-h264 -audio rdp
-xfreerdp /v:127.0.0.1:3390 /sec:tls /u:console /p:console \
-  /cert:ignore /gfx:AVC420 /sound:sys:pulse,latency:40
-```
-
-Playback is stereo PCM16 at 48 kHz; guest ALSA/PulseAudio can convert formats.
-Use `aplay -l` and `aplay -D plughw:0,0 example.wav` in the guest to check output.
-The server logs `client using PCM audio` when audio is negotiated. Microphone
-capture is unsupported; VNC carries no sound.
-
-The client needs a working backend: `WITH_PULSE=ON` for `sys:pulse` or
-`WITH_ALSA=ON` for `sys:alsa`. A `Loaded fake backend for rdpsnd` message means
-it cannot produce sound. PulseAudio-compatible PipeWire works with the Pulse
-backend. The 40 ms example buffer absorbs jitter; the tested Pulse backend can
-briefly rebuffer after a long silence. Old samples are discarded to keep buffers
-bounded, so disconnected or slow viewers do not stop the guest audio clock.
+Managed gateway desktops do not currently enable audio. The internal backend
+implements virtio-snd stereo PCM16 playback at 48 kHz with bounded buffers, but
+there is no supported standalone RDP audio mode or gateway setting to enable it.
+Client sound preferences in a downloaded RDP file do not enable guest audio.
+Microphone capture is unsupported.
 
 ## Diagnostics and compatibility checks
 
@@ -644,7 +603,7 @@ For device debugging, set these environment variables to any nonempty value:
 
 The following checks are opt-in and start test guests or exercise hardware.
 
-For firmware boot, persistent VARS across a guest reset, graphics, and shutdown:
+For firmware boot, persistent VARS across a guest reset, and shutdown:
 
 ```bash
 OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
@@ -653,8 +612,8 @@ OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd tools/test-uefi.sh
 
 [tools/test-uefi.sh](../tools/test-uefi.sh) requires KVM, GNU-EFI development
 files (`gnu-efi`), a C compiler/binutils, mtools, `qemu-img`, and Python 3. It
-builds an EFI fixture and boots isolated raw/qcow2 disks using ephemeral RDP
-ports; source firmware is untouched. Failures retain logs, disks, and screenshots.
+builds an EFI fixture and boots isolated raw/qcow2 disks with a serial console;
+source firmware is untouched. Failures retain logs, disks, and firmware variables.
 Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to change CPU
 count, or `GOKVM_BINARY=/path/to/gokvm` for an existing binary. Alternate GNU-EFI
 locations use `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`. This checks the firmware
@@ -666,6 +625,9 @@ For the NetDesk UKI desktop, input, and browser-network smoke test:
 GOKVM_NETDESK_UKI=/path/to/netdesk.efi go test -tags=integration ./internal/vmm \
   -run '^TestNetDeskUKIDesktopBoot$' -timeout 6m -v
 ```
+
+This test captures frames in memory and injects guest input directly; its
+diagnostic artifact is the serial log.
 
 For actual NVIDIA encoding, with `ffmpeg` and the NVENC build dependencies:
 

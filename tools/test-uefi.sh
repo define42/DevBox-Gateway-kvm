@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Native OVMF boot, GOP display, persistent variables, reset and shutdown.
+# Native OVMF disk boot, persistent variables, reset and shutdown.
 set -euo pipefail
 
 uefi_tools_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -78,25 +78,23 @@ qemu-img convert -f raw -O qcow2 "$uefi_test_dir/disk.raw" "$uefi_test_dir/disk.
 for uefi_format in raw qcow2; do
     cp -- "$OVMF_VARS" "$uefi_test_dir/$uefi_format.vars.fd"
     uefi_log="$uefi_test_dir/$uefi_format.log"
-    echo "Testing UEFI $uefi_format boot, graphics, persistent reset and shutdown..."
+    echo "Testing UEFI $uefi_format boot, persistent reset and shutdown..."
     if ! timeout --signal=TERM --kill-after=5s "${UEFI_TIMEOUT:-90s}" \
         "$uefi_binary" boot -uefi "$OVMF_CODE" \
         -uefi-vars "$uefi_test_dir/$uefi_format.vars.fd" \
         -d "$uefi_test_dir/disk.$uefi_format" -c "${UEFI_CPUS:-2}" -m 256M \
-        -rdp 127.0.0.1:0 -g "$uefi_test_dir/$uefi_format.png" >"$uefi_log" 2>&1; then
+        </dev/null >"$uefi_log" 2>&1; then
         cat -- "$uefi_log" >&2
         echo "UEFI $uefi_format test did not shut down successfully." >&2
         exit 1
     fi
-    python3 - "$uefi_log" "$uefi_test_dir/$uefi_format.png" <<'PY'
+    python3 - "$uefi_log" <<'PY'
 from pathlib import Path
-import struct
 import sys
 
 log = Path(sys.argv[1]).read_text(errors="replace")
 expected = {
     "GOKVM TEST EFI ENTRY": 2,
-    "GOKVM TEST GRAPHICS OK": 2,
     "GOKVM TEST VARS WRITE OK": 2,
     "GOKVM TEST RESET": 1,
     "GOKVM TEST VARS PERSISTED": 1,
@@ -108,12 +106,6 @@ for marker, count in expected.items():
     actual = log.count(marker)
     if actual != count:
         raise SystemExit(f"{marker}: found {actual}, expected {count}\n{log}")
-png = Path(sys.argv[2]).read_bytes()
-if png[:8] != b"\x89PNG\r\n\x1a\n" or len(png) < 24:
-    raise SystemExit("No valid framebuffer PNG was produced")
-width, height = struct.unpack(">II", png[16:24])
-if width < 32 or height < 32:
-    raise SystemExit(f"Invalid framebuffer dimensions: {width}x{height}")
-print(f"PASS: firmware disk boot, {width}x{height} graphics, saved variables, reboot, shutdown")
+print("PASS: firmware disk boot, saved variables, reboot, shutdown")
 PY
 done

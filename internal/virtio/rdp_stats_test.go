@@ -97,7 +97,7 @@ func TestRDPTelemetryMeasuresRealEncoderAcrossWriters(t *testing.T) {
 		defer writer.shutdown()
 		// A transport-less session runs the actual software codec but cannot
 		// send a frame: encoder attempts and successful sends are distinct.
-		sent, err := writer.write(vncFrame{width: 16, height: 16}, nil, true)
+		sent, err := writer.write(displayFrame{width: 16, height: 16}, nil, true)
 		if err != nil || sent {
 			t.Fatalf("transport-less encode: sent=%v err=%v", sent, err)
 		}

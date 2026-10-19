@@ -5,7 +5,6 @@ package vmm
 import (
 	"context"
 	"errors"
-	"net"
 	"os"
 	"testing"
 	"time"
@@ -15,10 +14,11 @@ import (
 
 func TestRDPWaitCancellationPrecedesVCPURun(t *testing.T) {
 	t.Parallel()
-	v := New(Config{
+	conf := withGatewayRDP(t, Config{
 		Dev: "/dev/kvm", NCPUs: 1, MemSize: machine.MinMemSize,
-		RDP: "127.0.0.1:0", RDPWait: true,
+		RDPWait: true,
 	})
+	v := New(conf)
 	if err := v.Init(); errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrPermission) {
 		t.Skipf("KVM unavailable: %v", err)
 	} else if err != nil {
@@ -42,11 +42,8 @@ func TestRDPWaitCancellationPrecedesVCPURun(t *testing.T) {
 	if _, err := v.RunOnce(0); !errors.Is(err, machine.ErrMachineStopped) {
 		t.Fatalf("cancelled wait did not close the machine: %v", err)
 	}
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		t.Fatalf("cancelled wait leaked the RDP listener: %v", err)
-	}
-	if err := listener.Close(); err != nil {
+	if err := conf.RDPListenerFile.Close(); err != nil {
 		t.Fatal(err)
 	}
+	assertRDPSocketReleased(t, addr)
 }

@@ -65,7 +65,6 @@ func (d *framebuffer) flushDamage(width, height int, img *image.RGBA, damage []i
 	}
 	close(d.changed)
 	d.changed = make(chan struct{})
-	d.cond.Broadcast()
 
 	return nil
 }
@@ -109,7 +108,7 @@ func (d *framebuffer) frameChanged(sequence uint64, force bool) (bool, <-chan st
 
 // copyFrameChanges refreshes a reader-owned image. No borrowed framebuffer
 // pixels escape the lock, and no pixel copy is needed for cursor-only updates.
-func (d *framebuffer) copyFrameChanges(frame *vncFrame, force bool) []image.Rectangle {
+func (d *framebuffer) copyFrameChanges(frame *displayFrame, force bool) []image.Rectangle {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	bounds := image.Rect(0, 0, d.width, d.height)

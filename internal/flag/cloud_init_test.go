@@ -38,7 +38,7 @@ func TestCloudInitPreservesBootOptions(t *testing.T) {
 
 			cli := append([]string{
 				"gokvm", "boot", "-d", "guest.qcow2", "-m", "2G", "-c", "2",
-				"-net", "user", "-rdp", "127.0.0.1:3390", "-rdp-wait",
+				"-net", "user", "-rdp-fd", "3", "-rdp-wait",
 			}, tc.args...)
 			want, _, err := flag.ParseArgs(cli)
 			if err != nil {

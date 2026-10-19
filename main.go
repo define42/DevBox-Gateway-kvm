@@ -52,7 +52,7 @@ func run(ctx context.Context, args []string) error {
 	}
 
 	var h264Encoder, rdpProfile string
-	if bootArgs.RDP != "" {
+	if bootArgs.RDPFD != 0 {
 		rdpProfile = bootArgs.RDPProfile
 	}
 	if bootArgs.RDPH264 {
@@ -72,9 +72,6 @@ func run(ctx context.Context, args []string) error {
 		Network:        bootArgs.Network,
 		Disk:           bootArgs.Disk,
 		CloudInit:      bootArgs.CloudInit,
-		GPU:            bootArgs.GPU,
-		VNC:            bootArgs.VNC,
-		RDP:            bootArgs.RDP,
 		RDPProfile:     rdpProfile,
 		RDPWait:        bootArgs.RDPWait,
 		RDPCert:        bootArgs.RDPCert,
@@ -97,6 +94,9 @@ func run(ctx context.Context, args []string) error {
 		}
 		c.RDPListenerFile = os.NewFile(uintptr(bootArgs.RDPFD), "inherited-rdp-listener")
 		defer c.RDPListenerFile.Close()
+		// Capture the gateway identity once, not again after a guest reset.
+		c.RDPGatewayPID = os.Getppid()
+		c.RDPGatewayUID = uint32(os.Geteuid())
 	}
 
 	if bootArgs.TelemetryFD != 0 {

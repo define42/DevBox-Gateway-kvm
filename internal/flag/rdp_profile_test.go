@@ -16,21 +16,21 @@ func TestRDPProfileOptions(t *testing.T) {
 		err  error
 	}{
 		{name: "default without RDP", want: "smooth"},
-		{name: "default with RDP", args: []string{"-rdp", "127.0.0.1:3389"}, want: "smooth"},
-		{name: "office", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-profile=office"}, want: "office"},
-		{name: "smooth", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-profile=smooth"}, want: "smooth"},
+		{name: "default with RDP", args: []string{"-rdp-fd", "3"}, want: "smooth"},
+		{name: "office", args: []string{"-rdp-fd", "3", "-rdp-profile=office"}, want: "office"},
+		{name: "smooth", args: []string{"-rdp-fd", "3", "-rdp-profile=smooth"}, want: "smooth"},
 		{
 			name: "office H264",
-			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-h264", "-rdp-profile=office"},
+			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-profile=office"},
 			want: "office",
 		},
 		{name: "office without RDP", args: []string{"-rdp-profile=office"}, err: flag.ErrRDPProfile},
 		{name: "explicit smooth without RDP", args: []string{"-rdp-profile=smooth"}, err: flag.ErrRDPProfile},
 		{name: "empty without RDP", args: []string{"-rdp-profile="}, err: flag.ErrRDPProfile},
-		{name: "empty", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-profile="}, err: flag.ErrRDPProfile},
-		{name: "unknown", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-profile=fast"}, err: flag.ErrRDPProfile},
-		{name: "wrong case", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-profile=Office"}, err: flag.ErrRDPProfile},
-		{name: "whitespace", args: []string{"-rdp", "127.0.0.1:3389", "-rdp-profile=office "}, err: flag.ErrRDPProfile},
+		{name: "empty", args: []string{"-rdp-fd", "3", "-rdp-profile="}, err: flag.ErrRDPProfile},
+		{name: "unknown", args: []string{"-rdp-fd", "3", "-rdp-profile=fast"}, err: flag.ErrRDPProfile},
+		{name: "wrong case", args: []string{"-rdp-fd", "3", "-rdp-profile=Office"}, err: flag.ErrRDPProfile},
+		{name: "whitespace", args: []string{"-rdp-fd", "3", "-rdp-profile=office "}, err: flag.ErrRDPProfile},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()

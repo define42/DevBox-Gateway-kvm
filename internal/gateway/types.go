@@ -29,7 +29,7 @@ type VM struct {
 	ImageName string    `json:"imageName,omitempty"`
 }
 
-// Endpoint identifies a private RDP server and the certificate that authenticates it.
+// Endpoint identifies a gateway-only private RDP server and the certificate that authenticates it.
 type Endpoint struct {
 	Address, ServerName string
 	CertificatePEM      []byte

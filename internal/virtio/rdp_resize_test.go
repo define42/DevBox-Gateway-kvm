@@ -102,22 +102,6 @@ func TestRDPResizePointerTracksFramebuffer(t *testing.T) {
 	}
 }
 
-func TestRDPMultiDisplayForwardsResizeHandler(t *testing.T) {
-	t.Parallel()
-	rdpDisplay := &RDPDisplay{}
-	display := NewMultiDisplay(NewPNGDisplay("unused.png"), rdpDisplay)
-	var width, height int
-	display.SetResizeHandler(func(w, h int) error {
-		width, height = w, h
-
-		return nil
-	})
-	rdpDisplay.addResizeViewer(&rdp.Session{Width: 1280, Height: 720})
-	if width != 1280 || height != 720 {
-		t.Fatalf("combined displays did not attach resize handler: %dx%d", width, height)
-	}
-}
-
 func TestRDPResizeAbsolutePointerTracksPixels(t *testing.T) {
 	t.Parallel()
 	d := &RDPDisplay{framebuffer: newFramebuffer()}

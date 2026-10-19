@@ -5,7 +5,6 @@ package vmm
 import (
 	"context"
 	"errors"
-	"net"
 	"os"
 	"testing"
 	"time"
@@ -56,10 +55,11 @@ func TestHeadlessBootReturnsCPUFailure(t *testing.T) {
 func TestSetupFailureClosesMachineAndConsole(t *testing.T) {
 	t.Parallel()
 
-	v := New(Config{
+	conf := withGatewayRDP(t, Config{
 		Dev: "/dev/kvm", NCPUs: 1, MemSize: machine.MinMemSize,
-		Kernel: t.TempDir() + "/missing-kernel", VNC: "127.0.0.1:0",
+		Kernel: t.TempDir() + "/missing-kernel",
 	})
+	v := New(conf)
 	if err := v.Init(); errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrPermission) {
 		t.Skipf("KVM unavailable: %v", err)
 	} else if err != nil {
@@ -70,18 +70,15 @@ func TestSetupFailureClosesMachineAndConsole(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	addr := v.vncDisplay.Addr()
+	addr := v.rdpDisplay.Addr()
 	if err := v.Setup(); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("Setup returned %v, want missing kernel error", err)
 	}
 	if _, err := v.RunOnce(0); !errors.Is(err, machine.ErrMachineStopped) {
 		t.Fatalf("failed setup left machine runnable: %v", err)
 	}
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		t.Fatalf("failed setup left console listener open: %v", err)
-	}
-	if err := listener.Close(); err != nil {
+	if err := conf.RDPListenerFile.Close(); err != nil {
 		t.Fatal(err)
 	}
+	assertRDPSocketReleased(t, addr)
 }

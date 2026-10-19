@@ -14,7 +14,9 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,17 +26,27 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	rdpdamage "github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
+	"golang.org/x/sys/unix"
 )
 
 const rdpResizeDelay = 150 * time.Millisecond
 
-var errRDPEncoder = errors.New("rdp: H.264 encoder must be software, nvenc, or auto and requires H.264")
+var (
+	errRDPEncoder         = errors.New("rdp: H.264 encoder must be software, nvenc, or auto and requires H.264")
+	errRDPListener        = errors.New("rdp: an inherited abstract Unix listener is required")
+	errRDPGatewayIdentity = errors.New("rdp: a valid gateway process identity is required")
+	errRDPGatewayParent   = errors.New("rdp: gateway parent identity changed")
+	errRDPPeerIdentity    = errors.New("rdp: connection peer is not the gateway")
+)
 
-// RDPConfig selects the listener, server certificate, H.264 AVC420 graphics, and audio playback.
+// RDPConfig selects the gateway listener, identity, server certificate, H.264
+// AVC420 graphics, and audio playback.
 type RDPConfig struct {
-	// Listener overrides the address passed to NewRDPDisplayWithConfig. The
-	// display owns it on success; the caller retains ownership on failure.
+	// Listener must be an inherited Linux abstract Unix listener. The display
+	// owns it on success; the caller retains ownership on failure.
 	Listener    net.Listener
+	GatewayPID  int
+	GatewayUID  uint32
 	TLS         *tls.Config
 	H264        bool
 	H264Encoder string // Empty selects the software encoder.
@@ -44,11 +56,16 @@ type RDPConfig struct {
 	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
 	Stats       bool
 	Telemetry   *telemetry.Collector // Optional process-owned performance counters.
+
+	// getParentPID supports same-process transport tests. It is unexported so
+	// callers outside this package cannot override the live parent check.
+	getParentPID func() int
 }
 
 // RDPDisplay exports the guest console to one RDP viewer at a time.
-// It is a console server, without account authentication or NLA. Use a trusted
-// network or an authenticated tunnel when allowing access beyond localhost.
+// It accepts only the authenticated parent gateway over an inherited abstract
+// Unix listener. Viewer authentication and authorization belong to the gateway;
+// the backend protocol does not implement account authentication or NLA.
 type RDPDisplay struct {
 	*framebuffer
 	listener       net.Listener
@@ -60,6 +77,9 @@ type RDPDisplay struct {
 	stats          bool
 	telemetry      *telemetry.Collector
 	audio          *audio.Hub
+	gatewayPID     int32
+	gatewayUID     uint32
+	getParentPID   func() int
 	connMu         sync.Mutex
 	conn           net.Conn // Includes an in-progress handshake; guarded by connMu.
 	wg             sync.WaitGroup
@@ -75,20 +95,10 @@ type RDPDisplay struct {
 	pointerInputMu sync.Mutex
 }
 
-// NewRDPDisplay starts an RDP listener with an ephemeral self-signed certificate.
-func NewRDPDisplay(addr string) (*RDPDisplay, error) {
-	return NewRDPDisplayWithTLS(addr, nil)
-}
-
-// NewRDPDisplayWithTLS uses the supplied server certificate, or generates one
-// for this process when config is nil. TLS 1.2 or newer is always required.
-func NewRDPDisplayWithTLS(addr string, config *tls.Config) (*RDPDisplay, error) {
-	return NewRDPDisplayWithConfig(addr, RDPConfig{TLS: config})
-}
-
 // NewRDPDisplayWithConfig enables AVC420 for capable clients when H264 is set.
-// Other clients retain bitmap updates.
-func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error) {
+// Other clients retain bitmap updates. The caller must supply an inherited
+// abstract Unix listener and the expected parent gateway process identity.
+func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 	frameRate, err := rdp.ProfileFrameRate(options.Profile)
 	if err != nil {
 		return nil, err
@@ -108,6 +118,20 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	if options.H264Threads < 0 || options.H264Threads > avc.MaxThreads ||
 		(options.H264Threads != 0 && !options.H264) {
 		return nil, errRDPThreads
+	}
+	listener, ok := options.Listener.(*net.UnixListener)
+	if !ok || listener == nil || !isAbstractUnixAddress(listener.Addr()) {
+		return nil, errRDPListener
+	}
+	if options.GatewayPID <= 0 || int64(options.GatewayPID) > int64(1<<31-1) {
+		return nil, errRDPGatewayIdentity
+	}
+	getParentPID := options.getParentPID
+	if getParentPID == nil {
+		getParentPID = os.Getppid
+	}
+	if getParentPID() != options.GatewayPID {
+		return nil, errRDPGatewayParent
 	}
 	slices := rdpEncoderSlices(runtime.GOMAXPROCS(0), options.GuestCPUs, options.H264Threads)
 	if options.H264 {
@@ -137,20 +161,12 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 		config.MinVersion = max(config.MinVersion, tls.VersionTLS12)
 	}
 
-	listener := options.Listener
-	if listener == nil {
-		var err error
-		listener, err = net.Listen("tcp", addr)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	display := &RDPDisplay{
 		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
 		h264Backend: backend, h264Slices: slices, frameRate: frameRate,
-		telemetry: options.Telemetry,
+		telemetry: options.Telemetry, gatewayPID: int32(options.GatewayPID), gatewayUID: options.GatewayUID,
+		getParentPID: getParentPID,
 	}
 	if options.Audio {
 		display.audio = audio.NewHub()
@@ -164,11 +180,18 @@ func NewRDPDisplayWithConfig(addr string, options RDPConfig) (*RDPDisplay, error
 	return display, nil
 }
 
+func isAbstractUnixAddress(addr net.Addr) bool {
+	unixAddr, ok := addr.(*net.UnixAddr)
+
+	return ok && unixAddr.Net == "unix" && len(unixAddr.Name) > 1 && strings.HasPrefix(unixAddr.Name, "@")
+}
+
 func (d *RDPDisplay) Addr() string { return d.listener.Addr().String() }
 
-// WaitReady waits for the first activated RDP display session. A TCP connection
-// or an incomplete protocol handshake does not release the wait. Cancellation
-// and display shutdown take precedence over an already observed ready session.
+// WaitReady waits for the first activated RDP display session. A transport
+// connection or an incomplete protocol handshake does not release the wait.
+// Cancellation and display shutdown take precedence over an already observed
+// ready session.
 func (d *RDPDisplay) WaitReady(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -255,7 +278,9 @@ func (d *RDPDisplay) Close() error {
 		if d.audio != nil {
 			d.audio.Close()
 		}
-		err = d.listener.Close()
+		if closeErr := d.listener.Close(); !errors.Is(closeErr, net.ErrClosed) {
+			err = closeErr
+		}
 		d.connMu.Lock()
 		if d.conn != nil {
 			_ = d.conn.Close()
@@ -273,6 +298,17 @@ func (d *RDPDisplay) acceptLoop() {
 		conn, err := d.listener.Accept()
 		if err != nil {
 			return
+		}
+		if err := d.authorizeGateway(conn); err != nil {
+			_ = conn.Close()
+			if errors.Is(err, errRDPGatewayParent) {
+				_ = d.listener.Close()
+				d.shutdown()
+
+				return
+			}
+
+			continue
 		}
 
 		d.connMu.Lock()
@@ -295,6 +331,47 @@ func (d *RDPDisplay) acceptLoop() {
 		d.connMu.Unlock()
 		go d.handleConn(conn)
 	}
+}
+
+func (d *RDPDisplay) authorizeGateway(conn net.Conn) error {
+	if d.getParentPID == nil || d.getParentPID() != int(d.gatewayPID) {
+		return errRDPGatewayParent
+	}
+	unixConn, ok := conn.(*net.UnixConn)
+	if !ok {
+		return errRDPPeerIdentity
+	}
+	credentials, err := rdpPeerCredentials(unixConn)
+	if err != nil {
+		return errors.Join(errRDPPeerIdentity, err)
+	}
+	if credentials.Pid != d.gatewayPID || credentials.Uid != d.gatewayUID {
+		return errRDPPeerIdentity
+	}
+
+	return nil
+}
+
+func rdpPeerCredentials(conn *net.UnixConn) (*unix.Ucred, error) {
+	rawConn, err := conn.SyscallConn()
+	if err != nil {
+		return nil, err
+	}
+	var credentials *unix.Ucred
+	var optionErr error
+	if err := rawConn.Control(func(fd uintptr) {
+		credentials, optionErr = unix.GetsockoptUcred(int(fd), unix.SOL_SOCKET, unix.SO_PEERCRED)
+	}); err != nil {
+		return nil, err
+	}
+	if optionErr != nil {
+		return nil, optionErr
+	}
+	if credentials == nil {
+		return nil, errRDPPeerIdentity
+	}
+
+	return credentials, nil
 }
 
 func (d *RDPDisplay) handleConn(conn net.Conn) {
@@ -553,7 +630,7 @@ type rdpFrameWriter struct {
 	bitmap    *rdp.BitmapEncoder
 	avc       *avc.Encoder
 	backend   avc.Backend
-	frame     vncFrame
+	frame     displayFrame
 	width     int
 	height    int
 	graphics  bool
@@ -696,7 +773,7 @@ func (w *rdpFrameWriter) actualSlices() int {
 	return 0
 }
 
-func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force bool) (bool, error) {
+func (w *rdpFrameWriter) write(frame displayFrame, damage []image.Rectangle, force bool) (bool, error) {
 	img := &image.RGBA{Pix: frame.pix, Stride: frame.width * 4, Rect: image.Rect(0, 0, frame.width, frame.height)}
 	if len(frame.pix) == 0 {
 		img = image.NewRGBA(img.Rect)

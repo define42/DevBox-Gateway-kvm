@@ -79,7 +79,7 @@ func TestISOBootParamsDoesNotDuplicateExistingParams(t *testing.T) {
 	}
 }
 
-func TestAddTinyCoreVNCAutostart(t *testing.T) {
+func TestAddTinyCoreDesktopAutostart(t *testing.T) {
 	t.Parallel()
 
 	var raw bytes.Buffer
@@ -94,7 +94,7 @@ func TestAddTinyCoreVNCAutostart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	patched, err := addTinyCoreVNCAutostart(compressed.Bytes())
+	patched, err := addTinyCoreDesktopAutostart(compressed.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,8 +138,8 @@ func TestAddTinyCoreVNCAutostart(t *testing.T) {
 		t.Fatalf("patched initramfs does not disable Xvesa mouse acceleration")
 	}
 
-	if !bytes.Contains(data, []byte("/tmp/gokvm-vnc-session")) {
-		t.Fatalf("patched initramfs does not create the VNC session script")
+	if !bytes.Contains(data, []byte("/tmp/gokvm-desktop-session")) {
+		t.Fatalf("patched initramfs does not create the desktop session script")
 	}
 
 	if !bytes.Contains(data, []byte("flwm >/tmp/flwm.log")) {

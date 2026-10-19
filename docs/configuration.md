@@ -105,6 +105,12 @@ shared-storage-exhaustion risk; see
 
 ## Listener and TLS
 
+RDP access is provided only by the authenticated gateway. Users sign in to the
+UI and open its downloaded RDP file; standalone `boot -rdp <address>` listeners
+are not supported. Managed VM workers inherit private Unix listeners from the
+gateway and verify the gateway process identity. There is no per-VM RDP bind
+address or unsafe override to configure.
+
 | Environment variable | Default | Flag override | Purpose |
 | --- | --- | --- | --- |
 | `LISTEN_ADDR` | `127.0.0.1:8443` | `-listen` | Shared HTTPS/RDP TCP listener. |

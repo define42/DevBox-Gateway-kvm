@@ -222,12 +222,6 @@ color metadata, output ownership, and software fallback after a hardware error.
 
 ### Guest lifecycle and desktops
 
-The untagged `TestTinyCoreVNCDesktopBoot` is also included in the default Go
-suite. It uses the repository-root `TinyCore-current.iso` and skips in short
-mode, without root/KVM, or when the ISO is missing. The ISO is tracked, so a
-normal CI checkout includes it. This existing conditional desktop check is
-separate from the required QCOW2/UEFI firmware smoke test above.
-
 The tagged lifecycle tests require `/dev/kvm`; the headless boot test also needs
 non-terminal stdin. They use synthetic guest code and do not need a Linux kernel
 or initrd:
@@ -239,15 +233,16 @@ go test -tags integration ./internal/machine ./internal/vmm \
 ```
 
 The NetDesk test boots a 6 GiB guest and checks desktop readiness, graphics,
-pointer/keyboard input, and Chromium networking. Run it separately from other
-heavy boots:
+pointer/keyboard input, and Chromium networking using an in-memory display and
+direct guest input. Its diagnostic artifact is the serial log. Run it separately
+from other heavy boots:
 
 ```bash
 GOKVM_NETDESK_UKI=/path/to/netdesk.efi go test -tags integration ./internal/vmm \
   -run '^TestNetDeskUKIDesktopBoot$' -count=1 -timeout 6m -v
 ```
 
-For native UEFI graphics, persistent variables across reset, and shutdown:
+For native UEFI disk boot, persistent variables across reset, and shutdown:
 
 ```bash
 OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
@@ -273,10 +268,11 @@ Set these variables to any nonempty value for device traces:
 | `GOKVM_TRACE_MMIO` | Unhandled guest MMIO accesses |
 | `GOKVM_TRACE_ATAPI` | Commands received by the emulated ATAPI device |
 
-`boot -T N` enables instruction tracing with a skip interval. `boot -rdp-stats`
-reports framebuffer, conversion, encoding, transport, and pacing measurements
-for an RDP session. Use the same guest workload, client dimensions, and encoder
-when comparing changes; an RDP connection alone does not prove desktop readiness.
+`boot -T N` enables instruction tracing with a skip interval. Managed VM
+telemetry reports framebuffer, conversion, encoding, transport, and pacing
+measurements for gateway RDP sessions. Use the same guest workload, client
+dimensions, and encoder when comparing changes; an RDP connection alone does
+not prove desktop readiness. Standalone RDP listeners are not supported.
 Detailed performance options and display limitations are in the
 [runtime guide](runtime.md).
 

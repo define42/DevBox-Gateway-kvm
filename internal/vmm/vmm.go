@@ -43,7 +43,7 @@ var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
 
 var errRDPWaitConfig = errors.New("RDP boot wait requires an RDP listener")
 
-var errRDPListenerConfig = errors.New("inherited RDP listener requires a matching TCP listen address")
+var errRDPListenerConfig = errors.New("RDP requires an inherited Unix listener and gateway process identity")
 
 var errUKIBootSource = errors.New("UKI cannot be combined with ISO, kernel, or initrd")
 
@@ -73,9 +73,6 @@ type Config struct {
 	Network        string
 	Disk           string
 	CloudInit      string
-	GPU            string
-	VNC            string
-	RDP            string
 	RDPProfile     string
 	RDPWait        bool
 	RDPCert        string
@@ -89,8 +86,11 @@ type Config struct {
 	MemSize        int
 	TraceCount     int
 	// RDPListenerFile is borrowed from the caller, which keeps it open across
-	// guest resets. Each display owns a duplicate; nil binds RDP normally.
+	// guest resets. Each display owns a duplicate; nil disables RDP.
 	RDPListenerFile *os.File
+	// Gateway identity is captured by the worker once and survives guest resets.
+	RDPGatewayPID int
+	RDPGatewayUID uint32
 	// Telemetry is borrowed from the process owner and survives firmware resets.
 	Telemetry *telemetry.Collector
 }
@@ -99,14 +99,10 @@ type VMM struct {
 	*machine.Machine
 	Config
 
-	serialOutput io.Writer
-	vncDisplay   *virtio.VNCDisplay
-	rdpDisplay   *virtio.RDPDisplay
-	consoleInput virtio.VNCInput
-	consoles     []virtio.ConsoleDisplay
-	isoCleanup   func()
-	closeOnce    sync.Once
-	closeErr     error
+	rdpDisplay *virtio.RDPDisplay
+	isoCleanup func()
+	closeOnce  sync.Once
+	closeErr   error
 }
 
 func New(c Config) *VMM {
@@ -117,11 +113,8 @@ func New(c Config) *VMM {
 }
 
 func (v *VMM) validateRDPPerformanceConfig() error {
-	if _, err := rdp.ProfileFrameRate(v.RDPProfile); err != nil || (v.RDPProfile != "" && v.RDP == "") {
+	if _, err := rdp.ProfileFrameRate(v.RDPProfile); err != nil || (v.RDPProfile != "" && v.RDPListenerFile == nil) {
 		return errRDPProfileConfig
-	}
-	if v.RDPListenerFile != nil && v.RDP == "" {
-		return errRDPListenerConfig
 	}
 	switch v.RDPH264Encoder {
 	case "", "software", "nvenc", "auto":
@@ -134,11 +127,14 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 	if v.RDPH264Threads < 0 || v.RDPH264Threads > 16 || (v.RDPH264Threads != 0 && !v.RDPH264) {
 		return errRDPH264ThreadsConfig
 	}
-	if v.RDPStats && v.RDP == "" {
+	if v.RDPStats && v.RDPListenerFile == nil {
 		return errRDPStatsConfig
 	}
-	if v.RDPWait && v.RDP == "" {
+	if v.RDPWait && v.RDPListenerFile == nil {
 		return errRDPWaitConfig
+	}
+	if v.RDPListenerFile != nil && v.RDPGatewayPID <= 0 {
+		return errRDPListenerConfig
 	}
 
 	return nil
@@ -155,7 +151,7 @@ func (v *VMM) Init() (initErr error) {
 	if err := v.validateCloudInit(); err != nil {
 		return err
 	}
-	if (v.Audio != "" && v.Audio != "none" && v.Audio != "rdp") || (v.Audio == "rdp" && v.RDP == "") {
+	if (v.Audio != "" && v.Audio != "none" && v.Audio != "rdp") || (v.Audio == "rdp" && v.RDPListenerFile == nil) {
 		return errAudioConfig
 	}
 	if (v.Network != "" && v.Network != "none" && v.Network != "user" && v.Network != "user-isolated") ||
@@ -173,7 +169,7 @@ func (v *VMM) Init() (initErr error) {
 		}
 	}()
 
-	if v.RDP != "" {
+	if v.RDPListenerFile != nil {
 		m.DisableSerial()
 	}
 	if v.UEFI != "" {
@@ -233,18 +229,15 @@ func (v *VMM) initNetwork(m *machine.Machine) error {
 }
 
 func (v *VMM) initDisplay(m *machine.Machine) error {
-	if v.GPU == "" && !v.hasRemoteDisplay() {
+	if v.RDPListenerFile == nil {
 		return nil
 	}
 
-	var input virtio.VNCInput
-	if v.hasRemoteDisplay() {
-		if v.UEFI != "" {
-			input = m.AddUEFIInput()
-		} else {
-			input = m.AddVirtioInput()
-		}
-		v.consoleInput = input
+	var input virtio.DisplayInput
+	if v.UEFI != "" {
+		input = m.AddUEFIInput()
+	} else {
+		input = m.AddVirtioInput()
 	}
 
 	display, err := v.display(input)
@@ -259,66 +252,26 @@ func (v *VMM) initDisplay(m *machine.Machine) error {
 	}
 
 	if len(v.ISO) > 0 {
-		for _, console := range v.consoles {
-			m.EnableVESA(console)
-			m.StartVGATextFallback(console)
-		}
+		m.EnableVESA(v.rdpDisplay)
+		m.StartVGATextFallback(v.rdpDisplay)
 	}
 
 	return nil
 }
 
-func (v *VMM) hasRemoteDisplay() bool { return v.VNC != "" || v.RDP != "" }
-
-func (v *VMM) display(input virtio.VNCInput) (result virtio.Display, displayErr error) {
-	var displays []virtio.Display
-	defer func() {
-		if displayErr != nil {
-			for _, display := range displays {
-				_ = display.Close()
-			}
-			v.vncDisplay = nil
-			v.rdpDisplay = nil
-			v.consoles = nil
-		}
-	}()
-
-	if len(v.GPU) > 0 {
-		displays = append(displays, virtio.NewPNGDisplay(v.GPU))
+func (v *VMM) display(input virtio.DisplayInput) (virtio.Display, error) {
+	if v.RDPListenerFile == nil {
+		return nil, nil
 	}
-
-	if len(v.VNC) > 0 {
-		display, err := virtio.NewVNCDisplay(v.VNC)
-		if err != nil {
-			return nil, err
-		}
-
-		display.SetInput(input)
-		v.vncDisplay = display
-		v.consoles = append(v.consoles, display)
-		log.Printf("VNC listening on %s", display.Addr())
-		displays = append(displays, display)
+	display, err := v.newRDPDisplay()
+	if err != nil {
+		return nil, err
 	}
-	if v.RDP != "" {
-		display, err := v.newRDPDisplay()
-		if err != nil {
-			return nil, err
-		}
-		display.SetInput(input)
-		v.rdpDisplay = display
-		v.consoles = append(v.consoles, display)
-		displays = append(displays, display)
-		log.Printf("RDP console listening on %s (TLS, no account authentication)", display.Addr())
-	}
-	if v.RDP == "" && v.vncDisplay != nil {
-		v.serialOutput = v.vncDisplay
-	}
+	display.SetInput(input)
+	v.rdpDisplay = display
+	log.Print("RDP console available only to the authenticated gateway process")
 
-	if len(displays) == 1 {
-		return displays[0], nil
-	}
-
-	return virtio.NewMultiDisplay(displays...), nil
+	return display, nil
 }
 
 func (v *VMM) Setup() (setupErr error) {
@@ -373,9 +326,6 @@ func (v *VMM) Setup() (setupErr error) {
 		}
 	}
 
-	v.attachSerialOutput()
-	v.attachSerialInput()
-
 	return nil
 }
 
@@ -423,8 +373,8 @@ func (v *VMM) setupISO() error {
 
 	log.Printf("ISO media attached as read-only virtio-blk: %s", isoFile.Name())
 
-	if v.hasRemoteDisplay() && hasTinyCoreGUI(isoReader) {
-		files.Initrd, err = addTinyCoreVNCAutostart(files.Initrd)
+	if v.RDPListenerFile != nil && hasTinyCoreGUI(isoReader) {
+		files.Initrd, err = addTinyCoreDesktopAutostart(files.Initrd)
 		if err != nil {
 			return err
 		}
@@ -448,8 +398,6 @@ func (v *VMM) setupISO() error {
 		return err
 	}
 
-	v.attachSerialOutput()
-	v.attachSerialInput()
 	v.isoCleanup = cleanup
 	cleanupOnError = false
 
@@ -636,102 +584,7 @@ func kernelParamName(field string) string {
 	return name
 }
 
-func (v *VMM) attachSerialOutput() {
-	if v.RDP != "" || v.serialOutput == nil || v.GetSerial() == nil {
-		return
-	}
-
-	v.GetSerial().SetOutput(io.MultiWriter(os.Stdout, v.serialOutput))
-}
-
-func (v *VMM) attachSerialInput() {
-	if v.RDP != "" || v.ISO == "" || len(v.consoles) == 0 || v.GetSerial() == nil {
-		return
-	}
-
-	input := &serialMirrorInput{
-		primary: v.consoleInput,
-		serial:  v.GetSerial().GetInputChan(),
-		inject:  v.InjectSerialIRQ,
-	}
-	for _, console := range v.consoles {
-		console.SetInput(input)
-	}
-}
-
-type serialMirrorInput struct {
-	primary virtio.VNCInput
-	serial  chan<- byte
-	inject  func() error
-}
-
-func (s *serialMirrorInput) KeyEvent(down bool, keysym uint32) {
-	if s.primary != nil {
-		s.primary.KeyEvent(down, keysym)
-	}
-
-	if !down || s.serial == nil {
-		return
-	}
-
-	for _, b := range serialBytesForKeysym(keysym) {
-		// A graphical guest may never read its serial console. Keep that
-		// best-effort mirror from blocking remote input or display shutdown.
-		select {
-		case s.serial <- b:
-			if s.inject != nil {
-				_ = s.inject()
-			}
-		default:
-		}
-	}
-}
-
-func (s *serialMirrorInput) PointerEvent(buttonMask uint8, x, y uint16) {
-	if s.primary != nil {
-		s.primary.PointerEvent(buttonMask, x, y)
-	}
-}
-
-func (s *serialMirrorInput) PointerEventInBounds(buttonMask uint8, x, y uint16, width, height int) {
-	if bounded, ok := s.primary.(interface {
-		PointerEventInBounds(uint8, uint16, uint16, int, int)
-	}); ok {
-		bounded.PointerEventInBounds(buttonMask, x, y, width, height)
-
-		return
-	}
-	s.PointerEvent(buttonMask, x, y)
-}
-
-func serialBytesForKeysym(keysym uint32) []byte {
-	if keysym >= 0x20 && keysym <= 0x7e {
-		return []byte{byte(keysym)}
-	}
-
-	switch keysym {
-	case 0xff08: // BackSpace
-		return []byte{0x7f}
-	case 0xff09: // Tab
-		return []byte{'\t'}
-	case 0xff0d: // Return
-		return []byte{'\r'}
-	case 0xff1b: // Escape
-		return []byte{0x1b}
-	case 0xff51: // Left
-		return []byte{0x1b, '[', 'D'}
-	case 0xff52: // Up
-		return []byte{0x1b, '[', 'A'}
-	case 0xff53: // Right
-		return []byte{0x1b, '[', 'C'}
-	case 0xff54: // Down
-		return []byte{0x1b, '[', 'B'}
-	default:
-		return nil
-	}
-}
-
-func addTinyCoreVNCAutostart(initrd []byte) ([]byte, error) {
+func addTinyCoreDesktopAutostart(initrd []byte) ([]byte, error) {
 	const autologin = `#!/bin/sh
 if [ -f /var/log/autologin ]; then
 	exec /sbin/getty 38400 tty1
@@ -750,7 +603,7 @@ if command -v Xvesa >/dev/null 2>&1 && \
 			chown "$TCUSER":staff /home/"$TCUSER"/"$file" 2>/dev/null || chown "$TCUSER" /home/"$TCUSER"/"$file"
 		fi
 	done
-	cat > /tmp/gokvm-vnc-session <<'EOF'
+	cat > /tmp/gokvm-desktop-session <<'EOF'
 #!/bin/sh
 export DISPLAY=:0.0
 export DESKTOP=flwm
@@ -785,9 +638,9 @@ flwm >/tmp/flwm.log 2>&1 &
 wbar.sh >/tmp/wbar.log 2>&1 &
 wait "$XPID"
 EOF
-	chmod 755 /tmp/gokvm-vnc-session
-	chown "$TCUSER":staff /tmp/gokvm-vnc-session 2>/dev/null || chown "$TCUSER" /tmp/gokvm-vnc-session
-	exec su "$TCUSER" -c /tmp/gokvm-vnc-session
+	chmod 755 /tmp/gokvm-desktop-session
+	chown "$TCUSER":staff /tmp/gokvm-desktop-session 2>/dev/null || chown "$TCUSER" /tmp/gokvm-desktop-session
+	exec su "$TCUSER" -c /tmp/gokvm-desktop-session
 fi
 exec login -f "$TCUSER"
 `

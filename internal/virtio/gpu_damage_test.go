@@ -191,66 +191,47 @@ func TestGPUSeparateCursorDoesNotPublishFrames(t *testing.T) {
 
 func TestGPUResetClearsPublishedCursor(t *testing.T) {
 	t.Parallel()
-	for _, mixed := range []bool{false, true} {
-		name := "SeparateCursor"
-		if mixed {
-			name = "MultiDisplay"
-		}
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			remote, legacy := &gpuDamageSink{}, &legacyDisplaySink{}
-			var display Display = remote
-			if mixed {
-				display = NewMultiDisplay(remote, legacy)
-			}
-			g := NewGPU(11, nil, nil, display)
-			t.Cleanup(func() { _ = g.Close() })
-			// The initial driver probe must not replace the fallback system
-			// pointer before the guest has published a hardware cursor.
-			g.MMIO(20, []byte{0}, true)
-			if remote.cursors != 0 {
-				t.Fatal("initial probe published an unnecessary cursor update")
-			}
-			g.resources[1] = &gpuResource{
-				width: 8, height: 8, format: gpuFormatB8G8R8X8,
-				data: bytes.Repeat([]byte{7, 13, 29, 0}, 64),
-			}
-			g.resources[2] = &gpuResource{
-				width: 64, height: 64, format: gpuFormatB8G8R8X8,
-				data: bytes.Repeat([]byte{0, 255, 0, 255}, 64*64),
-			}
-			bounds := image.Rect(0, 0, 8, 8)
-			gpuDamageOK(t, g, gpuDamageCommand(gpuCmdSetScanout, 1, bounds))
-			gpuDamageOK(t, g, gpuDamageCommand(gpuCmdResourceFlush, 1, bounds))
-			if !g.handleCursor(gpuResizeRequest(gpuCmdUpdateCursor, 0, 2, 3, 0, 2, 0, 0, 0)) {
-				t.Fatal("valid cursor rejected")
-			}
-			g.present()
-			if remote.cursor.Image == nil || (mixed && legacy.frame.RGBAAt(2, 3).G != 255) {
-				t.Fatal("cursor was not presented before reset")
-			}
-			g.MMIO(20, []byte{0}, true)
-			if remote.cursor.Image != nil || remote.frames != 1 {
-				t.Fatal("reset retained the remote cursor or republished the desktop")
-			}
-			if mixed && legacy.frame.RGBAAt(2, 3) != (color.RGBA{29, 13, 7, 255}) {
-				t.Fatal("reset retained the cursor in legacy display composition")
-			}
-			// A new scanout must remain cursor-free without requiring another
-			// guest cursor command after the reset.
-			g.resources[1] = &gpuResource{
-				width: 8, height: 8, format: gpuFormatB8G8R8X8,
-				data: bytes.Repeat([]byte{31, 37, 41, 0}, 64),
-			}
-			gpuDamageOK(t, g, gpuDamageCommand(gpuCmdSetScanout, 1, bounds))
-			gpuDamageOK(t, g, gpuDamageCommand(gpuCmdResourceFlush, 1, bounds))
-			if remote.cursor.Image != nil || remote.frame.RGBAAt(2, 3) != (color.RGBA{41, 37, 31, 255}) {
-				t.Fatal("new scanout restored the old remote cursor or stale pixels")
-			}
-			if mixed && !bytes.Equal(legacy.frame.Pix, remote.frame.Pix) {
-				t.Fatal("new scanout restored the old cursor in legacy display composition")
-			}
-		})
+	remote := &gpuDamageSink{}
+	g := NewGPU(11, nil, nil, remote)
+	t.Cleanup(func() { _ = g.Close() })
+	// The initial driver probe must not replace the fallback system
+	// pointer before the guest has published a hardware cursor.
+	g.MMIO(20, []byte{0}, true)
+	if remote.cursors != 0 {
+		t.Fatal("initial probe published an unnecessary cursor update")
+	}
+	g.resources[1] = &gpuResource{
+		width: 8, height: 8, format: gpuFormatB8G8R8X8,
+		data: bytes.Repeat([]byte{7, 13, 29, 0}, 64),
+	}
+	g.resources[2] = &gpuResource{
+		width: 64, height: 64, format: gpuFormatB8G8R8X8,
+		data: bytes.Repeat([]byte{0, 255, 0, 255}, 64*64),
+	}
+	bounds := image.Rect(0, 0, 8, 8)
+	gpuDamageOK(t, g, gpuDamageCommand(gpuCmdSetScanout, 1, bounds))
+	gpuDamageOK(t, g, gpuDamageCommand(gpuCmdResourceFlush, 1, bounds))
+	if !g.handleCursor(gpuResizeRequest(gpuCmdUpdateCursor, 0, 2, 3, 0, 2, 0, 0, 0)) {
+		t.Fatal("valid cursor rejected")
+	}
+	g.present()
+	if remote.cursor.Image == nil {
+		t.Fatal("cursor was not presented before reset")
+	}
+	g.MMIO(20, []byte{0}, true)
+	if remote.cursor.Image != nil || remote.frames != 1 {
+		t.Fatal("reset retained the remote cursor or republished the desktop")
+	}
+	// A new scanout must remain cursor-free without requiring another
+	// guest cursor command after the reset.
+	g.resources[1] = &gpuResource{
+		width: 8, height: 8, format: gpuFormatB8G8R8X8,
+		data: bytes.Repeat([]byte{31, 37, 41, 0}, 64),
+	}
+	gpuDamageOK(t, g, gpuDamageCommand(gpuCmdSetScanout, 1, bounds))
+	gpuDamageOK(t, g, gpuDamageCommand(gpuCmdResourceFlush, 1, bounds))
+	if remote.cursor.Image != nil || remote.frame.RGBAAt(2, 3) != (color.RGBA{41, 37, 31, 255}) {
+		t.Fatal("new scanout restored the old remote cursor or stale pixels")
 	}
 }
 

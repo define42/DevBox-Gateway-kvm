@@ -22,27 +22,13 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *system)
     static EFI_GUID counter_guid = {
         0x10293847, 0x5647, 0x4abc, {0x8d, 0x10, 0x31, 0x22, 0x19, 0xfa, 0x8b, 0x02}
     };
-    EFI_GRAPHICS_OUTPUT_PROTOCOL *graphics = NULL;
-    EFI_GRAPHICS_OUTPUT_BLT_PIXEL pixel = {0x30, 0xa0, 0x20, 0};
     UINT32 counter = 0;
     UINTN size = sizeof(counter);
     EFI_STATUS status;
 
     InitializeLib(image, system);
     marker("GOKVM TEST EFI ENTRY\n");
-    status = uefi_call_wrapper(system->BootServices->LocateProtocol, 3,
-                              &GraphicsOutputProtocol, NULL, (VOID **)&graphics);
-    if (EFI_ERROR(status) || graphics == NULL || graphics->Mode == NULL ||
-        graphics->Mode->Info == NULL) {
-        return fail("no graphics output protocol");
-    }
-    status = uefi_call_wrapper(graphics->Blt, 10, graphics, &pixel, EfiBltVideoFill,
-                              0, 0, 0, 0, 32, 32, 0);
-    if (EFI_ERROR(status)) {
-        return fail("graphics blit");
-    }
-    marker("GOKVM TEST GRAPHICS OK\n");
-    Print(L"GoKVM native UEFI disk boot test\r\nGraphics output is working.\r\n");
+    Print(L"GoKVM native UEFI disk boot test\r\n");
 
     status = uefi_call_wrapper(system->RuntimeServices->GetVariable, 5,
                               L"GokvmSmokeCounter", &counter_guid, NULL, &size, &counter);

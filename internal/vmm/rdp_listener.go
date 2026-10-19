@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sys/unix"
 )
 
 func (v *VMM) newRDPDisplay() (*virtio.RDPDisplay, error) {
+	if v.RDPListenerFile == nil || v.RDPGatewayPID <= 0 {
+		return nil, errRDPListenerConfig
+	}
 	var config *tls.Config
 	if v.RDPCert != "" || v.RDPKey != "" {
 		certificate, err := tls.LoadX509KeyPair(v.RDPCert, v.RDPKey)
@@ -19,16 +23,13 @@ func (v *VMM) newRDPDisplay() (*virtio.RDPDisplay, error) {
 		}
 		config = &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12}
 	}
-	var listener net.Listener
-	if v.RDPListenerFile != nil {
-		var err error
-		listener, err = v.inheritedRDPListener()
-		if err != nil {
-			return nil, err
-		}
+	listener, err := v.inheritedRDPListener()
+	if err != nil {
+		return nil, err
 	}
-	display, err := virtio.NewRDPDisplayWithConfig(v.RDP, virtio.RDPConfig{
+	display, err := virtio.NewRDPDisplayWithConfig(virtio.RDPConfig{
 		TLS: config, Listener: listener, H264: v.RDPH264, Audio: v.Audio == "rdp", Profile: v.RDPProfile,
+		GatewayPID: v.RDPGatewayPID, GatewayUID: v.RDPGatewayUID,
 		H264Encoder: v.RDPH264Encoder,
 		H264Threads: v.RDPH264Threads, Stats: v.RDPStats, GuestCPUs: v.NCPUs,
 		Telemetry: v.Telemetry,
@@ -41,12 +42,22 @@ func (v *VMM) newRDPDisplay() (*virtio.RDPDisplay, error) {
 }
 
 func (v *VMM) inheritedRDPListener() (net.Listener, error) {
-	// FileListener also accepts connected TCP sockets, whose Accept calls fail.
+	if v.RDPListenerFile == nil {
+		return nil, errRDPListenerConfig
+	}
+	// FileListener can also accept connected sockets, whose Accept calls fail.
 	accepting, err := unix.GetsockoptInt(int(v.RDPListenerFile.Fd()), unix.SOL_SOCKET, unix.SO_ACCEPTCONN)
 	if err != nil {
 		return nil, fmt.Errorf("adopt inherited RDP listener: %w", err)
 	}
 	if accepting != 1 {
+		return nil, errRDPListenerConfig
+	}
+	socketType, err := unix.GetsockoptInt(int(v.RDPListenerFile.Fd()), unix.SOL_SOCKET, unix.SO_TYPE)
+	if err != nil {
+		return nil, fmt.Errorf("adopt inherited RDP listener type: %w", err)
+	}
+	if socketType != unix.SOCK_STREAM {
 		return nil, errRDPListenerConfig
 	}
 	// FileListener duplicates the descriptor. Closing a display must not close
@@ -55,7 +66,10 @@ func (v *VMM) inheritedRDPListener() (net.Listener, error) {
 	if err != nil {
 		return nil, fmt.Errorf("adopt inherited RDP listener: %w", err)
 	}
-	if _, ok := listener.(*net.TCPListener); !ok || listener.Addr().String() != v.RDP {
+	_, isUnix := listener.(*net.UnixListener)
+	address := listener.Addr().String()
+	isAbstract := strings.HasPrefix(address, "@") && len(address) > 1
+	if !isUnix || !isAbstract {
 		return nil, errors.Join(errRDPListenerConfig, listener.Close())
 	}
 

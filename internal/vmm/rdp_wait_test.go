@@ -18,7 +18,7 @@ func TestRDPWaitRequiresListenerBeforeMachineInit(t *testing.T) {
 
 func TestRDPWaitRejectsUninitializedDisplayBeforeBoot(t *testing.T) {
 	t.Parallel()
-	v := New(Config{RDP: "127.0.0.1:0", RDPWait: true})
+	v := New(withGatewayRDP(t, Config{RDPWait: true}))
 	if err := v.BootContext(t.Context()); !errors.Is(err, errRDPWaitConfig) {
 		t.Fatalf("RDP wait without an initialized display returned %v", err)
 	}

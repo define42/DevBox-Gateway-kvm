@@ -48,8 +48,5 @@ func (v *VMM) setupUKI() error {
 		return fmt.Errorf("load UKI: %w", err)
 	}
 
-	v.attachSerialOutput()
-	v.attachSerialInput()
-
 	return nil
 }

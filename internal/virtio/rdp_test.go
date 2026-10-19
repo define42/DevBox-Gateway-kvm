@@ -1,14 +1,19 @@
 package virtio
 
 import (
+	"bufio"
 	"bytes"
+	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"io"
 	"net"
-	"syscall"
+	"os"
+	"os/exec"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,18 +22,16 @@ import (
 
 var _ ConsoleDisplay = (*RDPDisplay)(nil)
 
-func TestRDPDisplayUsesSuppliedListener(t *testing.T) {
+func TestRDPDisplayUsesSuppliedAbstractUnixListener(t *testing.T) {
 	t.Parallel()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
+	listener := newRDPTestListener(t)
 	t.Cleanup(func() { _ = listener.Close() })
 	addr := listener.Addr().String()
 
 	// The address remains bound throughout construction. Rebinding it instead
 	// of using the supplied listener must fail.
-	d, err := NewRDPDisplayWithConfig(addr, RDPConfig{Listener: listener})
+	options := authenticatedRDPTestConfig(listener)
+	d, err := NewRDPDisplayWithConfig(options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,13 +73,10 @@ func TestRDPDisplayInitializationFailurePreservesSuppliedListener(t *testing.T) 
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			listener, err := net.Listen("tcp", "127.0.0.1:0")
-			if err != nil {
-				t.Fatal(err)
-			}
+			listener := newRDPTestListener(t)
 			t.Cleanup(func() { _ = listener.Close() })
-			tc.options.Listener = listener
-			d, err := NewRDPDisplayWithConfig(listener.Addr().String(), tc.options)
+			tc.options = mergeAuthenticatedRDPTestConfig(listener, tc.options)
+			d, err := NewRDPDisplayWithConfig(tc.options)
 			if d != nil {
 				t.Cleanup(func() { _ = d.Close() })
 			}
@@ -99,11 +99,7 @@ func TestRDPDisplayH264Configuration(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			d, err := NewRDPDisplayWithConfig("127.0.0.1:0", RDPConfig{H264: true, H264Encoder: backend})
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = d.Close() })
+			d := newRDPTestDisplayWithConfig(t, RDPConfig{H264: true, H264Encoder: backend})
 			if !d.h264 || d.h264Backend != avc.BackendSoftware {
 				t.Fatalf("software H.264 was not enabled: enabled=%v backend=%q", d.h264, d.h264Backend)
 			}
@@ -127,11 +123,247 @@ func TestRDPEncoderConfigValidation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := NewRDPDisplayWithConfig("invalid-address", tc.options); !errors.Is(err, errRDPEncoder) {
+			if _, err := NewRDPDisplayWithConfig(tc.options); !errors.Is(err, errRDPEncoder) {
 				t.Fatalf("invalid encoder options reached listener creation: %v", err)
 			}
 		})
 	}
+}
+
+func TestRDPDisplayRequiresGatewayTransport(t *testing.T) {
+	t.Parallel()
+
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = tcpListener.Close() })
+	pathnameListener, err := net.ListenUnix("unix", &net.UnixAddr{Name: t.TempDir() + "/rdp.sock", Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = pathnameListener.Close() })
+
+	for _, test := range []struct {
+		name     string
+		listener net.Listener
+	}{
+		{name: "missing"},
+		{name: "typed nil Unix", listener: (*net.UnixListener)(nil)},
+		{name: "TCP", listener: tcpListener},
+		{name: "pathname Unix", listener: pathnameListener},
+	} {
+		options := authenticatedRDPTestConfig(test.listener)
+		if _, err := NewRDPDisplayWithConfig(options); !errors.Is(err, errRDPListener) {
+			t.Errorf("%s listener error = %v, want %v", test.name, err, errRDPListener)
+		}
+	}
+
+	listener := newRDPTestListener(t)
+	t.Cleanup(func() { _ = listener.Close() })
+	missingIdentity := authenticatedRDPTestConfig(listener)
+	missingIdentity.GatewayPID = 0
+	if _, err := NewRDPDisplayWithConfig(missingIdentity); !errors.Is(err, errRDPGatewayIdentity) {
+		t.Fatalf("missing identity error = %v, want %v", err, errRDPGatewayIdentity)
+	}
+	changedParent := authenticatedRDPTestConfig(listener)
+	changedParent.getParentPID = func() int { return changedParent.GatewayPID + 1 }
+	if _, err := NewRDPDisplayWithConfig(changedParent); !errors.Is(err, errRDPGatewayParent) {
+		t.Fatalf("changed parent error = %v, want %v", err, errRDPGatewayParent)
+	}
+}
+
+func TestRDPDisplayRetiresListenerWhenGatewayParentChanges(t *testing.T) {
+	t.Parallel()
+	listener := newRDPTestListener(t)
+	options := authenticatedRDPTestConfig(listener)
+	var parentPID atomic.Int64
+	parentPID.Store(int64(options.GatewayPID))
+	options.getParentPID = func() int { return int(parentPID.Load()) }
+	display, err := NewRDPDisplayWithConfig(options)
+	if err != nil {
+		_ = listener.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = display.Close() })
+
+	parentPID.Store(int64(options.GatewayPID + 1))
+	conn, err := net.DialTimeout("unix", display.Addr(), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertRDPConnectionClosed(t, conn)
+	select {
+	case <-display.done:
+	case <-time.After(time.Second):
+		t.Fatal("display remained active after its gateway parent changed")
+	}
+	if conn, err := net.DialTimeout("unix", display.Addr(), 50*time.Millisecond); err == nil {
+		_ = conn.Close()
+		t.Fatal("listener still accepted connections after its gateway parent changed")
+	}
+	if err := display.Close(); err != nil {
+		t.Fatalf("closing retired display: %v", err)
+	}
+}
+
+func TestRDPDisplayAuthorizesExpectedPeerIdentity(t *testing.T) {
+	t.Parallel()
+	server, client := newRDPTestUnixPair(t)
+	defer server.Close()
+	defer client.Close()
+
+	pid := os.Getpid()
+	uid := uint32(os.Geteuid())
+	for _, test := range []struct {
+		name      string
+		pid       int32
+		uid       uint32
+		parentPID int
+		wantErr   error
+	}{
+		{name: "expected", pid: int32(pid), uid: uid, parentPID: pid},
+		{name: "wrong PID", pid: int32(pid + 1), uid: uid, parentPID: pid + 1, wantErr: errRDPPeerIdentity},
+		{name: "wrong effective UID", pid: int32(pid), uid: uid + 1, parentPID: pid, wantErr: errRDPPeerIdentity},
+		{name: "changed live parent", pid: int32(pid), uid: uid, parentPID: pid + 1, wantErr: errRDPGatewayParent},
+	} {
+		display := &RDPDisplay{
+			gatewayPID: test.pid,
+			gatewayUID: test.uid,
+			getParentPID: func() int {
+				return test.parentPID
+			},
+		}
+		err := display.authorizeGateway(server)
+		if !errors.Is(err, test.wantErr) {
+			t.Errorf("%s authorization error = %v, want %v", test.name, err, test.wantErr)
+		}
+	}
+}
+
+func TestRDPDisplayAuthenticatesRealParentProcess(t *testing.T) {
+	t.Parallel()
+
+	listener := newRDPTestListener(t)
+	address := listener.Addr().String()
+	file, err := listener.File()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	//nolint:gosec // Re-executes this test binary with a fixed helper-test selector.
+	server := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRDPDisplayGatewayServerHelper$")
+	server.Env = append(os.Environ(), "GOKVM_RDP_GATEWAY_SERVER_HELPER=1")
+	server.ExtraFiles = []*os.File{file}
+	stdin, err := server.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdout, err := server.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stderr bytes.Buffer
+	server.Stderr = &stderr
+	if err := server.Start(); err != nil {
+		t.Fatal(err)
+	}
+	_ = file.Close()
+	_ = listener.Close()
+	waited := false
+	t.Cleanup(func() {
+		_ = stdin.Close()
+		if !waited {
+			_ = server.Wait()
+		}
+	})
+
+	ready := make(chan string, 1)
+	go func() {
+		line, _ := bufio.NewReader(stdout).ReadString('\n')
+		ready <- line
+	}()
+	select {
+	case line := <-ready:
+		if line != "ready\n" {
+			t.Fatalf("gateway server helper did not become ready: %q (%s)", line, stderr.String())
+		}
+	case <-ctx.Done():
+		t.Fatalf("gateway server helper readiness: %v (%s)", ctx.Err(), stderr.String())
+	}
+
+	//nolint:gosec // Re-executes this test binary with a fixed helper-test selector.
+	rogue := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRDPDisplayUnauthorizedPeerHelper$")
+	rogue.Env = append(os.Environ(), "GOKVM_RDP_UNAUTHORIZED_PEER_HELPER="+address)
+	if output, err := rogue.CombinedOutput(); err != nil {
+		t.Fatalf("different-PID peer helper: %v\n%s", err, output)
+	}
+
+	conn, err := net.DialTimeout("unix", address, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := negotiateRDPTestDisplay(t, conn, 1)
+	if response[11] != 2 {
+		t.Fatalf("parent gateway was not admitted after rejecting a different PID: %x", response)
+	}
+	_ = conn.Close()
+	if err := stdin.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := server.Wait(); err != nil {
+		t.Fatalf("gateway server helper: %v (%s)", err, stderr.String())
+	}
+	waited = true
+}
+
+func TestRDPDisplayGatewayServerHelper(t *testing.T) {
+	if os.Getenv("GOKVM_RDP_GATEWAY_SERVER_HELPER") != "1" {
+		return
+	}
+	t.Parallel()
+
+	file := os.NewFile(3, "inherited-rdp-listener")
+	if file == nil {
+		t.Fatal("missing inherited listener")
+	}
+	listener, err := net.FileListener(file)
+	_ = file.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	display, err := NewRDPDisplayWithConfig(RDPConfig{
+		Listener: listener, GatewayPID: os.Getppid(), GatewayUID: uint32(os.Geteuid()),
+	})
+	if err != nil {
+		_ = listener.Close()
+		t.Fatal(err)
+	}
+	defer func() { _ = display.Close() }()
+	if _, err := os.Stdout.WriteString("ready\n"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRDPDisplayUnauthorizedPeerHelper(t *testing.T) {
+	address := os.Getenv("GOKVM_RDP_UNAUTHORIZED_PEER_HELPER")
+	if address == "" {
+		return
+	}
+	t.Parallel()
+
+	//nolint:gosec // The parent test supplies its freshly generated abstract socket address.
+	conn, err := net.DialTimeout("unix", address, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	assertRDPConnectionClosed(t, conn)
 }
 
 func TestRDPDisplayRequiresTLSSecurity(t *testing.T) {
@@ -291,8 +523,17 @@ func TestRDPDisplayRejectsSecondClientAndReusesSlot(t *testing.T) {
 
 func newRDPTestDisplay(t *testing.T) *RDPDisplay {
 	t.Helper()
-	d, err := NewRDPDisplay("127.0.0.1:0")
+
+	return newRDPTestDisplayWithConfig(t, RDPConfig{})
+}
+
+func newRDPTestDisplayWithConfig(t *testing.T, options RDPConfig) *RDPDisplay {
+	t.Helper()
+	listener := newRDPTestListener(t)
+	options = mergeAuthenticatedRDPTestConfig(listener, options)
+	d, err := NewRDPDisplayWithConfig(options)
 	if err != nil {
+		_ = listener.Close()
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = d.Close() })
@@ -300,13 +541,68 @@ func newRDPTestDisplay(t *testing.T) *RDPDisplay {
 	return d
 }
 
+func newRDPTestListener(t *testing.T) *net.UnixListener {
+	t.Helper()
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@gokvm-test-" + rand.Text(), Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return listener
+}
+
+func authenticatedRDPTestConfig(listener net.Listener) RDPConfig {
+	return mergeAuthenticatedRDPTestConfig(listener, RDPConfig{})
+}
+
+func mergeAuthenticatedRDPTestConfig(listener net.Listener, options RDPConfig) RDPConfig {
+	options.Listener = listener
+	options.GatewayPID = os.Getpid()
+	options.GatewayUID = uint32(os.Geteuid())
+	options.getParentPID = os.Getpid
+
+	return options
+}
+
+func newRDPTestUnixPair(t *testing.T) (*net.UnixConn, *net.UnixConn) {
+	t.Helper()
+	listener := newRDPTestListener(t)
+	defer listener.Close()
+	accepted := make(chan *net.UnixConn, 1)
+	acceptErr := make(chan error, 1)
+	go func() {
+		conn, err := listener.AcceptUnix()
+		if err != nil {
+			acceptErr <- err
+
+			return
+		}
+		accepted <- conn
+	}()
+	client, err := net.DialUnix("unix", nil, listener.Addr().(*net.UnixAddr))
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case server := <-accepted:
+		return server, client
+	case err := <-acceptErr:
+		_ = client.Close()
+		t.Fatal(err)
+
+		return nil, nil
+	case <-time.After(time.Second):
+		_ = client.Close()
+		t.Fatal("accepting Unix test connection timed out")
+
+		return nil, nil
+	}
+}
+
 func dialRDPTestDisplay(t *testing.T, d *RDPDisplay) net.Conn {
 	t.Helper()
-	conn, err := net.DialTimeout("tcp", d.Addr(), time.Second)
+	conn, err := net.DialTimeout("unix", d.Addr(), time.Second)
 	if err != nil {
-		if errors.Is(err, syscall.ENETUNREACH) {
-			t.Skipf("loopback is unreachable in this network namespace: %v", err)
-		}
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = conn.Close() })

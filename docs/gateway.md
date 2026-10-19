@@ -71,7 +71,7 @@ make gateway GATEWAY_IMAGE=./.gokvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to/desk
 ```
 
 This prepares the destination once if absent, then reuses it. The original
-source and the working disk used by `make qcow2` are preserved. Without
+source and any existing developer working disks are preserved. Without
 `GATEWAY_IMAGE`, the gateway uses only its uploaded catalog.
 
 ### Build without NVENC
@@ -223,14 +223,17 @@ Four continuously changing AVC420 sessions target at most 120 encoded frames per
 with `office`, instead of 240 with `smooth`. These are workload caps, not measured
 throughput or guarantees of session density; CPU, resolution, content, and the
 selected encoder still determine actual performance. See the
-[runtime profile reference](runtime.md#rdp-graphics-profiles) for standalone use.
+[runtime profile reference](runtime.md#rdp-graphics-profiles) for details.
 
 Clipboard redirection is not implemented, and
 managed VMs currently do not enable audio, even though the downloaded file
 contains client preferences for these features.
 
-`make rdp` connects to the standalone console on port 3390, such as one started
-with `make qcow2`. It does not use the gateway's downloaded routing credentials.
+RDP access must use the dashboard's downloaded file and authenticate through the
+gateway. Standalone `boot -rdp` listeners and the direct `make rdp` helper are
+removed. Each VM's backend uses a private Unix socket with kernel-verified
+gateway process identity; it exposes no per-VM TCP port. The inherited `-rdp-fd`
+worker option is internal and is not a standalone connection mode.
 
 ## Connection admission and edge protection
 
@@ -573,9 +576,9 @@ This mount holds all gateway state, not just QCOW2 files. See the
 
 Back up the state with the gateway and VMs stopped; include any optional base
 image configured outside the state directory. Keep seeds and private keys
-protected. The host account and other local host users must be trusted: the VM's loopback RDP
-listener is a private transport, not a separate local-user authentication
-boundary.
+protected. The VM's private Unix RDP listener accepts only the gateway process,
+verified using kernel peer credentials. This does not isolate the service from
+a compromised host account or a privileged host administrator.
 
 Managed VMs use `-net user-isolated`. They retain IPv4 DHCP/DNS and outbound
 TCP/UDP, while host loopback destinations are denied. This restriction does not
@@ -609,8 +612,11 @@ must already include systemd, cloud-init, a desktop, a display manager, and
 virtio drivers; provisioning
 does not install them.
 
-For standalone disk boot, generate a seed explicitly. Start with an existing
-supported UEFI disk and create a separate writable variables copy:
+For headless developer disk boot, generate a seed explicitly. Start with an
+existing supported UEFI disk and create a separate writable variables copy.
+This example exposes the host serial console; guest output depends on the
+installed bootloader and OS serial configuration. Use the dashboard workflow
+for interactive desktop access:
 
 ```bash
 cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
@@ -618,7 +624,7 @@ cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
 # Read seed.iso.credentials.json for the generated guest login.
 ./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
-  -m 4G -c 2 -net user -rdp 127.0.0.1:3390
+  -m 4G -c 2 -net user
 ```
 
 Account mode supports `-password-stdin` or `-password-hash-file` instead of a

@@ -8,7 +8,7 @@ import "sync"
 // and coordinate drift once the guest has initialized the tablet driver.
 type FirmwareInput struct {
 	mu       sync.Mutex
-	fallback VNCInput
+	fallback DisplayInput
 	tablet   *InputDevice
 	absolute bool
 	buttons  uint8
@@ -18,7 +18,7 @@ type FirmwareInput struct {
 // NewFirmwareInput combines a firmware-compatible input device with a tablet.
 // A fallback implementing RebasePointer(uint16, uint16) can resume relative input
 // after a tablet reset without replaying the desktop's intervening movement.
-func NewFirmwareInput(fallback VNCInput, tablet *InputDevice) *FirmwareInput {
+func NewFirmwareInput(fallback DisplayInput, tablet *InputDevice) *FirmwareInput {
 	return &FirmwareInput{fallback: fallback, tablet: tablet}
 }
 
@@ -31,7 +31,7 @@ func (p *FirmwareInput) KeyEvent(down bool, keysym uint32) {
 
 // PointerEvent uses the initial display geometry for legacy callers.
 func (p *FirmwareInput) PointerEvent(buttons uint8, x, y uint16) {
-	p.PointerEventInBounds(buttons, x, y, vncDefaultWidth, vncDefaultHeight)
+	p.PointerEventInBounds(buttons, x, y, displayDefaultWidth, displayDefaultHeight)
 }
 
 // PointerEventInBounds preserves the framebuffer geometry for absolute input.

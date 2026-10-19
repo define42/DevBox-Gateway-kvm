@@ -82,7 +82,7 @@ The sample uses **Rocky Linux 9 with XFCE**. From
 [DevBox-Gateway v2.4.16](https://github.com/define42/DevBox-Gateway/releases/tag/v2.4.16),
 download both `rocky9-xfce-v2.4.16.img.part-*` files and
 `rocky9-xfce-v2.4.16.img.sha256` into this directory. Reassemble, verify, and
-convert to a QCOW2 file for upload or standalone `make qcow2` use:
+convert to a QCOW2 file for upload:
 
 ```bash
 cat rocky9-xfce-v2.4.16.img.part-* > rocky9-xfce-v2.4.16.img
@@ -93,8 +93,7 @@ sha256sum --check rocky9-xfce-v2.4.16.img.sha256 && \
 
 The release's `.img` is a QCOW2 disk despite its extension. If you already have
 `rocky9-xfce-v2.4.16.qcow2`, skip reconstruction and conversion. Another compatible
-image can be uploaded through **Admin**. For standalone boot, select it with
-`make qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2`.
+image can be uploaded through **Admin**.
 
 ### Start the gateway
 
@@ -142,8 +141,9 @@ xfreerdp /path/to/desktop.rdp
 
 Use an H.264-capable client for AVC420 graphics. See the [runtime guide](docs/runtime.md)
 for client setup and `make freerdp` if your installed client lacks that support.
-`make rdp` connects to the separate standalone console on port 3390; gateway
-connections use the downloaded file.
+RDP access is available only through the authenticated gateway and its downloaded
+file. Standalone `boot -rdp` listeners and the direct `make rdp` helper are no
+longer supported.
 
 Shut down desktops before stopping the gateway when guest application state
 matters. Stopping the gateway also stops its VM processes; saved desktops remain
@@ -232,6 +232,8 @@ username and password against LDAP, including access-group membership, inside TL
 The authenticated account must own the selected VM. The routing token is sent
 before TLS and is visible on the wire; it cannot authorize access without a valid
 password. The gateway removes the password before forwarding to the VM console.
+The backend is a private Unix socket that verifies the gateway's process
+identity; managed VMs expose no direct RDP TCP port.
 
 Each VM's RDP server is part of gokvm. The guest uses its normal graphical login
 and desktop session; the generated cloud-init configuration disables guest XRDP.
@@ -258,7 +260,7 @@ it does not prove that the guest boots or its cloud-init configuration succeeds.
 
 The gateway uses OVMF UEFI disk boot. The standalone runtime also supports Linux
 kernels, PVH, Unified Kernel Images, and recognized Linux ISO layouts. See
-[standalone boot and RDP reference](docs/runtime.md).
+[runtime and gateway RDP reference](docs/runtime.md).
 
 ### Deployment boundaries
 
@@ -272,8 +274,8 @@ same host account; host users must be trusted. Managed guest networking blocks
 host loopback access but can still reach LAN/private destinations. The RDP
 implementation uses TLS and does not support NLA, clipboard/drive redirection,
 or multiple monitors. Graphics are 2D; Intel VA-API and Quick Sync encoding are
-not implemented. Audio is available through standalone `boot -audio rdp`;
-managed gateway desktops do not currently enable it.
+not implemented. The internal RDP backend supports audio, but managed gateway
+desktops do not currently enable it.
 
 The migrated DevBox workflow includes authentication, provisioning, RDP access,
 and administrator image/VM management. The former application's libvirt, Splunk,
@@ -284,7 +286,7 @@ and Sauron integrations have not been migrated.
 | Command | Purpose |
 | --- | --- |
 | `gokvm serve` | Run the web gateway and manage desktop VMs. |
-| `gokvm boot` | Run one guest directly, with optional RDP, VNC, or PNG output. |
+| `gokvm boot` | Run one guest directly for development with a serial console. |
 | `gokvm seed` | Create a NoCloud seed ISO for a cloud-init-enabled guest. |
 | `gokvm probe` | Inspect host KVM capabilities and CPUID information. |
 | `gokvm auth-user` | Create a local authentication file for explicit loopback development setups. |
@@ -297,8 +299,8 @@ flags override them. LDAP is the authentication path used by `make gateway`.
   defaults, flag overrides, and Compose migration.
 - [Gateway operations](docs/gateway.md): configuration, external LDAP/TLS, image
   management, connection tokens, state, and cloud-init.
-- [VM and remote-display reference](docs/runtime.md): standalone `make qcow2`,
-  firmware, boot modes, clients, encoding, audio, and troubleshooting.
+- [VM and remote-display reference](docs/runtime.md): developer boot modes,
+  firmware, gateway RDP clients, encoding, and troubleshooting.
 - [Development guide](docs/development.md): package layout, builds, tests, tracing,
   and low-level virtualization references.
 - [Bundled LDAP directory](testldap/README.md): development accounts and directory setup.

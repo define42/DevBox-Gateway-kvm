@@ -6,7 +6,7 @@ import "strings"
 // Serial and early-console arguments would otherwise select the UART even
 // when the desktop itself is presented through RDP.
 func (v *VMM) consoleBootParams(params string) string {
-	if v.RDP == "" {
+	if v.RDPListenerFile == nil {
 		return params
 	}
 

@@ -54,7 +54,7 @@ func TestRDPFramePacingKeepsLatestFrame(t *testing.T) {
 			t.Fatal("paced writer captured an obsolete image")
 		}
 	}
-	var latest vncFrame
+	var latest displayFrame
 	display.copyFrameChanges(&latest, false)
 	if latest.pix[0] != 3 {
 		t.Fatal("paced writer lost the latest guest publication")
@@ -66,7 +66,7 @@ func TestRDPSliceConfigValidation(t *testing.T) {
 	for _, options := range []RDPConfig{
 		{H264Threads: -1}, {H264Threads: 17, H264: true}, {H264Threads: 1},
 	} {
-		if _, err := NewRDPDisplayWithConfig("invalid-address", options); !errors.Is(err, errRDPThreads) {
+		if _, err := NewRDPDisplayWithConfig(options); !errors.Is(err, errRDPThreads) {
 			t.Fatalf("invalid slice options reached listener creation: %v", err)
 		}
 	}

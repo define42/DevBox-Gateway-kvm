@@ -11,14 +11,17 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/netip"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
-const protocolTLS = uint32(1)
+const (
+	protocolTLS                  = uint32(1)
+	maxAbstractUnixSocketNameLen = len(unix.RawSockaddrUnix{}.Path)
+)
 
 func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
 	stop := context.AfterFunc(ctx, func() { _ = raw.Close() })
@@ -222,18 +225,8 @@ func writePacket(w io.Writer, packet []byte) error {
 }
 
 func dialRDPBackend(ctx context.Context, endpoint Endpoint) (*tls.Conn, error) {
-	host, port, err := net.SplitHostPort(endpoint.Address)
-	ip, ipErr := netip.ParseAddr(host)
-	portNumber, portErr := strconv.Atoi(port)
-	if err != nil ||
-		ipErr != nil ||
-		!ip.IsLoopback() ||
-		ip.Zone() != "" ||
-		portErr != nil ||
-		portNumber < 1 ||
-		portNumber > 65535 ||
-		endpoint.ServerName == "" {
-		return nil, fmt.Errorf("%w: backend must have a loopback address and TLS server name", ErrInvalid)
+	if !validRDPBackendAddress(endpoint.Address) || endpoint.ServerName == "" {
+		return nil, fmt.Errorf("%w: backend must have an abstract Unix address and TLS server name", ErrInvalid)
 	}
 	roots := x509.NewCertPool()
 	block, _ := pem.Decode(endpoint.CertificatePEM)
@@ -256,7 +249,7 @@ func dialRDPBackend(ctx context.Context, endpoint Endpoint) (*tls.Conn, error) {
 		},
 	}
 	var dialer net.Dialer
-	raw, err := dialer.DialContext(ctx, "tcp", endpoint.Address)
+	raw, err := dialer.DialContext(ctx, "unix", endpoint.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -305,6 +298,13 @@ func dialRDPBackend(ctx context.Context, endpoint Endpoint) (*tls.Conn, error) {
 	keep = true
 
 	return secure, nil
+}
+
+func validRDPBackendAddress(address string) bool {
+	return len(address) >= 2 &&
+		len(address) <= maxAbstractUnixSocketNameLen &&
+		address[0] == '@' &&
+		!strings.ContainsRune(address, '\x00')
 }
 
 type proxyConn struct{ net.Conn }

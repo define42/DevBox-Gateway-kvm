@@ -309,10 +309,6 @@ func (m *Machine) AddReadOnlyCDROM(r io.ReaderAt, size int64) {
 	}
 }
 
-func (m *Machine) AddGPU(outputPath string) error {
-	return m.AddGPUDisplay(virtio.NewPNGDisplay(outputPath))
-}
-
 func (m *Machine) AddGPUDisplay(display virtio.Display) error {
 	return m.AddGPUDisplayWithTelemetry(display, nil)
 }
@@ -342,7 +338,7 @@ func (m *Machine) AddSound(sink virtio.SoundSink) {
 	m.deviceWG.Go(v.IOThreadEntry)
 }
 
-func (m *Machine) AddPS2Input() virtio.VNCInput {
+func (m *Machine) AddPS2Input() virtio.DisplayInput {
 	dev := iodev.NewPS2Controller(m.InjectPS2KeyboardIRQ, m.InjectPS2MouseIRQ)
 	m.AddDevice(dev)
 
@@ -351,7 +347,7 @@ func (m *Machine) AddPS2Input() virtio.VNCInput {
 
 // AddUEFIInput retains PS/2 firmware controls and hands guest pointer input to
 // an absolute tablet when the guest driver is ready.
-func (m *Machine) AddUEFIInput() virtio.VNCInput {
+func (m *Machine) AddUEFIInput() virtio.DisplayInput {
 	legacy := m.AddPS2Input()
 	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)
 	m.connectVirtioIRQ(pointer.ModernTransport, virtioInputPointerIRQ)
@@ -361,7 +357,7 @@ func (m *Machine) AddUEFIInput() virtio.VNCInput {
 	return virtio.NewFirmwareInput(legacy, pointer)
 }
 
-func (m *Machine) AddVirtioInput() virtio.VNCInput {
+func (m *Machine) AddVirtioInput() virtio.DisplayInput {
 	keyboard := virtio.NewInputKeyboard(virtioInputKeyboardIRQ, m.InjectVirtioInputKeyboardIRQ, m.mem)
 	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)
 	m.connectVirtioIRQ(keyboard.ModernTransport, virtioInputKeyboardIRQ)

@@ -12,7 +12,7 @@ func TestParseUEFIBoot(t *testing.T) {
 
 	args := []string{
 		"gokvm", "boot", "-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd",
-		"-d", "guest.qcow2", "-c", "4", "-m", "2G", "-net", "user", "-rdp", "127.0.0.1:3390",
+		"-d", "guest.qcow2", "-c", "4", "-m", "2G", "-net", "user", "-rdp-fd", "3",
 	}
 	c, _, err := flag.ParseArgs(args)
 	if err != nil {
@@ -24,7 +24,7 @@ func TestParseUEFIBoot(t *testing.T) {
 	if c.Kernel != "" || c.Initrd != "" || c.UKI != "" || c.ISO != "" || c.Params != "" || c.ParamsSet {
 		t.Fatalf("direct boot defaults leaked into UEFI mode: %+v", c)
 	}
-	if c.NCPUs != 4 || c.MemSize != 2<<30 || c.Network != "user" || c.RDP != "127.0.0.1:3390" {
+	if c.NCPUs != 4 || c.MemSize != 2<<30 || c.Network != "user" || c.RDPFD != 3 {
 		t.Fatalf("incorrect UEFI device options: %+v", c)
 	}
 }

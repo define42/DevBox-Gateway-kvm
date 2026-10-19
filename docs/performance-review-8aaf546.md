@@ -1,5 +1,9 @@
 # DevBox-Gateway-kvm performance review
 
+This is an archived review of the revision below, not current deployment
+guidance. In particular, its loopback-worker transport description predates
+gateway-only RDP over private Unix sockets; see the [current gateway guide](gateway.md).
+
 **Reviewed:** `8aaf546d47e5c079b0a6ccc9a34ef35c88ffeb8d`, 2026-10-11, after the RDP password-validation changes.
 **Workload:** several simultaneous office desktops, primarily 1920×1080. Reviewed gateway/authentication,
 provisioning, graphics/encoding/RDP, block storage, networking, memory admission, VM scheduling and observability.

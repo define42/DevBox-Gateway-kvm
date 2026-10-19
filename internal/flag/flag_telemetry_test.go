@@ -20,14 +20,14 @@ func TestTelemetryDescriptorOption(t *testing.T) {
 		{name: "managed telemetry", args: []string{"-telemetry-fd", "4"}, want: 4},
 		{
 			name: "managed with inherited RDP", want: 4,
-			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-fd", "3", "-telemetry-fd", "4"},
+			args: []string{"-rdp-fd", "3", "-telemetry-fd", "4"},
 		},
 		{name: "negative", args: []string{"-telemetry-fd", "-1"}, err: flag.ErrTelemetryFD},
 		{name: "stdout", args: []string{"-telemetry-fd", "1"}, err: flag.ErrTelemetryFD},
 		{name: "stderr", args: []string{"-telemetry-fd", "2"}, err: flag.ErrTelemetryFD},
 		{
 			name: "collides with RDP", err: flag.ErrTelemetryFD,
-			args: []string{"-rdp", "127.0.0.1:3389", "-rdp-fd", "3", "-telemetry-fd", "3"},
+			args: []string{"-rdp-fd", "3", "-telemetry-fd", "3"},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

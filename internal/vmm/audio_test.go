@@ -9,7 +9,7 @@ func TestAudioConfigRejectsBeforeOpeningKVM(t *testing.T) {
 	t.Parallel()
 	for _, config := range []Config{
 		{Audio: "rdp"},
-		{Audio: "unknown", RDP: "127.0.0.1:0"},
+		withGatewayRDP(t, Config{Audio: "unknown"}),
 	} {
 		config.Dev = "/missing-kvm-device"
 		if err := New(config).Init(); !errors.Is(err, errAudioConfig) {
@@ -20,7 +20,7 @@ func TestAudioConfigRejectsBeforeOpeningKVM(t *testing.T) {
 
 func TestAudioDisplayConfiguration(t *testing.T) {
 	t.Parallel()
-	v := New(Config{Audio: "rdp", RDP: "127.0.0.1:0"})
+	v := New(withGatewayRDP(t, Config{Audio: "rdp"}))
 	display, err := v.display(nil)
 	if err != nil {
 		t.Fatal(err)

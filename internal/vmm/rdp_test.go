@@ -2,10 +2,8 @@ package vmm
 
 import (
 	"errors"
-	"net"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
@@ -19,7 +17,7 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 		{name: "excessive-threads", config: Config{RDPH264: true, RDPH264Threads: 17}, want: errRDPH264ThreadsConfig},
 		{
 			name:   "threads-without-h264",
-			config: Config{RDP: "127.0.0.1:0", RDPH264Threads: 2},
+			config: Config{RDPH264Threads: 2},
 			want:   errRDPH264ThreadsConfig,
 		},
 		{
@@ -29,12 +27,12 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 		},
 		{
 			name:   "encoder-without-h264",
-			config: Config{RDP: "127.0.0.1:0", RDPH264Encoder: "nvenc"},
+			config: Config{RDPH264Encoder: "nvenc"},
 			want:   errRDPH264EncoderConfig,
 		},
 		{
 			name:   "software-without-h264",
-			config: Config{RDP: "127.0.0.1:0", RDPH264Encoder: "software"},
+			config: Config{RDPH264Encoder: "software"},
 			want:   errRDPH264EncoderConfig,
 		},
 		{name: "stats-without-rdp", config: Config{RDPStats: true}, want: errRDPStatsConfig},
@@ -62,7 +60,7 @@ func TestRDPEncoderConfiguration(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			v := New(Config{RDP: "127.0.0.1:0", RDPH264: true, RDPH264Encoder: backend})
+			v := New(withGatewayRDP(t, Config{RDPH264: true, RDPH264Encoder: backend}))
 			if err := v.validateRDPPerformanceConfig(); err != nil {
 				t.Fatalf("valid encoder configuration rejected: %v", err)
 			}
@@ -73,8 +71,8 @@ func TestRDPEncoderConfiguration(t *testing.T) {
 func TestRDPDisplayReceivesEncoderConfiguration(t *testing.T) {
 	t.Parallel()
 	// Calling display directly bypasses VMM validation. An invalid backend must
-	// still reach the RDP constructor and fail before it opens the listener.
-	v := New(Config{RDP: "invalid-address", RDPH264: true, RDPH264Encoder: "invalid"})
+	// still reach the RDP constructor and fail before it serves the listener.
+	v := New(withGatewayRDP(t, Config{RDPH264: true, RDPH264Encoder: "invalid"}))
 	display, err := v.display(nil)
 	if display != nil {
 		_ = display.Close()
@@ -86,78 +84,28 @@ func TestRDPDisplayReceivesEncoderConfiguration(t *testing.T) {
 
 func TestRDPDisplayConfiguration(t *testing.T) {
 	t.Parallel()
-	for _, both := range []bool{false, true} {
-		name := "rdp"
-		if both {
-			name = "rdp-and-vnc"
-		}
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			v := New(Config{RDP: "127.0.0.1:0"})
-			want := 1
-			if both {
-				v.VNC, want = "127.0.0.1:0", 2
-			}
-			display, err := v.display(nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = display.Close() })
-			if !v.hasRemoteDisplay() || len(v.consoles) != want || v.rdpDisplay == nil || v.serialOutput != nil {
-				t.Fatalf("incomplete remote console configuration: %+v", v)
-			}
-		})
-	}
-}
-
-func TestRDPFailureClosesVNCListener(t *testing.T) {
-	t.Parallel()
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	v := New(gatewayRDPConfig(t))
+	display, err := v.display(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	addr := listener.Addr().String()
-	_ = listener.Close()
-	v := New(Config{VNC: addr, RDP: "127.0.0.1:0", RDPCert: "missing.crt", RDPKey: "missing.key"})
-	if _, err := v.display(nil); err == nil {
-		t.Fatal("invalid certificate unexpectedly accepted")
+	if display == nil {
+		t.Fatal("inherited listener did not create an RDP display")
 	}
-	if v.vncDisplay != nil || v.rdpDisplay != nil || len(v.consoles) != 0 {
-		t.Fatal("partially constructed display retained")
+	t.Cleanup(func() { _ = display.Close() })
+	if display != v.rdpDisplay {
+		t.Fatal("configured RDP display was not selected as the machine display")
 	}
-	rebound, err := net.Listen("tcp", addr)
-	if err != nil {
-		t.Fatalf("VNC listener leaked after RDP failure: %v", err)
-	}
-	_ = rebound.Close()
 }
 
-func TestSerialMirrorDoesNotBlockRemoteInput(t *testing.T) {
+func TestDisplayWithoutGatewayListener(t *testing.T) {
 	t.Parallel()
-	serial := make(chan byte, 1)
-	serial <- 'x'
-	primary := &recordedKeyInput{keys: make(chan uint32, 1)}
-	mirror := &serialMirrorInput{primary: primary, serial: serial}
-	done := make(chan struct{})
-	go func() {
-		mirror.KeyEvent(true, 'a')
-		close(done)
-	}()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		<-serial // Release a blocked writer before reporting the regression.
-		t.Fatal("full serial buffer blocked remote input")
+	v := New(Config{})
+	display, err := v.display(nil)
+	if display != nil {
+		_ = display.Close()
 	}
-	if got := <-primary.keys; got != 'a' {
-		t.Fatalf("primary keyboard event: %d", got)
-	}
-	if got := <-serial; got != 'x' {
-		t.Fatalf("buffered serial byte changed: %q", got)
+	if err != nil || display != nil || v.rdpDisplay != nil {
+		t.Fatalf("headless configuration created a display: %v, %v", display, err)
 	}
 }
-
-type recordedKeyInput struct{ keys chan uint32 }
-
-func (r *recordedKeyInput) KeyEvent(_ bool, keysym uint32)    { r.keys <- keysym }
-func (r *recordedKeyInput) PointerEvent(_ uint8, _, _ uint16) {}

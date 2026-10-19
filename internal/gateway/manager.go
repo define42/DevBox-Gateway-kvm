@@ -623,14 +623,15 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 }
 
 func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	address := "@gokvm-rdp-" + rand.Text()
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: address, Net: "unix"})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create private RDP listener: %w", err)
 	}
 	defer listener.Close()
-	address := listener.Addr().String()
-	// Keep the port bound until exec inherits the socket. Releasing a reserved
-	// address and asking the child to bind it would race other VM startups.
+	// Keep the abstract socket bound until exec inherits it. Its address stays
+	// in gateway state rather than worker arguments; the worker enforces access
+	// using kernel peer credentials.
 	listenerFile, err := listener.File()
 	if err != nil {
 		return nil, fmt.Errorf("duplicate RDP listener: %w", err)
@@ -660,7 +661,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
 		"-d", filepath.Join(dir, "disk.img"), "-cloud-init", filepath.Join(dir, "seed.iso"),
 		"-c", fmt.Sprint(m.config.CPUs), "-m", fmt.Sprintf("%dM", m.config.MemoryMiB), "-net", "user-isolated",
-		"-rdp", address, "-rdp-fd", "3",
+		"-rdp-fd", "3",
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
 		"-rdp-profile", m.config.RDPProfile,

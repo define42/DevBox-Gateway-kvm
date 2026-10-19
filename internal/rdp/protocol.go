@@ -51,8 +51,9 @@ type queuedPacket struct {
 }
 
 // Accept negotiates TLS and the RDP connection sequence. Credentials in Client
-// Info are ignored: this console has no authentication or NLA support.
-// The caller owns conn, including closing it when Accept returns an error.
+// Info are intentionally ignored; callers must authenticate and authorize the
+// transport before calling Accept. NLA is not supported. The caller owns conn,
+// including closing it when Accept returns an error.
 func Accept(conn net.Conn, config *tls.Config, width, height int) (*Session, error) {
 	if config == nil || width < 1 || width > 8192 || height < 1 || height > 8192 {
 		return nil, errors.New("rdp: invalid TLS configuration or desktop size")

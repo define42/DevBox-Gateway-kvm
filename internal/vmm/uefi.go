@@ -33,7 +33,6 @@ func (v *VMM) setupUEFI() error {
 	if err := v.LoadUEFI(v.UEFI, v.UEFIVars); err != nil {
 		return fmt.Errorf("load UEFI firmware: %w", err)
 	}
-	v.attachSerialOutput()
 	log.Printf("UEFI disk boot: firmware=%s variables=%s disk=%s", v.UEFI, v.UEFIVars, v.Disk)
 
 	return nil

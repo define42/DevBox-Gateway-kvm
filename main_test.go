@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
@@ -52,7 +53,7 @@ func TestCancelledBootDoesNotCreateMachine(t *testing.T) {
 
 func TestCancelledBootClosesInheritedRDPListener(t *testing.T) {
 	t.Parallel()
-	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@gokvm-test-" + rand.Text(), Net: "unix"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +73,7 @@ func TestCancelledBootClosesInheritedRDPListener(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	args := []string{"gokvm", "boot", "-rdp", address, "-rdp-fd", fmt.Sprint(fd)}
+	args := []string{"gokvm", "boot", "-rdp-fd", fmt.Sprint(fd)}
 	if err := run(ctx, args); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled boot with inherited listener returned %v", err)
 	}
@@ -83,7 +84,7 @@ func TestCancelledBootClosesInheritedRDPListener(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	replacement, err := net.Listen("tcp", address)
+	replacement, err := net.Listen("unix", address)
 	if err != nil {
 		t.Fatalf("cancelled boot retained its inherited RDP listener: %v", err)
 	}
@@ -99,7 +100,7 @@ func TestBootRejectsInvalidInheritedRDPDescriptorBeforeInitialization(t *testing
 	// This descriptor exceeds the process limit without closing a real file
 	// whose descriptor could be reused by another parallel test.
 	const invalidFD = 1<<31 - 1
-	args := []string{"gokvm", "boot", "-rdp", "127.0.0.1:3389", "-rdp-fd", fmt.Sprint(invalidFD)}
+	args := []string{"gokvm", "boot", "-rdp-fd", fmt.Sprint(invalidFD)}
 	if err := run(ctx, args); !errors.Is(err, unix.EBADF) {
 		t.Fatalf("invalid inherited descriptor returned %v, want EBADF before boot cancellation", err)
 	}

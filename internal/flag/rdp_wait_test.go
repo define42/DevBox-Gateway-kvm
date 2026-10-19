@@ -16,13 +16,12 @@ func TestRDPWaitOptions(t *testing.T) {
 		bad  bool
 	}{
 		{name: "default"},
-		{name: "rdp-default", args: []string{"-rdp", "127.0.0.1:3390"}},
-		{name: "enabled", args: []string{"-rdp-wait", "-rdp", "127.0.0.1:3390"}, want: true},
-		{name: "explicitly-enabled", args: []string{"-rdp", ":3390", "-rdp-wait=true"}, want: true},
+		{name: "rdp-default", args: []string{"-rdp-fd", "3"}},
+		{name: "enabled", args: []string{"-rdp-wait", "-rdp-fd", "3"}, want: true},
+		{name: "explicitly-enabled", args: []string{"-rdp-fd", "3", "-rdp-wait=true"}, want: true},
 		{name: "disabled-without-listener", args: []string{"-rdp-wait=false"}},
 		{name: "missing-listener", args: []string{"-rdp-wait"}, bad: true},
-		{name: "empty-listener", args: []string{"-rdp-wait", "-rdp", ""}, bad: true},
-		{name: "vnc-only", args: []string{"-rdp-wait", "-vnc", "127.0.0.1:5900"}, bad: true},
+		{name: "empty-listener", args: []string{"-rdp-wait", "-rdp-fd", "0"}, bad: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

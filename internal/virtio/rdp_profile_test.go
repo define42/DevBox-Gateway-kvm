@@ -24,17 +24,13 @@ func TestRDPDisplayProfiles(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			d, err := NewRDPDisplayWithConfig("127.0.0.1:0", RDPConfig{H264: true, Profile: test.profile})
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = d.Close() })
+			d := newRDPTestDisplayWithConfig(t, RDPConfig{H264: true, Profile: test.profile})
 			if d.frameRate != test.fps || d.linearInterval != time.Second/time.Duration(test.fps) {
 				t.Fatalf("profile %q: rate=%d capture=%v", test.profile, d.frameRate, d.linearInterval)
 			}
 		})
 	}
-	if _, err := NewRDPDisplayWithConfig("invalid-address", RDPConfig{Profile: "fast"}); !errors.Is(err, rdp.ErrProfile) {
+	if _, err := NewRDPDisplayWithConfig(RDPConfig{Profile: "fast"}); !errors.Is(err, rdp.ErrProfile) {
 		t.Fatalf("invalid profile reached listener creation: %v", err)
 	}
 }

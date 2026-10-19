@@ -20,7 +20,7 @@ var errInvalidFramebuffer = errors.New("invalid framebuffer image or dimensions"
 // through the same remote display.
 type ConsoleDisplay interface {
 	Display
-	SetInput(VNCInput)
+	SetInput(DisplayInput)
 	StartVGATextFallback(mem []byte)
 	StartLinearFramebufferFallback(mem []byte, base, width, height, stride int)
 }
@@ -30,26 +30,20 @@ type ConsoleDisplay interface {
 // coordinates worker creation with shutdown. The frame lock never acquires it.
 type framebuffer struct {
 	mu             sync.Mutex
-	cond           *sync.Cond
 	width          int
 	height         int
 	frame          []byte
 	frameShared    bool
 	tileVersions   []uint64
 	seq            uint64
-	input          VNCInput
+	input          DisplayInput
 	done           chan struct{}
 	changed        chan struct{}
 	linearInterval time.Duration
-	serialInterval time.Duration
 
 	textMu                 sync.Mutex
-	textConsole            *vncTextConsole
-	textDirty              bool
-	serialRunning          bool
-	textDisabled           bool
+	graphicsActive         bool
 	legacyFallbackDisabled bool
-	serialMuted            bool
 	stopped                bool
 	fallbackWG             sync.WaitGroup
 	shutdownOnce           sync.Once
@@ -57,42 +51,36 @@ type framebuffer struct {
 
 func newFramebuffer() *framebuffer {
 	d := &framebuffer{
-		width:          vncDefaultWidth,
-		height:         vncDefaultHeight,
+		width:          displayDefaultWidth,
+		height:         displayDefaultHeight,
 		done:           make(chan struct{}),
 		changed:        make(chan struct{}),
 		linearInterval: 33 * time.Millisecond,
-		serialInterval: 33 * time.Millisecond,
 	}
-	d.cond = sync.NewCond(&d.mu)
 
 	return d
 }
 
 // SetInput attaches an input sink for remote keyboard and pointer events.
-func (d *framebuffer) SetInput(input VNCInput) {
+func (d *framebuffer) SetInput(input DisplayInput) {
 	d.mu.Lock()
 	d.input = input
 	d.mu.Unlock()
 }
 
 // GraphicsReset releases graphics ownership after the GPU loses its scanout.
-// OVMF resets virtio-gpu at ExitBootServices. VNC may then show fresh serial
-// output until the next driver publishes a frame. Keep the last graphics image
-// visible until new output arrives.
+// OVMF resets virtio-gpu at ExitBootServices. Keep the last graphics image
+// visible until the next driver publishes a frame.
 func (d *framebuffer) GraphicsReset() {
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
-	if d.stopped || !d.textDisabled {
+	if d.stopped || !d.graphicsActive {
 		return
 	}
-	d.textDisabled = false
-	d.serialMuted = false
-	d.textConsole = nil
-	d.textDirty = false
+	d.graphicsActive = false
 }
 
-// Flush publishes a GPU frame, replacing console fallbacks until a GPU reset.
+// Flush publishes a GPU frame, permanently replacing legacy console fallbacks.
 func (d *framebuffer) Flush(width, height int, img *image.RGBA) error {
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
@@ -106,7 +94,7 @@ func (d *framebuffer) Flush(width, height int, img *image.RGBA) error {
 	}
 
 	if width > 0 && height > 0 {
-		d.textDisabled = true
+		d.graphicsActive = true
 		d.legacyFallbackDisabled = true
 	}
 
@@ -145,89 +133,9 @@ func (d *framebuffer) flush(width, height int, img *image.RGBA) error {
 	d.markFrameDamageLocked(nil)
 	close(d.changed)
 	d.changed = make(chan struct{})
-	d.cond.Broadcast()
 	d.mu.Unlock()
 
 	return nil
-}
-
-// writeSerial mirrors serial bytes for VNC until a graphical or VGA console takes over.
-// After the first frame, rendering is batched so byte-at-a-time UART writes do
-// not stall the guest copying a complete framebuffer for every character.
-func (d *framebuffer) writeSerial(p []byte) (int, error) {
-	d.textMu.Lock()
-	defer d.textMu.Unlock()
-
-	if len(p) == 0 || d.stopped || d.textDisabled || d.serialMuted {
-		return len(p), nil
-	}
-
-	first := d.textConsole == nil
-	if first {
-		d.textConsole = newVNCTextConsole()
-	}
-
-	d.textConsole.write(p)
-	if !d.serialRunning {
-		d.serialRunning = true
-		d.fallbackWG.Add(1)
-		go d.renderSerialFrames()
-	}
-	if !first {
-		d.textDirty = true
-
-		return len(p), nil
-	}
-
-	img := d.textConsole.render()
-	if err := d.flush(img.Bounds().Dx(), img.Bounds().Dy(), img); err != nil {
-		return 0, err
-	}
-
-	return len(p), nil
-}
-
-func (d *framebuffer) renderSerialFrames() {
-	defer d.fallbackWG.Done()
-	ticker := time.NewTicker(d.serialInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-d.done:
-			return
-		case <-ticker.C:
-			d.textMu.Lock()
-			active := d.refreshSerialLocked()
-			if !active {
-				d.serialRunning = false
-			}
-			d.textMu.Unlock()
-			if !active {
-				return
-			}
-		}
-	}
-}
-
-func (d *framebuffer) refreshSerial() bool {
-	d.textMu.Lock()
-	defer d.textMu.Unlock()
-
-	return d.refreshSerialLocked()
-}
-
-func (d *framebuffer) refreshSerialLocked() bool {
-	if d.stopped || d.textDisabled || d.serialMuted {
-		return false
-	}
-	if d.textDirty {
-		img := d.textConsole.render()
-		_ = d.flush(img.Bounds().Dx(), img.Bounds().Dy(), img)
-		d.textDirty = false
-	}
-
-	return true
 }
 
 // StartVGATextFallback presents legacy VGA text until the GPU supplies a frame.
@@ -318,15 +226,14 @@ func (d *framebuffer) refreshFallback(
 	}
 
 	*rendered = true
-	d.serialMuted = true
 	img := render(snap)
 	_ = d.flush(img.Bounds().Dx(), img.Bounds().Dy(), img)
 
 	return true
 }
 
-// shutdown stops fallback workers and wakes all protocol frame waiters. Each
-// transport remains responsible for closing and waiting for its connections.
+// shutdown stops fallback workers and signals display shutdown. The transport
+// remains responsible for closing and waiting for its connections.
 func (d *framebuffer) shutdown() {
 	d.shutdownOnce.Do(func() {
 		d.textMu.Lock()
@@ -334,33 +241,30 @@ func (d *framebuffer) shutdown() {
 		close(d.done)
 		d.textMu.Unlock()
 
-		d.wakeFrameWaiters()
 		d.fallbackWG.Wait()
 	})
 }
 
 const (
-	vncDefaultWidth  = 1024
-	vncDefaultHeight = 768
-	vncTextCols      = 100
-	vncTextRows      = 40
-	vncTextCellW     = 7
-	vncTextCellH     = 13
+	displayDefaultWidth  = 1024
+	displayDefaultHeight = 768
+	vgaTextCellWidth     = 7
+	vgaTextCellHeight    = 13
 
 	vgaTextBase = 0xb8000
 	vgaTextCols = 80
 	vgaTextRows = 25
 )
 
-type vncFrame struct {
+type displayFrame struct {
 	width  int
 	height int
 	pix    []byte
 	seq    uint64
 }
 
-// VNCInput receives X11 keysyms and RFB-style pointer events from remote displays.
-type VNCInput interface {
+// DisplayInput receives X11 keysyms and absolute pointer events from remote displays.
+type DisplayInput interface {
 	KeyEvent(down bool, keysym uint32)
 	PointerEvent(buttonMask uint8, x, y uint16)
 }
@@ -375,16 +279,7 @@ func (d *framebuffer) sendKeyEvent(down bool, keysym uint32) {
 	}
 }
 
-func (d *framebuffer) sendPointerEvent(buttonMask uint8, x, y uint16) {
-	d.mu.Lock()
-	input := d.input
-	width, height := d.width, d.height
-	d.mu.Unlock()
-
-	sendPointerEventInBounds(input, buttonMask, x, y, width, height)
-}
-
-func sendPointerEventInBounds(input VNCInput, buttonMask uint8, x, y uint16, width, height int) {
+func sendPointerEventInBounds(input DisplayInput, buttonMask uint8, x, y uint16, width, height int) {
 	if bounded, ok := input.(interface {
 		PointerEventInBounds(uint8, uint16, uint16, int, int)
 	}); ok {
@@ -397,7 +292,7 @@ func sendPointerEventInBounds(input VNCInput, buttonMask uint8, x, y uint16, wid
 	}
 }
 
-func (d *framebuffer) snapshot() vncFrame {
+func (d *framebuffer) snapshot() displayFrame {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -407,64 +302,23 @@ func (d *framebuffer) snapshot() vncFrame {
 // changedFrame returns an immutable frame and the next publication notification
 // atomically, so a writer cannot lose a wakeup between reading and waiting.
 // Unlike snapshot, the returned pixels must never be modified by the caller.
-func (d *framebuffer) changedFrame(sequence uint64, force bool) (vncFrame, bool, <-chan struct{}) {
+func (d *framebuffer) changedFrame(sequence uint64, force bool) (displayFrame, bool, <-chan struct{}) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	if !force && d.seq == sequence {
-		return vncFrame{}, false, d.changed
+		return displayFrame{}, false, d.changed
 	}
 	d.frameShared = true
 
-	return vncFrame{width: d.width, height: d.height, pix: d.frame, seq: d.seq}, true, d.changed
+	return displayFrame{width: d.width, height: d.height, pix: d.frame, seq: d.seq}, true, d.changed
 }
 
-func (d *framebuffer) frameForRequestUntil(incremental bool, lastSeq uint64, done <-chan struct{}) (vncFrame, bool) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if incremental {
-		for d.seq == lastSeq {
-			if d.frameWaitCanceled(done) {
-				return d.snapshotLocked(), false
-			}
-
-			d.cond.Wait()
-		}
-	}
-
-	return d.snapshotLocked(), true
-}
-
-func (d *framebuffer) frameWaitCanceled(done <-chan struct{}) bool {
-	select {
-	case <-d.done:
-		return true
-	default:
-	}
-
-	if done != nil {
-		select {
-		case <-done:
-			return true
-		default:
-		}
-	}
-
-	return false
-}
-
-func (d *framebuffer) wakeFrameWaiters() {
-	d.mu.Lock()
-	d.cond.Broadcast()
-	d.mu.Unlock()
-}
-
-func (d *framebuffer) snapshotLocked() vncFrame {
+func (d *framebuffer) snapshotLocked() displayFrame {
 	frame := make([]byte, len(d.frame))
 	copy(frame, d.frame)
 
-	return vncFrame{
+	return displayFrame{
 		width:  d.width,
 		height: d.height,
 		pix:    frame,
@@ -472,162 +326,8 @@ func (d *framebuffer) snapshotLocked() vncFrame {
 	}
 }
 
-type vncTextConsole struct {
-	cols int
-	rows int
-
-	cells [][]rune
-	row   int
-	col   int
-
-	escape []byte
-}
-
-func newVNCTextConsole() *vncTextConsole {
-	c := &vncTextConsole{
-		cols:  vncTextCols,
-		rows:  vncTextRows,
-		cells: make([][]rune, vncTextRows),
-	}
-	for y := range c.cells {
-		c.cells[y] = make([]rune, vncTextCols)
-		for x := range c.cells[y] {
-			c.cells[y][x] = ' '
-		}
-	}
-
-	return c
-}
-
-func (c *vncTextConsole) write(p []byte) {
-	for _, b := range p {
-		c.putByte(b)
-	}
-}
-
-func (c *vncTextConsole) putByte(b byte) {
-	if len(c.escape) > 0 {
-		c.putEscapeByte(b)
-
-		return
-	}
-
-	switch b {
-	case 0x1b:
-		c.escape = []byte{b}
-	case '\r':
-		c.col = 0
-	case '\n':
-		c.newline()
-	case '\b':
-		if c.col > 0 {
-			c.col--
-		}
-	case '\t':
-		for {
-			c.putRune(' ')
-			if c.col%8 == 0 {
-				break
-			}
-		}
-	default:
-		if b >= 0x20 && b < 0x7f {
-			c.putRune(rune(b))
-		}
-	}
-}
-
-func (c *vncTextConsole) putEscapeByte(b byte) {
-	c.escape = append(c.escape, b)
-	if len(c.escape) == 2 && b != '[' {
-		c.escape = nil
-
-		return
-	}
-
-	if len(c.escape) < 3 {
-		return
-	}
-
-	if b < 0x40 || b > 0x7e {
-		return
-	}
-
-	c.handleCSI(string(c.escape[2:len(c.escape)-1]), b)
-	c.escape = nil
-}
-
-func (c *vncTextConsole) handleCSI(params string, final byte) {
-	switch final {
-	case 'H', 'f':
-		c.row, c.col = 0, 0
-	case 'J':
-		if params == "" || params == "2" {
-			c.clear()
-		}
-	case 'K':
-		for x := c.col; x < c.cols; x++ {
-			c.cells[c.row][x] = ' '
-		}
-	case 'm', 'h', 'l':
-		// Styling and terminal mode toggles are ignored by the fallback.
-	default:
-	}
-}
-
-func (c *vncTextConsole) putRune(r rune) {
-	if c.col >= c.cols {
-		c.newline()
-	}
-
-	c.cells[c.row][c.col] = r
-	c.col++
-}
-
-func (c *vncTextConsole) newline() {
-	c.col = 0
-	c.row++
-	if c.row < c.rows {
-		return
-	}
-
-	copy(c.cells, c.cells[1:])
-	c.cells[c.rows-1] = make([]rune, c.cols)
-	for x := range c.cells[c.rows-1] {
-		c.cells[c.rows-1][x] = ' '
-	}
-
-	c.row = c.rows - 1
-}
-
-func (c *vncTextConsole) clear() {
-	for y := range c.cells {
-		for x := range c.cells[y] {
-			c.cells[y][x] = ' '
-		}
-	}
-
-	c.row, c.col = 0, 0
-}
-
-func (c *vncTextConsole) render() *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, c.cols*vncTextCellW, c.rows*vncTextCellH))
-	drawer := font.Drawer{
-		Dst:  img,
-		Src:  image.NewUniform(color.RGBA{R: 0xe8, G: 0xea, B: 0xed, A: 0xff}),
-		Face: basicfont.Face7x13,
-	}
-
-	for y, row := range c.cells {
-		drawer.Dot = fixed.P(0, y*vncTextCellH+11)
-		drawer.DrawString(string(row))
-	}
-
-	return img
-}
-
 func renderVGAText(text []byte) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, vgaTextCols*vncTextCellW, vgaTextRows*vncTextCellH))
+	img := image.NewRGBA(image.Rect(0, 0, vgaTextCols*vgaTextCellWidth, vgaTextRows*vgaTextCellHeight))
 	drawer := font.Drawer{
 		Dst:  img,
 		Face: basicfont.Face7x13,
@@ -645,7 +345,7 @@ func renderVGAText(text []byte) *image.RGBA {
 				continue
 			}
 
-			drawer.Dot = fixed.P(x*vncTextCellW, y*vncTextCellH+11)
+			drawer.Dot = fixed.P(x*vgaTextCellWidth, y*vgaTextCellHeight+11)
 			drawer.Src = image.NewUniform(vgaColor(text[off+1] & 0x0f))
 			drawer.DrawString(string([]byte{ch}))
 		}

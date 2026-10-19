@@ -16,7 +16,7 @@ func TestFramebufferDamageCoalescesForIndependentReaders(t *testing.T) {
 	if err := d.FlushDamage(256, 192, img, nil); err != nil {
 		t.Fatal(err)
 	}
-	var fast, slow vncFrame
+	var fast, slow displayFrame
 	d.copyFrameChanges(&fast, false)
 	d.copyFrameChanges(&slow, false)
 	points := []image.Point{{X: 2, Y: 3}, {X: 180, Y: 75}, {X: 240, Y: 150}}
@@ -80,7 +80,7 @@ func TestFramebufferDamageResizeAndBoundedRegions(t *testing.T) {
 	t.Parallel()
 	d := &RDPDisplay{framebuffer: newFramebuffer()}
 	defer d.shutdown()
-	var frame vncFrame
+	var frame displayFrame
 	for _, size := range []image.Point{{X: 256, Y: 128}, {X: 128, Y: 256}} {
 		img := image.NewRGBA(image.Rectangle{Max: size})
 		img.SetRGBA(size.X-1, size.Y-1, color.RGBA{B: 255, A: 255})
@@ -130,14 +130,14 @@ func TestFramebufferDamageConcurrentPublication(t *testing.T) {
 	})
 	for range 2 {
 		workers.Go(func() {
-			var frame vncFrame
+			var frame displayFrame
 			for range 100 {
 				d.copyFrameChanges(&frame, false)
 			}
 		})
 	}
 	workers.Wait()
-	var final vncFrame
+	var final displayFrame
 	d.copyFrameChanges(&final, false)
 	if final.pix[0] != 99 {
 		t.Fatal("latest publication was lost")
@@ -159,7 +159,7 @@ func BenchmarkFramebufferDamage(b *testing.B) {
 			if err := d.FlushDamage(1920, 1080, img, nil); err != nil {
 				b.Fatal(err)
 			}
-			var frame vncFrame
+			var frame displayFrame
 			d.copyFrameChanges(&frame, false)
 			rects := []image.Rectangle{tc.rect}
 			b.ReportAllocs()

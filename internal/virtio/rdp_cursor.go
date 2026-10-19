@@ -43,7 +43,7 @@ func (d *RDPDisplay) FlushDamage(width, height int, img *image.RGBA, rects []ima
 	if d.stopped {
 		return nil
 	}
-	// Serial may have replaced every pixel, even at the same dimensions.
+	// A fallback may have replaced every pixel, even at the same dimensions.
 	// Reclaim the whole scanout on the first real update after a reset.
 	if rects != nil {
 		bounds := image.Rect(0, 0, width, height)
@@ -58,7 +58,7 @@ func (d *RDPDisplay) FlushDamage(width, height int, img *image.RGBA, rects []ima
 		if !changed {
 			return nil
 		}
-		if !d.textDisabled {
+		if !d.graphicsActive {
 			rects = nil
 		}
 	}
@@ -72,7 +72,7 @@ func (d *RDPDisplay) FlushDamage(width, height int, img *image.RGBA, rects []ima
 	published := d.seq != before
 	d.mu.Unlock()
 	if published {
-		d.textDisabled = true
+		d.graphicsActive = true
 		d.legacyFallbackDisabled = true
 	}
 

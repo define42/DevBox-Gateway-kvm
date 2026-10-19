@@ -13,21 +13,21 @@ import (
 
 var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'seed', or 'auth-user' subcommands")
 
-var ErrRDPOptions = errors.New("RDP certificate and key must be provided together with -rdp")
+var ErrRDPOptions = errors.New("RDP certificate and key must be provided together with gateway-internal -rdp-fd")
 
-var ErrRDPH264 = errors.New("-rdp-h264 requires -rdp")
+var ErrRDPH264 = errors.New("-rdp-h264 requires gateway-internal -rdp-fd")
 
-var ErrRDPProfile = errors.New("-rdp-profile must be office or smooth and requires -rdp")
+var ErrRDPProfile = errors.New("-rdp-profile must be office or smooth and requires gateway-internal -rdp-fd")
 
 var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software, nvenc, or auto and requires -rdp-h264")
 
 var ErrRDPH264Threads = errors.New("-rdp-h264-threads must be 0 (auto) or 1..16 and requires -rdp-h264")
 
-var ErrRDPStats = errors.New("-rdp-stats requires -rdp")
+var ErrRDPStats = errors.New("-rdp-stats requires gateway-internal -rdp-fd")
 
-var ErrRDPWait = errors.New("-rdp-wait requires -rdp")
+var ErrRDPWait = errors.New("-rdp-wait requires gateway-internal -rdp-fd")
 
-var ErrRDPFD = errors.New("-rdp-fd must be 0 (disabled) or an inherited TCP listener descriptor >=3 with -rdp")
+var ErrRDPFD = errors.New("-rdp-fd must be 0 (disabled) or an inherited gateway Unix listener descriptor >=3")
 
 var ErrTelemetryFD = errors.New(
 	"-telemetry-fd must be 0 (disabled) or an inherited descriptor >=3 distinct from -rdp-fd",
@@ -35,7 +35,7 @@ var ErrTelemetryFD = errors.New(
 
 var ErrNetwork = errors.New("-net must be 'user', 'user-isolated', or 'none' and cannot be combined with -t")
 
-var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires -rdp")
+var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires gateway-internal -rdp-fd")
 
 var ErrCPUCount = fmt.Errorf("-c must be between 1 and %d", ebda.MaxVCPUs)
 
@@ -59,9 +59,6 @@ type BootArgs struct {
 	Network        string
 	Disk           string
 	CloudInit      string
-	GPU            string
-	VNC            string
-	RDP            string
 	RDPProfile     string
 	RDPFD          int
 	TelemetryFD    int
@@ -78,7 +75,7 @@ type BootArgs struct {
 }
 
 func parseBootArgs(args []string) (*BootArgs, error) {
-	bootCmd := flag.NewFlagSet("boot subcommand", flag.ExitOnError)
+	bootCmd := flag.NewFlagSet("boot subcommand", flag.ContinueOnError)
 	c := &BootArgs{}
 
 	bootCmd.StringVar(&c.Dev, "D", "/dev/kvm", "path of kvm device")
@@ -102,21 +99,16 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.Disk, "d", "", "path of disk file (for /dev/vda)")
 	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
 		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
-	bootCmd.StringVar(&c.GPU, "g", "", `path to write the virtio-gpu framebuffer as PNG. `+
-		`If empty, no virtio-gpu device is created. (default "")`)
-	bootCmd.StringVar(&c.VNC, "vnc", "", `VNC listen address for virtio-gpu, for example ":5900". `+
-		`If empty, no VNC server is created. (default "")`)
-	bootCmd.StringVar(&c.RDP, "rdp", "", "RDP console listen address, for example 127.0.0.1:3389 "+
-		"(one connection at a time, TLS, no authentication)")
 	bootCmd.StringVar(&c.RDPProfile, "rdp-profile", rdp.ProfileSmooth,
-		"RDP display profile: office (30 FPS) or smooth (60 FPS); requires -rdp")
+		"gateway-internal RDP display profile: office (30 FPS) or smooth (60 FPS); requires -rdp-fd")
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
-		"inherited TCP listener descriptor (>=3) matching -rdp; 0 opens a new listener")
+		"gateway-internal inherited Unix listener descriptor (>=3); 0 disables RDP")
 	bootCmd.IntVar(&c.TelemetryFD, "telemetry-fd", 0,
 		"private inherited Unix datagram descriptor (>=3); 0 disables managed performance telemetry")
 	bootCmd.StringVar(&c.ProfileSocket, "profile-socket", "",
 		"opt-in CPU profiling Unix socket in a private directory; empty disables profiling")
-	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false, "wait for an RDP client before starting the guest (requires -rdp)")
+	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false,
+		"gateway-internal wait for an RDP client before starting the guest (requires -rdp-fd)")
 	bootCmd.StringVar(&c.RDPCert, "rdp-cert", "",
 		"RDP TLS certificate PEM file (default: temporary self-signed certificate)")
 	bootCmd.StringVar(&c.RDPKey, "rdp-key", "", "RDP TLS private key PEM file")
@@ -189,19 +181,19 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 }
 
 func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) error {
-	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil || c.RDPProfile == "" || (profileSet && c.RDP == "") {
-		return ErrRDPProfile
-	}
-	if c.RDPFD != 0 && (c.RDPFD < 3 || c.RDP == "") {
+	if c.RDPFD != 0 && c.RDPFD < 3 {
 		return ErrRDPFD
 	}
-	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDP == "") {
+	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil || c.RDPProfile == "" || (profileSet && c.RDPFD == 0) {
+		return ErrRDPProfile
+	}
+	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDPFD == 0) {
 		return ErrRDPOptions
 	}
-	if c.RDPWait && c.RDP == "" {
+	if c.RDPWait && c.RDPFD == 0 {
 		return ErrRDPWait
 	}
-	if c.RDPH264 && c.RDP == "" {
+	if c.RDPH264 && c.RDPFD == 0 {
 		return ErrRDPH264
 	}
 	switch c.RDPH264Encoder {
@@ -215,10 +207,10 @@ func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) er
 	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
 		return ErrRDPH264Threads
 	}
-	if c.RDPStats && c.RDP == "" {
+	if c.RDPStats && c.RDPFD == 0 {
 		return ErrRDPStats
 	}
-	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDP == "") {
+	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDPFD == 0) {
 		return ErrAudio
 	}
 

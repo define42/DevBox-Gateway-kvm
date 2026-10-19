@@ -64,7 +64,7 @@ func TestConsoleBootParams(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			v := New(Config{RDP: "127.0.0.1:3390"})
+			v := New(gatewayRDPConfig(t))
 			if got := v.consoleBootParams(tc.params); got != tc.want {
 				t.Fatalf("consoleBootParams(%q) = %q, want %q", tc.params, got, tc.want)
 			}
@@ -79,19 +79,8 @@ func TestConsoleBootParamsWithoutRDP(t *testing.T) {
 	t.Parallel()
 
 	const params = " root=\"LABEL=Desktop Disk\"\tconsole=ttyS0 earlyprintk=serial -- earlycon\n"
-	for _, tc := range []struct {
-		name string
-		conf Config
-	}{
-		{name: "headless"},
-		{name: "VNC", conf: Config{VNC: "127.0.0.1:5900"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			if got := New(tc.conf).consoleBootParams(params); got != params {
-				t.Fatalf("non-RDP arguments changed: %q", got)
-			}
-		})
+	if got := New(Config{}).consoleBootParams(params); got != params {
+		t.Fatalf("headless arguments changed: %q", got)
 	}
 }
 
@@ -111,8 +100,7 @@ func TestRDPBootParams(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			conf := tc.conf
-			conf.RDP = "127.0.0.1:3390"
+			conf := withGatewayRDP(t, tc.conf)
 			got := New(conf).bootParams(embedded)
 			fields := kernelParamFields(got)
 			if countField(got, "console=tty0") != 1 {
