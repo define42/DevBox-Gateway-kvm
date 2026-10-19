@@ -72,6 +72,8 @@ type qcow2Image struct {
 	// Defaults to file; isolates metadata writes for deterministic fault tests.
 	metadataWriter io.WriterAt
 	writeFault     error // Protected by mu; recovery could not restore metadata.
+	// Defaults to file; isolates data reads for deterministic lifetime tests.
+	dataReader io.ReaderAt
 
 	size        uint64
 	clusterSize uint64
@@ -90,7 +92,10 @@ type qcow2Image struct {
 	l2Entries uint64
 	l2Cache   map[uint64][]uint64
 
-	mu sync.Mutex
+	// Warm reads share mu. Lazy metadata loading, writes, Sync and Close are
+	// exclusive so data mappings cannot change during a complete read request.
+	mu     sync.RWMutex
+	closed bool
 }
 
 func openQCOW2(file *os.File) (Image, error) {
@@ -284,9 +289,55 @@ func validateHeader(h *qcow2Header) error {
 }
 
 func (q *qcow2Image) ReadAt(b []byte, off int64) (int, error) {
+	q.mu.RLock()
+	if q.readTablesCached(off, len(b)) {
+		defer q.mu.RUnlock()
+
+		return q.readAt(b, off)
+	}
+	q.mu.RUnlock()
+
+	// A cold read can populate the L2 cache. Drop the read lock before taking
+	// the exclusive lock, then revalidate the handle and mappings in readAt.
+	// No data has been read before this handoff; writers remain excluded from
+	// the entire request once it begins copying data.
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	return q.readAt(b, off)
+}
+
+// readTablesCached is called with at least a shared lock. Invalid ranges and
+// closed handles are left to readAt's normal validation without loading tables.
+func (q *qcow2Image) readTablesCached(off int64, length int) bool {
+	if q.closed || length == 0 || off < 0 || uint64(off) >= q.size {
+		return true
+	}
+	remaining := min(uint64(length), q.size-uint64(off))
+	tableBytes := q.clusterSize * q.l2Entries
+	first := uint64(off) / tableBytes
+	last := (uint64(off) + remaining - 1) / tableBytes
+	if last >= uint64(len(q.l1)) {
+		return false
+	}
+	for index := first; index <= last; index++ {
+		if clusterOffset(q.l1[index]) == 0 {
+			continue
+		}
+		if _, cached := q.l2Cache[index]; !cached {
+			return false
+		}
+	}
+
+	return true
+}
+
+// readAt requires a shared lock with every needed L2 table cached, or an
+// exclusive lock that permits lazy cache population.
+func (q *qcow2Image) readAt(b []byte, off int64) (int, error) {
+	if q.closed {
+		return 0, os.ErrClosed
+	}
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -303,6 +354,10 @@ func (q *qcow2Image) ReadAt(b []byte, off int64) (int, error) {
 	if remaining > q.size-uint64(off) {
 		remaining = q.size - uint64(off)
 	}
+	reader := q.dataReader
+	if reader == nil {
+		reader = q.file
+	}
 
 	done := uint64(0)
 	for done < remaining {
@@ -318,7 +373,7 @@ func (q *qcow2Image) ReadAt(b []byte, off int64) (int, error) {
 		buf := b[done : done+chunk]
 		if zero {
 			zeroBytes(buf)
-		} else if _, err := q.file.ReadAt(buf, int64(hostOff)); err != nil {
+		} else if _, err := reader.ReadAt(buf, int64(hostOff)); err != nil {
 			return int(done), err
 		}
 
@@ -336,6 +391,9 @@ func (q *qcow2Image) WriteAt(b []byte, off int64) (int, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	if q.closed {
+		return 0, os.ErrClosed
+	}
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -381,10 +439,21 @@ func (q *qcow2Image) Sync() error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	if q.closed {
+		return os.ErrClosed
+	}
+
 	return errors.Join(q.writeFault, q.file.Sync())
 }
 
 func (q *qcow2Image) Close() error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.closed {
+		return os.ErrClosed
+	}
+	q.closed = true
+
 	return q.file.Close()
 }
 

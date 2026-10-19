@@ -4,10 +4,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"sync"
 	"testing"
 )
 
 type batchImage struct {
+	readMu  sync.Mutex // Concurrent reads share only the test counter.
 	data    []byte
 	syncs   int
 	reads   int
@@ -18,7 +20,9 @@ type batchImage struct {
 }
 
 func (d *batchImage) ReadAt(p []byte, off int64) (int, error) {
+	d.readMu.Lock()
 	d.reads++
+	d.readMu.Unlock()
 	if off < 0 || off+int64(len(p)) > int64(len(d.data)) {
 		return 0, io.EOF
 	}

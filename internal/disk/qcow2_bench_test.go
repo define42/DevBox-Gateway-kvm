@@ -42,6 +42,27 @@ func BenchmarkQCOW2Read4K(b *testing.B) {
 	}
 }
 
+// Parallel readers share warmed metadata and the host page cache. This measures
+// backend lock contention, not storage media latency or guest notification cost.
+func BenchmarkQCOW2ParallelRead4K(b *testing.B) {
+	image := openBenchmarkQCOW2(b)
+	b.ReportAllocs()
+	b.SetBytes(benchmarkQCOW2BlockSize)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		data := make([]byte, benchmarkQCOW2BlockSize)
+		var off int64
+		for pb.Next() {
+			if n, err := image.ReadAt(data, off); err != nil || n != len(data) {
+				b.Errorf("ReadAt: got (%d, %v), want (%d, nil)", n, err, len(data))
+
+				return
+			}
+			off = nextBenchmarkQCOW2Offset(off)
+		}
+	})
+}
+
 func BenchmarkQCOW2Write4K(b *testing.B) {
 	for _, syncEach := range []bool{false, true} {
 		name := "buffered"

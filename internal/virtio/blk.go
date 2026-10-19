@@ -74,6 +74,12 @@ type Blk struct {
 	closeErr  error
 	queueMu   sync.Mutex
 	dirty     bool // Protected by queueMu; retained across device resets.
+	// Reuse snapshots and lazily started read workers under queueMu. Only the
+	// queue owner publishes completions; Close drains and joins all workers.
+	pending     [QueueSize]blkPendingRequest
+	readJobs    chan *blkPendingRequest
+	readDone    chan *blkPendingRequest
+	readWorkers sync.WaitGroup
 
 	irq         uint8
 	IRQInjector IRQInjector
@@ -220,6 +226,8 @@ type blkPendingRequest struct {
 	id, length uint32
 	status     *byte
 	data       []byte
+	dataAddr   uint64
+	statusAddr uint64
 	offset     int64
 	result     byte
 	write      bool
@@ -255,7 +263,8 @@ func (v *Blk) IO() error {
 	if count > queueSize {
 		return ErrBlkDesc
 	}
-	var pending [QueueSize]blkPendingRequest
+	pending := v.pending[:count]
+	defer clear(pending) // Do not retain guest buffers between batches/resets.
 	// Snapshot validated request fields and slices before I/O. A guest may
 	// change descriptors while another request is blocked in the backing store;
 	// never reread unchecked addresses or next indices after this pass.
@@ -268,7 +277,20 @@ func (v *Blk) IO() error {
 
 	needsSync := false
 	var interruptErr error
-	for i := uint16(0); i < count; i++ {
+	for i := uint16(0); i < count; {
+		reads := 0
+		if count-i > 1 {
+			reads = independentBlkReads(q, pending[i:count])
+		}
+		if reads > 1 {
+			end := i + uint16(reads) //nolint:gosec // reads is bounded by QueueSize.
+			if err := v.readRequests(q, queueSize, pending[i:end], writeback); err != nil && interruptErr == nil {
+				interruptErr = err
+			}
+			i = end
+
+			continue
+		}
 		c := &pending[i]
 		if c.result == 0 {
 			var ioErr error
@@ -280,10 +302,14 @@ func (v *Blk) IO() error {
 			case c.write:
 				// A failed write can still have changed data or QCOW2 metadata.
 				v.dirty = true
-				_, ioErr = v.image.WriteAt(c.data, c.offset)
+				var n int
+				n, ioErr = v.image.WriteAt(c.data, c.offset)
+				if ioErr == nil && n != len(c.data) {
+					ioErr = io.ErrShortWrite
+				}
 				needsSync = true
 			default:
-				_, ioErr = v.image.ReadAt(c.data, c.offset)
+				ioErr = v.readRequest(c)
 			}
 			if ioErr != nil {
 				c.result = 1 // VIRTIO_BLK_S_IOERR
@@ -297,6 +323,7 @@ func (v *Blk) IO() error {
 				interruptErr = err
 			}
 		}
+		i++
 	}
 	if writeback {
 		return interruptErr
@@ -314,8 +341,9 @@ func (v *Blk) IO() error {
 	return v.completeRequests(q, queueSize, pending[:count])
 }
 
-// completeRequests transfers ownership of a consecutive completed prefix back
-// to the guest. Callers must not touch its guest buffers after Used.Idx moves.
+// completeRequests transfers ownership of finished requests back to the guest.
+// Reads may finish out of order; queueMu serializes all used-ring publication.
+// Callers must not touch a completed request's guest buffers after Used.Idx moves.
 func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPendingRequest) error {
 	count := uint16(len(pending)) //nolint:gosec // pending is bounded by QueueSize.
 	usedIdx := LoadU16(&q.Used.Idx)
@@ -324,10 +352,11 @@ func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPen
 		*c.status = c.result
 		q.Used.Ring[(usedIdx+i)%queueSize] = SplitUsedElem{ID: c.id, Len: c.length}
 	}
+	blkCompletionBarrier()
 	StoreAddU16(&q.Used.Idx, count)
 	v.LastAvailIdx[blkQueue] += count
 
-	return v.Interrupt()
+	return v.notifyCompletion(q)
 }
 
 // snapshotRequest retains only validated guest slices and command fields.
@@ -363,6 +392,7 @@ func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPen
 			}
 		} else if c.result != 2 && !c.flush && j == 1 {
 			c.data = data
+			c.dataAddr = desc.Addr
 		}
 		last := j == 2
 		if c.result == 2 || c.flush {
@@ -373,6 +403,7 @@ func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPen
 				return ErrBlkDesc
 			}
 			c.status = &data[0]
+			c.statusAddr = desc.Addr
 			if c.flush {
 				c.length = 1 // Only the status byte is written by FLUSH.
 			}
@@ -420,6 +451,10 @@ func (v *Blk) Close() error {
 		close(v.done)
 		v.queueMu.Lock()
 		defer v.queueMu.Unlock()
+		if v.readJobs != nil {
+			close(v.readJobs)
+			v.readWorkers.Wait()
+		}
 		var syncErr error
 		if v.dirty {
 			syncErr = v.syncImage()
@@ -455,7 +490,7 @@ func newBlk(image disk.Image, readOnly bool, irq uint8, irqInjector IRQInjector,
 		readOnly:    readOnly,
 		irq:         irq,
 		IRQInjector: irqInjector,
-		kick:        make(chan interface{}, QueueSize),
+		kick:        make(chan interface{}, 1),
 		done:        make(chan struct{}),
 	}
 

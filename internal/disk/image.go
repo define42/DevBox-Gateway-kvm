@@ -7,7 +7,10 @@ import (
 	"os"
 )
 
-// Image is a random-access virtual disk backing store.
+// Image is a random-access virtual disk backing store. ReadAt calls may run
+// concurrently with non-overlapping destination buffers; their completion order
+// is unspecified. Callers must serialize WriteAt, Sync and Close against other
+// operations to preserve request ordering, flush durability and handle lifetime.
 type Image interface {
 	io.ReaderAt
 	io.WriterAt

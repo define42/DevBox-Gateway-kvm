@@ -1,0 +1,39 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                          │   before    │                after                │
+                                          │   sec/op    │   sec/op     vs base                │
+BlkReadConcurrency/delay=0s/requests=1-4    5.616µ ± 6%   5.676µ ± 5%        ~ (p=0.353 n=10)
+BlkReadConcurrency/delay=0s/requests=8-4    45.08µ ± 7%   68.59µ ± 9%  +52.13% (p=0.000 n=10)
+BlkReadConcurrency/delay=1ms/requests=1-4   1.174m ± 2%   1.171m ± 2%        ~ (p=0.684 n=10)
+BlkReadConcurrency/delay=1ms/requests=8-4   9.360m ± 2%   2.486m ± 1%  -73.44% (p=0.000 n=10)
+geomean                                     229.7µ        183.5µ       -20.12%
+
+                                          │    before    │                 after                  │
+                                          │     B/s      │      B/s       vs base                 │
+BlkReadConcurrency/delay=0s/requests=1-4    695.6Mi ± 6%    688.2Mi ± 5%         ~ (p=0.353 n=10)
+BlkReadConcurrency/delay=0s/requests=8-4    693.2Mi ± 7%    455.6Mi ± 8%   -34.27% (p=0.000 n=10)
+BlkReadConcurrency/delay=1ms/requests=1-4   3.324Mi ± 2%    3.333Mi ± 2%         ~ (p=0.751 n=10)
+BlkReadConcurrency/delay=1ms/requests=8-4   3.343Mi ± 2%   12.574Mi ± 1%  +276.18% (p=0.000 n=10)
+geomean                                     48.11Mi         60.21Mi        +25.16%
+
+                                          │    before     │                   after                   │
+                                          │     B/op      │     B/op       vs base                    │
+BlkReadConcurrency/delay=0s/requests=1-4    0.000 ±  0%      0.000 ±   0%          ~ (p=1.000 n=10) ¹
+BlkReadConcurrency/delay=0s/requests=8-4    0.000 ±  0%      1.000 ± 100%          ? (p=0.000 n=10)
+BlkReadConcurrency/delay=1ms/requests=1-4   0.000 ±  0%      0.000 ±   0%          ~ (p=1.000 n=10) ¹
+BlkReadConcurrency/delay=1ms/requests=8-4   5.000 ± 20%     82.000 ±  21%  +1540.00% (p=0.000 n=10)
+geomean                                                 ²                  ?                        ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                          │    before    │                after                │
+                                          │  allocs/op   │ allocs/op   vs base                 │
+BlkReadConcurrency/delay=0s/requests=1-4    0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BlkReadConcurrency/delay=0s/requests=8-4    0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BlkReadConcurrency/delay=1ms/requests=1-4   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BlkReadConcurrency/delay=1ms/requests=8-4   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

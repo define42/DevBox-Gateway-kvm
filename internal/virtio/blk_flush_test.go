@@ -173,9 +173,14 @@ func TestBlkWritebackInterruptFailureDrainsBatch(t *testing.T) {
 			q.Used.Idx, v.LastAvailIdx[blkQueue], backing.reads)
 	}
 	for i, status := range statuses {
-		if mem[status] != 0 || q.Used.Ring[i].ID != uint32(i*3) {
-			t.Fatalf("request %d: status=%d used ID=%d", i, mem[status], q.Used.Ring[i].ID)
+		if mem[status] != 0 {
+			t.Fatalf("request %d: status=%d, want success despite IRQ failure", i, mem[status])
 		}
+	}
+	ids := []uint32{q.Used.Ring[0].ID, q.Used.Ring[1].ID}
+	slices.Sort(ids)
+	if !slices.Equal(ids, []uint32{0, 3}) {
+		t.Fatalf("completed IDs=%v, want each read exactly once", ids)
 	}
 }
 

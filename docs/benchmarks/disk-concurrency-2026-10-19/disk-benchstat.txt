@@ -1,0 +1,31 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/disk
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                      │    before    │                after                │
+                      │    sec/op    │   sec/op     vs base                │
+QCOW2Read4K-4           5.999µ ± 12%   5.936µ ± 4%        ~ (p=0.436 n=10)
+QCOW2ParallelRead4K-4   7.279µ ±  1%   2.178µ ± 7%  -70.08% (p=0.000 n=10)
+geomean                 6.608µ         3.596µ       -45.59%
+
+                      │    before     │                 after                  │
+                      │      B/s      │      B/s       vs base                 │
+QCOW2Read4K-4           651.1Mi ± 11%    658.0Mi ± 4%         ~ (p=0.436 n=10)
+QCOW2ParallelRead4K-4   536.7Mi ±  1%   1793.7Mi ± 7%  +234.21% (p=0.000 n=10)
+geomean                 591.2Mi          1.061Gi        +83.78%
+
+                      │    before    │                after                │
+                      │     B/op     │    B/op     vs base                 │
+QCOW2Read4K-4           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+QCOW2ParallelRead4K-4   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10)
+geomean                            ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                      │    before    │                after                │
+                      │  allocs/op   │ allocs/op   vs base                 │
+QCOW2Read4K-4           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+QCOW2ParallelRead4K-4   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                            ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
