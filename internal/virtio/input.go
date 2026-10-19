@@ -46,8 +46,6 @@ const (
 	synReport = 0x00
 
 	relWheel = 0x08
-	relX     = 0x00
-	relY     = 0x01
 
 	absX = 0x00
 	absY = 0x01
@@ -153,7 +151,6 @@ type inputKind int
 
 const (
 	inputKindKeyboard inputKind = iota
-	inputKindPointer
 	inputKindTablet
 )
 
@@ -163,7 +160,7 @@ type inputEvent struct {
 	value int32
 }
 
-// InputDevice is a modern virtio-input keyboard, relative mouse, or absolute tablet.
+// InputDevice is a modern virtio-input keyboard or absolute tablet.
 var _ pci.CapsAndMMIO = (*InputDevice)(nil)
 
 type InputDevice struct {
@@ -180,13 +177,10 @@ type InputDevice struct {
 	VirtQueue    [inputNumQueues]*SplitQueue
 	LastAvailIdx [inputNumQueues]uint16
 
-	mu       sync.Mutex // Configuration selectors, queue mappings and pending events.
-	closed   bool
-	pending  []inputEvent
-	buttons  uint8
-	lastX    uint16
-	lastY    uint16
-	hasPoint bool
+	mu      sync.Mutex // Configuration selectors, queue mappings and pending events.
+	closed  bool
+	pending []inputEvent
+	buttons uint8
 
 	kick      chan int
 	done      chan struct{}
@@ -334,60 +328,16 @@ func (d *InputDevice) KeyEvent(down bool, keysym uint32) {
 	d.enqueue(inputEvent{typ: evKey, code: code, value: value}, synEvent())
 }
 
-// PointerEvent satisfies DisplayInput. Tablet callers should use PointerEventInBounds
-// to supply the display dimensions; this legacy entry point assumes 1024x768.
+// PointerEvent satisfies DisplayInput using default 1024x768 dimensions.
+// Call PointerEventInBounds to supply the current display dimensions.
 func (d *InputDevice) PointerEvent(buttonMask uint8, x, y uint16) {
-	if d.kind == inputKindTablet {
-		d.PointerEventInBounds(buttonMask, x, y, 1024, 768)
-
-		return
-	}
-	if d.kind != inputKindPointer {
-		return
-	}
-
-	var events []inputEvent
-	d.mu.Lock()
-	if d.hasPoint {
-		dx := int32(int(x) - int(d.lastX))
-		dy := int32(int(y) - int(d.lastY))
-		if dx != 0 {
-			events = append(events, inputEvent{typ: evRel, code: relX, value: dx})
-		}
-		if dy != 0 {
-			events = append(events, inputEvent{typ: evRel, code: relY, value: dy})
-		}
-	}
-
-	d.lastX = x
-	d.lastY = y
-	d.hasPoint = true
-
-	if d.buttons != buttonMask {
-		old := d.buttons
-		d.buttons = buttonMask
-		events = append(events, buttonEvents(old, buttonMask)...)
-		events = append(events, wheelEvents(old, buttonMask)...)
-	}
-	d.mu.Unlock()
-
-	if len(events) == 0 {
-		return
-	}
-
-	events = append(events, synEvent())
-	d.enqueue(events...)
+	d.PointerEventInBounds(buttonMask, x, y, 1024, 768)
 }
 
 // PointerEventInBounds sends a pixel position in the current framebuffer to an
-// absolute tablet. Relative mice keep their existing delta-based behavior.
+// absolute tablet. Keyboard devices ignore pointer events.
 func (d *InputDevice) PointerEventInBounds(buttonMask uint8, x, y uint16, width, height int) {
-	if d.kind != inputKindTablet {
-		d.PointerEvent(buttonMask, x, y)
-
-		return
-	}
-	if width <= 0 || height <= 0 {
+	if d.kind != inputKindTablet || width <= 0 || height <= 0 {
 		return
 	}
 
@@ -439,8 +389,6 @@ func (d *InputDevice) resetLocked() {
 	d.configSelect, d.configSubsel = 0, 0
 	d.pending = nil
 	d.buttons = 0
-	d.lastX, d.lastY = 0, 0
-	d.hasPoint = false
 }
 
 func (d *InputDevice) Close() error {
@@ -632,8 +580,6 @@ func (d *InputDevice) configImage() [inputConfigLen]byte {
 			binary.LittleEndian.PutUint16(cfg[inputUnionOff+4:], 0x0001)
 		case inputKindTablet:
 			binary.LittleEndian.PutUint16(cfg[inputUnionOff+4:], 0x0003)
-		default:
-			binary.LittleEndian.PutUint16(cfg[inputUnionOff+4:], 0x0002)
 		}
 		binary.LittleEndian.PutUint16(cfg[inputUnionOff+6:], 1)
 	case inputCfgPropBits:
@@ -667,23 +613,17 @@ func (d *InputDevice) evBitmap(subsel uint8) [128]byte {
 		case evRep:
 			setInputBit(bitmap[:], 0)
 		}
-	case inputKindPointer, inputKindTablet:
+	case inputKindTablet:
 		switch subsel {
 		case evKey:
 			setInputBit(bitmap[:], btnLeft)
 			setInputBit(bitmap[:], btnRight)
 			setInputBit(bitmap[:], btnMiddle)
 		case evRel:
-			if d.kind == inputKindPointer {
-				setInputBit(bitmap[:], relX)
-				setInputBit(bitmap[:], relY)
-			}
 			setInputBit(bitmap[:], relWheel)
 		case evAbs:
-			if d.kind == inputKindTablet {
-				setInputBit(bitmap[:], absX)
-				setInputBit(bitmap[:], absY)
-			}
+			setInputBit(bitmap[:], absX)
+			setInputBit(bitmap[:], absY)
 		}
 	}
 
@@ -692,10 +632,6 @@ func (d *InputDevice) evBitmap(subsel uint8) [128]byte {
 
 func NewInputKeyboard(irq uint8, inject func() error, mem []byte) *InputDevice {
 	return newInputDevice("gokvm keyboard", inputKindKeyboard, irq, InputKeyboardMMIOBase, inject, mem)
-}
-
-func NewInputPointer(irq uint8, inject func() error, mem []byte) *InputDevice {
-	return newInputDevice("gokvm mouse", inputKindPointer, irq, InputPointerMMIOBase, inject, mem)
 }
 
 // NewInputTablet creates an absolute pointer suitable for remote display input.

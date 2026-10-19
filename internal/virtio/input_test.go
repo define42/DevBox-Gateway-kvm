@@ -68,36 +68,6 @@ func TestInputKeyboardConfig(t *testing.T) {
 	}
 }
 
-func TestInputPointerConfig(t *testing.T) {
-	t.Parallel()
-
-	v := NewInputPointer(6, func() error { return nil }, nil)
-
-	cfg := readInputConfig(v, inputCfgPropBits, 0)
-	if cfg[2] != 0 {
-		t.Fatalf("pointer prop bitmap size: got %d, want 0", cfg[2])
-	}
-
-	cfg = readInputConfig(v, inputCfgEvBits, evKey)
-	if !inputBitSet(cfg[inputUnionOff:], btnLeft) ||
-		!inputBitSet(cfg[inputUnionOff:], btnMiddle) ||
-		!inputBitSet(cfg[inputUnionOff:], btnRight) {
-		t.Fatal("pointer EV_KEY bitmap does not include all primary buttons")
-	}
-
-	cfg = readInputConfig(v, inputCfgEvBits, evRel)
-	if !inputBitSet(cfg[inputUnionOff:], relX) ||
-		!inputBitSet(cfg[inputUnionOff:], relY) ||
-		!inputBitSet(cfg[inputUnionOff:], relWheel) {
-		t.Fatal("pointer EV_REL bitmap does not include REL_X/REL_Y/REL_WHEEL")
-	}
-
-	cfg = readInputConfig(v, inputCfgAbsInfo, 0)
-	if cfg[2] != 0 {
-		t.Fatalf("ABS info size: got %d, want 0", cfg[2])
-	}
-}
-
 func TestInputKeyboardDeliversEvents(t *testing.T) {
 	t.Parallel()
 
@@ -201,34 +171,6 @@ func TestInputKeyboardShiftedPunctuation(t *testing.T) {
 	}
 }
 
-func TestInputPointerDeliversRelativeButtonAndWheelEvents(t *testing.T) {
-	t.Parallel()
-
-	mem := make([]byte, 0x1000)
-	v := NewInputPointer(6, func() error { return nil }, mem)
-	q := newInputSplitQueue()
-
-	for i := 0; i < 5; i++ {
-		queueInputBuffer(q, uint16(i), uint64(0x100+i*inputEventLen))
-	}
-
-	v.QueueReady(inputEventQueue, q)
-	v.PointerEvent(0, 100, 100)
-	v.PointerEvent(0x09, 200, 120)
-
-	for i := 0; i < 5; i++ {
-		if err := v.flushEvents(); err != nil {
-			t.Fatalf("flush event %d: %v", i, err)
-		}
-	}
-
-	assertInputEvent(t, mem[0x100:0x108], evRel, relX, 100)
-	assertInputEvent(t, mem[0x108:0x110], evRel, relY, 20)
-	assertInputEvent(t, mem[0x110:0x118], evKey, btnLeft, 1)
-	assertInputEvent(t, mem[0x118:0x120], evRel, relWheel, 1)
-	assertInputEvent(t, mem[0x120:0x128], evSyn, synReport, 0)
-}
-
 func TestInputKeyCodeFunctionKeys(t *testing.T) {
 	t.Parallel()
 
@@ -287,13 +229,25 @@ func TestInputTabletConfig(t *testing.T) {
 	t.Parallel()
 
 	v := NewInputTablet(6, func() error { return nil }, nil)
-	cfg := readInputConfig(v, inputCfgEvBits, evAbs)
+	cfg := readInputConfig(v, inputCfgIDName, 0)
+	if got := string(cfg[inputUnionOff : inputUnionOff+cfg[2]]); got != "gokvm tablet" {
+		t.Fatalf("tablet name = %q, want gokvm tablet", got)
+	}
+	cfg = readInputConfig(v, inputCfgIDDevids, 0)
+	if cfg[2] != 8 || binary.LittleEndian.Uint16(cfg[inputUnionOff+4:]) != 0x0003 {
+		t.Fatal("tablet must preserve its device identity")
+	}
+	cfg = readInputConfig(v, inputCfgPropBits, 0)
+	if cfg[2] != 0 {
+		t.Fatal("tablet must not advertise touchscreen or touchpad properties")
+	}
+	cfg = readInputConfig(v, inputCfgEvBits, evAbs)
 	if !inputBitSet(cfg[inputUnionOff:], absX) || !inputBitSet(cfg[inputUnionOff:], absY) {
 		t.Fatal("tablet must advertise both absolute axes")
 	}
 	cfg = readInputConfig(v, inputCfgEvBits, evRel)
-	if inputBitSet(cfg[inputUnionOff:], relX) || inputBitSet(cfg[inputUnionOff:], relY) ||
-		!inputBitSet(cfg[inputUnionOff:], relWheel) {
+	wheelOnly := [128]byte{relWheel / 8: 1 << (relWheel % 8)}
+	if !slices.Equal(cfg[inputUnionOff:], wheelOnly[:]) {
 		t.Fatal("tablet must advertise only a relative scroll wheel")
 	}
 	cfg = readInputConfig(v, inputCfgEvBits, evKey)
@@ -312,6 +266,35 @@ func TestInputTabletConfig(t *testing.T) {
 	cfg = readInputConfig(v, inputCfgAbsInfo, 2)
 	if cfg[2] != 0 {
 		t.Fatal("tablet must not advertise unsupported absolute axes")
+	}
+}
+
+func TestInputTabletPointerEventUsesDefaultBounds(t *testing.T) {
+	t.Parallel()
+
+	v := NewInputTablet(6, nil, nil)
+	pair := NewInputPair(nil, v)
+	pair.PointerEvent(1, 0, 0)
+	want := []inputEvent{
+		{typ: evAbs, code: absX, value: 15},
+		{typ: evAbs, code: absY, value: 21},
+		synEvent(),
+		{typ: evKey, code: btnLeft, value: 1},
+		synEvent(),
+	}
+	if !slices.Equal(v.pending, want) {
+		t.Fatalf("default-bounds tablet reports %v, want %v", v.pending, want)
+	}
+}
+
+func TestInputKeyboardIgnoresPointerEvents(t *testing.T) {
+	t.Parallel()
+
+	v := NewInputKeyboard(5, nil, nil)
+	v.PointerEvent(1, 100, 200)
+	v.PointerEventInBounds(1, 100, 200, 800, 600)
+	if len(v.pending) != 0 {
+		t.Fatalf("keyboard received pointer events: %v", v.pending)
 	}
 }
 
