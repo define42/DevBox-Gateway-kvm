@@ -983,10 +983,12 @@ func (m *Manager) Close() error {
 			m.mu.Unlock()
 			finished <- errors.Join(isolationErr, releaseManagerLock(m.lock))
 		}()
+		// Child exit precedes final metadata persistence. Give host cleanup its
+		// own bounded wait instead of reusing the guest's graceful-stop timeout.
 		select {
 		case err := <-finished:
 			m.closeErr = errors.Join(errors.Join(errorsByVM...), err)
-		case <-time.After(min(m.config.StopTimeout, 2*time.Second)):
+		case <-time.After(2 * time.Second):
 			m.closeErr = errors.Join(errors.Join(errorsByVM...), errManagerCloseTimeout)
 		}
 	})

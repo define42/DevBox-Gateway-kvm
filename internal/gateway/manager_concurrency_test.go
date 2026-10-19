@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -212,6 +214,90 @@ func TestManagerShutdownCancelsQueuedCreations(t *testing.T) {
 	if len(m.creations) != 0 {
 		t.Fatal("manager shutdown retained creation slots")
 	}
+}
+
+func TestManagerCloseWaitsForCanceledOperations(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		m := newTestManager(t, "graceful")
+		ctx, finish, err := m.operation(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		// A canceled operation can still be finishing filesystem work after the
+		// guest's short graceful-stop deadline has expired.
+		const cleanupDelay = 500 * time.Millisecond
+		operationDone := make(chan struct{})
+		go func() {
+			<-ctx.Done()
+			time.Sleep(cleanupDelay)
+			finish()
+			close(operationDone)
+		}()
+		defer func() { <-operationDone; synctest.Wait() }()
+		started := time.Now()
+		if err := m.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if elapsed := time.Since(started); elapsed != cleanupDelay {
+			t.Fatalf("Close waited %s, want completed cleanup after %s", elapsed, cleanupDelay)
+		}
+		reopened, err := NewManager(m.config)
+		if err != nil {
+			t.Fatalf("completed cleanup retained the state lock: %v", err)
+		}
+		if err := reopened.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func TestManagerCloseRetainsLockUntilPendingCleanupFinishes(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		m, err := NewManager(managerTestConfig(t, "graceful"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = m.Close() }) // A cleanup timeout is expected below.
+		ctx, finish, err := m.operation(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		allowFinish := make(chan struct{})
+		release := sync.OnceFunc(func() { close(allowFinish) })
+		defer func() { release(); synctest.Wait() }()
+		go func() {
+			<-ctx.Done()
+			<-allowFinish
+			finish()
+		}()
+		started := time.Now()
+		if err := m.Close(); !errors.Is(err, errManagerCloseTimeout) {
+			t.Fatalf("Close with pending cleanup = %v, want cleanup timeout", err)
+		}
+		if time.Since(started) > 3*time.Second {
+			t.Fatal("Close did not bound pending operation cleanup")
+		}
+		if reopened, err := NewManager(m.config); !errors.Is(err, syscall.EWOULDBLOCK) {
+			if reopened != nil {
+				_ = reopened.Close()
+			}
+			t.Fatalf("pending cleanup did not retain the state lock: %v", err)
+		}
+		release()
+		synctest.Wait()
+		reopened, err := NewManager(m.config)
+		if err != nil {
+			t.Fatalf("finished background cleanup retained the state lock: %v", err)
+		}
+		if err := reopened.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := m.Close(); !errors.Is(err, errManagerCloseTimeout) {
+			t.Fatalf("repeated Close changed the original result: %v", err)
+		}
+	})
 }
 
 func TestManagerImageDeletionPreservesPinnedClone(t *testing.T) {
