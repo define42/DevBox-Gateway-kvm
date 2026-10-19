@@ -584,11 +584,32 @@ before attributing choppy scrolling to hardware encoding.
 
 ## Audio
 
-Managed gateway desktops do not currently enable audio. The internal backend
-implements virtio-snd stereo PCM16 playback at 48 kHz with bounded buffers, but
-there is no supported standalone RDP audio mode or gateway setting to enable it.
-Client sound preferences in a downloaded RDP file do not enable guest audio.
-Microphone capture is unsupported.
+Managed gateway desktops enable sound playback by default through their RDP
+connection. The gateway starts each VM with a virtio-snd sound card and streams
+stereo, signed 16-bit PCM at 48 kHz to the connected client. No host sound card,
+audio-device passthrough, or additional gateway setting is required.
+
+After upgrading, stop and start an existing desktop from the dashboard to create
+a worker with audio enabled. Reconnecting or rebooting inside an already-running
+guest does not change that worker's audio configuration.
+
+Playback requires both:
+
+- A guest kernel with the Linux `snd_virtio` driver
+  ([`CONFIG_SND_VIRTIO`](https://github.com/torvalds/linux/blob/master/sound/virtio/Kconfig))
+  and a working desktop audio stack. Select the virtio sound card in the guest's
+  sound settings. Images without this driver can still boot, but cannot play
+  audio through the virtual sound card; provisioning does not install missing
+  guest drivers or audio packages.
+- An RDP client with RDPSND playback support and local sound enabled. Downloaded
+  connection files request playback on the client with `audiomode:i:0` and
+  explicitly disable microphone redirection with `audiocapturemode:i:0`.
+  See Microsoft's [RDP audio settings](https://learn.microsoft.com/en-us/azure/virtual-desktop/rdp-properties#audiomode).
+
+Clients that disable sound or do not support the offered PCM format can still
+use the desktop. Playback buffers are bounded, and audio is discarded when no
+client is listening; reconnecting negotiates a fresh audio stream instead of
+replaying disconnected audio. Microphone capture is unsupported.
 
 ## Diagnostics and compatibility checks
 

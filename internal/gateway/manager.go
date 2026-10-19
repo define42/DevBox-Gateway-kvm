@@ -665,6 +665,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
 		"-rdp-profile", m.config.RDPProfile,
+		"-audio", "rdp",
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
 	profiling := m.prepareProfiling(dir)

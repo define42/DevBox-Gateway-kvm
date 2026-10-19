@@ -552,7 +552,8 @@ func (s *Server) downloadRDP(
 			"screen mode id:i:2\r\nuse multimon:i:0\r\nsession bpp:i:32\r\nauthentication level:i:2\r\n"+
 			"enablecredsspsupport:i:0\r\nnegotiate security layer:i:1\r\nprompt for credentials:i:1\r\n"+
 			"prompt for credentials on client:i:1\r\n"+
-			"autoreconnection enabled:i:0\r\nredirectclipboard:i:1\r\naudiomode:i:0\r\n",
+			"autoreconnection enabled:i:0\r\nredirectclipboard:i:1\r\n"+
+			"audiomode:i:0\r\naudiocapturemode:i:0\r\n",
 		s.config.PublicAddress, sess.login, token,
 	)
 }

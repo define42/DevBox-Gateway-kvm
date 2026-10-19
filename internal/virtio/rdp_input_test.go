@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"slices"
 	"testing"
 	"time"
 )
@@ -137,9 +138,9 @@ func activateRDPInputTestSession(t *testing.T, conn net.Conn) {
 	confirmRDPInputTestActive(t, conn)
 }
 
-func joinRDPInputTestChannels(t *testing.T, conn net.Conn) {
+func joinRDPInputTestChannels(t *testing.T, conn net.Conn, channels ...string) {
 	t.Helper()
-	writeRDPInputMCS(t, conn, rdpInputConnectInitial())
+	writeRDPInputMCS(t, conn, rdpInputConnectInitial(channels...))
 	if response := readRDPInputMCS(t, conn); len(response) < 2 || response[0] != 0x7f || response[1] != 0x66 {
 		t.Fatalf("expected MCS Connect Response, got %x", response)
 	}
@@ -148,7 +149,11 @@ func joinRDPInputTestChannels(t *testing.T, conn net.Conn) {
 	if response := readRDPInputMCS(t, conn); !bytes.Equal(response, []byte{0x2e, 0, 0, 0}) {
 		t.Fatalf("expected Attach User Confirm, got %x", response)
 	}
-	for _, channel := range []uint16{rdpInputClientUser, rdpInputGlobalChannel} {
+	joined := []uint16{rdpInputClientUser, rdpInputGlobalChannel}
+	for index := range channels {
+		joined = append(joined, uint16(1004+index))
+	}
+	for _, channel := range joined {
 		join := []byte{0x38, 0, 0, byte(channel >> 8), byte(channel)}
 		writeRDPInputMCS(t, conn, join)
 		if response := readRDPInputMCS(t, conn); len(response) != 8 || response[0] != 0x3e || response[1] != 0 {
@@ -209,13 +214,23 @@ func rdpInputUnicodePacket(codes ...uint16) []byte {
 	return append([]byte{data[0], byte(len(data) + 1)}, data[1:]...)
 }
 
-func rdpInputConnectInitial() []byte {
+func rdpInputConnectInitial(channels ...string) []byte {
 	core := make([]byte, 132)
 	rdpInputPut16(core, 0, 0xc001)
 	rdpInputPut16(core, 2, len(core))
 	binary.LittleEndian.PutUint32(core[4:8], 0x80004)
 	rdpInputPut16(core, 8, 800)
 	rdpInputPut16(core, 10, 600)
+	if len(channels) != 0 {
+		network := make([]byte, 8+12*len(channels))
+		rdpInputPut16(network, 0, 0xc003)
+		rdpInputPut16(network, 2, len(network))
+		binary.LittleEndian.PutUint32(network[4:], uint32(len(channels)))
+		for index, channel := range channels {
+			copy(network[8+12*index:16+12*index], channel)
+		}
+		core = slices.Concat(core, network)
+	}
 	gcc := rdpInputAppendPERLength([]byte{0, 5, 0, 0x14, 0x7c, 0, 1}, len(core)+14)
 	gcc = append(gcc, 0, 8, 0, 16, 0, 1, 0xc0, 0, 'D', 'u', 'c', 'a')
 	gcc = append(rdpInputAppendPERLength(gcc, len(core)), core...)

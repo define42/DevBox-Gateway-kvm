@@ -126,6 +126,27 @@ func TestManagerRDPProfiles(t *testing.T) {
 	}
 }
 
+func TestManagerAudioPlayback(t *testing.T) {
+	t.Parallel()
+	m := newTestManager(t, "graceful")
+	vm := createManagerVM(t, m, "alice", "desktop")
+	for range 2 {
+		if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+			t.Fatal(err)
+		}
+		audio, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.audio"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(audio) != "rdp" {
+			t.Fatalf("child audio mode = %q, want rdp", audio)
+		}
+		if err := m.Stop(t.Context(), vm.Owner, vm.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestManagerRejectsInvalidRDPProfile(t *testing.T) {
 	t.Parallel()
 	config := managerTestConfig(t, "graceful")
@@ -582,6 +603,10 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-profile"), []byte(args["-rdp-profile"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper profile:", err)
+		os.Exit(2)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "helper.audio"), []byte(args["-audio"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper audio:", err)
 		os.Exit(2)
 	}
 	if args["-net"] != "user-isolated" {

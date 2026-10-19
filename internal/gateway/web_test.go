@@ -432,6 +432,20 @@ func TestLoginRejectsCSRFAndEmptyPassword(t *testing.T) {
 	}
 }
 
+func TestDownloadedRDPEnablesPlaybackOnly(t *testing.T) {
+	t.Parallel()
+	s, _, raw, sess := webFixture(t)
+	w := webRequest(s, http.MethodPost, "/vms/mine/rdp", raw, url.Values{"csrf": {sess.csrf}})
+	if w.Code != http.StatusOK {
+		t.Fatalf("download failed: %d", w.Code)
+	}
+	for _, setting := range []string{"audiomode:i:0", "audiocapturemode:i:0"} {
+		if !strings.Contains(w.Body.String(), setting+"\r\n") {
+			t.Errorf("RDP file is missing %q", setting)
+		}
+	}
+}
+
 func TestDownloadedTokenSingleUseIPBoundAndLogoutRevocable(t *testing.T) {
 	t.Parallel()
 	s, _, raw, sess := webFixture(t)

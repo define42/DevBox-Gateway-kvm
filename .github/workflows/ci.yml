@@ -145,6 +145,7 @@ jobs:
         go test -race ./internal/audio
         go test -race ./internal/rdp/...
         go test -race ./internal/virtio ./internal/vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror|Blk)'
+        go test -race -tags=integration -count=1 ./internal/virtio -run '^TestRDPDisplayAudio'
 
   release-check:
     name: Check release configuration

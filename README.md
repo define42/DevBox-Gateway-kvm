@@ -66,6 +66,8 @@ A desktop image must already contain an x86-64 UEFI-bootable Linux installation,
 systemd, cloud-init, a graphical desktop, a display manager, and virtio drivers
 for its disk, network, and display. Provisioning creates the user and configures
 the system; it does not install a desktop into a server image.
+Audio playback additionally requires the guest's `snd_virtio` driver and a
+working desktop audio stack; see [audio requirements](docs/runtime.md#audio).
 
 ### Prepare the sample desktop
 
@@ -141,6 +143,8 @@ xfreerdp /path/to/desktop.rdp
 
 Use an H.264-capable client for AVC420 graphics. See the [runtime guide](docs/runtime.md)
 for client setup and `make freerdp` if your installed client lacks that support.
+Managed desktops enable stereo sound playback over RDP by default. Enable local
+sound in your client; microphone redirection is not supported.
 RDP access is available only through the authenticated gateway and its downloaded
 file. Standalone `boot -rdp` listeners and the direct `make rdp` helper are no
 longer supported.

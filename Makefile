@@ -51,7 +51,7 @@ generate: $(GOPATH)/bin/stringer
 golangci: golangci-lint
 	$(MAKE) generate
 	./golangci-lint run ./...
-	./golangci-lint run --build-tags=integration ./internal/vmm
+	./golangci-lint run --build-tags=integration ./internal/vmm ./internal/machine ./internal/virtio
 
 .PHONY: test
 test:
@@ -62,6 +62,7 @@ test:
 		sh -c 'ip link set lo up && exec "$$@"' sh \
 		"$(GO)" test -count=1 -timeout 30m -coverprofile c.out ./...
 	$(MAKE) test-qcow2
+	$(MAKE) test-audio
 	$(GO) mod tidy -diff
 
 # Exercise the gateway's disk/firmware path without external kernel fixtures.
@@ -72,6 +73,12 @@ test-qcow2:
 		GOKVM_TEST_OVMF_VARS="$(OVMF_VARS)" \
 		"$(GO)" test -tags=integration -count=1 -timeout 3m \
 		-run '^TestUEFIQCOW2Boot$$' ./internal/vmm -v
+
+# Check UEFI sound registration and negotiated RDP playback without a guest image.
+.PHONY: test-audio
+test-audio:
+	"$(GO)" test -tags=integration -count=1 -timeout 3m \
+		-run '^Test(UEFISound|RDPDisplayAudio)' ./internal/machine ./internal/virtio -v
 
 .PHONY: clean
 clean:
