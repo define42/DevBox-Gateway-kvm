@@ -98,14 +98,26 @@ func TestRDPDisplayConfiguration(t *testing.T) {
 	}
 }
 
-func TestDisplayWithoutGatewayListener(t *testing.T) {
+func TestInitDisplayWithoutGatewayListener(t *testing.T) {
+	t.Parallel()
+	v := New(Config{})
+	if err := v.initDisplay(nil); err != nil {
+		t.Fatalf("headless display initialization: %v", err)
+	}
+	if v.rdpDisplay != nil {
+		t.Fatal("headless initialization created an RDP display")
+	}
+}
+
+func TestDisplayRequiresGatewayListener(t *testing.T) {
 	t.Parallel()
 	v := New(Config{})
 	display, err := v.display(nil)
 	if display != nil {
 		_ = display.Close()
+		t.Fatal("display created without an RDP listener")
 	}
-	if err != nil || display != nil || v.rdpDisplay != nil {
-		t.Fatalf("headless configuration created a display: %v, %v", display, err)
+	if !errors.Is(err, errRDPListenerConfig) {
+		t.Fatalf("display without an RDP listener: got %v, want %v", err, errRDPListenerConfig)
 	}
 }

@@ -260,9 +260,6 @@ func (v *VMM) initDisplay(m *machine.Machine) error {
 }
 
 func (v *VMM) display(input virtio.DisplayInput) (virtio.Display, error) {
-	if v.RDPListenerFile == nil {
-		return nil, nil
-	}
 	display, err := v.newRDPDisplay()
 	if err != nil {
 		return nil, err
