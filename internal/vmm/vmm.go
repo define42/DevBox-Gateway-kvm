@@ -1,21 +1,15 @@
 package vmm
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/define42/DevBox-Gateway-kvm/internal/iso9660"
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
@@ -24,8 +18,6 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sync/errgroup"
 )
-
-var errDownloadBootImage = errors.New("download boot image failed")
 
 var errNetworkConfig = errors.New(
 	"network must be 'user', 'user-isolated', or 'none' and cannot be combined with a TAP interface",
@@ -45,17 +37,6 @@ var errRDPWaitConfig = errors.New("RDP boot wait requires an RDP listener")
 
 var errRDPListenerConfig = errors.New("RDP requires an inherited Unix listener and gateway process identity")
 
-var errUKIBootSource = errors.New("UKI cannot be combined with ISO, kernel, or initrd")
-
-// These parameters describe gaps in gokvm's direct Linux boot environment, not
-// ISO-specific policy. The ISO's own boot config still supplies the distro
-// command line; this list only adds the host/VMM plumbing that a real firmware
-// boot path would normally provide or hide from the guest.
-// Do not add nosmp: the guest must be able to start the vCPUs requested by -c.
-const gokvmDirectLinuxBootParams = "console=tty0 console=ttyS0 earlyprintk=serial " +
-	"noapic noacpi nortc nowatchdog nmi_watchdog=0 mitigations=off " +
-	"lapic pci=realloc=off virtio_pci.force_legacy=1"
-
 // Config defines the configuration of the
 // virtual machine, as determined by flags.
 type Config struct {
@@ -63,8 +44,6 @@ type Config struct {
 	Dev            string
 	Kernel         string
 	Initrd         string
-	ISO            string
-	UKI            string
 	UEFI           string
 	UEFIVars       string
 	Params         string
@@ -100,7 +79,6 @@ type VMM struct {
 	Config
 
 	rdpDisplay *virtio.RDPDisplay
-	isoCleanup func()
 	closeOnce  sync.Once
 	closeErr   error
 }
@@ -142,7 +120,7 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 
 // Init instantiates a machine.
 func (v *VMM) Init() (initErr error) {
-	if err := v.validateBootSource(); err != nil {
+	if err := v.validateUEFIBootSource(); err != nil {
 		return err
 	}
 	if err := v.validateRDPPerformanceConfig(); err != nil {
@@ -251,11 +229,6 @@ func (v *VMM) initDisplay(m *machine.Machine) error {
 		return err
 	}
 
-	if len(v.ISO) > 0 {
-		m.EnableVESA(v.rdpDisplay)
-		m.StartVGATextFallback(v.rdpDisplay)
-	}
-
 	return nil
 }
 
@@ -277,17 +250,11 @@ func (v *VMM) Setup() (setupErr error) {
 			setupErr = errors.Join(setupErr, v.Close())
 		}
 	}()
-	if err := v.validateBootSource(); err != nil {
+	if err := v.validateUEFIBootSource(); err != nil {
 		return err
 	}
 	if v.UEFI != "" {
 		return v.setupUEFI()
-	}
-	if v.UKI != "" {
-		return v.setupUKI()
-	}
-	if v.ISO != "" {
-		return v.setupISO()
 	}
 
 	var initrd io.ReaderAt
@@ -324,178 +291,6 @@ func (v *VMM) Setup() (setupErr error) {
 	}
 
 	return nil
-}
-
-func (v *VMM) setupISO() error {
-	isoFile, cleanup, err := openBootSource(v.ISO)
-	if err != nil {
-		return err
-	}
-
-	cleanupOnError := true
-	defer func() {
-		if cleanupOnError {
-			cleanup()
-		}
-	}()
-
-	info, err := isoFile.Stat()
-	if err != nil {
-		return err
-	}
-
-	isoReader, err := iso9660.NewReader(isoFile, info.Size())
-	if err != nil {
-		return err
-	}
-
-	// Use the El Torito boot catalog (plus the syslinux/grub config it points
-	// at) to identify the kernel, initrd, and command line, then boot them
-	// directly. No BIOS firmware is involved.
-	files, err := iso9660.LoadBootFiles(isoReader)
-	if err != nil {
-		return err
-	}
-
-	params := v.bootParams(files.Cmdline)
-
-	log.Printf("ISO El Torito boot: kernel=%s initrd=%s", files.KernelPath, files.InitrdPath)
-
-	// Attach the raw ISO so the booted kernel can mount its live media and load
-	// its extensions (e.g. TinyCore's .tcz set). virtio-blk is the proven path
-	// for TinyCore's boot-time device scan to find /cde.
-	if err := v.AddReadOnlyDisk(isoFile.Name()); err != nil {
-		return fmt.Errorf("attach ISO media: %w", err)
-	}
-
-	log.Printf("ISO media attached as read-only virtio-blk: %s", isoFile.Name())
-
-	if v.RDPListenerFile != nil && hasTinyCoreGUI(isoReader) {
-		files.Initrd, err = addTinyCoreDesktopAutostart(files.Initrd)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("ISO boot: added TinyCore remote desktop autostart overlay")
-	}
-
-	kern := bytes.NewReader(files.Kernel)
-	initrd := readerAtOrNil(files.Initrd)
-
-	isPVH, err := pvh.CheckPVH(kern)
-	if err != nil {
-		return err
-	}
-
-	if isPVH {
-		if err := v.LoadPVH(kern, initrd, params); err != nil {
-			return err
-		}
-	} else if err := v.LoadLinux(kern, initrd, params); err != nil {
-		return err
-	}
-
-	v.isoCleanup = cleanup
-	cleanupOnError = false
-
-	return nil
-}
-
-func readerAtOrNil(data []byte) io.ReaderAt {
-	if len(data) == 0 {
-		return nil
-	}
-
-	return bytes.NewReader(data)
-}
-
-func hasTinyCoreGUI(r *iso9660.Reader) bool {
-	if _, err := r.ReadFile("/cde/onboot.lst"); err != nil {
-		return false
-	}
-
-	if _, err := r.ReadFile("/cde/optional/Xvesa.tcz"); err != nil {
-		return false
-	}
-
-	return true
-}
-
-func openBootSource(source string) (*os.File, func(), error) {
-	u, err := url.Parse(source)
-	if err == nil && (u.Scheme == "http" || u.Scheme == "https") {
-		return downloadBootSource(source)
-	}
-
-	file, err := os.Open(source)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return file, func() { _ = file.Close() }, nil
-}
-
-func downloadBootSource(source string) (*os.File, func(), error) {
-	resp, err := http.Get(source) //nolint:gosec // User-supplied boot media URL.
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, nil, fmt.Errorf("%w %s: %s", errDownloadBootImage, source, resp.Status)
-	}
-
-	file, err := os.CreateTemp("", "gokvm-boot-*")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	cleanup := func() {
-		name := file.Name()
-		_ = file.Close()
-		_ = os.Remove(name)
-	}
-
-	if _, err := io.Copy(file, resp.Body); err != nil {
-		cleanup()
-
-		return nil, nil, err
-	}
-
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		cleanup()
-
-		return nil, nil, err
-	}
-
-	log.Printf("downloaded boot image %s to %s", source, file.Name())
-
-	return file, cleanup, nil
-}
-
-func isoBootParams(cmdline string) string {
-	return mergeKernelParams(cmdline, strings.Fields(gokvmDirectLinuxBootParams))
-}
-
-func mergeKernelParams(cmdline string, defaults []string) string {
-	fields := kernelParamFields(cmdline)
-	missing := make([]string, 0, len(defaults))
-	for _, param := range defaults {
-		if !hasKernelParam(fields, param) {
-			missing = append(missing, param)
-		}
-	}
-	if len(missing) == 0 {
-		return cmdline
-	}
-	prefix := strings.Join(missing, " ")
-	if cmdline == "" {
-		return prefix
-	}
-
-	// Keep quoted values and whitespace in the embedded command line intact.
-	return prefix + " " + cmdline
 }
 
 // kernelParamFields follows Linux next_arg: double quotes group whitespace,
@@ -554,207 +349,10 @@ func kernelParamFields(cmdline string) []string {
 	return fields
 }
 
-func hasKernelParam(fields []string, param string) bool {
-	paramName := kernelParamName(param)
-	for _, field := range fields {
-		if paramName == "console" {
-			device, _, _ := strings.Cut(field, ",")
-			defaultDevice, _, _ := strings.Cut(param, ",")
-			if device == defaultDevice {
-				return true
-			}
-
-			continue
-		}
-
-		if kernelParamName(field) == paramName {
-			return true
-		}
-	}
-
-	return false
-}
-
 func kernelParamName(field string) string {
 	name, _, _ := strings.Cut(field, "=")
 
 	return name
-}
-
-func addTinyCoreDesktopAutostart(initrd []byte) ([]byte, error) {
-	const autologin = `#!/bin/sh
-if [ -f /var/log/autologin ]; then
-	exec /sbin/getty 38400 tty1
-fi
-touch /var/log/autologin
-TCUSER="$(cat /etc/sysconfig/tcuser 2>/dev/null || echo tc)"
-if command -v Xvesa >/dev/null 2>&1 && \
-	command -v flwm >/dev/null 2>&1 && \
-	[ ! -f /etc/sysconfig/text ]; then
-	[ -s /etc/sysconfig/Xserver ] || echo Xvesa > /etc/sysconfig/Xserver
-	[ -s /etc/sysconfig/desktop ] || echo flwm > /etc/sysconfig/desktop
-	[ -s /etc/sysconfig/icons ] || echo wbar > /etc/sysconfig/icons
-	for file in .xsession .setbackground .Xdefaults; do
-		if [ ! -e /home/"$TCUSER"/"$file" ] && [ -e /etc/skel/"$file" ]; then
-			cp /etc/skel/"$file" /home/"$TCUSER"/
-			chown "$TCUSER":staff /home/"$TCUSER"/"$file" 2>/dev/null || chown "$TCUSER" /home/"$TCUSER"/"$file"
-		fi
-	done
-	cat > /tmp/gokvm-desktop-session <<'EOF'
-#!/bin/sh
-export DISPLAY=:0.0
-export DESKTOP=flwm
-export ICONS=wbar
-# TinyCore's startx normally builds the FLWM menu and the icon configuration.
-# This session starts Xvesa directly, so perform that setup before the desktop.
-setupdesktop >/tmp/setupdesktop.log 2>&1
-Xvesa -br -screen 1024x768x32 -mouse /dev/input/mice,5 -a 1 -t 0 -nolisten tcp -I >/tmp/Xvesa.log 2>&1 &
-XPID=$!
-for _ in 1 2 3 4 5 6 7 8 9 10; do
-	waitforX >/dev/null 2>&1 && break
-	sleep 0.2
-done
-# Xvesa discards five small mouse packets while identifying the PS/2 protocol.
-# Prime it through the tablet's evdev node before showing the desktop. These
-# five balanced steps return to the initial center, so the discarded motion
-# leaves Xvesa and the kernel's absolute pointer at the same position.
-for event in /sys/class/input/event*; do
-	[ "$(cat "$event/device/name")" = "gokvm tablet" ] || continue
-	(
-		# TinyCore x86 uses 16-byte input_event records: timeval, type, code, value.
-		for x in '\000\100' '\040\100' '\100\100' '\040\100' '\340\077' '\000\100'; do
-			printf '\000\000\000\000\000\000\000\000\003\000\000\000%b\000\000' "$x"
-			printf '\000\000\000\000\000\000\000\000\003\000\001\000\000\100\000\000'
-			printf '\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
-			sleep 0.05
-		done
-	) > "/dev/input/${event##*/}"
-done
-flwm >/tmp/flwm.log 2>&1 &
-[ -x "$HOME/.setbackground" ] && "$HOME/.setbackground" >/tmp/background.log 2>&1
-wbar.sh >/tmp/wbar.log 2>&1 &
-wait "$XPID"
-EOF
-	chmod 755 /tmp/gokvm-desktop-session
-	chown "$TCUSER":staff /tmp/gokvm-desktop-session 2>/dev/null || chown "$TCUSER" /tmp/gokvm-desktop-session
-	exec su "$TCUSER" -c /tmp/gokvm-desktop-session
-fi
-exec login -f "$TCUSER"
-`
-
-	return appendInitramfsFile(initrd, "sbin/autologin", []byte(autologin), 0o100755)
-}
-
-func appendInitramfsFile(initrd []byte, name string, data []byte, mode uint32) ([]byte, error) {
-	raw := initrd
-	compressed := len(initrd) >= 2 && initrd[0] == 0x1f && initrd[1] == 0x8b
-	if compressed {
-		zr, err := gzip.NewReader(bytes.NewReader(initrd))
-		if err != nil {
-			return nil, fmt.Errorf("initramfs gzip: %w", err)
-		}
-
-		raw, err = io.ReadAll(zr)
-		closeErr := zr.Close()
-		if err != nil {
-			return nil, fmt.Errorf("initramfs decompress: %w", err)
-		}
-		if closeErr != nil {
-			return nil, fmt.Errorf("initramfs gzip close: %w", closeErr)
-		}
-	}
-
-	if trimmed, ok := trimNewcTrailer(raw); ok {
-		raw = trimmed
-	}
-
-	buf := bytes.NewBuffer(make([]byte, 0, len(raw)+len(data)+512))
-	buf.Write(raw)
-	writeNewcEntry(buf, name, mode, data)
-	writeNewcEntry(buf, "TRAILER!!!", 0, nil)
-
-	if !compressed {
-		return buf.Bytes(), nil
-	}
-
-	var out bytes.Buffer
-	zw := gzip.NewWriter(&out)
-	if _, err := zw.Write(buf.Bytes()); err != nil {
-		return nil, fmt.Errorf("initramfs recompress: %w", err)
-	}
-	if err := zw.Close(); err != nil {
-		return nil, fmt.Errorf("initramfs gzip finish: %w", err)
-	}
-
-	return out.Bytes(), nil
-}
-
-func trimNewcTrailer(data []byte) ([]byte, bool) {
-	for off := 0; off+110 <= len(data); {
-		if string(data[off:off+6]) != "070701" {
-			return nil, false
-		}
-
-		filesize, ok := parseNewcHex(data[off+54 : off+62])
-		if !ok {
-			return nil, false
-		}
-
-		namesize, ok := parseNewcHex(data[off+94 : off+102])
-		if !ok || namesize == 0 {
-			return nil, false
-		}
-
-		nameStart := off + 110
-		nameEnd := nameStart + int(namesize)
-		if nameEnd > len(data) {
-			return nil, false
-		}
-
-		name := string(bytes.TrimRight(data[nameStart:nameEnd], "\x00"))
-		next := align4(nameEnd) + align4(int(filesize))
-		if next > len(data) {
-			return nil, false
-		}
-
-		if name == "TRAILER!!!" {
-			return data[:off], true
-		}
-
-		off = next
-	}
-
-	return nil, false
-}
-
-func writeNewcEntry(buf *bytes.Buffer, name string, mode uint32, data []byte) {
-	namesize := len(name) + 1
-	fmt.Fprintf(
-		buf,
-		"070701%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
-		1, mode, 0, 0, 1, 0, len(data), 0, 0, 0, 0, namesize, 0,
-	)
-	buf.WriteString(name)
-	buf.WriteByte(0)
-	padBuffer(buf)
-	buf.Write(data)
-	padBuffer(buf)
-}
-
-func parseNewcHex(data []byte) (uint64, bool) {
-	v, err := strconv.ParseUint(string(data), 16, 64)
-
-	return v, err == nil
-}
-
-func align4(n int) int {
-	return (n + 3) &^ 3
-}
-
-func padBuffer(buf *bytes.Buffer) {
-	for buf.Len()%4 != 0 {
-		buf.WriteByte(0)
-	}
 }
 
 // Boot runs the VM until a CPU stops or terminal input requests shutdown.
@@ -825,24 +423,14 @@ func (v *VMM) BootContext(ctx context.Context) (bootErr error) {
 	return errors.Join(err, stopErr, ctx.Err())
 }
 
-// Close stops the machine, persists attached state, and removes temporary boot
-// media. Setup must finish before Close begins. Repeated calls are safe.
+// Close stops the machine and persists attached state. Setup must finish before
+// Close begins. Repeated calls are safe.
 func (v *VMM) Close() error {
 	v.closeOnce.Do(func() {
 		if v.Machine != nil {
 			v.closeErr = v.Machine.Close()
 		}
-		v.cleanupISO()
 	})
 
 	return v.closeErr
-}
-
-func (v *VMM) cleanupISO() {
-	if v.isoCleanup == nil {
-		return
-	}
-
-	v.isoCleanup()
-	v.isoCleanup = nil
 }

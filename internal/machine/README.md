@@ -30,9 +30,8 @@ aperture is omitted from E820 so Linux can allocate device BARs there.
 The loader checks the kernel's runtime workspace, relocation alignment,
 `initrd_addr_max`, and command-line capacity. The initramfs must fit below both
 its advertised address limit and the PCI hole, without overlapping the kernel
-or reserved regions. When enabled for ISO guests, the VESA framebuffer reserves
+or reserved regions. When enabled, the VESA framebuffer reserves
 `0x01000000 .. 0x01400000`; relocatable kernels are placed outside that range.
 
-UKI boot uses the same Linux loader with bounded readers over the `.linux` and
-`.initrd` sections. It does not enter UEFI firmware. ELF and PVH boot preserve
-their load addresses and clear each segment's uninitialized data.
+ELF and PVH boot preserve their load addresses and clear each segment's
+uninitialized data.

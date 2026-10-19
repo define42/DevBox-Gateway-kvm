@@ -49,8 +49,6 @@ func TestParseBootArgs(t *testing.T) {
 		"initrd_path",
 		"-k",
 		"kernel_path",
-		"-iso",
-		"iso_path",
 		"-p",
 		"params",
 		"-t",
@@ -87,10 +85,6 @@ func TestParseBootArgs(t *testing.T) {
 
 	if c.Initrd != "initrd_path" {
 		t.Error("invalid initrd path")
-	}
-
-	if c.ISO != "iso_path" {
-		t.Errorf("invalid ISO path: got %v, want iso_path", c.ISO)
 	}
 
 	if c.Params != "params" {
@@ -154,10 +148,6 @@ func TestParseBootArgsWithDefaults(t *testing.T) {
 		t.Error("invalid initrd path")
 	}
 
-	if c.ISO != "" {
-		t.Error("invalid ISO path")
-	}
-
 	if c.Params != `console=tty0 console=ttyS0 earlyprintk=serial `+
 		`noapic noacpi nowatchdog nmi_watchdog=0 mitigations=off lapic `+
 		`pci=realloc=off `+
@@ -218,6 +208,39 @@ func TestParseBootArgsRejectsRemovedDisplayFlags(t *testing.T) {
 				t.Fatalf("removed display flag %s returned %v, want unknown flag", tc.flag, err)
 			}
 		})
+	}
+}
+
+func TestParseBootArgsRejectsRemovedMediaFlags(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		flag  string
+		value string
+	}{
+		{name: "iso path", flag: "-iso", value: "installer.iso"},
+		{name: "iso url", flag: "-iso", value: "https://example.test/installer.iso"},
+		{name: "uki path", flag: "-uki", value: "guest.efi"},
+		{name: "uki url", flag: "-uki", value: "https://example.test/guest.efi"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, _, err := flag.ParseArgs([]string{"gokvm", "boot", tc.flag, tc.value})
+			if err == nil || !strings.Contains(err.Error(), "flag provided but not defined: "+tc.flag) {
+				t.Fatalf("removed media flag %s returned %v, want unknown flag", tc.flag, err)
+			}
+		})
+	}
+}
+
+func TestParseBootArgsPreservesExplicitEmptyParams(t *testing.T) {
+	t.Parallel()
+	c, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-k", "vmlinux", "-p", ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Kernel != "vmlinux" || !c.ParamsSet || c.Params != "" {
+		t.Fatalf("explicit empty command line was lost: %+v", c)
 	}
 }
 

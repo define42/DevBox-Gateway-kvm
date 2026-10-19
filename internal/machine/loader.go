@@ -34,7 +34,7 @@ type bootImage struct {
 	memory uint64
 }
 
-// readerSize keeps sized inputs (files and UKI sections) streaming without
+// readerSize keeps sized inputs (files and section readers) streaming without
 // allocating another copy. The bounded fallback preserves the ReaderAt API.
 func readerSize(r io.ReaderAt, limit uint64) (uint64, error) {
 	if r == nil {

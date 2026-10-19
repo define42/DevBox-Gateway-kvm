@@ -75,8 +75,6 @@ func TestCloudInitBootModes(t *testing.T) {
 		conf Config
 	}{
 		{name: "kernel", conf: Config{Kernel: "bzImage"}},
-		{name: "UKI", conf: Config{UKI: "desktop.efi"}},
-		{name: "ISO", conf: Config{ISO: "desktop.iso"}},
 		{name: "UEFI", conf: Config{UEFI: "OVMF_CODE.fd", UEFIVars: "vm_VARS.fd"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

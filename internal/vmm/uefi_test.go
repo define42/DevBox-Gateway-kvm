@@ -15,8 +15,6 @@ func TestUEFIConfigRejectsInvalidOptionsBeforeKVM(t *testing.T) {
 	}{
 		{name: "kernel", modify: func(c *Config) { c.Kernel = "bzImage" }, err: errUEFIBootSource},
 		{name: "initrd", modify: func(c *Config) { c.Initrd = "initrd" }, err: errUEFIBootSource},
-		{name: "UKI", modify: func(c *Config) { c.UKI = "netdesk.efi" }, err: errUEFIBootSource},
-		{name: "ISO", modify: func(c *Config) { c.ISO = "live.iso" }, err: errUEFIBootSource},
 		{name: "parameters", modify: func(c *Config) { c.Params = "console=tty0" }, err: errUEFIBootSource},
 		{name: "empty parameters", modify: func(c *Config) { c.ParamsSet = true }, err: errUEFIBootSource},
 		{name: "missing code", modify: func(c *Config) { c.UEFI = "" }, err: errUEFIVars},
@@ -42,7 +40,7 @@ func TestUEFIConfigAcceptsFirmwareAndDisk(t *testing.T) {
 	t.Parallel()
 
 	v := New(Config{UEFI: "OVMF_CODE.fd", UEFIVars: "guest_VARS.fd", Disk: "guest.qcow2"})
-	if err := v.validateBootSource(); err != nil {
+	if err := v.validateUEFIBootSource(); err != nil {
 		t.Fatal(err)
 	}
 }

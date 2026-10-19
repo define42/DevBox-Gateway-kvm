@@ -185,45 +185,6 @@
   line-height: 1.5;
 }
 
-.terminal-modal__surface {
-  flex: 1 1 auto;
-  min-height: 420px;
-  border: 1px solid var(--gateway-border);
-  border-radius: 0.5rem;
-  background: var(--gateway-canvas-default);
-  overflow: hidden;
-}
-
-.terminal-modal__surface--iframe {
-  padding: 0;
-}
-
-.terminal-modal__surface .xterm {
-  height: 100%;
-  padding: 1rem;
-}
-
-.terminal-modal__surface .xterm-viewport {
-  overflow-y: auto;
-}
-
-.terminal-hint {
-  color: var(--bs-secondary-color);
-  font-size: 0.875rem;
-}
-
-.terminal-modal__dialog:fullscreen {
-  width: 100vw;
-  max-width: none;
-  height: 100vh;
-  max-height: none;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  border-radius: 0;
-  resize: none;
-}
-
 @media (max-width: 768px) {
   .terminal-modal__dialog {
     width: calc(100vw - 1rem);
@@ -232,10 +193,6 @@
     max-height: calc(100vh - 1rem);
     min-width: 0;
     margin: 0.5rem auto;
-  }
-
-  .terminal-modal__surface {
-    min-height: 300px;
   }
 }
 

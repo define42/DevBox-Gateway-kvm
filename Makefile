@@ -84,10 +84,6 @@ test-audio:
 clean:
 	rm -f ./gokvm ./golangci-lint *_string.go
 
-.PHONY: tinycore
-tinycore: gokvm
-	./gokvm boot -iso TinyCore-current.iso -m 512M
-
 .PHONY: qcow2
 qcow2: generate
 	@test -r "$(OVMF_CODE)" || { echo "UEFI firmware not found; set OVMF_CODE to a plain OVMF CODE image." >&2; exit 1; }

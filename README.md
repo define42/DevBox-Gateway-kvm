@@ -262,8 +262,8 @@ Images with backing files, encryption, external data files, or internal
 snapshots are rejected. Successful upload validates the disk format;
 it does not prove that the guest boots or its cloud-init configuration succeeds.
 
-The gateway uses OVMF UEFI disk boot. The standalone runtime also supports Linux
-kernels, PVH, Unified Kernel Images, and recognized Linux ISO layouts. See
+The gateway uses OVMF UEFI disk boot. The standalone runtime also supports direct
+Linux/PVH kernel boot with an optional initrd. See
 [runtime and gateway RDP reference](docs/runtime.md).
 
 ### Deployment boundaries

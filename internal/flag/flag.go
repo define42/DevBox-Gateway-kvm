@@ -39,8 +39,6 @@ var ErrAudio = errors.New("-audio must be 'none' or 'rdp'; 'rdp' requires gatewa
 
 var ErrCPUCount = fmt.Errorf("-c must be between 1 and %d", ebda.MaxVCPUs)
 
-var ErrUKIBootSource = errors.New("-uki cannot be combined with -iso, -k, or -i")
-
 var ErrCloudInitDisk = errors.New("-cloud-init requires a primary disk supplied with -d")
 
 type BootArgs struct {
@@ -49,8 +47,6 @@ type BootArgs struct {
 	NCPUs          int
 	Dev            string
 	Initrd         string
-	ISO            string
-	UKI            string
 	UEFI           string
 	UEFIVars       string
 	Params         string
@@ -81,8 +77,6 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.Dev, "D", "/dev/kvm", "path of kvm device")
 	bootCmd.StringVar(&c.Kernel, "k", "./bzImage", "kernel image path")
 	bootCmd.StringVar(&c.Initrd, "i", "", "initrd path")
-	bootCmd.StringVar(&c.ISO, "iso", "", "ISO image path or http(s) URL to boot")
-	bootCmd.StringVar(&c.UKI, "uki", "", "x86-64 Unified Kernel Image path or http(s) URL to boot directly")
 	bootCmd.StringVar(&c.UEFI, "uefi", "", "OVMF firmware code file for UEFI disk boot (requires -uefi-vars and -d)")
 	bootCmd.StringVar(&c.UEFIVars, "uefi-vars", "", "existing writable per-VM copy of the matching OVMF variables file")
 	//  refs: commit 1621292e73770aabbc146e72036de5e26f901e86 in kvmtool
@@ -156,9 +150,6 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if err := selectUEFIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
-	if err := selectUKIBootSource(bootCmd, c); err != nil {
-		return nil, err
-	}
 	if err := validateRDPOptions(c, threadsSet, encoderSet, profileSet); err != nil {
 		return nil, err
 	}
@@ -221,25 +212,6 @@ func validateTelemetryOptions(c *BootArgs) error {
 	if c.TelemetryFD != 0 && (c.TelemetryFD < 3 || c.TelemetryFD == c.RDPFD) {
 		return ErrTelemetryFD
 	}
-
-	return nil
-}
-
-func selectUKIBootSource(cmd *flag.FlagSet, c *BootArgs) error {
-	if c.UKI == "" {
-		return nil
-	}
-	var explicitPayload bool
-	cmd.Visit(func(f *flag.Flag) {
-		if f.Name == "k" || f.Name == "i" {
-			explicitPayload = true
-		}
-	})
-	if c.ISO != "" || explicitPayload {
-		return ErrUKIBootSource
-	}
-	// The CLI's default kernel does not apply to an embedded UKI payload.
-	c.Kernel = ""
 
 	return nil
 }

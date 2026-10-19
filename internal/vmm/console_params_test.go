@@ -1,9 +1,6 @@
 package vmm
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 func TestConsoleBootParams(t *testing.T) {
 	t.Parallel()
@@ -81,55 +78,5 @@ func TestConsoleBootParamsWithoutRDP(t *testing.T) {
 	const params = " root=\"LABEL=Desktop Disk\"\tconsole=ttyS0 earlyprintk=serial -- earlycon\n"
 	if got := New(Config{}).consoleBootParams(params); got != params {
 		t.Fatalf("headless arguments changed: %q", got)
-	}
-}
-
-func TestRDPBootParams(t *testing.T) {
-	t.Parallel()
-
-	const embedded = `rdinit=/init root="LABEL=Desktop Disk" console=ttyS0,115200n8 loglevel=4 -- console=keep`
-	for _, tc := range []struct {
-		name   string
-		conf   Config
-		params string
-	}{
-		{name: "UKI embedded", conf: Config{UKI: "desktop.efi"}, params: embedded},
-		{name: "ISO embedded", conf: Config{ISO: "desktop.iso"}, params: embedded},
-		{name: "explicit override", conf: Config{ParamsSet: true, Params: embedded}, params: embedded},
-		{name: "explicit empty override", conf: Config{ParamsSet: true}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			conf := withGatewayRDP(t, tc.conf)
-			got := New(conf).bootParams(embedded)
-			fields := kernelParamFields(got)
-			if countField(got, "console=tty0") != 1 {
-				t.Fatalf("expected exactly one framebuffer console in %q", got)
-			}
-			for _, field := range fields {
-				name := kernelParamName(field)
-				if (name == "console" && field != "console=tty0") || name == "earlyprintk" || name == "earlycon" {
-					t.Fatalf("unexpected console parameter %q in %q", field, got)
-				}
-			}
-			if tc.params != "" {
-				for _, want := range []string{"rdinit=/init", `root="LABEL=Desktop Disk"`, "loglevel=4", "-- console=keep"} {
-					if !strings.Contains(got, want) {
-						t.Errorf("missing preserved argument %q in %q", want, got)
-					}
-				}
-			}
-			if conf.ParamsSet {
-				if hasField(got, "noapic") {
-					t.Errorf("explicit override gained default arguments: %q", got)
-				}
-			} else {
-				for _, want := range []string{"noapic", "noacpi", "pci=realloc=off", "virtio_pci.force_legacy=1"} {
-					if !hasField(got, want) {
-						t.Errorf("missing direct-boot default %q in %q", want, got)
-					}
-				}
-			}
-		})
 	}
 }

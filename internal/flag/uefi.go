@@ -5,7 +5,7 @@ import (
 	"flag"
 )
 
-var ErrUEFIBootSource = errors.New("-uefi cannot be combined with -k, -i, -uki, -iso, or -p")
+var ErrUEFIBootSource = errors.New("-uefi cannot be combined with -k, -i, or -p")
 
 var ErrUEFIVars = errors.New("-uefi and -uefi-vars must be provided together")
 
@@ -21,7 +21,7 @@ func selectUEFIBootSource(cmd *flag.FlagSet, c *BootArgs) error {
 	var directBootFlag bool
 	cmd.Visit(func(f *flag.Flag) {
 		switch f.Name {
-		case "k", "i", "uki", "iso", "p":
+		case "k", "i", "p":
 			directBootFlag = true
 		}
 	})

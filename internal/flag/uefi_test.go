@@ -21,7 +21,7 @@ func TestParseUEFIBoot(t *testing.T) {
 	if c.UEFI != "OVMF_CODE.fd" || c.UEFIVars != "guest_VARS.fd" || c.Disk != "guest.qcow2" {
 		t.Fatalf("incorrect UEFI boot source: %+v", c)
 	}
-	if c.Kernel != "" || c.Initrd != "" || c.UKI != "" || c.ISO != "" || c.Params != "" || c.ParamsSet {
+	if c.Kernel != "" || c.Initrd != "" || c.Params != "" || c.ParamsSet {
 		t.Fatalf("direct boot defaults leaked into UEFI mode: %+v", c)
 	}
 	if c.NCPUs != 4 || c.MemSize != 2<<30 || c.Network != "user" || c.RDPFD != 3 {
@@ -32,7 +32,7 @@ func TestParseUEFIBoot(t *testing.T) {
 func TestUEFIRejectsConflictingBootFlags(t *testing.T) {
 	t.Parallel()
 
-	for _, name := range []string{"k", "i", "uki", "iso", "p"} {
+	for _, name := range []string{"k", "i", "p"} {
 		for _, value := range []string{"", "payload"} {
 			t.Run(name+"/"+value, func(t *testing.T) {
 				t.Parallel()

@@ -62,8 +62,6 @@ func run(ctx context.Context, args []string) error {
 		Dev:            bootArgs.Dev,
 		Kernel:         bootArgs.Kernel,
 		Initrd:         bootArgs.Initrd,
-		ISO:            bootArgs.ISO,
-		UKI:            bootArgs.UKI,
 		UEFI:           bootArgs.UEFI,
 		UEFIVars:       bootArgs.UEFIVars,
 		Params:         bootArgs.Params,

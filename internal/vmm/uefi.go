@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-var errUEFIBootSource = errors.New("UEFI cannot be combined with kernel, initrd, UKI, ISO, or kernel parameters")
+var errUEFIBootSource = errors.New("UEFI cannot be combined with kernel, initrd, or kernel parameters")
 
 var errUEFIVars = errors.New("UEFI code and a writable per-VM variables file must be provided together")
 
@@ -19,7 +19,7 @@ func (v *VMM) validateUEFIBootSource() error {
 	if v.UEFI == "" {
 		return nil
 	}
-	if v.Kernel != "" || v.Initrd != "" || v.UKI != "" || v.ISO != "" || v.Params != "" || v.ParamsSet {
+	if v.Kernel != "" || v.Initrd != "" || v.Params != "" || v.ParamsSet {
 		return errUEFIBootSource
 	}
 	if v.Disk == "" {

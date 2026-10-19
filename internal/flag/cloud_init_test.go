@@ -29,9 +29,7 @@ func TestCloudInitPreservesBootOptions(t *testing.T) {
 	}{
 		{name: "direct defaults"},
 		{name: "direct explicit", args: []string{"-k", "vmlinuz", "-i", "initrd", "-p", "console=tty0"}},
-		{name: "UKI", args: []string{"-uki", "guest.efi", "-p", ""}},
 		{name: "UEFI", args: []string{"-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd"}},
-		{name: "ISO", args: []string{"-iso", "installer.iso"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -68,9 +66,7 @@ func TestCloudInitRequiresPrimaryDisk(t *testing.T) {
 	}{
 		{name: "missing disk"},
 		{name: "empty disk", args: []string{"-d", ""}},
-		{name: "UKI", args: []string{"-uki", "guest.efi"}},
 		{name: "UEFI", args: []string{"-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd"}},
-		{name: "ISO", args: []string{"-iso", "installer.iso"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

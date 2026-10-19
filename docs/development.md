@@ -48,7 +48,7 @@ builds the CLI with its existing executable name; there is no separate
 | [`internal/machine`](../internal/machine), [`internal/guestmem`](../internal/guestmem) | KVM machine setup, loaders, platform memory layout, and guest memory validation |
 | [`internal/virtio`](../internal/virtio), [`internal/pci`](../internal/pci), [`internal/iodev`](../internal/iodev) | Devices, PCI transport, framebuffer, and guest input |
 | [`internal/rdp`](../internal/rdp), [`internal/audio`](../internal/audio) | RDP protocol, graphics encoding, and audio delivery |
-| [`internal/disk`](../internal/disk), [`internal/cloudinit`](../internal/cloudinit), [`internal/iso9660`](../internal/iso9660), [`internal/uki`](../internal/uki) | Disk access, NoCloud seeds, ISO discovery, and UKI parsing |
+| [`internal/disk`](../internal/disk), [`internal/cloudinit`](../internal/cloudinit) | Disk access and NoCloud seed creation and validation |
 | [`internal/usernet`](../internal/usernet), [`internal/tap`](../internal/tap) | Built-in guest networking and host-managed TAP access |
 | [`scripts`](../scripts), [`tools`](../tools), [`testldap`](../testldap) | Guest helpers, developer tools, and the local test directory service |
 
@@ -71,14 +71,13 @@ connections before proxying them to the selected VM. See
 ## Focused checks
 
 The following package selections exercise the gateway, provisioning, graphics,
-input, networking, storage, and parsers without booting a guest:
+input, networking, and storage without booting a guest:
 
 ```bash
 CGO_ENABLED=0 go test -short ./internal/gateway ./internal/cloudinit
 CGO_ENABLED=0 go test -short ./internal/rdp/... \
   ./internal/virtio ./internal/vmm ./internal/flag
-CGO_ENABLED=0 go test ./internal/audio ./internal/usernet ./internal/disk \
-  ./internal/iso9660 ./scripts
+CGO_ENABLED=0 go test ./internal/audio ./internal/usernet ./internal/disk ./scripts
 ```
 
 Some tests bind local TCP listeners. Disk interoperability tests use `qemu-img`
@@ -170,20 +169,13 @@ encode.
 Use the check that matches the change. These commands can launch guests or a
 local LDAP service, and some need several GiB of free RAM.
 
-### Image import and ISO discovery
+### Image import
 
 The compressed QCOW2 import test needs `qemu-img`, but no KVM device:
 
 ```bash
 go test -tags integration ./internal/gateway \
   -run '^TestImageCatalogNormalizesCompressedQCOW2$' -count=1 -v
-```
-
-To exercise ISO discovery with a local image without booting it:
-
-```bash
-GOKVM_TEST_ISO=/path/to/linux.iso go test ./internal/iso9660 \
-  -run '^TestLoadBootFilesFromExternalISO$' -count=1 -v
 ```
 
 ### LDAP
@@ -230,16 +222,6 @@ or initrd:
 go test -tags integration ./internal/machine ./internal/vmm \
   -run '^Test(CloseStopsRunningVCPUs|CloseReleasesResources|RunImmediateExitReturnsEINTR|HeadlessBootReturnsCPUFailure|SetupFailureClosesMachineAndConsole|RDPWaitCancellationPrecedesVCPURun)$' \
   -count=1 -v </dev/null
-```
-
-The NetDesk test boots a 6 GiB guest and checks desktop readiness, graphics,
-pointer/keyboard input, and Chromium networking using an in-memory display and
-direct guest input. Its diagnostic artifact is the serial log. Run it separately
-from other heavy boots:
-
-```bash
-GOKVM_NETDESK_UKI=/path/to/netdesk.efi go test -tags integration ./internal/vmm \
-  -run '^TestNetDeskUKIDesktopBoot$' -count=1 -timeout 6m -v
 ```
 
 For native UEFI disk boot, persistent variables across reset, and shutdown:

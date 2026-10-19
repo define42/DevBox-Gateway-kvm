@@ -17,13 +17,13 @@ CGO_ENABLED=0 go build -o gokvm .
 ```
 
 The host must be x86-64 Linux with hardware virtualization enabled and read/write
-access to `/dev/kvm`. Nested hosts must expose KVM. Prepare a supported Linux
-kernel/initrd, live ISO, UKI, or UEFI disk before starting the VM. A blank disk
-image alone cannot boot an operating system.
+access to `/dev/kvm`. Nested hosts must expose KVM. Prepare a supported local Linux
+kernel/initrd or UEFI disk before starting the VM. A blank disk image alone cannot
+boot an operating system.
 
 - [Boot flags](#boot-flags)
 - [UEFI disk boot and the Rocky example](#uefi-disk-boot)
-- [Direct Linux, ISO, and UKI boot](#direct-linux-iso-and-uki-boot)
+- [Direct Linux and PVH boot](#direct-linux-and-pvh-boot)
 - [Storage and cloud-init](#storage-and-cloud-init)
 - [Networking](#networking)
 - [Remote display and input](#remote-display-and-input)
@@ -41,8 +41,6 @@ file. `boot -help` is the complete CLI reference.
 | `-D path` | `/dev/kvm` | KVM device. |
 | `-k path` | `./bzImage` | Linux kernel; PVH entry points are detected automatically. |
 | `-i path` | Unset | Optional initrd for direct kernel boot. |
-| `-iso path-or-url` | Unset | Supported Linux ISO; takes precedence over `-k` and `-i`. |
-| `-uki path-or-url` | Unset | Single-profile x86-64 UKI; cannot be combined with `-iso`, explicit `-k`, or `-i`. |
 | `-uefi path` | Unset | Local OVMF CODE image; requires `-uefi-vars` and `-d`. |
 | `-uefi-vars path` | Unset | Existing writable per-VM copy of matching OVMF VARS. |
 | `-p parameters` | Built-in kernel command line | Replace direct-boot arguments; unavailable with `-uefi`. |
@@ -54,6 +52,7 @@ file. `boot -help` is the complete CLI reference.
 | `-t name` | Unset | Host TAP interface. |
 | `-T count` | `0` | Instructions to skip between trace prints; zero disables tracing. |
 
+Boot inputs must be local files; the runtime does not download boot media.
 Standalone boots use a serial console, with networking disabled by default.
 The gateway enables graphics for its managed workers automatically.
 
@@ -101,9 +100,9 @@ writes, and flushed on shutdown. Keep it for subsequent runs; copying the
 template again resets firmware settings and boot entries. Do not use the
 package's shared VARS template directly or share a writable store between VMs.
 
-UEFI requires virtio-capable guests. Legacy BIOS/CSM boot, Secure Boot,
-SMM-enabled firmware, and UEFI installation from `-iso` are unsupported.
-`-uefi` cannot be combined with `-k`, `-i`, `-uki`, `-iso`, or `-p`. Firmware,
+UEFI requires virtio-capable guests. Legacy BIOS/CSM boot, Secure Boot, and
+SMM-enabled firmware are unsupported.
+`-uefi` cannot be combined with `-k`, `-i`, or `-p`. Firmware,
 VARS, and disk paths must be local files. Change kernel arguments in the disk's
 installed bootloader configuration.
 
@@ -179,21 +178,18 @@ serial-console boots.
 A guest-requested reset closes and recreates the VM using the same disk and VARS;
 reconnect the RDP client afterward.
 
-Large EFI applications can hit OVMF's virtio-blk limit of 1 GiB per read. A 1.6 GB
-UKI returned `EFI_BAD_BUFFER_SIZE` in an independent QEMU control; firmware may
-show this as `Not Found`. Use a smaller EFI application or a bootloader that
-reads large payloads in chunks. Direct `-uki` loading avoids this firmware path.
+Large EFI applications can hit OVMF's virtio-blk limit of 1 GiB per read, returning
+`EFI_BAD_BUFFER_SIZE`; firmware may show this as `Not Found`. Use a smaller EFI
+application or a bootloader that reads large payloads in chunks.
 See [EDK2's virtio-blk request validation](https://github.com/tianocore/edk2/blob/master/OvmfPkg/VirtioBlkDxe/VirtioBlk.c).
 
-## Direct Linux, ISO, and UKI boot
+## Direct Linux and PVH boot
 
 These modes load a Linux kernel directly; they do not run BIOS/UEFI bootloader
 code. Their built-in kernel arguments describe gokvm's direct-boot environment.
 Use `-p` to replace those arguments when a guest needs a different root device or
 init program. UEFI disk boot instead preserves the installed bootloader's
 configuration.
-
-### Kernel and initrd
 
 ```bash
 ./gokvm boot -k /path/to/bzImage -i /path/to/initrd
@@ -212,55 +208,11 @@ and initrd. The required CI boot check also uses QCOW2/UEFI, but with a small EF
 test application rather than a Linux guest. Neither path needs standalone
 kernel/initrd files.
 
-### Linux live ISO
-
-```bash
-./gokvm boot -iso ./TinyCore-current.iso -m 512M
-./gokvm boot -iso ./slax.iso -m 2G -net user
-```
-
-ISO discovery reads El Torito metadata and common syslinux/isolinux or GRUB
-configurations, then loads the Linux kernel and initrd. The ISO is also attached
-as read-only virtio-blk media for the live system. This supports recognized Linux
-ISO layouts, not arbitrary operating-system installers. An explicit `-p`
-replaces the ISO arguments and added defaults.
-
-`-iso` accepts HTTP(S) URLs, fully downloading the image to a temporary file kept
-for the VM's lifetime. Downloads are not cached between runs. For example:
-
-```bash
-./gokvm boot -iso http://www.tinycorelinux.net/17.x/x86/release/TinyCore-current.iso \
-  -m 512M
-```
-
-`make tinycore` runs the local ISO with the host serial console. Standalone ISO
-boots do not expose a graphical desktop; use the gateway with a supported
-QCOW2/UEFI disk for desktop access.
-
-### Unified Kernel Image
-
-```bash
-./gokvm boot -uki ./netdesk.efi -m 6G -c 2 -net user
-```
-
-`-uki` reads `.linux`, `.initrd`, and optional `.cmdline` sections from a
-single-profile x86-64 PE32+ UKI, then loads the embedded bzImage directly.
-It does not execute the EFI stub, supply UEFI services, or verify Secure Boot
-signatures. Arbitrary EFI applications and EFI-stub-dependent UKIs are unsupported.
-The embedded command line is combined with direct-boot defaults unless `-p`
-replaces it. Payloads stream into guest RAM. HTTP(S) downloads are removed once
-the payloads have loaded.
-
-[NetDesk](https://github.com/define42/NetDesk) includes its desktop in the UKI and
-needs no attached disk. Six GiB matches its reference VM configuration.
-The standalone example exposes only a serial console, not the UKI's desktop.
-
 ## Storage and cloud-init
 
 `-d` attaches writable raw or qcow2 storage; its format is detected from its
-contents. The primary disk appears as `/dev/vda`. With `-iso`, read-only live
-media follows it as another virtio-blk device. Attaching a disk does not select
-a disk bootloader: use `-uefi`, or provide a direct kernel, UKI, or supported ISO.
+contents. The primary disk appears as `/dev/vda`. Attaching a disk does not select
+a disk bootloader: use `-uefi`, or provide a direct kernel and any required initrd.
 
 ```bash
 ./gokvm boot -k /path/to/bzImage -i /path/to/initrd -d ./disk.qcow2
@@ -383,10 +335,10 @@ Managed RDP desktops disable the serial port, serial text overlay, and host
 terminal input. UEFI boots leave installed bootloader arguments unchanged.
 
 Managed VMs offer AVC420 with bitmap fallback in 16-, 24-, or 32-bit color.
-VGA/VESA and virtio-gpu output are supported. Clipboard,
+Display output uses virtio-gpu. Clipboard,
 drive redirection, microphone input, and multiple monitors are not implemented.
-FreeRDP 3.32.1 has been tested with TinyCore and Slax desktop rendering and input;
-Microsoft Remote Desktop has not been validated.
+The documented client setup uses FreeRDP; Microsoft Remote Desktop has not been
+validated.
 
 ### RDP graphics profiles
 
@@ -639,16 +591,6 @@ Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to change C
 count, or `GOKVM_BINARY=/path/to/gokvm` for an existing binary. Alternate GNU-EFI
 locations use `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`. This checks the firmware
 platform, not every guest OS.
-
-For the NetDesk UKI desktop, input, and browser-network smoke test:
-
-```bash
-GOKVM_NETDESK_UKI=/path/to/netdesk.efi go test -tags=integration ./internal/vmm \
-  -run '^TestNetDeskUKIDesktopBoot$' -timeout 6m -v
-```
-
-This test captures frames in memory and injects guest input directly; its
-diagnostic artifact is the serial log.
 
 For actual NVIDIA encoding, with `ffmpeg` and the NVENC build dependencies:
 
