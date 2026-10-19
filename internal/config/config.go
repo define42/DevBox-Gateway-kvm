@@ -4,13 +4,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 )
 
@@ -99,7 +97,6 @@ type Setting struct {
 	I64         int64
 	B           bool
 	D           time.Duration
-	Secret      bool
 }
 
 // Settings holds a snapshot of the process configuration. Construct it with
@@ -112,9 +109,8 @@ type Settings struct {
 // NewSettings registers gateway defaults and applies environment overrides.
 // Invalid integer, boolean, and duration overrides retain their defaults.
 // Strings preserve explicit empty values; surrounding whitespace is removed.
-// When printSettings is true, effective settings are printed to standard output
-// with registered secrets masked. Callers must still validate runtime settings.
-func NewSettings(printSettings bool) *Settings {
+// Callers must still validate runtime settings.
+func NewSettings() *Settings {
 	s := &Settings{m: make(map[string]*Setting)}
 
 	s.SetString(DATA_ROOT_DIR, "Private persistent VM state directory", ".gokvm-gateway")
@@ -171,10 +167,6 @@ func NewSettings(printSettings bool) *Settings {
 		"New TCP connections admitted per second per IPv4 address or IPv6 /64, with an equal burst", 8)
 	s.SetDuration(HANDSHAKE_TIMEOUT, "Maximum connection lifetime before application authentication", 10*time.Second)
 
-	if printSettings {
-		_ = s.Print(os.Stdout)
-	}
-
 	return s
 }
 
@@ -182,13 +174,6 @@ func NewSettings(printSettings bool) *Settings {
 func (s *Settings) SetString(id, description, defaultValue string) {
 	raw := environmentValue(id, defaultValue)
 	s.m[id] = &Setting{Description: description, Kind: KindString, Raw: raw, S: raw}
-}
-
-// SetSecretString registers a string masked by Print. Get and String still
-// return its real value.
-func (s *Settings) SetSecretString(id, description, defaultValue string) {
-	s.SetString(id, description, defaultValue)
-	s.m[id].Secret = true
 }
 
 // SetInt registers an integer, retaining its default when parsing fails.
@@ -242,7 +227,7 @@ func (s *Settings) Has(id string) bool {
 func (s *Settings) Get(id string) string { return s.String(id) }
 
 // String formats any registered setting as a string. Unknown settings return an
-// empty string and secret values are returned without masking.
+// empty string.
 func (s *Settings) String(id string) string {
 	st, ok := s.m[id]
 	if !ok {
@@ -351,39 +336,6 @@ func (s *Settings) Keys() []string {
 	sort.Strings(keys)
 
 	return keys
-}
-
-// Print writes effective settings in alphabetical order with secrets masked.
-func (s *Settings) Print(output io.Writer) error {
-	table := tabwriter.NewWriter(
-		output,
-		0,
-		4,
-		2,
-		' ',
-		0,
-	)
-	if _, err := fmt.Fprintln(table, "ENVIRONMENT\tVALUE\tDESCRIPTION"); err != nil {
-		return err
-	}
-	for _, id := range s.Keys() {
-		st := s.m[id]
-		value := s.String(id)
-		if st.Secret && value != "" {
-			value = "******"
-		}
-		if _, err := fmt.Fprintf(
-			table,
-			"%s\t%s\t%s\n",
-			id,
-			value,
-			st.Description,
-		); err != nil {
-			return err
-		}
-	}
-
-	return table.Flush()
 }
 
 // ParseByteSize parses a positive integer byte count. SI units use powers of

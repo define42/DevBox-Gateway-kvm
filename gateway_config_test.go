@@ -18,7 +18,7 @@ import (
 
 func clearServeEnvironment(t *testing.T) {
 	t.Helper()
-	for _, key := range config.NewSettings(false).Keys() {
+	for _, key := range config.NewSettings().Keys() {
 		// Setenv registers restoration of the original environment at cleanup.
 		t.Setenv(key, "")
 		if err := os.Unsetenv(key); err != nil {
@@ -258,7 +258,7 @@ func TestServeHelpDocumentsEnvironment(t *testing.T) {
 	if _, err := readServeOptions([]string{"-help"}, &output); !errors.Is(err, flag.ErrHelp) {
 		t.Fatalf("help: %v", err)
 	}
-	for _, key := range config.NewSettings(false).Keys() {
+	for _, key := range config.NewSettings().Keys() {
 		if !strings.Contains(output.String(), "["+key+"]") {
 			t.Errorf("help omits %s", key)
 		}

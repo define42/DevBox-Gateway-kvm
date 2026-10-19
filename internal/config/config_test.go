@@ -1,14 +1,10 @@
 package config_test
 
 import (
-	"bytes"
-	"errors"
-	"io"
 	"math"
 	"os"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -17,10 +13,10 @@ import (
 
 //nolint:paralleltest // unsetEnvironment changes process-wide environment variables.
 func TestNewSettingsDefaults(t *testing.T) {
-	for _, key := range config.NewSettings(false).Keys() {
+	for _, key := range config.NewSettings().Keys() {
 		unsetEnvironment(t, key)
 	}
-	settings := config.NewSettings(false)
+	settings := config.NewSettings()
 	want := map[string]string{
 		config.DATA_ROOT_DIR:              ".gokvm-gateway",
 		config.BASE_IMAGE:                 "",
@@ -103,7 +99,7 @@ func TestNewSettingsEnvironmentOverrides(t *testing.T) {
 	t.Setenv(config.IMAGE_UPLOAD_MAX_BYTES, " 42949672960 ")
 	t.Setenv(config.ACME_ENABLE, " TRUE ")
 	t.Setenv(config.VM_START_TIMEOUT, " 1m15s ")
-	settings := config.NewSettings(false)
+	settings := config.NewSettings()
 	if got := settings.String(config.DATA_ROOT_DIR); got != "/srv/desktops" {
 		t.Errorf("data root = %q, want /srv/desktops", got)
 	}
@@ -141,7 +137,7 @@ func TestNewSettingsInvalidOverridesRetainDefaults(t *testing.T) {
 			t.Setenv(config.IMAGE_UPLOAD_MAX_BYTES, tt.value)
 			t.Setenv(config.ACME_ENABLE, tt.value)
 			t.Setenv(config.VM_START_TIMEOUT, tt.value)
-			settings := config.NewSettings(false)
+			settings := config.NewSettings()
 			if got := settings.Int(config.VM_VCPU_COUNT); got != 2 {
 				t.Errorf("CPU count = %d, want default 2", got)
 			}
@@ -238,10 +234,10 @@ func TestParseByteSizeRejectsInvalidValues(t *testing.T) {
 func TestNewSettingsSnapshot(t *testing.T) {
 	t.Setenv(config.DATA_ROOT_DIR, "/first")
 	t.Setenv(config.VM_VCPU_COUNT, "3")
-	first := config.NewSettings(false)
+	first := config.NewSettings()
 	t.Setenv(config.DATA_ROOT_DIR, "/second")
 	t.Setenv(config.VM_VCPU_COUNT, "8")
-	second := config.NewSettings(false)
+	second := config.NewSettings()
 	if first.Get(config.DATA_ROOT_DIR) != "/first" || first.Int(config.VM_VCPU_COUNT) != 3 {
 		t.Error("environment changes modified an existing snapshot")
 	}
@@ -263,14 +259,14 @@ func TestSettingsSetString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv(config.DATA_ROOT_DIR, tt.value)
-			if got := config.NewSettings(false).Get(config.DATA_ROOT_DIR); got != tt.want {
+			if got := config.NewSettings().Get(config.DATA_ROOT_DIR); got != tt.want {
 				t.Errorf("Get(DATA_ROOT_DIR) = %q, want %q", got, tt.want)
 			}
 		})
 	}
 	t.Run("trimmed default", func(t *testing.T) {
 		unsetEnvironment(t, "CONFIG_TEST_STRING")
-		settings := config.NewSettings(false)
+		settings := config.NewSettings()
 		settings.SetString("CONFIG_TEST_STRING", "Example", " default \n")
 		if got := settings.Get("CONFIG_TEST_STRING"); got != "default" {
 			t.Errorf("default = %q, want default", got)
@@ -297,7 +293,7 @@ func TestSettingsConversions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("CONFIG_TEST_VALUE", tt.value)
-			settings := config.NewSettings(false)
+			settings := config.NewSettings()
 			settings.SetString("CONFIG_TEST_VALUE", "Example", "")
 			if got := settings.Int("CONFIG_TEST_VALUE"); got != tt.integer {
 				t.Errorf("Int = %d, want %d", got, tt.integer)
@@ -318,7 +314,7 @@ func TestSettingsConversions(t *testing.T) {
 func TestSettingsUnknown(t *testing.T) {
 	t.Parallel()
 
-	settings := config.NewSettings(false)
+	settings := config.NewSettings()
 	const unknown = "CONFIG_TEST_UNREGISTERED"
 	if settings.Has(unknown) {
 		t.Error("Has must be false for an unregistered setting")
@@ -340,59 +336,18 @@ func TestSettingsUnknown(t *testing.T) {
 	}
 }
 
-func TestSettingsPrint(t *testing.T) {
-	t.Setenv("CONFIG_TEST_SECRET", " hidden-credential ")
-	t.Setenv(config.DATA_ROOT_DIR, "/srv/desktops")
-	settings := config.NewSettings(false)
-	settings.SetSecretString("CONFIG_TEST_SECRET", "Test credential", "")
-	var output bytes.Buffer
-	if err := settings.Print(&output); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(output.String(), "hidden-credential") {
-		t.Fatal("Print exposed a secret")
-	}
-	if !strings.Contains(output.String(), "******") || !strings.Contains(output.String(), "/srv/desktops") {
-		t.Error("Print must include masked secrets and effective non-secret values")
-	}
-	if got := settings.Get("CONFIG_TEST_SECRET"); got != "hidden-credential" {
-		t.Errorf("Get(secret) = %q, want the unmasked credential", got)
-	}
+func TestSettingsKeys(t *testing.T) {
+	t.Parallel()
+
+	settings := config.NewSettings()
 	keys := settings.Keys()
 	if !sort.StringsAreSorted(keys) {
 		t.Error("Keys must be sorted")
-	}
-	lines := strings.Split(strings.TrimSpace(output.String()), "\n")
-	if len(lines) != len(keys)+1 {
-		t.Fatalf("Print emitted %d lines, want %d", len(lines), len(keys)+1)
-	}
-	for index, key := range keys {
-		if got := strings.Fields(lines[index+1])[0]; got != key {
-			t.Errorf(
-				"printed row %d = %q, want %q",
-				index,
-				got,
-				key,
-			)
-		}
 	}
 	keys[0] = "changed"
 	if reflect.DeepEqual(keys, settings.Keys()) {
 		t.Error("modifying Keys changed the settings")
 	}
-
-	wantErr := io.ErrClosedPipe
-	if err := settings.Print(errorWriter{err: wantErr}); !errors.Is(err, wantErr) {
-		t.Errorf("Print error = %v, want %v", err, wantErr)
-	}
-}
-
-type errorWriter struct {
-	err error
-}
-
-func (w errorWriter) Write([]byte) (int, error) {
-	return 0, w.err
 }
 
 func unsetEnvironment(t *testing.T, key string) {

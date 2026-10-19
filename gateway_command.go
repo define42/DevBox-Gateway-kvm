@@ -65,7 +65,7 @@ type serveOptions struct {
 
 // readServeOptions applies defaults, then environment values, then explicit flags.
 func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
-	s := config.NewSettings(false)
+	s := config.NewSettings()
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
 	flags.SetOutput(output)
 	flags.Usage = func() {
