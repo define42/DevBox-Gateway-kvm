@@ -13,6 +13,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/flag"
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/probe"
+	"github.com/define42/DevBox-Gateway-kvm/internal/profiling"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
 	"golang.org/x/sys/unix"
@@ -106,6 +107,15 @@ func run(ctx context.Context, args []string) error {
 		} else {
 			defer stop()
 			c.Telemetry = collector
+		}
+	}
+
+	if bootArgs.ProfileSocket != "" {
+		stop, profileErr := profiling.Start(ctx, bootArgs.ProfileSocket)
+		if profileErr != nil {
+			log.Printf("VM CPU profiling disabled: %v", profileErr)
+		} else {
+			defer stop()
 		}
 	}
 

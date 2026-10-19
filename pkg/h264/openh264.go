@@ -1,4 +1,4 @@
-// Package openh264 is a pure Go port of Cisco's OpenH264 codec library.
+// Package openh264 is a cgo-free Go port of Cisco's OpenH264 codec library.
 //
 // Two levels of API are provided:
 //
@@ -8,9 +8,11 @@
 //   - A small idiomatic wrapper: Decoder and Encoder, working on Frame values
 //     with tightly packed I420 planes.
 //
-// The port contains no assembly. Its audited fixed-slice encoder path can use
-// bounded Go workers; decoding and other encoder modes remain sequential. Its
-// output is bit-exact with the C reference implementation.
+// The port includes architecture-specific SIMD assembly kernels with Go
+// fallbacks. Its audited fixed-slice encoder path can use bounded Go workers;
+// decoding and other encoder modes remain sequential. Without the optional
+// Go-only UnchangedMacroblocks hints, its output is bit-exact with the C reference
+// implementation. Those hints may produce a different valid H.264 bitstream.
 package openh264
 
 import (
@@ -66,6 +68,13 @@ type Frame struct {
 	// Timestamp is the input timestamp for encoding (milliseconds), or the
 	// output timestamp reported by the decoder.
 	Timestamp int64
+	// UnchangedMacroblocks is a Go-only encoding hint, borrowed until Encode
+	// returns. In row-major ceil(Width/16)*ceil(Height/16) order, true certifies
+	// that every source Y/U/V sample in that macroblock is unchanged since the
+	// immediately preceding successful encoded picture. Nil or a wrong length
+	// disables the hint. Decoded frames do not carry it. Incorrect hints can
+	// suppress real changes; encoders may ignore any or all hints.
+	UnchangedMacroblocks []bool
 }
 
 // NewFrame allocates a zeroed frame of the given (even) size.
@@ -254,6 +263,7 @@ func (e *Encoder) Encode(f *Frame) ([]byte, api.EVideoFrameType, error) {
 	}
 	pic.IStride[0], pic.IStride[1], pic.IStride[2] = int32(f.Width), int32(f.Width/2), int32(f.Width/2)
 	pic.PData[0], pic.PData[1], pic.PData[2] = f.Y, f.U, f.V
+	pic.UnchangedMacroblocks = f.UnchangedMacroblocks
 	var info api.SFrameBSInfo
 	if rv := e.e.EncodeFrame(&pic, &info); rv != 0 {
 		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: EncodeFrame failed (%d)", rv)

@@ -128,6 +128,15 @@ func (e *BitmapEncoder) markPending(region image.Rectangle) {
 }
 
 func (e *BitmapEncoder) scaleRegion(img *image.RGBA, region image.Rectangle) {
+	if img.Rect.Dx() == e.width && img.Rect.Dy() == e.height {
+		e.packRegion(img, region)
+
+		return
+	}
+	e.scaleRegionNearest(img, region)
+}
+
+func (e *BitmapEncoder) scaleRegionNearest(img *image.RGBA, region image.Rectangle) {
 	for y := region.Min.Y; y < region.Max.Y; y++ {
 		srcY := y * img.Rect.Dy() / e.height
 		for x := region.Min.X; x < region.Max.X; x++ {
@@ -139,6 +148,38 @@ func (e *BitmapEncoder) scaleRegion(img *image.RGBA, region image.Rectangle) {
 				binary.LittleEndian.PutUint16(e.pixels[dst:], value)
 			} else {
 				e.pixels[dst], e.pixels[dst+1], e.pixels[dst+2] = b, g, r
+			}
+		}
+	}
+}
+
+// packRegion handles the common unscaled desktop without coordinate divisions
+// per pixel. Pix already begins at Rect.Min, including for a padded subimage.
+func (e *BitmapEncoder) packRegion(img *image.RGBA, region image.Rectangle) {
+	if region.Empty() {
+		return
+	}
+	width := region.Dx()
+	for y := region.Min.Y; y < region.Max.Y; y++ {
+		srcStart := y*img.Stride + region.Min.X*4
+		dstStart := (y*e.width + region.Min.X) * e.bytesPerPixel
+		src := img.Pix[srcStart : srcStart+width*4]
+		dst := e.pixels[dstStart : dstStart+width*e.bytesPerPixel]
+		switch e.bytesPerPixel {
+		case 2:
+			for s, d := 0, 0; s < len(src); s, d = s+4, d+2 {
+				r, g, b := src[s], src[s+1], src[s+2]
+				value := uint16(r>>3)<<11 | uint16(g>>2)<<5 | uint16(b>>3)
+				binary.LittleEndian.PutUint16(dst[d:], value)
+			}
+		case 3:
+			for s, d := 0, 0; s < len(src); s, d = s+4, d+3 {
+				dst[d], dst[d+1], dst[d+2] = src[s+2], src[s+1], src[s]
+			}
+		case 4:
+			for offset := 0; offset < len(src); offset += 4 {
+				// The fourth byte is reserved, not the source alpha channel.
+				dst[offset], dst[offset+1], dst[offset+2] = src[offset+2], src[offset+1], src[offset]
 			}
 		}
 	}

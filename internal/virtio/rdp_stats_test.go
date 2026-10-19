@@ -42,6 +42,8 @@ func TestRDPTelemetryWithoutLogs(t *testing.T) {
 		t.Fatal("managed telemetry did not enable timing independently of logs")
 	}
 	stats.encoded("nvenc", 2*time.Millisecond)
+	stats.copied(time.Millisecond)
+	stats.converted(4 * time.Millisecond)
 	stats.written(3 * time.Millisecond)
 	stats.sent(100)
 	stats.captured("nvenc", image.Pt(1280, 720), image.Pt(1280, 720),
@@ -58,6 +60,11 @@ func TestRDPTelemetryWithoutLogs(t *testing.T) {
 	}
 	if stats.enabled || stats.frames != 0 {
 		t.Fatal("telemetry enabled log output or local log counters")
+	}
+	if p := snapshot.Pipeline; p == nil || p.CaptureCount != 1 || p.CaptureNanos != uint64(time.Millisecond) ||
+		p.ConvertCount != 1 || p.ConvertNanos != uint64(4*time.Millisecond) ||
+		p.SourceWidth != 1280 || p.SourceHeight != 720 || p.OutputWidth != 1280 || p.OutputHeight != 720 {
+		t.Fatalf("pre-encode measurements missing with logging disabled: %+v", p)
 	}
 	connection.Close()
 	if snapshot := collector.Snapshot(); snapshot.Connections != 0 || snapshot.Encoder != "" {

@@ -212,9 +212,12 @@ func TestGraphicsStatsSnapshot(t *testing.T) {
 	g := &graphicsState{
 		frameInterval: 50 * time.Millisecond,
 		ackTurnaround: 80 * time.Millisecond,
+		inFlight:      []graphicsPendingFrame{{id: 1}, {id: 2}},
 	}
 	s := &Session{graphics: g}
-	want := GraphicsStats{FrameInterval: 50 * time.Millisecond, ACKTurnaround: 80 * time.Millisecond}
+	want := GraphicsStats{
+		FrameInterval: 50 * time.Millisecond, ACKTurnaround: 80 * time.Millisecond, OutstandingACKs: 2,
+	}
 	if got := s.GraphicsStats(); got != want {
 		t.Fatalf("pacing snapshot = %+v, want %+v", got, want)
 	}

@@ -40,6 +40,53 @@ func performanceTestJSON(t *testing.T, sample telemetry.Snapshot) []byte {
 	return data
 }
 
+func TestProcessPerformanceSamplingAndPayload(t *testing.T) {
+	t.Parallel()
+	p := &processPerformance{}
+	now := time.Now()
+	first := performanceTestSample()
+	if !p.decode(performanceTestJSON(t, first), now) {
+		t.Fatal("first sample rejected")
+	}
+	initial := p.snapshot(now)
+	if initial.SampleIntervalSeconds != nil || initial.PayloadBytesPerSecond != nil || initial.PayloadBytes != 100 {
+		t.Fatalf("first sample invented an interval or payload rate: %+v", initial)
+	}
+	second := first
+	second.Sequence, second.ElapsedSeconds, second.PayloadBytes = 4, 11, 1100
+	// A delayed/lost datagram must not make receipt time or the nominal five-second
+	// export period the denominator. The child's measured interval is ten seconds.
+	if !p.decode(performanceTestJSON(t, second), now.Add(20*time.Second)) {
+		t.Fatal("advancing sample rejected")
+	}
+	got := p.snapshot(now.Add(20 * time.Second))
+	if got.SampleIntervalSeconds == nil || *got.SampleIntervalSeconds != 10 {
+		t.Fatalf("sample interval = %v, want 10", got.SampleIntervalSeconds)
+	}
+	if got.PayloadBytes != 1100 || got.PayloadBytesPerSecond == nil || *got.PayloadBytesPerSecond != 100 {
+		t.Fatalf("payload counters/rate = %+v, want 1100 bytes and 100 bytes/second", got)
+	}
+	*got.SampleIntervalSeconds, *got.PayloadBytesPerSecond = 0, 0
+	again := p.snapshot(now.Add(20 * time.Second))
+	if *again.SampleIntervalSeconds != 10 || *again.PayloadBytesPerSecond != 100 {
+		t.Fatal("returned rate pointers alias retained data")
+	}
+	idle := second
+	idle.Sequence, idle.ElapsedSeconds = 5, 16
+	idle.Connections, idle.Encoder, idle.ACKNanos = 0, "", 0
+	if !p.decode(performanceTestJSON(t, idle), now.Add(25*time.Second)) {
+		t.Fatal("idle sample rejected")
+	}
+	got = p.snapshot(now.Add(41 * time.Second))
+	if got.State != "stale" || got.PayloadBytes != 1100 ||
+		got.PayloadBytesPerSecond == nil || *got.PayloadBytesPerSecond != 0 {
+		t.Fatalf("idle/stale sample lost payload history or invented traffic: %+v", got)
+	}
+	if got.SampleIntervalSeconds == nil || *got.SampleIntervalSeconds != 5 {
+		t.Fatalf("idle sample interval = %v, want 5", got.SampleIntervalSeconds)
+	}
+}
+
 func TestProcessPerformanceDeltasAndReconnect(t *testing.T) {
 	t.Parallel()
 	p := &processPerformance{}
@@ -121,6 +168,7 @@ func TestProcessPerformanceRejectsMalformedSamples(t *testing.T) {
 		{name: "elapsed rollback", change: func(s *telemetry.Snapshot) { s.ElapsedSeconds = 0 }},
 		{name: "tiny elapsed delta", change: func(s *telemetry.Snapshot) { s.ElapsedSeconds = math.Nextafter(1, 2) }},
 		{name: "frame rollback", change: func(s *telemetry.Snapshot) { s.FramesSent = 9 }},
+		{name: "payload rollback", change: func(s *telemetry.Snapshot) { s.PayloadBytes = 99 }},
 		{name: "CPU rollback", change: func(s *telemetry.Snapshot) { value := 0.5; s.CPUSeconds = &value }},
 		{name: "counter rollback", change: func(s *telemetry.Snapshot) { s.EncodeCount = 9 }},
 		{name: "bad encoder", change: func(s *telemetry.Snapshot) { s.Encoder = "<script>" }},
@@ -270,6 +318,56 @@ func TestManagerPerformanceOwnershipAndLaunchIsolation(t *testing.T) {
 	stop()
 	if _, err := m.Performance(canceled, "alice", record.ID); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancellation ignored: %v", err)
+	}
+}
+
+func TestManagerPerformanceConfiguration(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		state  string
+		run    bool
+		sample bool
+		exited bool
+		want   string
+	}{
+		{name: "stopped", state: "stopped", want: "stopped"},
+		{name: "creating", state: "creating", want: "starting"},
+		{name: "starting", state: "starting", run: true, want: "starting"},
+		{name: "unavailable", state: "running", run: true, want: "unavailable"},
+		{name: "live", state: "running", run: true, sample: true, want: "live"},
+		{name: "exited", state: "running", run: true, sample: true, exited: true, want: "stopped"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			record := VM{ID: strings.Repeat("a", 26), Owner: "alice", State: test.state}
+			v := newManagedVM(record)
+			if test.run {
+				v.run = &managedProcess{done: make(chan struct{}), performance: &processPerformance{}}
+				if test.sample && !v.run.performance.decode(performanceTestJSON(t, performanceTestSample()), time.Now()) {
+					t.Fatal("sample rejected")
+				}
+				if test.exited {
+					close(v.run.done)
+				}
+				v.publish()
+			}
+			m := &Manager{
+				ctx: t.Context(), vms: map[string]*managedVM{record.ID: v},
+				config: ManagerConfig{CPUs: 2, MemoryMiB: 4096, Encoder: "auto", RDPProfile: "office"},
+			}
+			got, err := m.Performance(t.Context(), "alice", record.ID)
+			if err != nil || got.State != test.want {
+				t.Fatalf("performance state = %+v, %v; want %s", got, err, test.want)
+			}
+			if got.VCPUs != 2 || got.GuestMemoryBytes != 4<<30 ||
+				got.RequestedEncoder != "auto" || got.RDPProfile != "office" {
+				t.Fatalf("configuration missing or replaced by observed backend: %+v", got)
+			}
+			if test.want == "live" && got.Encoder != "software" {
+				t.Fatalf("observed encoder = %q, want software independently of requested auto", got.Encoder)
+			}
+		})
 	}
 }
 

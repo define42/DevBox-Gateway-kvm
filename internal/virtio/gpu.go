@@ -11,6 +11,7 @@ import (
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/guestmem"
 	"github.com/define42/DevBox-Gateway-kvm/internal/pci"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 )
 
 // virtio-gpu is a 2D display device on the modern (virtio 1.0) PCI transport.
@@ -142,6 +143,7 @@ type GPU struct {
 	width         uint32
 	height        uint32
 	display       Display
+	telemetry     *telemetry.Collector // Borrowed process-lifetime counters; preserved by reset.
 	events        uint32
 	resourceBytes uint64
 	closed        bool
@@ -163,6 +165,14 @@ type GPU struct {
 
 	irq         uint8
 	IRQInjector IRQInjector
+}
+
+// SetTelemetry configures optional pipeline counters before the worker starts.
+// The caller retains ownership of the collector across guest resets.
+func (g *GPU) SetTelemetry(collector *telemetry.Collector) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.telemetry = collector
 }
 
 func (g *GPU) GetDeviceHeader() pci.DeviceHeader {
@@ -645,6 +655,7 @@ func (g *GPU) cmdResourceUnref(req []byte) []byte {
 			g.scanout[0] = 0
 			g.scanoutRect = image.Rectangle{}
 			g.frame, g.composite = nil, nil
+			g.telemetry.SourceSize(0, 0)
 		}
 	}
 
@@ -683,9 +694,11 @@ func (g *GPU) cmdSetScanout(req []byte) []byte {
 		// A different source cannot inherit unchanged pixels from the previous
 		// scanout. Its first visible flush publishes the entire new viewport.
 		g.frame, g.composite = nil, nil
+		g.telemetry.ScanoutSwitch()
 	}
 	g.scanout[scanoutID] = resourceID
 	g.scanoutRect = rect
+	g.telemetry.SourceSize(rect.Dx(), rect.Dy())
 
 	return g.respNoData(gpuRespOKNoData)
 }
@@ -741,15 +754,17 @@ func (g *GPU) cmdTransferToHost2D(req []byte) []byte {
 		offset > uint64(len(res.data)) {
 		return g.respNoData(gpuRespErrInvalidParameter)
 	}
-	g.transferToHost2D(res, x, y, w, h, offset)
+	started := g.telemetry.Begin()
+	copied := g.transferToHost2D(res, x, y, w, h, offset)
+	g.telemetry.Transfer(g.telemetry.Elapsed(started), copied)
 
 	return g.respNoData(gpuRespOKNoData)
 }
 
 // transferToHost2D fills res.data from the guest backing for the rectangle
 // (x, y, w, h) starting at the given backing offset, following the same row
-// arithmetic QEMU's virtio-gpu uses.
-func (g *GPU) transferToHost2D(res *gpuResource, x, y, w, h uint32, offset uint64) {
+// arithmetic QEMU's virtio-gpu uses. It returns the bytes actually copied.
+func (g *GPU) transferToHost2D(res *gpuResource, x, y, w, h uint32, offset uint64) uint64 {
 	bpp := uint32(gpuBytesPerPixel)
 	stride := res.width * bpp
 
@@ -760,14 +775,13 @@ func (g *GPU) transferToHost2D(res *gpuResource, x, y, w, h uint32, offset uint6
 			total = len(res.data)
 		}
 
-		g.backingRead(res, 0, res.data[:total])
-
-		return
+		return g.backingRead(res, 0, res.data[:total])
 	}
 
 	// Rows advance monotonically through the backing. Retain the entry cursor
 	// so a partial rectangle does not rescan every preceding guest page per row.
 	reader := gpuBackingReader{entries: res.backing}
+	var copied uint64
 	for row := uint32(0); row < h; row++ {
 		src := offset + uint64(stride)*uint64(row)
 		dst := int((y+row)*stride + x*bpp)
@@ -781,15 +795,19 @@ func (g *GPU) transferToHost2D(res *gpuResource, x, y, w, h uint32, offset uint6
 			n = len(res.data) - dst
 		}
 
-		reader.read(g.Mem, src, res.data[dst:dst+n])
+		copied += reader.read(g.Mem, src, res.data[dst:dst+n])
 	}
+
+	return copied
 }
 
 // backingRead copies len(dst) bytes from the resource's scatter-gather guest
-// backing, starting at logical offset off, into dst.
-func (g *GPU) backingRead(res *gpuResource, off uint64, dst []byte) {
+// backing, starting at logical offset off, into dst. Missing or invalid ranges
+// leave dst unchanged and do not contribute to the returned byte count.
+func (g *GPU) backingRead(res *gpuResource, off uint64, dst []byte) uint64 {
 	reader := gpuBackingReader{entries: res.backing}
-	reader.read(g.Mem, off, dst)
+
+	return reader.read(g.Mem, off, dst)
 }
 
 // gpuBackingReader retains a scatter-gather cursor for non-overlapping reads
@@ -800,7 +818,8 @@ type gpuBackingReader struct {
 	pos     uint64 // Logical offset of entries[0].
 }
 
-func (r *gpuBackingReader) read(mem []byte, off uint64, dst []byte) {
+func (r *gpuBackingReader) read(mem []byte, off uint64, dst []byte) uint64 {
+	var copied uint64
 	for len(r.entries) != 0 && len(dst) != 0 {
 		e := r.entries[0]
 		entryEnd := r.pos + uint64(e.length)
@@ -815,11 +834,13 @@ func (r *gpuBackingReader) read(mem []byte, off uint64, dst []byte) {
 		n := min(uint64(e.length)-skip, uint64(len(dst)))
 		src := e.addr + skip
 		if guestmem.ValidRange(mem, src, n) {
-			copy(dst[:n], mem[src:src+n])
+			copied += uint64(copy(dst[:n], mem[src:src+n]))
 		}
 		dst = dst[n:]
 		off += n
 	}
+
+	return copied
 }
 
 // cmdResourceAttachBacking records a resource's guest backing pages (struct
@@ -895,8 +916,10 @@ func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) {
 	if damage.Empty() {
 		return
 	}
+	started := g.telemetry.Begin()
 	bounds := image.Rect(0, 0, source.Dx(), source.Dy())
-	if g.frame == nil || g.frame.Bounds() != bounds {
+	fullRefresh := g.frame == nil || g.frame.Bounds() != bounds
+	if fullRefresh {
 		g.frame = image.NewRGBA(bounds)
 		damage = source
 	}
@@ -911,10 +934,12 @@ func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) {
 		if err != nil {
 			log.Printf("virtio-gpu: display flush: %v", err)
 		}
+		g.telemetry.Flush(g.telemetry.Elapsed(started), uint64(damage.Dx())*uint64(damage.Dy()), fullRefresh)
 
 		return
 	}
 	g.present()
+	g.telemetry.Flush(g.telemetry.Elapsed(started), uint64(damage.Dx())*uint64(damage.Dy()), fullRefresh)
 }
 
 // present publishes only cursor state to capable displays. Legacy displays
@@ -974,18 +999,14 @@ func resourceImageRectInto(res *gpuResource, cursor bool, img *image.RGBA, rect 
 			return
 		}
 		src, dst := res.data[si:si+pixels], img.Pix[di:di+pixels]
-		// Linux scanouts normally use BGRX. Whole-word conversion avoids
-		// four dynamically indexed channel reads for every pixel.
+		// Linux scanouts normally use BGRX. Convert whole rows with the
+		// native channel-swap kernel when available, retaining alpha semantics.
 		if rOff == 2 && gOff == 1 && bOff == 0 {
 			alpha := uint32(0)
 			if !hasAlpha {
 				alpha = 0xff000000
 			}
-			for i := 0; i < pixels; i += 4 {
-				pixel := binary.LittleEndian.Uint32(src[i:])
-				rgba := pixel&0xff00ff00 | (pixel>>16)&0xff | (pixel&0xff)<<16 | alpha
-				binary.LittleEndian.PutUint32(dst[i:], rgba)
-			}
+			bgrToRGBARow(dst, src, alpha)
 
 			continue
 		}
@@ -1062,6 +1083,7 @@ func (g *GPU) resetLocked() {
 	g.resourceBytes = 0
 	g.scanout = [gpuNumScanouts]uint32{}
 	g.scanoutRect = image.Rectangle{}
+	g.telemetry.SourceSize(0, 0)
 	g.frame, g.composite = nil, nil
 	g.cursor = gpuCursor{}
 	g.events = 0

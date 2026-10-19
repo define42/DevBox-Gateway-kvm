@@ -2,6 +2,7 @@ package virtio
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"testing"
 )
@@ -53,6 +54,61 @@ func TestGPUResourcePixelFormats(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestGPUResourceBGRViewport(t *testing.T) {
+	t.Parallel()
+	for _, format := range []uint32{gpuFormatB8G8R8X8, gpuFormatB8G8R8A8} {
+		for _, cursor := range []bool{false, true} {
+			for _, region := range []struct {
+				name string
+				rect image.Rectangle
+			}{
+				{name: "full", rect: image.Rect(7, 2, 72, 8)},
+				{name: "partial", rect: image.Rect(8, 3, 25, 6)},
+				{name: "clipped", rect: image.Rect(-4, -3, 100, 20)},
+				{name: "outside", rect: image.Rect(0, 0, 3, 1)},
+			} {
+				name := fmt.Sprintf("format=%d/cursor=%t/%s", format, cursor, region.name)
+				t.Run(name, func(t *testing.T) {
+					t.Parallel()
+					res := &gpuResource{width: 72, height: 9, format: format, data: make([]byte, 72*9*4)}
+					for i := range res.data {
+						res.data[i] = byte(i*43 + i/7)
+					}
+					before := bytes.Clone(res.data)
+					parent := image.NewRGBA(image.Rect(0, 0, 76, 12))
+					for i := range parent.Pix {
+						parent.Pix[i] = 0xa5
+					}
+					want := bytes.Clone(parent.Pix)
+					img := parent.SubImage(image.Rect(2, 3, 67, 9)).(*image.RGBA)
+					origin := image.Pt(5, -1)
+					for y := img.Rect.Min.Y; y < img.Rect.Max.Y; y++ {
+						for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
+							source := image.Pt(x, y).Add(origin)
+							if !source.In(region.rect) {
+								continue
+							}
+							s, d := (source.Y*int(res.width)+source.X)*4, parent.PixOffset(x, y)
+							want[d], want[d+1], want[d+2] = res.data[s+2], res.data[s+1], res.data[s]
+							want[d+3] = res.data[s+3]
+							if format == gpuFormatB8G8R8X8 && !cursor {
+								want[d+3] = 255
+							}
+						}
+					}
+					resourceImageRectInto(res, cursor, img, region.rect, origin)
+					if !bytes.Equal(parent.Pix, want) {
+						t.Fatal("conversion changed pixels or padding outside the clipped viewport")
+					}
+					if !bytes.Equal(res.data, before) {
+						t.Fatal("conversion changed the resource")
+					}
+				})
+			}
+		}
 	}
 }
 

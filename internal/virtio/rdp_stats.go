@@ -91,6 +91,7 @@ func (s *rdpFrameStats) elapsed(start time.Time) time.Duration {
 }
 
 func (s *rdpFrameStats) waiting(ack bool, nextFrame time.Time) {
+	s.telemetry.WaitingACK(ack, nextFrame)
 	if s.enabled {
 		now := time.Now()
 		s.ack.update(ack, now)
@@ -104,7 +105,8 @@ func (s *rdpFrameStats) waiting(ack bool, nextFrame time.Time) {
 // Pacing describes the permitted send interval, not elapsed encode or wait time.
 func (s *rdpFrameStats) captured(encoder string, source, output image.Point, timing rdp.GraphicsStats) {
 	s.telemetry.Encoded(encoder, 0)
-	s.telemetry.Acknowledge(timing.ACKTurnaround)
+	s.observeGraphics(timing)
+	s.telemetry.Geometry(source.X, source.Y, output.X, output.Y)
 	if !s.enabled {
 		return
 	}
@@ -123,6 +125,21 @@ func (s *rdpFrameStats) sent(bytes int) {
 
 func (s *rdpFrameStats) measuring() bool {
 	return s.enabled || s.telemetry != nil
+}
+
+func (s *rdpFrameStats) observeGraphics(timing rdp.GraphicsStats) {
+	s.telemetry.Acknowledge(timing.ACKTurnaround)
+	s.telemetry.OutstandingACKs(timing.OutstandingACKs)
+}
+
+func (s *rdpFrameStats) copied(elapsed time.Duration) {
+	s.copy.add(elapsed)
+	s.telemetry.Captured(elapsed)
+}
+
+func (s *rdpFrameStats) converted(elapsed time.Duration) {
+	s.convert.add(elapsed)
+	s.telemetry.Converted(elapsed)
 }
 
 func (s *rdpFrameStats) encoded(backend string, elapsed time.Duration) {

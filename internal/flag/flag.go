@@ -65,6 +65,7 @@ type BootArgs struct {
 	RDPProfile     string
 	RDPFD          int
 	TelemetryFD    int
+	ProfileSocket  string
 	RDPWait        bool
 	RDPCert        string
 	RDPKey         string
@@ -113,6 +114,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"inherited TCP listener descriptor (>=3) matching -rdp; 0 opens a new listener")
 	bootCmd.IntVar(&c.TelemetryFD, "telemetry-fd", 0,
 		"private inherited Unix datagram descriptor (>=3); 0 disables managed performance telemetry")
+	bootCmd.StringVar(&c.ProfileSocket, "profile-socket", "",
+		"opt-in CPU profiling Unix socket in a private directory; empty disables profiling")
 	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false, "wait for an RDP client before starting the guest (requires -rdp)")
 	bootCmd.StringVar(&c.RDPCert, "rdp-cert", "",
 		"RDP TLS certificate PEM file (default: temporary self-signed certificate)")

@@ -111,8 +111,9 @@ func (s *Session) GraphicsFrameInterval(base time.Duration) time.Duration {
 // ACKTurnaround is the smoothed time from sending a frame to receiving its
 // acknowledgement, including client processing; it is not network RTT.
 type GraphicsStats struct {
-	FrameInterval time.Duration
-	ACKTurnaround time.Duration
+	FrameInterval   time.Duration
+	ACKTurnaround   time.Duration
+	OutstandingACKs uint32 // Frames currently waiting for acknowledgment; zero when ACKs are disabled.
 }
 
 // GraphicsStats returns a coherent snapshot without updating pacing state.
@@ -126,8 +127,9 @@ func (s *Session) GraphicsStats() GraphicsStats {
 	defer g.mu.Unlock()
 
 	return GraphicsStats{
-		FrameInterval: g.frameInterval,
-		ACKTurnaround: g.ackTurnaround,
+		FrameInterval:   g.frameInterval,
+		ACKTurnaround:   g.ackTurnaround,
+		OutstandingACKs: uint32(len(g.inFlight)),
 	}
 }
 

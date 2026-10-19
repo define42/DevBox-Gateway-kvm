@@ -101,6 +101,10 @@ func newCodecEncoderWithConfig(width, height, threads, frameRate int, config cod
 }
 
 func (e *openH264Encoder) encode(i420 []byte, force bool, timestamp int64) ([]byte, error) {
+	return e.encodeDamage(i420, force, timestamp, nil)
+}
+
+func (e *openH264Encoder) encodeDamage(i420 []byte, force bool, timestamp int64, unchanged []bool) ([]byte, error) {
 	if force {
 		if err := e.codec.ForceIntraFrame(); err != nil {
 			return nil, fmt.Errorf("%w: force IDR: %w", ErrCodec, err)
@@ -114,7 +118,9 @@ func (e *openH264Encoder) encode(i420 []byte, force bool, timestamp int64) ([]by
 	e.frame.U = i420[luma : luma+chroma]
 	e.frame.V = i420[luma+chroma:]
 	e.frame.Timestamp = timestamp
+	e.frame.UnchangedMacroblocks = unchanged
 	data, frameType, err := e.codec.Encode(&e.frame)
+	e.frame.UnchangedMacroblocks = nil
 	if err != nil {
 		return nil, fmt.Errorf("%w: encode: %w", ErrCodec, err)
 	}

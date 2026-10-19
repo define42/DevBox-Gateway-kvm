@@ -25,20 +25,21 @@ var ErrSnapshot = errors.New("invalid VM telemetry snapshot")
 // Frame counts are server sends, bytes exclude wire overhead, and ACKNanos is
 // send-to-ACK turnaround including client processing, not input/display latency.
 type Snapshot struct {
-	Version        uint32   `json:"version"`
-	Sequence       uint64   `json:"sequence"`
-	ElapsedSeconds float64  `json:"elapsedSeconds"`
-	CPUSeconds     *float64 `json:"cpuSeconds"`
-	ResidentBytes  *uint64  `json:"residentBytes"`
-	Connections    uint32   `json:"connections"`
-	Encoder        string   `json:"encoder"`
-	FramesSent     uint64   `json:"framesSent"`
-	PayloadBytes   uint64   `json:"payloadBytes"`
-	EncodeNanos    uint64   `json:"encodeNanos"`
-	EncodeCount    uint64   `json:"encodeCount"`
-	WriteNanos     uint64   `json:"writeNanos"`
-	WriteCount     uint64   `json:"writeCount"`
-	ACKNanos       uint64   `json:"ackNanos"`
+	Version        uint32            `json:"version"`
+	Sequence       uint64            `json:"sequence"`
+	ElapsedSeconds float64           `json:"elapsedSeconds"`
+	CPUSeconds     *float64          `json:"cpuSeconds"`
+	ResidentBytes  *uint64           `json:"residentBytes"`
+	Connections    uint32            `json:"connections"`
+	Encoder        string            `json:"encoder"`
+	FramesSent     uint64            `json:"framesSent"`
+	PayloadBytes   uint64            `json:"payloadBytes"`
+	EncodeNanos    uint64            `json:"encodeNanos"`
+	EncodeCount    uint64            `json:"encodeCount"`
+	WriteNanos     uint64            `json:"writeNanos"`
+	WriteCount     uint64            `json:"writeCount"`
+	ACKNanos       uint64            `json:"ackNanos"`
+	Pipeline       *PipelineSnapshot `json:"pipeline,omitempty"`
 }
 
 // Validate checks the fixed schema's value domain, not cumulative ordering.
@@ -62,6 +63,14 @@ func (s Snapshot) Validate() error {
 	if s.Connections == 0 && (s.Encoder != "" || s.ACKNanos != 0) {
 		return ErrSnapshot
 	}
+	if err := s.Pipeline.Validate(); err != nil {
+		return err
+	}
+	if s.Pipeline != nil && (s.Pipeline.OutstandingACKs > 2*s.Connections ||
+		(s.Connections != 1 && (s.Pipeline.SourceWidth != 0 || s.Pipeline.SourceHeight != 0 ||
+			s.Pipeline.OutputWidth != 0 || s.Pipeline.OutputHeight != 0))) {
+		return ErrSnapshot
+	}
 
 	return nil
 }
@@ -71,7 +80,8 @@ func finiteNonnegative(value float64) bool {
 }
 
 // Collector outlives individual displays and RDP connections, including guest
-// firmware resets. Hot-path counters are atomic and never perform I/O.
+// firmware resets. Work counters are atomic and never perform I/O; membership
+// and ACK-wait transitions share a short lock with heartbeat observation.
 type Collector struct {
 	start       time.Time
 	sequence    atomic.Uint64
@@ -81,8 +91,10 @@ type Collector struct {
 	encodeCount atomic.Uint64
 	writeNanos  atomic.Uint64
 	writeCount  atomic.Uint64
-	mu          sync.Mutex // Connection membership only; never held over I/O.
+	mu          sync.Mutex // Membership and ACK waits only; never held over I/O.
 	connections map[*Connection]struct{}
+	pipeline    pipelineCounters
+	ackBlocked  uint64 // Completed ACK wait intervals, protected by mu.
 }
 
 func New() *Collector {
@@ -117,6 +129,9 @@ func (c *Collector) Snapshot() Snapshot {
 		WriteNanos: c.writeNanos.Load(), WriteCount: c.writeCount.Load(),
 	}
 	c.mu.Lock()
+	snapshot.Pipeline = c.pipeline.snapshot()
+	snapshot.Pipeline.ACKBlockedNanos = c.ackBlocked
+	now := time.Now()
 	snapshot.Connections = uint32(len(c.connections))
 	for connection := range c.connections {
 		backend := backendName(connection.backend.Load())
@@ -127,6 +142,17 @@ func (c *Collector) Snapshot() Snapshot {
 		}
 		// With multiple viewers report the slowest valid current turnaround.
 		snapshot.ACKNanos = max(snapshot.ACKNanos, connection.ack.Load())
+		snapshot.Pipeline.OutstandingACKs += connection.outstanding.Load()
+		snapshot.Pipeline.ACKBlockedNanos = boundedSum(
+			snapshot.Pipeline.ACKBlockedNanos, waitNanos(connection.blockedSince, now),
+		)
+		if snapshot.Connections == 1 {
+			snapshot.Pipeline.SourceWidth, snapshot.Pipeline.SourceHeight = unpackSize(connection.source.Load())
+			snapshot.Pipeline.OutputWidth, snapshot.Pipeline.OutputHeight = unpackSize(connection.output.Load())
+			if source := c.pipeline.source.Load(); source != 0 {
+				snapshot.Pipeline.SourceWidth, snapshot.Pipeline.SourceHeight = unpackSize(source)
+			}
+		}
 	}
 	c.mu.Unlock()
 	snapshot.CPUSeconds, snapshot.ResidentBytes = processResources()
@@ -137,10 +163,14 @@ func (c *Collector) Snapshot() Snapshot {
 // Connection owns current backend/ACK gauges. Its methods are nil-safe and may
 // be called concurrently, but observation should finish before Close.
 type Connection struct {
-	collector *Collector
-	backend   atomic.Uint32
-	ack       atomic.Uint64
-	closed    atomic.Bool
+	collector    *Collector
+	backend      atomic.Uint32
+	ack          atomic.Uint64
+	closed       atomic.Bool
+	outstanding  atomic.Uint32
+	source       atomic.Uint64
+	output       atomic.Uint64
+	blockedSince time.Time // Protected by collector.mu; may start after pacing ends.
 }
 
 // Encoded records codec service time and its actual (possibly fallback) backend.
@@ -194,6 +224,8 @@ func (c *Connection) Close() {
 		return
 	}
 	c.collector.mu.Lock()
+	c.collector.ackBlocked = boundedSum(c.collector.ackBlocked, waitNanos(c.blockedSince, time.Now()))
+	c.blockedSince = time.Time{}
 	delete(c.collector.connections, c)
 	c.collector.mu.Unlock()
 }

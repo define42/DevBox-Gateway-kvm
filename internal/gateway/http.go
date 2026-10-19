@@ -35,6 +35,7 @@ type pageData struct {
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.dashboard)
+	mux.HandleFunc("GET /perf", s.perf)
 	mux.HandleFunc("GET /admin", s.adminPage)
 	mux.HandleFunc("POST /admin/images", s.uploadImage)
 	mux.HandleFunc("POST /admin/images/{id}/delete", s.deleteImage)

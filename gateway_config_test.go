@@ -37,6 +37,9 @@ func TestServeDefaultRDPProfile(t *testing.T) {
 	if options.manager.RDPProfile != "office" {
 		t.Fatalf("default RDP profile = %q, want office", options.manager.RDPProfile)
 	}
+	if options.manager.VMProfiling {
+		t.Fatal("VM profiling must be disabled by default")
+	}
 }
 
 //nolint:paralleltest // clearServeEnvironment changes the process environment.
@@ -102,11 +105,12 @@ func TestServeEnvironmentEnablesBooleanSettings(t *testing.T) {
 	t.Setenv("LDAP_BASE_DN", "dc=example,dc=com")
 	t.Setenv("LDAP_INSECURE_LOOPBACK", "true")
 	t.Setenv("ACME_ENABLE", "true")
+	t.Setenv("GATEWAY_VM_PROFILING", "true")
 	options, err := readServeOptions(nil, io.Discard)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !options.ldap.AllowInsecure || !options.certificates.ACME {
+	if !options.ldap.AllowInsecure || !options.certificates.ACME || !options.manager.VMProfiling {
 		t.Fatalf("boolean environment settings not applied: %#v", options)
 	}
 }
@@ -120,7 +124,8 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m", "ADMIN_GROUP": "admins",
 		"MAX_CONCURRENT_CONNECTIONS": "64", "MAX_HANDSHAKES": "48", "MAX_CONNECTIONS_PER_IP": "24",
 		"MAX_HANDSHAKES_PER_IP": "6", "CONNECTION_RATE_LIMIT": "100", "CONNECTION_RATE_LIMIT_PER_IP": "12",
-		"HANDSHAKE_TIMEOUT": "15s",
+		"HANDSHAKE_TIMEOUT":    "15s",
+		"GATEWAY_VM_PROFILING": "true",
 	} {
 		t.Setenv(key, value)
 	}
@@ -129,6 +134,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		"-image-upload-limit=10737418240", "-image-upload-timeout=20m", "-ldap-admin-group=",
 		"-max-connections=80", "-max-handshakes=40", "-max-connections-per-ip=20", "-max-handshakes-per-ip=5",
 		"-connection-rate-limit=120", "-connection-rate-limit-per-ip=10", "-handshake-timeout=12s",
+		"-vm-profiling=false",
 	}, io.Discard)
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +145,8 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	if options.manager.RDPProfile != "office" {
 		t.Fatalf("RDP profile override = %q, want office", options.manager.RDPProfile)
 	}
-	if options.manager.CPUs != 3 || options.manager.MemoryBudgetMiB != 0 || options.certificates.ACME {
+	if options.manager.CPUs != 3 || options.manager.MemoryBudgetMiB != 0 || options.certificates.ACME ||
+		options.manager.VMProfiling {
 		t.Fatalf("integer/boolean overrides not applied: %#v", options)
 	}
 	if options.manager.MaxImageUploadBytes != 10<<30 || options.gateway.UploadTimeout != 20*time.Minute {

@@ -265,7 +265,17 @@ func (p *CWelsH264SVCEncoder) Uninitialize() int32 {
 /*
  *  SVC core encoding
  */
-func (p *CWelsH264SVCEncoder) EncodeFrame(kpSrcPic *api.SSourcePicture, pBsInfo *api.SFrameBSInfo) int32 {
+func (p *CWelsH264SVCEncoder) EncodeFrame(kpSrcPic *api.SSourcePicture, pBsInfo *api.SFrameBSInfo) (result int32) {
+	if ctx := p.m_pEncContext; ctx != nil {
+		ctx.unchanged.begin(ctx, kpSrcPic)
+		defer func() {
+			if p.m_pEncContext == ctx {
+				ctx.unchanged.finish(ctx, kpSrcPic, pBsInfo, result == int32(api.CmResultSuccess))
+			} else {
+				ctx.unchanged = unchangedFrameState{}
+			}
+		}()
+	}
 	if !(kpSrcPic != nil && p.m_bInitialFlag && pBsInfo != nil) {
 		common.WelsLog(&p.m_pWelsTrace.M_sLogCtx, api.WELS_LOG_ERROR, "CWelsH264SVCEncoder::EncodeFrame(), cmInitParaError.")
 		return int32(api.CmInitParaError)

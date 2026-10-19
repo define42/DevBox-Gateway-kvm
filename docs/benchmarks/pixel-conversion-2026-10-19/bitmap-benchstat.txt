@@ -1,0 +1,65 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                │    before    │                after                │
+                                │    sec/op    │   sec/op     vs base                │
+BitmapScaleRegion/16/1080p        121.16m ± 1%   26.47m ± 1%  -78.15% (p=0.000 n=10)
+BitmapScaleRegion/16/64x32        117.77µ ± 1%   25.73µ ± 2%  -78.15% (p=0.000 n=10)
+BitmapScaleRegion/16/Scaled720p    52.02m ± 2%   52.49m ± 2%        ~ (p=0.684 n=10)
+BitmapScaleRegion/24/1080p         98.87m ± 7%   16.34m ± 3%  -83.48% (p=0.000 n=10)
+BitmapScaleRegion/24/64x32         98.19µ ± 1%   16.31µ ± 2%  -83.39% (p=0.000 n=10)
+BitmapScaleRegion/24/Scaled720p    43.73m ± 2%   44.31m ± 2%        ~ (p=0.218 n=10)
+BitmapScaleRegion/32/1080p         99.37m ± 3%   14.43m ± 9%  -85.48% (p=0.000 n=10)
+BitmapScaleRegion/32/64x32         99.34µ ± 1%   14.78µ ± 1%  -85.13% (p=0.000 n=10)
+BitmapScaleRegion/32/Scaled720p    43.82m ± 1%   43.64m ± 1%        ~ (p=0.393 n=10)
+BitmapDamage/1080p/Full           104.88m ± 2%   20.79m ± 7%  -80.18% (p=0.000 n=10)
+BitmapDamage/1080p/64x32          126.61µ ± 1%   37.09µ ± 5%  -70.70% (p=0.000 n=10)
+geomean                            6.944m        2.072m       -70.16%
+
+                                │    before    │                 after                  │
+                                │     B/s      │      B/s       vs base                 │
+BitmapScaleRegion/16/1080p        65.29Mi ± 1%   298.81Mi ± 1%  +357.68% (p=0.000 n=10)
+BitmapScaleRegion/16/64x32        66.34Mi ± 1%   303.65Mi ± 2%  +357.69% (p=0.000 n=10)
+BitmapScaleRegion/16/Scaled720p   67.58Mi ± 2%    66.98Mi ± 2%         ~ (p=0.684 n=10)
+BitmapScaleRegion/24/1080p        80.00Mi ± 6%   484.15Mi ± 3%  +505.16% (p=0.000 n=10)
+BitmapScaleRegion/24/64x32        79.56Mi ± 1%   479.02Mi ± 2%  +502.08% (p=0.000 n=10)
+BitmapScaleRegion/24/Scaled720p   80.39Mi ± 2%    79.34Mi ± 2%         ~ (p=0.210 n=10)
+BitmapScaleRegion/32/1080p        79.60Mi ± 3%   548.11Mi ± 8%  +588.55% (p=0.000 n=10)
+BitmapScaleRegion/32/64x32        78.64Mi ± 1%   528.78Mi ± 1%  +572.36% (p=0.000 n=10)
+BitmapScaleRegion/32/Scaled720p   80.23Mi ± 1%    80.57Mi ± 1%         ~ (p=0.363 n=10)
+geomean                           75.02Mi         239.7Mi       +219.52%
+
+                                │     before     │                 after                 │
+                                │      B/op      │     B/op      vs base                 │
+BitmapScaleRegion/16/1080p          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/16/64x32          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/16/Scaled720p     0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/24/1080p          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/24/64x32          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/24/Scaled720p     0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/32/1080p          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/32/64x32          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/32/Scaled720p     0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapDamage/1080p/Full           18.00Ki ± 0%     18.00Ki ± 0%       ~ (p=1.000 n=10) ¹
+BitmapDamage/1080p/64x32          18.00Ki ± 0%     18.00Ki ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                        ²                 +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                │    before    │                after                │
+                                │  allocs/op   │ allocs/op   vs base                 │
+BitmapScaleRegion/16/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/16/64x32        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/16/Scaled720p   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/24/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/24/64x32        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/24/Scaled720p   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/32/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/32/64x32        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapScaleRegion/32/Scaled720p   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapDamage/1080p/Full           1.000 ± 0%     1.000 ± 0%       ~ (p=1.000 n=10) ¹
+BitmapDamage/1080p/64x32          1.000 ± 0%     1.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                      ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

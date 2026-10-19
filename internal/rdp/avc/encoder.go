@@ -66,6 +66,7 @@ type Encoder struct {
 	codec            codecEncoder
 	width, height    int
 	i420             []byte
+	unchanged        []bool // Reused, output-space macroblock hints for software encoding.
 	source           image.Rectangle
 	initialized      bool
 	retry            bool
@@ -91,7 +92,7 @@ func NewEncoder(width, height int) (*Encoder, error) {
 // for small pictures; Threads reports the effective software count, or zero for
 // NVENC. BackendNVENC returns errors directly; BackendAuto can fall back to software.
 // FrameRate selects the codec clock; zero preserves the 60-FPS default. Callers
-// must pace Encode calls to the selected rate to bound full-picture encoding work.
+// must pace Encode calls to the selected rate to bound encoding work.
 func NewEncoderWithOptions(width, height int, options Options) (*Encoder, error) {
 	return newEncoderWithNVENC(width, height, options, newNVENCEncoder)
 }
@@ -188,6 +189,8 @@ func (e *Encoder) Encode(img *image.RGBA, force bool) ([]byte, error) {
 // Callers must include all changes since the previous call, including frames
 // skipped by pacing. A codec failure retains the candidate image and requests an
 // IDR on retry, so subsequent partial updates cannot lose the failed changes.
+// Software encoding can reuse reconstructed blocks outside these regions when
+// the reference and motion predictor permit it; the AVC picture size is unchanged.
 func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force bool) ([]byte, error) {
 	e.stats = EncodeStats{}
 	if e.codec == nil {
@@ -203,7 +206,8 @@ func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force
 
 	changed := !e.initialized || e.retry
 	output := image.Rect(0, 0, e.width, e.height)
-	if force || regions == nil || !e.initialized || e.source != img.Rect {
+	fullConversion := force || regions == nil || !e.initialized || e.source != img.Rect
+	if fullConversion {
 		changed = scaleI420Region(e.i420, e.width, e.height, img, output) || changed
 	} else {
 		for _, region := range regions {
@@ -221,7 +225,7 @@ func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force
 	if e.measure {
 		started = time.Now()
 	}
-	data, err := e.codec.encode(e.i420, force || e.retry, e.frame*1000/int64(e.frameRate))
+	data, err := e.encodeWithDamageHints(img.Rect, regions, fullConversion, force || e.retry)
 	if err != nil && e.auto && e.backend == BackendNVENC {
 		e.fallbackReason = err
 		if fallbackErr := e.useSoftware(); fallbackErr != nil {
@@ -247,6 +251,7 @@ func (e *Encoder) Close() {
 		e.codec.close()
 		e.codec = nil
 		e.i420 = nil
+		e.unchanged = nil
 	}
 }
 

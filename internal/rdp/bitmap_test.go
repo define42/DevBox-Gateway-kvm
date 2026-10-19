@@ -1,6 +1,7 @@
 package rdp
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"image"
@@ -124,4 +125,101 @@ func TestBitmapEncoderDirtyTilesAndFailedWrite(t *testing.T) {
 	if err := encoder.WriteFrame(frame, true, send); err != nil || count != 4 {
 		t.Fatalf("forced refresh: updates=%d err=%v", count, err)
 	}
+}
+
+func TestBitmapScaleRegionReference(t *testing.T) {
+	t.Parallel()
+	for _, depth := range []int{16, 24, 32} {
+		for _, test := range []struct {
+			name    string
+			source  image.Rectangle
+			output  image.Point
+			padding int
+		}{
+			{name: "same-size", source: image.Rect(0, 0, 17, 9), output: image.Pt(17, 9), padding: 0},
+			{
+				name: "padded-subimage", source: image.Rect(-4, 2, 13, 11),
+				output: image.Pt(17, 9), padding: 5,
+			},
+			{name: "single-pixel", source: image.Rect(13, -7, 14, -6), output: image.Pt(1, 1), padding: 0},
+			{
+				name: "upscaled", source: image.Rect(-4, 2, 3, 7),
+				output: image.Pt(17, 9), padding: 3,
+			},
+			{
+				name: "downscaled", source: image.Rect(5, -3, 38, 16),
+				output: image.Pt(17, 9), padding: 2,
+			},
+		} {
+			t.Run(strconv.Itoa(depth)+"/"+test.name, func(t *testing.T) {
+				t.Parallel()
+				output := image.Rectangle{Min: image.Pt(0, 0), Max: test.output}
+				for _, region := range []struct {
+					name string
+					rect image.Rectangle
+				}{
+					{name: "full", rect: output},
+					{name: "interior", rect: output.Inset(min(output.Dx(), output.Dy()) / 3)},
+					{name: "last-pixel", rect: image.Rectangle{Min: output.Max.Sub(image.Pt(1, 1)), Max: output.Max}},
+					{name: "empty-column", rect: image.Rect(0, 0, 0, output.Dy())},
+					{
+						name: "empty-outside",
+						rect: image.Rectangle{Min: output.Max.Add(image.Pt(2, 2)), Max: output.Max.Add(image.Pt(2, 3))},
+					},
+				} {
+					t.Run(region.name, func(t *testing.T) {
+						t.Parallel()
+						parent := image.NewRGBA(test.source.Inset(-test.padding))
+						for index := range parent.Pix {
+							parent.Pix[index] = byte(index*31 + index/7)
+						}
+						img := parent.SubImage(test.source).(*image.RGBA)
+						// Valid images need no trailing padding after their final row.
+						img.Pix = img.Pix[:(img.Rect.Dy()-1)*img.Stride+img.Rect.Dx()*4]
+						sourceBefore := bytes.Clone(parent.Pix)
+						encoder, err := NewBitmapEncoder(test.output.X, test.output.Y, depth)
+						if err != nil {
+							t.Fatal(err)
+						}
+						encoder.pixels = make([]byte, encoder.width*encoder.height*encoder.bytesPerPixel)
+						for index := range encoder.pixels {
+							encoder.pixels[index] = byte(index*17 + 0x5a)
+						}
+						want := referenceBitmapRegion(img, encoder, region.rect)
+						encoder.scaleRegion(img, region.rect)
+						if !bytes.Equal(encoder.pixels, want) {
+							t.Fatal("packed pixels differ from reference or changed outside the region")
+						}
+						if !bytes.Equal(parent.Pix, sourceBefore) {
+							t.Fatal("packing modified source pixels or padding")
+						}
+					})
+				}
+			})
+		}
+	}
+}
+
+// referenceBitmapRegion uses logical image coordinates and explicit wire bytes,
+// independently of the production row offsets and packing helpers. Seeded bytes
+// outside the region and the reserved fourth byte must remain unchanged.
+func referenceBitmapRegion(img *image.RGBA, encoder *BitmapEncoder, region image.Rectangle) []byte {
+	want := bytes.Clone(encoder.pixels)
+	for y := region.Min.Y; y < region.Max.Y; y++ {
+		for x := region.Min.X; x < region.Max.X; x++ {
+			pixel := img.RGBAAt(
+				img.Rect.Min.X+x*img.Rect.Dx()/encoder.width,
+				img.Rect.Min.Y+y*img.Rect.Dy()/encoder.height,
+			)
+			offset := (y*encoder.width + x) * encoder.bytesPerPixel
+			if encoder.bytesPerPixel == 2 {
+				want[offset] = pixel.B>>3 | (pixel.G&0x1c)<<3
+				want[offset+1] = pixel.R&0xf8 | pixel.G>>5
+			} else {
+				want[offset], want[offset+1], want[offset+2] = pixel.B, pixel.G, pixel.R
+			}
+		}
+	}
+
+	return want
 }

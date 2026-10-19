@@ -1,12 +1,13 @@
 # OpenH264 for Go
 
-A pure Go port of [OpenH264](https://github.com/cisco/openh264): an H.264
+A cgo-free Go port of [OpenH264](https://github.com/cisco/openh264): an H.264
 Constrained Baseline encoder plus a decoder for Constrained Baseline, Main and
-High (progressive, 4:2:0, 8-bit, CAVLC and CABAC). It uses no cgo and no
-assembly, so it cross-compiles to every platform Go supports.
+High (progressive, 4:2:0, 8-bit, CAVLC and CABAC). Selected kernels use amd64
+SIMD assembly, with Go fallbacks for other supported platforms.
 
 The port is a close translation of the C++ reference (`_c`) code paths, and its
-output is **bit-exact** with the C library:
+output without the optional Go-only unchanged-macroblock hints is **bit-exact**
+with the C library:
 
 * the decoder reproduces the SHA1 of the decoded YUV for all 51 conformance
   streams in `test/api/decoder_test.cpp`
@@ -74,8 +75,18 @@ C++ counterpart. The conventions are in [PORTING.md](PORTING.md).
   sequentially. With the thread count set to "auto" (0), the encoder requests
   `runtime.NumCPU()` and then clamps it to four, as C does, so set an explicit
   count if you need output that is the same on every machine.
-* **No SIMD.** Expect it to be several times slower than the assembly-optimized
-  C build.
+* **Selected SIMD kernels.** amd64 assembly accelerates selected hot paths;
+  other paths and architectures use Go implementations.
+* **Optional unchanged-macroblock hints.** `Frame.UnchangedMacroblocks` (or
+  `api.SSourcePicture.UnchangedMacroblocks`) is a borrowed, read-only `[]bool`
+  for the duration of encoding. In row-major `ceil(width/16)*ceil(height/16)`
+  order, `true` certifies that every source Y/U/V sample in that macroblock is
+  unchanged since the immediately preceding successfully encoded picture.
+  Nil or an incorrect length disables hints; incorrect hints can hide real
+  changes. A guarded fixed-QP, single-reference path can reuse previously
+  accepted zero-motion skipped blocks; unsupported configurations and blocks
+  use normal encoding. Hints may produce a different valid H.264 bitstream
+  from the C reference, so leave them nil when bit-exact output is required.
 * **Memory safety.** Where the C code would read or write out of bounds on
   corrupt input, the Go code takes the existing error path instead. These
   places are commented in the source.

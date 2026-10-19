@@ -20,19 +20,27 @@ const performanceStaleAfter = 3 * telemetry.Interval
 // VMPerformance is a bounded, owner-scoped view of one current VM process.
 // CPUPercent counts one fully used host CPU as 100%; null means unavailable.
 // Timings are interval averages, except ACKMs, which is the latest ACK sample.
+// PayloadBytes excludes transport overhead; rates use the measured sample interval.
 type VMPerformance struct {
-	State            string     `json:"state"`
-	SampledAt        *time.Time `json:"sampledAt"`
-	CPUPercent       *float64   `json:"cpuPercent"`
-	ResidentBytes    *uint64    `json:"residentBytes"`
-	GuestMemoryBytes uint64     `json:"guestMemoryBytes"`
-	Connections      uint32     `json:"connections"`
-	Encoder          string     `json:"encoder"`
-	FramesSent       uint64     `json:"framesSent"`
-	FramesPerSecond  *float64   `json:"framesPerSecond"`
-	EncodeMs         *float64   `json:"encodeMs"`
-	WriteMs          *float64   `json:"writeMs"`
-	ACKMs            *float64   `json:"ackMs"`
+	State                 string                 `json:"state"`
+	SampledAt             *time.Time             `json:"sampledAt"`
+	SampleIntervalSeconds *float64               `json:"sampleIntervalSeconds"`
+	CPUPercent            *float64               `json:"cpuPercent"`
+	ResidentBytes         *uint64                `json:"residentBytes"`
+	GuestMemoryBytes      uint64                 `json:"guestMemoryBytes"`
+	VCPUs                 int                    `json:"vcpus"`
+	RequestedEncoder      string                 `json:"requestedEncoder"`
+	RDPProfile            string                 `json:"rdpProfile"`
+	Connections           uint32                 `json:"connections"`
+	Encoder               string                 `json:"encoder"`
+	FramesSent            uint64                 `json:"framesSent"`
+	FramesPerSecond       *float64               `json:"framesPerSecond"`
+	PayloadBytes          uint64                 `json:"payloadBytes"`
+	PayloadBytesPerSecond *float64               `json:"payloadBytesPerSecond"`
+	EncodeMs              *float64               `json:"encodeMs"`
+	WriteMs               *float64               `json:"writeMs"`
+	ACKMs                 *float64               `json:"ackMs"`
+	Pipeline              *VMPipelinePerformance `json:"pipeline"`
 }
 
 // PerformanceBackend optionally supplies private in-memory worker telemetry.
@@ -79,6 +87,9 @@ func (m *Manager) Performance(ctx context.Context, owner, id string) (VMPerforma
 		}
 	}
 	result.GuestMemoryBytes = uint64(m.config.MemoryMiB) << 20
+	result.VCPUs = m.config.CPUs
+	result.RequestedEncoder = m.config.Encoder
+	result.RDPProfile = m.config.RDPProfile
 
 	return result, nil
 }
@@ -201,6 +212,9 @@ func performanceAdvances(previous, current telemetry.Snapshot) bool {
 	if current.CPUSeconds != nil && previous.CPUSeconds != nil && *current.CPUSeconds < *previous.CPUSeconds {
 		return false
 	}
+	if !current.Pipeline.MonotonicAfter(previous.Pipeline) {
+		return false
+	}
 
 	return current.FramesSent >= previous.FramesSent && current.PayloadBytes >= previous.PayloadBytes &&
 		current.EncodeNanos >= previous.EncodeNanos && current.EncodeCount >= previous.EncodeCount &&
@@ -216,7 +230,8 @@ func (p *processPerformance) snapshot(now time.Time) VMPerformance {
 	}
 	result := VMPerformance{
 		State: "live", SampledAt: &received, Connections: current.Connections,
-		Encoder: current.Encoder, FramesSent: current.FramesSent,
+		Encoder: current.Encoder, FramesSent: current.FramesSent, PayloadBytes: current.PayloadBytes,
+		Pipeline: pipelinePerformance(previous, current),
 	}
 	if now.Sub(received) > performanceStaleAfter {
 		result.State = "stale"
@@ -227,12 +242,15 @@ func (p *processPerformance) snapshot(now time.Time) VMPerformance {
 	}
 	if previous.Sequence != 0 {
 		elapsed := current.ElapsedSeconds - previous.ElapsedSeconds
+		result.SampleIntervalSeconds = &elapsed
 		if current.CPUSeconds != nil && previous.CPUSeconds != nil {
 			cpu := 100 * (*current.CPUSeconds - *previous.CPUSeconds) / elapsed
 			result.CPUPercent = &cpu
 		}
 		fps := float64(current.FramesSent-previous.FramesSent) / elapsed
 		result.FramesPerSecond = &fps
+		payloadRate := float64(current.PayloadBytes-previous.PayloadBytes) / elapsed
+		result.PayloadBytesPerSecond = &payloadRate
 		result.EncodeMs = performanceMean(current.EncodeNanos-previous.EncodeNanos, current.EncodeCount-previous.EncodeCount)
 		result.WriteMs = performanceMean(current.WriteNanos-previous.WriteNanos, current.WriteCount-previous.WriteCount)
 	}

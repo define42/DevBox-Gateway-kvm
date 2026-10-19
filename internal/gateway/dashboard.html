@@ -26,6 +26,7 @@
                 <span id="jitter-indicator" class="badge rounded-pill text-bg-secondary jitter-indicator" title="Live RTT jitter (variation between samples)"><i class="bi bi-graph-up me-1" aria-hidden="true"></i><span>Jitter: &ndash;&ndash;</span></span>
               </div>
               <div class="dashboard-actions d-flex flex-wrap align-items-center gap-2">
+                <a class="btn btn-outline-secondary btn-sm" href="/perf?download=1">Download diagnostics</a>
                 {{if .Admin}}<a class="btn btn-outline-primary btn-sm" id="admin-view-link" href="/admin"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Admin</a>{{end}}
                 <a class="btn btn-primary{{if not .Images}} disabled{{end}}" id="open-create-button" href="#create-fallback" aria-disabled="{{not .Images}}"{{if not .Images}} tabindex="-1"{{end}}><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create DevBox</a>
                 <form method="post" action="/logout" class="m-0">

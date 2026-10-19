@@ -1,0 +1,63 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/virtio
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                      │     before     │                after                │
+                                      │     sec/op     │   sec/op     vs base                │
+GPUResourceConversion/BGRX/720p         12691.7µ ±  4%   886.6µ ± 5%  -93.01% (p=0.000 n=10)
+GPUResourceConversion/BGRX/1080p         29.811m ±  3%   2.286m ± 5%  -92.33% (p=0.000 n=10)
+GPUResourceConversion/BGRX/4K            139.25m ±  3%   12.52m ± 3%  -91.01% (p=0.000 n=10)
+GPUResourceConversion/BGRX/dirty64x32    27.675µ ± 10%   2.708µ ± 3%  -90.21% (p=0.000 n=10)
+GPUResourceConversion/BGRX/tail13x7      1407.5n ±  5%   919.6n ± 1%  -34.66% (p=0.000 n=10)
+GPUResourceConversion/BGRA/720p         12420.6µ ±  8%   872.7µ ± 2%  -92.97% (p=0.000 n=10)
+GPUResourceConversion/BGRA/1080p         27.170m ±  2%   2.163m ± 2%  -92.04% (p=0.000 n=10)
+GPUResourceConversion/BGRA/4K            139.40m ±  2%   12.35m ± 3%  -91.14% (p=0.000 n=10)
+GPUResourceConversion/BGRA/dirty64x32    27.813µ ±  2%   2.708µ ± 6%  -90.27% (p=0.000 n=10)
+GPUResourceConversion/BGRA/tail13x7      1417.0n ±  4%   927.3n ± 3%  -34.56% (p=0.000 n=10)
+geomean                                   1.143m         143.5µ       -87.45%
+
+                                      │    before    │                  after                  │
+                                      │     B/s      │      B/s       vs base                  │
+GPUResourceConversion/BGRX/720p         277.0Mi ± 4%   3965.4Mi ± 5%  +1331.56% (p=0.000 n=10)
+GPUResourceConversion/BGRX/1080p        265.3Mi ± 3%   3460.1Mi ± 4%  +1204.01% (p=0.000 n=10)
+GPUResourceConversion/BGRX/4K           227.2Mi ± 3%   2527.0Mi ± 3%  +1012.13% (p=0.000 n=10)
+GPUResourceConversion/BGRX/dirty64x32   282.3Mi ± 9%   2885.0Mi ± 3%   +921.97% (p=0.000 n=10)
+GPUResourceConversion/BGRX/tail13x7     246.6Mi ± 5%    377.5Mi ± 1%    +53.05% (p=0.000 n=10)
+GPUResourceConversion/BGRA/720p         283.1Mi ± 7%   4028.4Mi ± 2%  +1323.20% (p=0.000 n=10)
+GPUResourceConversion/BGRA/1080p        291.1Mi ± 2%   3656.3Mi ± 2%  +1155.88% (p=0.000 n=10)
+GPUResourceConversion/BGRA/4K           227.0Mi ± 2%   2562.2Mi ± 3%  +1028.86% (p=0.000 n=10)
+GPUResourceConversion/BGRA/dirty64x32   280.9Mi ± 2%   2885.9Mi ± 5%   +927.37% (p=0.000 n=10)
+GPUResourceConversion/BGRA/tail13x7     244.9Mi ± 3%    374.3Mi ± 3%    +52.85% (p=0.000 n=10)
+geomean                                 261.5Mi         2.034Gi        +696.59%
+
+                                      │    before    │                after                │
+                                      │     B/op     │    B/op     vs base                 │
+GPUResourceConversion/BGRX/720p         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/4K           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/dirty64x32   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/tail13x7     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/720p         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/4K           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/dirty64x32   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/tail13x7     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                            ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                      │    before    │                after                │
+                                      │  allocs/op   │ allocs/op   vs base                 │
+GPUResourceConversion/BGRX/720p         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/4K           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/dirty64x32   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRX/tail13x7     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/720p         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/1080p        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/4K           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/dirty64x32   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+GPUResourceConversion/BGRA/tail13x7     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                            ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

@@ -67,6 +67,8 @@ type sWelsEncCtx struct {
 	pSvcParam *SWelsSvcCodingParam // SVC parameter, WelsSVCParamConfig in svc_param_settings.h
 
 	pSadCostMb []int32 // C int32_t*: per MB SAD (SMB.pSadCost points into it)
+	// Go-only trusted damage hints, scoped to one synchronous EncodeFrame.
+	unchanged unchangedFrameState
 
 	/* MVD cost tables for Inter MB */
 	iMvRange            int32

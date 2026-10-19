@@ -155,6 +155,18 @@ After upgrading, rebuild/restart the gateway and start the desktops with the new
 binary to enable collection. No additional Docker ports or guest packages are
 required.
 
+The authenticated `GET /perf` endpoint exports an owner-scoped JSON report for
+diagnosis, with actual encoder, configured vCPUs/encoder/profile, CPU/RSS, frame
+and payload rates, and encoding/write/ACK timings. Use `/perf?download=1` to save
+it, or `/perf?vm=<id>&download=1` for one owned desktop. See
+[performance diagnostics](performance.md) for collection and interpretation.
+
+Its additive `pipeline` object reports virtio transfer/flush work, framebuffer
+capture and colour conversion, outstanding graphics ACKs, and ACK-blocked time.
+Optional `GATEWAY_VM_PROFILING=true` adds private Unix-socket CPU profiling for
+host operators, not a public debug route or a capability granted by web login.
+See [profiling setup and limitations](performance.md#optional-administrator-cpu-profiling).
+
 ### RDP identity and routing
 
 The downloaded file contains your LDAP login name in `username` and a random

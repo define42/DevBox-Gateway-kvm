@@ -24,6 +24,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
 	"github.com/define42/DevBox-Gateway-kvm/internal/serial"
 	"github.com/define42/DevBox-Gateway-kvm/internal/tap"
+	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/usernet"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"github.com/define42/DevBox-Gateway-kvm/kvm"
@@ -313,7 +314,14 @@ func (m *Machine) AddGPU(outputPath string) error {
 }
 
 func (m *Machine) AddGPUDisplay(display virtio.Display) error {
+	return m.AddGPUDisplayWithTelemetry(display, nil)
+}
+
+// AddGPUDisplayWithTelemetry borrows process-lifetime pipeline counters and
+// configures them before the GPU worker starts.
+func (m *Machine) AddGPUDisplayWithTelemetry(display virtio.Display, collector *telemetry.Collector) error {
 	v := virtio.NewGPU(virtioGPUIRQ, m, m.mem, display)
+	v.SetTelemetry(collector)
 	m.connectVirtioIRQ(v.ModernTransport, virtioGPUIRQ)
 	if resizable, ok := display.(interface{ SetResizeHandler(func(int, int) error) }); ok {
 		resizable.SetResizeHandler(v.SetDisplaySize)

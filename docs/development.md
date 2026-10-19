@@ -280,6 +280,10 @@ when comparing changes; an RDP connection alone does not prove desktop readiness
 Detailed performance options and display limitations are in the
 [runtime guide](runtime.md).
 
+The software AVC path passes complete damage information into guarded unchanged-block
+encoding. See the [sparse-encoding benchmark](benchmarks/rdp-sparse-2026-10-18/README.md)
+for before/after measurements, reproduction commands, and remaining full-picture costs.
+
 ### Disk benchmarks
 
 The [isolated host/guest disk harness](../scripts/diskbench/README.md) runs the

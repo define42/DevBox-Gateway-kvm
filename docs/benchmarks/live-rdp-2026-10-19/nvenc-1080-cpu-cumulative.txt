@@ -1,0 +1,58 @@
+File: gokvm-profile-bin
+Build ID: bec6d7deaaf25064dfdc91ddc2be0f8e5e9c73fb
+Type: cpu
+Time: 2026-10-18 23:51:55 CEST
+Duration: 30s, Total samples = 90.10s (300.32%)
+Showing nodes accounting for 88.89s, 98.66% of 90.10s total
+Dropped 221 nodes (cum <= 0.45s)
+      flat  flat%   sum%        cum   cum%
+    56.79s 63.03% 63.03%     56.79s 63.03%  internal/runtime/syscall/linux.Syscall6
+         0     0% 63.03%     56.58s 62.80%  syscall.RawSyscall6
+         0     0% 63.03%     56.58s 62.80%  syscall.Syscall
+         0     0% 63.03%     56.44s 62.64%  github.com/define42/DevBox-Gateway-kvm/internal/machine.(*Machine).VCPU
+         0     0% 63.03%     56.44s 62.64%  github.com/define42/DevBox-Gateway-kvm/internal/machine.(*Machine).runInfiniteLoop (inline)
+         0     0% 63.03%     56.44s 62.64%  github.com/define42/DevBox-Gateway-kvm/internal/machine.(*Machine).runOnce
+         0     0% 63.03%     56.44s 62.64%  github.com/define42/DevBox-Gateway-kvm/internal/vmm.(*VMM).BootContext.func3
+         0     0% 63.03%     56.44s 62.64%  golang.org/x/sync/errgroup.(*Group).Go.func1
+         0     0% 63.03%     56.42s 62.62%  github.com/define42/DevBox-Gateway-kvm/kvm.ioctlOnce
+         0     0% 63.03%     56.40s 62.60%  github.com/define42/DevBox-Gateway-kvm/kvm.Run
+         0     0% 63.03%     25.18s 27.95%  sync.(*WaitGroup).Go.func1
+         0     0% 63.03%     25.08s 27.84%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).IOThreadEntry
+         0     0% 63.03%     25.08s 27.84%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).ProcessControlQueue (inline)
+         0     0% 63.03%     25.08s 27.84%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).drain
+         0     0% 63.03%     25.08s 27.84%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).process
+         0     0% 63.03%     25.06s 27.81%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).handleControl
+         0     0% 63.03%     23.23s 25.78%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).cmdResourceFlush
+         0     0% 63.03%     23.23s 25.78%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).flushDamage
+    16.50s 18.31% 81.34%     21.57s 23.94%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.resourceImageRectInto
+         0     0% 81.34%      6.83s  7.58%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*RDPDisplay).serveConn.func2
+         0     0% 81.34%      6.83s  7.58%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*RDPDisplay).writeFrames
+         0     0% 81.34%      6.81s  7.56%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*rdpFrameWriter).writeWhenReady
+     5.47s  6.07% 87.41%      5.47s  6.07%  runtime.memmove
+         0     0% 87.41%      4.84s  5.37%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*rdpFrameWriter).write
+     0.01s 0.011% 87.43%      4.50s  4.99%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).EncodeDamage
+     4.16s  4.62% 92.04%      4.19s  4.65%  encoding/binary.littleEndian.Uint32 (inline)
+         0     0% 92.04%      3.66s  4.06%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.scaleI420Region
+     0.05s 0.055% 92.10%      3.66s  4.06%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.scaleI420RegionNative
+     0.01s 0.011% 92.11%      3.61s  4.01%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.rgbaToI420AVX2
+     3.60s  4.00% 96.10%      3.60s  4.00%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.rgbaToI420AVX2Kernel
+     0.01s 0.011% 96.12%      1.97s  2.19%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*framebuffer).copyFrameChanges
+         0     0% 96.12%      1.83s  2.03%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).cmdTransferToHost2D
+         0     0% 96.12%      1.82s  2.02%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).backingRead (inline)
+         0     0% 96.12%      1.82s  2.02%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*GPU).transferToHost2D
+     0.02s 0.022% 96.14%      1.82s  2.02%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*gpuBackingReader).read
+         0     0% 96.14%      1.66s  1.84%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*RDPDisplay).FlushDamage
+     0.02s 0.022% 96.16%      1.66s  1.84%  github.com/define42/DevBox-Gateway-kvm/internal/virtio.(*framebuffer).flushDamage
+         0     0% 96.16%      0.83s  0.92%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*Encoder).encodeWithDamageHints
+         0     0% 96.16%      0.83s  0.92%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*nvencEncoder).encode
+         0     0% 96.16%      0.83s  0.92%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc/internal/nvenc.(*Encoder).Encode
+         0     0% 96.16%      0.81s   0.9%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc/internal/nvenc.(*Encoder).Encode.func1 (inline)
+         0     0% 96.16%      0.81s   0.9%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc/internal/nvenc._Cfunc_gokvm_nvenc_encode
+     0.81s   0.9% 97.06%      0.81s   0.9%  runtime.cgocall
+     0.72s   0.8% 97.86%      0.73s  0.81%  encoding/binary.littleEndian.PutUint32 (inline)
+         0     0% 97.86%      0.72s   0.8%  runtime._ExternalCode
+         0     0% 97.86%      0.71s  0.79%  runtime.mcall
+     0.70s  0.78% 98.63%      0.70s  0.78%  [libc.so.6]
+     0.01s 0.011% 98.65%      0.70s  0.78%  runtime.schedule
+         0     0% 98.65%      0.65s  0.72%  runtime.park_m
+     0.01s 0.011% 98.66%      0.64s  0.71%  runtime.findRunnable

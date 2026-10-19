@@ -494,7 +494,7 @@ func (d *RDPDisplay) writeFrames(
 			writer.force = true
 		}
 		if writer.stats.telemetry != nil {
-			writer.stats.telemetry.Acknowledge(session.GraphicsStats().ACKTurnaround)
+			writer.stats.observeGraphics(session.GraphicsStats())
 		}
 		cursor, cursorChanged := d.cursorSnapshot()
 		if session.DisplayReady() {
@@ -518,6 +518,9 @@ func (d *RDPDisplay) writeFrames(
 			if err != nil {
 				return err
 			}
+		}
+		if writer.stats.telemetry != nil {
+			writer.stats.observeGraphics(session.GraphicsStats())
 		}
 		writer.stats.report(writer.actualSlices(), false)
 
@@ -601,7 +604,7 @@ func (w *rdpFrameWriter) writeWhenReady(display *framebuffer, timer *time.Timer)
 	w.nextFrame = w.lastFrame.Add(w.frameInterval())
 	start := w.stats.begin()
 	damage := display.copyFrameChanges(&w.frame, w.force)
-	w.stats.copy.add(w.stats.elapsed(start))
+	w.stats.copied(w.stats.elapsed(start))
 	sent, err := w.write(w.frame, damage, w.force)
 	if err != nil {
 		return nil, err
@@ -710,7 +713,7 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 
 			return err
 		})
-		w.stats.convert.add(w.stats.elapsed(start) - writeTime)
+		w.stats.converted(w.stats.elapsed(start) - writeTime)
 		w.stats.written(writeTime)
 		if err == nil {
 			w.stats.sent(bytes)
@@ -752,7 +755,7 @@ func (w *rdpFrameWriter) write(frame vncFrame, damage []image.Rectangle, force b
 	}
 	if w.stats.measuring() {
 		stats := w.avc.LastStats()
-		w.stats.convert.add(stats.Conversion)
+		w.stats.converted(stats.Conversion)
 		w.stats.encoded(string(w.avc.Backend()), stats.Encoding)
 	}
 	if err != nil || len(data) == 0 {

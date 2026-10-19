@@ -598,6 +598,12 @@ type SSourcePicture struct {
 	BPsnrY      bool  ///< get Y PSNR for this frame
 	BPsnrU      bool  ///< get U PSNR for this frame
 	BPsnrV      bool  ///< get V PSNR for this frame
+	// Go-only, borrowed read-only during EncodeFrame. A true entry certifies
+	// that the entire source Y/U/V macroblock is unchanged since the immediately
+	// preceding successful encoded picture. Entries are row-major, with
+	// ceil(IPicWidth/16)*ceil(IPicHeight/16) elements. Nil/wrong length disables
+	// this optional hint; incorrect hints can suppress actual picture changes.
+	UnchangedMacroblocks []bool
 }
 
 // SBitrateInfo is the structure for bit rate info.

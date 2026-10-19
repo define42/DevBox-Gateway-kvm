@@ -252,7 +252,7 @@ func (v *VMM) initDisplay(m *machine.Machine) error {
 		return err
 	}
 
-	if err := m.AddGPUDisplay(display); err != nil {
+	if err := m.AddGPUDisplayWithTelemetry(display, v.Telemetry); err != nil {
 		_ = display.Close()
 
 		return err

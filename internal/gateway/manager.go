@@ -32,6 +32,7 @@ type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	Encoder, Keyboard                                  string
 	RDPProfile                                         string // office (30 FPS) by default; smooth selects 60 FPS.
+	VMProfiling                                        bool   // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	MemoryBudgetMiB                                    int // Zero selects an automatic host-memory budget.
 	MaxCreations                                       int // Bounds provisioning I/O across all owners.
@@ -114,6 +115,7 @@ type managedProcess struct {
 	err         error // Published by closing done.
 	endpoint    Endpoint
 	performance *processPerformance // Private to this launch; never persisted or reused.
+	profiling   *processProfiling
 }
 
 // NewManager opens an exclusively owned state directory and loads saved VMs.
@@ -633,6 +635,15 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-profile", m.config.RDPProfile,
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
+	profiling := m.prepareProfiling(dir)
+	defer func() {
+		if profiling != nil {
+			profiling.close()
+		}
+	}()
+	if profiling != nil {
+		cmd.Args = append(cmd.Args, "-profile-socket", profiling.socket)
+	}
 	// Leave stdout and stderr unset so os/exec connects them to the null
 	// device. Guest-controlled output must not consume persistent host storage.
 	cmd.ExtraFiles = []*os.File{listenerFile} // ExtraFiles[0] is descriptor 3 in the child.
@@ -654,8 +665,10 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 
 	run := &managedProcess{
 		cmd: cmd, done: make(chan struct{}),
-		endpoint: Endpoint{Address: address, ServerName: "vm-" + v.record.ID, CertificatePEM: cert},
+		endpoint:  Endpoint{Address: address, ServerName: "vm-" + v.record.ID, CertificatePEM: cert},
+		profiling: profiling,
 	}
+	profiling = nil // The running process now owns this launch's private directory.
 	if performanceConn != nil {
 		run.performance = newProcessPerformance(performanceConn)
 		performanceConn = nil // The reader now owns the connection.
@@ -698,6 +711,9 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	defer m.jobs.Done()
 	run.err = run.cmd.Wait()
+	if run.profiling != nil {
+		run.profiling.close()
+	}
 	if run.performance != nil {
 		run.performance.close()
 	}

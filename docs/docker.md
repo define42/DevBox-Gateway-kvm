@@ -55,6 +55,19 @@ every five seconds while visible and is restricted to the desktop's owner.
 It needs no extra ports, guest agent, or image changes; see the
 [measurement definitions](gateway.md#view-vm-performance).
 
+For a shareable JSON snapshot, use **Download diagnostics** on the dashboard or
+open **https://localhost:8443/perf?download=1** after signing in as the desktop's
+owner (use your configured address if different). Keep the RDP session connected
+and reproduce the lag before downloading. See [performance diagnostics](performance.md)
+for the report fields and limitations. The endpoint is private; share the downloaded
+report, never your login cookie.
+
+The report also includes virtio transfer/flush, framebuffer capture/conversion,
+and RDP ACK-wait measurements. For function-level CPU investigation, optional
+`GATEWAY_VM_PROFILING=true` enables private, bounded worker profiles without
+opening a port. This requires a planned gateway recreation and new worker starts;
+see [administrator profiling](performance.md#optional-administrator-cpu-profiling).
+
 The gateway manages its own certificate: by default it generates and persists a
 self-signed identity for the hostname in `PUBLIC_ADDRESS` (by default,
 `GATEWAY_HOST`). It can instead load a supplied PEM pair or obtain and renew an
