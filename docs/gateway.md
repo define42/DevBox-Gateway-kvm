@@ -23,6 +23,12 @@ FFmpeg development libraries
 make gateway
 ```
 
+This starts the management plane but does not create or delegate a VM cgroup.
+With the default empty `VM_CGROUP_ROOT`, desktop creation and other stopped-VM
+management work, but every VM start is refused. Configure the private cgroup v2
+subtree described under [`serve` options](#serve-options) before starting a
+desktop.
+
 Open **https://localhost:8443** and accept the locally generated self-signed
 certificate for this development instance. The bundled directory provides these
 public demo credentials:
@@ -293,10 +299,35 @@ whether the installed guest can boot or provision successfully.
 - Compressed images and some other unsupported layouts are checked and converted
   with `qemu-img` when necessary. Install `qemu-utils` on the gateway host for
   this import path. Images already supported by gokvm need no conversion tool.
-- Virtual disk capacity is limited to 1 TiB. The upload file and the normalized
-  file each have a default limit of 20 GiB; this is separate from virtual capacity.
+- Every template and managed VM disk has a default maximum virtual capacity of
+  `500GB`, controlled by `VM_DISK_MAX_SIZE` (`-vm-disk-max-size`).
+- Administrator QCOW2 imports retain an independent 1 TiB virtual-capacity
+  ceiling even when `VM_DISK_MAX_SIZE` is raised. A native configured raw
+  `BASE_IMAGE` may be larger when the policy is raised.
+- The upload file and the normalized file each have a default limit of 20 GiB;
+  this is separate from virtual capacity.
 - Only one upload/import runs at a time. Image names must be unique, ignoring
   case. An incomplete import is not published as a selectable template.
+
+The disk limit accepts a positive integer byte count, with optional `B`, `KB`,
+`MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, or `TiB` units. Units are
+case-insensitive. Decimal `GB` uses powers of 1000, so the default `500GB` is
+exactly 500,000,000,000 bytes; binary `500GiB` is 536,870,912,000 bytes.
+
+An oversized administrator upload is rejected before publication, and an
+oversized configured `BASE_IMAGE` prevents gateway startup. Capacity is checked
+again when a desktop is created and whenever it starts. Lowering the limit does
+not delete existing templates or VMs: they remain visible and removable, but an
+oversized template cannot create a desktop and an oversized stopped VM cannot
+start. The gateway never grows or shrinks a disk to meet the setting.
+
+`VM_DISK_MAX_SIZE` applies to each virtual disk; it is not an aggregate physical
+storage quota. Sparse QCOW2 allocation, filesystem reflinks, subsequent guest
+writes, and QCOW2 metadata overhead mean actual state-directory use can differ
+from virtual capacity. The administrator is responsible for aggregate capacity,
+filesystem quotas, reserved space, and monitoring. H-04 remains an
+operator-managed shared-storage-exhaustion risk, not a vulnerability closed by
+the 500 GB default; see [storage responsibilities](storage-isolation.md).
 
 Upload and import requests default to a 30-minute timeout. To permit a larger
 file and a longer overall request:
@@ -414,17 +445,67 @@ and corresponding flag, or run `./gokvm serve -help`.
 
 CPU, RAM, encoder, and RDP profile settings apply when a VM process starts; they
 are gateway-wide settings, not per-image sizing. Restart running VMs after
-changing the profile. Quotas limit VM counts, not total allocated disk bytes.
+changing the profile. Count quotas and `VM_DISK_MAX_SIZE` are admission controls,
+not an aggregate physical-storage quota.
+
+`VM_CGROUP_ROOT` defaults to empty. This permits the gateway and stopped-desktop
+management to run, but every managed VM start fails closed. A non-empty value
+must be a clean absolute path to a writable cgroup v2 domain subtree that:
+
+- is owned by the gateway's effective UID and is not group or other writable;
+- has no processes in `cgroup.procs`;
+- reports recursive `populated 0` in `cgroup.events` at gateway startup;
+- lists `memory` in both `cgroup.controllers` and
+  `cgroup.subtree_control`; and
+- provides writable `cgroup.kill` controls in gateway-created children.
+
+A configured root is validated during gateway startup. A recursive
+`populated 1` rejects startup instead of accepting live orphan processes from a
+previous run. VM launches require Linux 5.14 or newer with cgroup v2 memory,
+`cgroup.kill`, and clone-time cgroup attachment support. Even after the
+filesystem checks pass, the kernel or container runtime policy may deny the
+required `clone3` cgroup attachment; that VM launch is refused rather than
+started without its limit.
+
+For containers, mount only the dedicated host-delegated subtree at that path;
+do not expose all of `/sys` or `/sys/fs/cgroup` read-write, add
+`CAP_SYS_ADMIN`, or run the gateway as privileged. The Docker guide describes
+the [scoped delegation requirements](docker.md#required-cgroup-v2-delegation-for-vm-starts).
+
+For every launch, the gateway creates a private child cgroup and sets
+`memory.max` to `VM_MEMORY_MIB + VM_MEMORY_OVERHEAD_MIB`,
+`memory.swap.max=0`, and `memory.oom.group=1`. It verifies each value, then
+attaches the worker during clone so the process cannot run first and be moved
+into the cgroup later. Failure to prepare, configure, verify, or attach the
+cgroup leaves the desktop stopped. On exit, cleanup checks the recursive
+`populated` state, writes `cgroup.kill` if residual descendants remain, waits
+for `populated 0`, and removes the exact child before releasing its reservation.
+If cleanup cannot be verified, the management plane remains available, but
+every later VM start is blocked until the operator recovers the dedicated
+subtree and restarts the gateway. `VM_MEMORY_OVERHEAD_MIB` defaults to 512 MiB
+and accepts 64 through 16384 MiB; setting it too low can cause the worker cgroup
+to be OOM-killed under load.
+
+Each opened QCOW2 image retains at most 8 MiB of L2 table payload in a FIFO
+cache, independently of the image's virtual size. The cache's Go map and FIFO
+ring metadata add memory beyond that payload budget, but their entry counts are
+bounded by the same table limit. An accepted L2 metadata write reaches the image
+before the cached table changes, so eviction cannot discard the only updated
+copy. Image opening rejects geometry whose single L2 table exceeds the cache
+budget, in addition to the existing header and metadata-table geometry limits.
+The 8 MiB value is not a total worker RSS limit; the separate hard worker limit
+remains guest RAM plus `VM_MEMORY_OVERHEAD_MIB` as described above.
 
 Before starting the first desktop, the gateway sets its automatic memory budget
 from Linux `MemAvailable`, leaves 1 GiB for the host, and applies any smaller
 `VM_MEMORY_BUDGET_MIB` limit. Visible cgroup v1/v2 memory limits and usage also
-constrain available capacity, including ancestor limits. Each starting or running desktop
-reserves its full configured RAM plus a 256 MiB allowance for runtime/device
-overhead, even when the guest has not touched all of its RAM yet. Concurrent
-starts share this budget; launch failure or child exit releases the reservation.
-The automatic budget is refreshed once all desktops have stopped and another
-start is requested.
+constrain available capacity, including ancestor limits. Each starting or
+running desktop reserves its full configured RAM plus
+`VM_MEMORY_OVERHEAD_MIB`, matching its hard cgroup limit, even when the guest
+has not touched all of its RAM yet. Concurrent starts share this budget; launch
+failure or child exit releases the reservation only after cgroup cleanup is
+verified. The automatic budget is refreshed once all desktops have stopped and
+another start is requested.
 
 Every start also checks current available memory and effective memory limits,
 including existing reservations that are not yet backed by resident anonymous
@@ -435,15 +516,19 @@ Insufficient capacity leaves the desktop stopped and displays a memory-specific
 error. If host memory cannot be measured, the start is refused. For example:
 
 ```bash
-VM_MEMORY_MIB=4096 VM_MEMORY_BUDGET_MIB=10240 make gateway
+VM_CGROUP_ROOT=/path/to/delegated-subtree \
+VM_MEMORY_MIB=4096 VM_MEMORY_OVERHEAD_MIB=512 \
+VM_MEMORY_BUDGET_MIB=10240 make gateway
 ```
 
 This caps desktop reservations at 10 GiB, allowing at most two 4 GiB desktops
-(each charged 4352 MiB), subject to available host memory and `MAX_RUNNING_VMS`.
-These checks are admission control, not a hard memory limit or an OS reservation:
-other applications can allocate memory afterward, and actual process overhead
-can exceed the allowance. Guest RAM is fixed while running; there is no memory
-ballooning. Standalone `boot` commands are outside the gateway budget.
+(each charged 4608 MiB), subject to available host memory and `MAX_RUNNING_VMS`.
+The capacity checks are admission control rather than an OS reservation: other
+applications can allocate memory afterward. The per-worker cgroup is the hard
+limit and can terminate the worker if actual overhead exceeds its allowance.
+Guest RAM is fixed while running; there is no memory ballooning. Standalone
+`boot` commands are outside both the gateway budget and these managed-worker
+cgroup controls.
 
 For an explicit local-auth development setup:
 
@@ -479,8 +564,12 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | `vms/<vm-id>/rdp.crt`, `rdp.key` | Private VM-console TLS identity. |
 
 The `images` directory is created automatically and starts empty for a new
-state directory without `BASE_IMAGE`. The Compose stack stores it at
-`/var/lib/gokvm/images` in its persistent `gateway-state` volume.
+state directory without `BASE_IMAGE`. The Compose stack binds the host directory
+selected by `GATEWAY_STORAGE_PATH` (default `/srv/devbox-storage`) to
+`/var/lib/gokvm`. Templates therefore live at `/srv/devbox-storage/images` on the
+host by default, and VM disks at `/srv/devbox-storage/vms/<id>/disk.img`.
+This mount holds all gateway state, not just QCOW2 files. See the
+[Docker storage setup](docker.md) for directory preparation and ownership.
 
 Back up the state with the gateway and VMs stopped; include any optional base
 image configured outside the state directory. Keep seeds and private keys

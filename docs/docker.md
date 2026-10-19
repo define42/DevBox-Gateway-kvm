@@ -13,8 +13,32 @@ must be enabled.
 ## Start the gateway and LDAP with Compose
 
 The root Compose stack builds the gateway and starts the bundled development
-LDAP directory. No desktop image is needed to start it. Run from the repository
-root:
+LDAP directory. No desktop image is needed to start it. Compose bind-mounts one
+private host directory at `/var/lib/gokvm` for all gateway state and deliberately
+does not create the source directory.
+
+For a fresh deployment, use a new, empty, dedicated directory. On rootful Docker
+without user-namespace remapping, create the default path with:
+
+```bash
+sudo install -d -m 0700 -o 10001 -g 10001 /srv/devbox-storage
+```
+
+That ownership command is only correct for rootful Docker without UID remapping.
+For rootless Docker or a daemon using `userns-remap`, determine the host UID/GID
+to which container UID/GID 10001 maps and use those mapped IDs instead. To use a
+different empty directory, set its absolute path in `.env` before starting:
+
+```dotenv
+GATEWAY_STORAGE_PATH=/path/to/private/devbox-storage
+```
+
+Do not point this setting at unrelated or non-empty data. An old
+`gateway-state` named volume is left untouched, but Compose no longer mounts or
+migrates it automatically; selecting this host path starts with the state found
+at that path.
+
+Then run from the repository root:
 
 ```bash
 make gateway-docker
@@ -25,8 +49,13 @@ The target runs `./docker/configure.sh`, then
 `docker compose up --build -d gateway`. The setup helper detects `/dev/kvm`'s
 group and writes `KVM_GID` to `.env`, which Compose loads automatically. It
 creates `.env` from `.env.example` when needed and preserves your other settings
-on later runs. The gateway continues to run as UID 10001. Existing desktop,
-image, and certificate volumes are preserved.
+on later runs. The gateway continues to run as UID 10001. State already stored
+in the selected host directory is preserved.
+
+The default Compose deployment leaves `VM_CGROUP_ROOT` empty and therefore
+refuses every VM start. Catalog, creation, and stopped-desktop management remain
+available. Before running a desktop, complete the
+[required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts).
 
 After updating this checkout, run `make gateway-docker` again to rebuild the
 gateway image and recreate its container. `docker compose restart`
@@ -81,21 +110,23 @@ certificate is shared with the gateway through a separate read-only mount; the
 LDAP private key stays in the LDAP container's volume. Compose waits for a
 verified LDAP TLS handshake before starting the gateway.
 
-The stack uses these named volumes:
+The stack uses one host bind mount for gateway state and two named volumes for
+LDAP:
 
-| Volume | Contents |
+| Storage | Contents |
 | --- | --- |
-| `gateway-state` | Desktop state, uploaded images, gateway TLS identity, and ACME storage |
+| `${GATEWAY_STORAGE_PATH:-/srv/devbox-storage}` mounted at `/var/lib/gokvm` | Desktop state, uploaded images, gateway TLS identity, and ACME storage |
 | `ldap-tls` | LDAP certificate/key and directory configuration |
 | `ldap-ca` | LDAP public certificate shared with the gateway |
 
-Compose prefixes these names with its project name, `devbox-gateway-kvm`.
-Uploaded QCOW2 templates and their metadata live in `/var/lib/gokvm/images`
-inside `gateway-state`. Each VM receives its own independent disk. Both the
+Compose prefixes the two LDAP volume names with its project name,
+`devbox-gateway-kvm`. All gateway state lives beneath the selected host storage
+root. Uploaded QCOW2 templates and their metadata are under `images/`; each VM's
+independent QCOW2 disk is `vms/<id>/disk.img`, alongside its other per-VM state.
+The root also holds the generated gateway TLS identity and `acme/` state. The
 catalog and desktop state survive container rebuilds and restarts. Removing a
-template, including the last one, does not remove existing desktops.
-Only one gateway may use the state volume at a time. Back it up with the gateway
-stopped.
+template, including the last one, does not remove existing desktops. Only one
+gateway may use this directory at a time. Back it up with the gateway stopped.
 
 `GATEWAY_BIND`, `GATEWAY_HOST`, and `GATEWAY_PORT` default to `127.0.0.1`,
 `localhost`, and `8443`. The public hostname and port also appear in downloaded
@@ -108,10 +139,11 @@ All gateway settings are passed through environment variables from `.env` or
 the shell. Set `RDP_PROFILE=office` (the default) for a 30 FPS H.264 cap, or
 `smooth` for 60 FPS. Bitmap fallback remains capped at 30 FPS. Restart managed
 VMs to apply a profile change. Set
-`H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`, and
-`MAX_RUNNING_VMS` to change the defaults of automatic encoding, 2 vCPUs,
-4096 MiB per guest, and 4 running desktops. Allow enough host memory for guest
-RAM plus the overhead described below. See the
+`H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`,
+`VM_MEMORY_OVERHEAD_MIB`, `VM_CGROUP_ROOT`, and `MAX_RUNNING_VMS` to change the
+defaults of automatic encoding, 2 vCPUs, 4096 MiB per guest, 512 MiB of worker
+overhead, fail-closed cgroup configuration, and 4 running desktops. Allow enough
+host memory for guest RAM plus the overhead described below. See the
 [configuration reference](configuration.md) for every setting and the legacy Compose aliases retained for existing `.env`
 files. Canonical variables take precedence over legacy aliases. The native
 executable does not load `.env`; Compose passes these values into its environment.
@@ -119,10 +151,13 @@ executable does not load `.env`; Compose passes these values into its environmen
 ```bash
 docker compose stop         # Stop the gateway and LDAP; retain containers and data
 docker compose start        # Start the existing services again
-docker compose down         # Remove containers and network; retain named volumes
+docker compose down         # Remove containers/network; retain the host bind and LDAP volumes
 ```
 
-`docker compose down -v` also deletes saved desktops and generated certificates.
+`docker compose down -v` removes the `ldap-tls` and `ldap-ca` named volumes, but
+does not remove files in the host directory selected by `GATEWAY_STORAGE_PATH`.
+It can therefore destroy LDAP configuration and identity material even though
+gateway desktops, images, and gateway TLS/ACME state remain in the host bind.
 The Compose gateway receives 45 seconds to finish shutdown. Shut down desktops
 from their graphical sessions or the dashboard first when guest application
 state matters.
@@ -137,9 +172,9 @@ The gateway supports three certificate modes for both HTTPS and RDP:
 
 | Mode | Configuration | Persistence |
 | --- | --- | --- |
-| Automatic self-signed | Default; empty `CERT_FILE`/`KEY_FILE`, `ACME_ENABLE=false` | `gateway.crt` and `gateway.key` in `gateway-state` |
+| Automatic self-signed | Default; empty `CERT_FILE`/`KEY_FILE`, `ACME_ENABLE=false` | `gateway.crt` and `gateway.key` under `GATEWAY_STORAGE_PATH` |
 | Supplied certificate | `CERT_FILE` and `KEY_FILE` together | Read from the supplied PEM paths |
-| ACME | `ACME_ENABLE=true`, optionally `ACME_EMAIL` and `ACME_CA` | Account, certificates, and renewal state under `gateway-state/acme` |
+| ACME | `ACME_ENABLE=true`, optionally `ACME_EMAIL` and `ACME_CA` | Account, certificates, and renewal state under `GATEWAY_STORAGE_PATH/acme` |
 
 To enable ACME in Compose, set these values in `.env`:
 
@@ -169,14 +204,17 @@ hostname is the only name eligible for issuance.
 For supplied certificates, mount your certificate and key read-only and set
 `CERT_FILE` and `KEY_FILE`, as shown in the standalone example below. Do not
 combine supplied certificates with `ACME_ENABLE=true`. Supplied identities are
-never modified. Keep the gateway state volume when rebuilding or restarting.
+never modified. Keep the gateway storage directory when rebuilding or
+restarting.
 
 When upgrading from the older three-service stack, use
 `docker compose up --build -d --remove-orphans` to remove the obsolete
 `certificates` container. The old `gateway-tls` volume is no longer used and is
 not deleted. To retain that exact frontend certificate, mount it read-only and
 configure its `cert.pem` and `key.pem` as a supplied pair. Existing LDAP keys,
-directory configuration, image templates, and VM disks remain in their volumes.
+and directory configuration remain in their named volumes. Existing image
+templates and VM disks remain only where they were stored: Compose does not
+migrate the legacy `gateway-state` named volume into `GATEWAY_STORAGE_PATH`.
 
 ## Published container images
 
@@ -225,8 +263,8 @@ docker compose -f compose.yaml -f compose.published.yaml up --no-build --pull al
 
 The override selects prebuilt images; `--no-build` keeps Compose from building
 local targets. Add `-f compose.nvidia.yaml` to enable the NVIDIA runtime.
-Persistent volumes, LDAP accounts, and admin image uploads work as described
-above. The downloaded binary archive uses software encoding; the published
+Persistent gateway storage, LDAP accounts, and admin image uploads work as
+described above. The downloaded binary archive uses software encoding; the published
 container retains NVENC support through the host's NVIDIA Container Toolkit.
 
 ## Build and inspect
@@ -257,6 +295,11 @@ docker run --rm \
 The gateway creates an empty image catalog in its persistent state directory.
 After startup, an administrator uploads QCOW2 templates through the web UI.
 
+The standalone example below deliberately omits a cgroup mount, so it starts the
+management plane but cannot start a VM. Add only a host-delegated, scoped cgroup
+mount as described under
+[required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts).
+
 The example below uses an external LDAP directory and a TLS certificate trusted
 by the clients. Replace the example hostname, directory settings, and host paths.
 Use regular PEM files, not symlinks. The private key must be owned by UID 10001
@@ -266,8 +309,11 @@ directory owned by UID 10001 with mode `0700` satisfies these requirements.
 If your existing certificate manager uses symlinks, copy the resolved certificate
 and key into this mounted directory.
 
+For this rootful, non-remapped example, create a fresh, empty gateway state
+directory before starting the container:
+
 ```bash
-docker volume create devbox-gateway-kvm-state
+sudo install -d -m 0700 -o 10001 -g 10001 /srv/devbox-storage
 
 docker run -d --name devbox-gateway-kvm \
   --restart unless-stopped \
@@ -275,7 +321,7 @@ docker run -d --name devbox-gateway-kvm \
   --device /dev/kvm:/dev/kvm \
   --group-add "$(stat -c '%g' /dev/kvm)" \
   --publish 8443:8443 \
-  --mount type=volume,source=devbox-gateway-kvm-state,target=/var/lib/gokvm \
+  --mount type=bind,source=/srv/devbox-storage,target=/var/lib/gokvm \
   --mount type=bind,source=/etc/devbox-gateway-kvm/tls,target=/etc/gokvm/tls,readonly \
   --env PUBLIC_ADDRESS=desktops.example.com:8443 \
   --env CERT_FILE=/etc/gokvm/tls/fullchain.pem \
@@ -289,6 +335,9 @@ docker run -d --name devbox-gateway-kvm \
   --env ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
   devbox-gateway-kvm:local
 ```
+
+For rootless Docker or user-namespace remapping, use the mapped host UID/GID for
+container UID/GID 10001 instead of copying the ownership command unchanged.
 
 This LDAP example uses Active Directory attributes. Adjust them for your
 directory as described in [LDAP configuration](gateway.md#ldap-and-remote-access).
@@ -311,27 +360,93 @@ Docker's port-forwarding path; the gateway does not install host firewall rules.
 See [edge protection](gateway.md#connection-admission-and-edge-protection) and the
 [opt-in nftables deployment guide](edge-rate-limiting.md) for a pre-DNAT example.
 
-The state volume holds VM disks, firmware variables, seeds, uploaded templates,
-and metadata. A fresh named volume inherits the image's private directory
-permissions. Existing state must be owned by UID 10001 and private (`0700` for
-directories, normally `0600` for files). Only one gateway may use it at a time.
-If using a bind mount instead, create and assign ownership to the state directory
-before starting the container. Back up the volume with the gateway stopped.
+The host storage directory holds `vms/<id>/disk.img`, firmware variables, seeds,
+uploaded templates under `images/`, metadata, and generated gateway TLS/ACME
+state. It must be private and owned by the host identity mapped to container UID
+10001 (`0700` for directories, normally `0600` for files). Only one gateway may
+use it at a time. Back it up with the gateway stopped.
 
 For an optional preconfigured default image, mount an immutable standalone raw
 or supported uncompressed QCOW2 file read-only and set its container path in
 `BASE_IMAGE`. Such a template is protected from removal through the UI. By default,
 the Compose stack starts with an empty catalog and uses administrator uploads.
 
+`VM_DISK_MAX_SIZE` defaults to `500GB` per template and managed VM disk.
+Decimal `500GB` is exactly 500,000,000,000 bytes; binary `500GiB` is
+536,870,912,000 bytes. This is a virtual-capacity admission guard, not an
+aggregate physical-storage quota, and the gateway never grows or shrinks disks
+to meet it. Sparse images, reflinks, guest writes, and QCOW2 metadata overhead
+make actual volume use differ from virtual capacity.
+
+The administrator is responsible for provisioning and monitoring aggregate
+filesystem capacity, quotas, and a protected free-space reserve. The 500 GB
+default does not provide those controls. H-04 remains an operator-managed
+shared-storage-exhaustion risk, not a code-enforced isolation guarantee; see
+[storage responsibilities](storage-isolation.md).
+
+An oversized upload is rejected before publication, an oversized configured
+`BASE_IMAGE` prevents startup, and capacity is checked again during desktop
+creation and start. Lowering the limit preserves existing catalog entries and
+VMs so they remain visible and removable, but an oversized template cannot be
+used to create a desktop and an oversized stopped VM cannot start. See
+[shared base images and administration](gateway.md#shared-base-images-and-administration)
+for accepted units and the separate QCOW2 import-format ceiling.
+
 Managed guest networking uses `user-isolated`; it needs neither a TUN device nor
 `NET_ADMIN`. The container does not need `--privileged` or a Docker socket.
 
-Defaults are 2 vCPUs and 4096 MiB per desktop. When setting Docker's `--memory`
-limit, allow for all running guest RAM, 256 MiB per guest, the gateway's 1 GiB
-headroom, and additional runtime usage. The gateway considers visible cgroup
-memory limits and can reject a VM start when capacity is insufficient. Use
-`VM_MEMORY_MIB`, `VM_MEMORY_BUDGET_MIB`, and `MAX_RUNNING_VMS` to control
-admission; see [memory limits](gateway.md#serve-options).
+## Required cgroup v2 delegation for VM starts
+
+`compose.yaml` passes `VM_MEMORY_OVERHEAD_MIB` and `VM_CGROUP_ROOT` into the
+container, but it deliberately does not create a host cgroup, delegate it, or
+mount it. With the default empty `VM_CGROUP_ROOT`, the gateway remains available
+for management while every VM start fails closed.
+
+The operator must provide a dedicated cgroup v2 domain subtree with:
+
+- ownership by the container's effective UID (10001 in the supplied image) and
+  no group or other write permission;
+- an empty `cgroup.procs` file;
+- `cgroup.events` reporting recursive `populated 0` at gateway startup, so no
+  live process remains anywhere below the subtree;
+- `memory` listed in both `cgroup.controllers` and
+  `cgroup.subtree_control`;
+- writable `cgroup.kill` controls in children created by the gateway; and
+- a writable, scoped bind mount of only that delegated subtree at a private,
+  clean absolute path in the container.
+
+VM starts require Linux 5.14 or newer, cgroup v2 memory support, and clone-time
+cgroup attachment. A container runtime or syscall policy can still deny the
+required `clone3` cgroup attachment even when the mounted control files look
+correct; that launch fails closed. Grant only the specific runtime permission
+needed for this operation rather than using privileged mode or broad
+capabilities.
+
+Set `VM_CGROUP_ROOT` to that container path. Do not mount all of `/sys` or
+`/sys/fs/cgroup` read-write, run the gateway as privileged, or add
+`CAP_SYS_ADMIN`. How the dedicated subtree is delegated depends on the host init
+system and container runtime; see the kernel's
+[cgroup v2 documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html).
+When a non-empty root is configured, gateway startup also checks its recursive
+`populated` state and refuses to start if live descendants were left by an
+earlier run. The gateway validates the delegation again for every launch and
+refuses to start the worker if it is missing or has drifted.
+
+Each worker receives `memory.max` equal to `VM_MEMORY_MIB` plus
+`VM_MEMORY_OVERHEAD_MIB` (default 512 MiB, accepted range 64 to 16384 MiB),
+`memory.swap.max=0`, and `memory.oom.group=1`. The worker is attached during
+clone, before it can run outside the limit. When setting Docker's own memory
+limit, allow for every running guest and its overhead, the gateway's 1 GiB
+admission headroom, and other runtime usage. Use `VM_MEMORY_BUDGET_MIB` and
+`MAX_RUNNING_VMS` for additional admission limits; see
+[memory limits](gateway.md#serve-options).
+
+On worker exit, cleanup checks `cgroup.events`, writes `cgroup.kill` if residual
+descendants remain, waits for recursive `populated 0`, and then removes the
+launch cgroup. The reservation is not released until that succeeds. If cleanup
+cannot be verified, the management plane remains available but every later VM
+start is blocked. The operator must inspect and recover the dedicated subtree,
+then restart the gateway; do not bypass the check with a less isolated launch.
 
 ## Enable NVIDIA NVENC
 
@@ -393,6 +508,7 @@ Shut down desktops through their graphical session or the dashboard first when
 guest application state matters. Gateway shutdown requests ACPI power-off and
 allows `VM_STOP_TIMEOUT` (30 seconds by default) before terminating remaining VM
 processes; keep Docker's stop timeout longer than this setting to allow cleanup.
-Saved desktops remain in the volume and load as stopped after restart. Removing
-the container does not delete the named volume; deleting the volume removes its
-saved desktops.
+Saved desktops remain in the host storage directory and load as stopped after
+restart. Removing the container, including with `docker compose down -v`, does
+not delete this bind-mounted data; only an explicit host-side operation can
+remove it.

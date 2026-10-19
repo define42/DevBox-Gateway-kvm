@@ -29,7 +29,11 @@ services:
     ports:
       - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-8443}:8443"
     volumes:
-      - gateway-state:/var/lib/gokvm
+      - type: bind
+        source: "${GATEWAY_STORAGE_PATH:-/srv/devbox-storage}"
+        target: /var/lib/gokvm
+        bind:
+          create_host_path: false
       - ldap-ca:/etc/gokvm/ldap:ro
     environment:
       DATA_ROOT_DIR: "${DATA_ROOT_DIR-/var/lib/gokvm}"
@@ -44,6 +48,9 @@ services:
       VM_VCPU_COUNT: "${VM_VCPU_COUNT-${GATEWAY_CPUS:-2}}"
       VM_MEMORY_MIB: "${VM_MEMORY_MIB-${GATEWAY_MEMORY:-4096}}"
       VM_MEMORY_BUDGET_MIB: "${VM_MEMORY_BUDGET_MIB-0}"
+      VM_MEMORY_OVERHEAD_MIB: "${VM_MEMORY_OVERHEAD_MIB-512}"
+      VM_CGROUP_ROOT: "${VM_CGROUP_ROOT-}"
+      VM_DISK_MAX_SIZE: "${VM_DISK_MAX_SIZE-500GB}"
       MAX_VDI_PER_USER: "${MAX_VDI_PER_USER-3}"
       MAX_CONCURRENT_CREATIONS: "${MAX_CONCURRENT_CREATIONS-2}"
       MAX_RUNNING_VMS: "${MAX_RUNNING_VMS-${GATEWAY_MAX_RUNNING:-4}}"
@@ -82,6 +89,5 @@ services:
     command: ["serve"]
 
 volumes:
-  gateway-state:
   ldap-tls:
   ldap-ca:

@@ -34,10 +34,13 @@ type ManagerConfig struct {
 	RDPProfile                                         string // office (30 FPS) by default; smooth selects 60 FPS.
 	VMProfiling                                        bool   // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
-	MemoryBudgetMiB                                    int // Zero selects an automatic host-memory budget.
-	MaxCreations                                       int // Bounds provisioning I/O across all owners.
+	MemoryBudgetMiB                                    int    // Zero selects an automatic host-memory budget.
+	MemoryOverheadMiB                                  int    // Host-side worker allowance above guest RAM.
+	CgroupRoot                                         string // Empty disables starts, not isolation.
+	MaxCreations                                       int    // Bounds provisioning I/O across all owners.
 	StartTimeout, StopTimeout                          time.Duration
 	MaxImageUploadBytes                                int64
+	MaxDiskBytes                                       int64
 }
 
 // Manager persists each VM's disk, firmware variables, seed and TLS identity.
@@ -50,6 +53,8 @@ type Manager struct {
 	memoryBudget uint64 // Capacity for guest reservations while any VM is active.
 	readMemory   func() (hostMemory, error)
 	readResident func(int) (uint64, error)
+	cgroups      vmCgroupFactory
+	isolationErr error                        // Protected by mu; failed cleanup blocks subsequent launches.
 	processes    map[*managedProcess]struct{} // Started children, protected by mu.
 	closed       bool
 	lock         *os.File
@@ -116,6 +121,7 @@ type managedProcess struct {
 	endpoint    Endpoint
 	performance *processPerformance // Private to this launch; never persisted or reused.
 	profiling   *processProfiling
+	cgroup      workerCgroup
 }
 
 // NewManager opens an exclusively owned state directory and loads saved VMs.
@@ -147,7 +153,15 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 		config: config, vms: make(map[string]*managedVM), images: make(map[string]Image),
 		imageImports: make(chan struct{}, 1), lock: lock, ctx: ctx, cancel: cancel,
 		readMemory: readHostMemory, readResident: readProcessMemory,
+		cgroups:   linuxVMCgroupFactory{},
 		processes: make(map[*managedProcess]struct{}), creations: make(chan struct{}, config.MaxCreations),
+	}
+	if config.CgroupRoot != "" {
+		if err := m.cgroups.Validate(config.CgroupRoot); err != nil {
+			cancel()
+
+			return nil, errors.Join(err, releaseManagerLock(lock))
+		}
 	}
 	if err := m.loadImages(); err != nil {
 		cancel()
@@ -173,6 +187,9 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		if err != nil {
 			return err
 		}
+	}
+	if err := normalizeManagerLimits(c); err != nil {
+		return err
 	}
 	for _, path := range []*string{&c.DataDir, &c.Binary, &c.BaseImage, &c.Firmware, &c.VarsTemplate} {
 		if *path == "" {
@@ -201,26 +218,26 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		if err != nil {
 			return fmt.Errorf("base image must be supported by gokvm (convert compressed qcow2 first): %w", err)
 		}
-		if err := image.Close(); err != nil {
-			return err
+		if err := validateAndCloseDiskImage(image, c.MaxDiskBytes); err != nil {
+			return fmt.Errorf("configured base image: %w", err)
 		}
 	}
 
-	return normalizeManagerLimits(c)
+	return nil
 }
 
 func normalizeManagerLimits(c *ManagerConfig) error {
+	if err := normalizeWorkerMemoryConfig(c); err != nil {
+		return err
+	}
 	if c.RDPProfile == "" {
 		c.RDPProfile = rdp.ProfileOffice
 	}
 	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil {
 		return fmt.Errorf("invalid RDP profile %q: %w", c.RDPProfile, ErrInvalid)
 	}
-	if c.MaxImageUploadBytes == 0 {
-		c.MaxImageUploadBytes = DefaultMaxImageUploadBytes
-	}
-	if c.MaxImageUploadBytes < 1 || c.MaxImageUploadBytes > maxImageVirtualSize {
-		return fmt.Errorf("invalid image upload size limit: %w", ErrInvalid)
+	if err := normalizeManagerStorageLimits(c); err != nil {
+		return err
 	}
 	if c.CPUs == 0 {
 		c.CPUs = 2
@@ -553,7 +570,16 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 	if v.run != nil || v.record.State != "stopped" {
 		return ErrConflict
 	}
+	if _, err := m.validatePrivateDisk(filepath.Join(m.directory(v.record.ID), "disk.img")); err != nil {
+		return fmt.Errorf("validate VM disk before start: %w", err)
+	}
 	m.mu.Lock()
+	if m.isolationErr != nil {
+		err := m.isolationErr
+		m.mu.Unlock()
+
+		return err
+	}
 	if m.closed || m.active >= m.config.MaxRunning {
 		m.mu.Unlock()
 
@@ -570,7 +596,9 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 	run, err := m.startProcess(v)
 	if err != nil {
 		m.mu.Lock()
-		m.active--
+		if !errors.Is(err, errWorkerCleanup) {
+			m.active--
+		}
 		m.mu.Unlock()
 		m.jobs.Done()
 
@@ -621,6 +649,9 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 			return nil, err
 		}
 	}
+	if _, err := m.validatePrivateDisk(filepath.Join(dir, "disk.img")); err != nil {
+		return nil, fmt.Errorf("validate VM disk before worker exec: %w", err)
+	}
 	cert, err := readPrivateFile(filepath.Join(dir, "rdp.crt"), 64<<10)
 	if err != nil {
 		return nil, err
@@ -659,7 +690,8 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		cmd.Args = append(cmd.Args, "-telemetry-fd", "4")
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGTERM}
-	if err := cmd.Start(); err != nil {
+	cgroup, err := m.startConfinedWorker(cmd, v.record.ID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -667,6 +699,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		cmd: cmd, done: make(chan struct{}),
 		endpoint:  Endpoint{Address: address, ServerName: "vm-" + v.record.ID, CertificatePEM: cert},
 		profiling: profiling,
+		cgroup:    cgroup,
 	}
 	profiling = nil // The running process now owns this launch's private directory.
 	if performanceConn != nil {
@@ -711,6 +744,11 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	defer m.jobs.Done()
 	run.err = run.cmd.Wait()
+	var cleanupErr error
+	if run.cgroup != nil {
+		cleanupErr = m.cleanupWorker(run.cgroup)
+		run.err = errors.Join(run.err, cleanupErr)
+	}
 	if run.profiling != nil {
 		run.profiling.close()
 	}
@@ -719,7 +757,9 @@ func (m *Manager) watch(v *managedVM, run *managedProcess) {
 	}
 	m.mu.Lock()
 	delete(m.processes, run)
-	m.active--
+	if cleanupErr == nil {
+		m.active--
+	}
 	m.mu.Unlock()
 	close(run.done)
 	// Cleanup must publish the final state even after manager cancellation.
@@ -936,7 +976,10 @@ func (m *Manager) Close() error {
 		finished := make(chan error, 1)
 		go func() {
 			m.jobs.Wait()
-			finished <- releaseManagerLock(m.lock)
+			m.mu.Lock()
+			isolationErr := m.isolationErr
+			m.mu.Unlock()
+			finished <- errors.Join(isolationErr, releaseManagerLock(m.lock))
 		}()
 		select {
 		case err := <-finished:

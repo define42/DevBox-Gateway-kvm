@@ -40,6 +40,25 @@ func TestServeDefaultRDPProfile(t *testing.T) {
 	if options.manager.VMProfiling {
 		t.Fatal("VM profiling must be disabled by default")
 	}
+	if options.manager.MemoryOverheadMiB != 512 || options.manager.CgroupRoot != "" {
+		t.Fatal("unexpected default worker memory isolation configuration")
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeDefaultVMDiskSize(t *testing.T) {
+	clearServeEnvironment(t)
+	options, err := readServeOptions([]string{"-auth-file=local.json"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options.manager.MaxDiskBytes != gateway.DefaultMaxDiskBytes {
+		t.Fatalf(
+			"default VM disk size = %d, want %d",
+			options.manager.MaxDiskBytes,
+			gateway.DefaultMaxDiskBytes,
+		)
+	}
 }
 
 //nolint:paralleltest // clearServeEnvironment changes the process environment.
@@ -51,6 +70,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 		"H264_ENCODER": "software", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
+		"VM_DISK_MAX_SIZE":       "750GiB",
+		"VM_MEMORY_OVERHEAD_MIB": "1024", "VM_CGROUP_ROOT": "/sys/fs/cgroup/devbox/workers",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m",
 		"VM_CREATE_TIMEOUT": "40m", "VM_START_TIMEOUT": "50s", "VM_STOP_TIMEOUT": "25s", "SESSION_TTL": "4h",
 		"MAX_SESSIONS": "250", "MAX_CONCURRENT_CONNECTIONS": "64", "LISTEN_ADDR": "0.0.0.0:9443",
@@ -71,11 +92,13 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	}
 	want := serveOptions{
 		manager: gateway.ManagerConfig{
+			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", Binary: "/opt/gokvm", BaseImage: "/srv/images/desktop.qcow2",
 			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
 			RDPProfile: "smooth",
 			CPUs:       6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
-			MaxImageUploadBytes: 40 << 30, StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
+			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
+			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
 		},
 		gateway: gateway.Config{
 			ListenAddr: "0.0.0.0:9443", PublicAddress: "desktop.example.com:443",
@@ -121,6 +144,8 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	for key, value := range map[string]string{
 		"LDAP_URL": "ldaps://directory.example.com", "AUTH_FILE": "",
 		"VM_VCPU_COUNT": "8", "VM_MEMORY_BUDGET_MIB": "32768", "ACME_ENABLE": "true", "RDP_PROFILE": "smooth",
+		"VM_DISK_MAX_SIZE":       "malformed",
+		"VM_MEMORY_OVERHEAD_MIB": "1024", "VM_CGROUP_ROOT": "/delegated/env-workers",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m", "ADMIN_GROUP": "admins",
 		"MAX_CONCURRENT_CONNECTIONS": "64", "MAX_HANDSHAKES": "48", "MAX_CONNECTIONS_PER_IP": "24",
 		"MAX_HANDSHAKES_PER_IP": "6", "CONNECTION_RATE_LIMIT": "100", "CONNECTION_RATE_LIMIT_PER_IP": "12",
@@ -131,6 +156,8 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	}
 	options, err := readServeOptions([]string{
 		"-ldap-url=", "-auth-file=local.json", "-cpus=3", "-memory-budget=0", "-acme=false", "-rdp-profile=office",
+		"-vm-disk-max-size=600GiB",
+		"-memory-overhead=768", "-vm-cgroup-root=/delegated/flag-workers",
 		"-image-upload-limit=10737418240", "-image-upload-timeout=20m", "-ldap-admin-group=",
 		"-max-connections=80", "-max-handshakes=40", "-max-connections-per-ip=20", "-max-handshakes-per-ip=5",
 		"-connection-rate-limit=120", "-connection-rate-limit-per-ip=10", "-handshake-timeout=12s",
@@ -152,6 +179,12 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	if options.manager.MaxImageUploadBytes != 10<<30 || options.gateway.UploadTimeout != 20*time.Minute {
 		t.Fatalf("byte/duration overrides not applied: %#v", options)
 	}
+	if options.manager.MaxDiskBytes != 600<<30 {
+		t.Fatalf("VM disk size override = %d, want %d", options.manager.MaxDiskBytes, int64(600<<30))
+	}
+	if options.manager.MemoryOverheadMiB != 768 || options.manager.CgroupRoot != "/delegated/flag-workers" {
+		t.Fatal("worker memory isolation flags did not override environment")
+	}
 	if options.gateway.DesktopCPUs != 3 || options.gateway.MaxImageUploadBytes != 10<<30 {
 		t.Fatalf("derived settings ignored explicit flags: %#v", options.gateway)
 	}
@@ -160,6 +193,35 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		options.gateway.ConnectionRateLimit != 120 || options.gateway.ConnectionRateLimitPerIP != 10 ||
 		options.gateway.HandshakeTimeout != 12*time.Second {
 		t.Fatalf("connection admission overrides not applied: %#v", options.gateway)
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeRejectsInvalidVMDiskSize(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{name: "blank", value: ""},
+		{name: "zero", value: "0"},
+		{name: "negative", value: "-1GB"},
+		{name: "fraction", value: "1.5GB"},
+		{name: "overflow", value: "9223372036854775808"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearServeEnvironment(t)
+			t.Setenv(config.AUTH_FILE, "local.json")
+			t.Setenv(config.VM_DISK_MAX_SIZE, tt.value)
+
+			_, err := readServeOptions(nil, io.Discard)
+			if !errors.Is(err, errCommandUsage) {
+				t.Fatalf("readServeOptions error = %v, want command usage", err)
+			}
+			if !strings.Contains(err.Error(), config.VM_DISK_MAX_SIZE) {
+				t.Fatalf("readServeOptions error = %q, want setting name", err)
+			}
+		})
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"os"
 	"reflect"
 	"sort"
@@ -33,6 +34,9 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.VM_VCPU_COUNT:              "2",
 		config.VM_MEMORY_MIB:              "4096",
 		config.VM_MEMORY_BUDGET_MIB:       "0",
+		config.VM_MEMORY_OVERHEAD_MIB:     "512",
+		config.VM_CGROUP_ROOT:             "",
+		config.VM_DISK_MAX_SIZE:           config.DefaultVMDiskMaxSize,
 		config.MAX_VDI_PER_USER:           "3",
 		config.MAX_CONCURRENT_CREATIONS:   "2",
 		config.MAX_RUNNING_VMS:            "4",
@@ -152,6 +156,80 @@ func TestNewSettingsInvalidOverridesRetainDefaults(t *testing.T) {
 			}
 			if got := settings.Get(config.VM_VCPU_COUNT); got != "2" {
 				t.Errorf("formatted CPU count = %q, want default 2", got)
+			}
+		})
+	}
+}
+
+func TestParseByteSize(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+		want  int64
+	}{
+		{name: "bare bytes", value: "7", want: 7},
+		{name: "bytes", value: "7B", want: 7},
+		{name: "kilobytes", value: "2KB", want: 2_000},
+		{name: "megabytes", value: "3MB", want: 3_000_000},
+		{name: "gigabytes", value: "4GB", want: 4_000_000_000},
+		{name: "terabytes", value: "5TB", want: 5_000_000_000_000},
+		{name: "kibibytes", value: "2KiB", want: 2 << 10},
+		{name: "mebibytes", value: "3MiB", want: 3 << 20},
+		{name: "gibibytes", value: "4GiB", want: 4 << 30},
+		{name: "tebibytes", value: "5TiB", want: 5 << 40},
+		{name: "lowercase unit", value: "6gib", want: 6 << 30},
+		{name: "maximum raw bytes", value: "9223372036854775807", want: math.MaxInt64},
+		{name: "default", value: config.DefaultVMDiskMaxSize, want: 500_000_000_000},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := config.ParseByteSize(tt.value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tt.want {
+				t.Errorf("ParseByteSize(%q) = %d, want %d", tt.value, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseByteSizeRejectsInvalidValues(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{name: "empty", value: ""},
+		{name: "whitespace", value: " "},
+		{name: "zero bytes", value: "0"},
+		{name: "zero gigabytes", value: "0GB"},
+		{name: "negative", value: "-1GB"},
+		{name: "positive sign", value: "+1GB"},
+		{name: "fraction", value: "1.5GB"},
+		{name: "leading fraction", value: ".5GB"},
+		{name: "space before unit", value: "1 GB"},
+		{name: "trailing space", value: "1GB "},
+		{name: "missing number", value: "GB"},
+		{name: "long unit", value: "1bytes"},
+		{name: "petabytes", value: "1PB"},
+		{name: "incomplete iec unit", value: "1Gi"},
+		{name: "unit suffix", value: "1GBx"},
+		{name: "raw overflow", value: "9223372036854775808"},
+		{name: "multiplication overflow", value: "8388608TiB"},
+		{name: "non-ascii digit", value: "١GB"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := config.ParseByteSize(tt.value); err == nil {
+				t.Fatalf("ParseByteSize(%q) succeeded", tt.value)
 			}
 		})
 	}

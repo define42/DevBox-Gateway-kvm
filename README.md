@@ -155,22 +155,39 @@ until you run `make ldap-stop`.
 On an x86-64 Linux host with Make, Docker Compose, and `/dev/kvm`, start both the
 gateway and development LDAP directory:
 
+Compose requires a pre-existing, private host directory for all gateway state.
+For a fresh deployment on rootful Docker without UID remapping, create the
+default empty directory with:
+
+```bash
+sudo install -d -m 0700 -o 10001 -g 10001 /srv/devbox-storage
+```
+
+For rootless Docker or `userns-remap`, use the host UID/GID mapped from container
+UID/GID 10001 instead. To select another new, empty directory, set
+`GATEWAY_STORAGE_PATH=/absolute/path` in `.env`. Compose will not create it. An
+existing `gateway-state` named volume is left untouched, but is no longer
+mounted or migrated automatically; the selected host path is a fresh state root.
+
 ```bash
 make gateway-docker
 ```
 
 This runs `./docker/configure.sh`, then `docker compose up --build -d gateway`.
 Run it again after updating the checkout to rebuild the gateway and recreate
-its container while preserving desktop, image, and certificate volumes.
+its container while preserving state in the selected host directory.
 
 Open **https://localhost:8443**, accept the local self-signed certificate, and
 sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload
 a QCOW2 desktop image; users can then select it in **Create DevBox**. The catalog
-starts empty. Templates are stored under `/var/lib/gokvm/images` in the
-`gateway-state` volume, alongside persistent desktop state. The gateway manages
-its own TLS certificate and ACME storage; LDAP generates its separate TLS identity
-in its own persistent volume. `docker compose down` stops and
-removes the services while preserving those volumes.
+starts empty. The host storage root contains templates under `images/`, VM disks
+at `vms/<id>/disk.img`, persistent desktop state, and the gateway's TLS and ACME
+state. LDAP generates its separate TLS identity in named volumes.
+`docker compose down` preserves both the host bind and those LDAP volumes;
+`docker compose down -v` removes the LDAP named volumes, not the host bind's
+contents. The administrator remains responsible for aggregate filesystem
+capacity, quotas, and free-space reserves; the per-disk virtual-size limit is
+not an aggregate storage quota.
 
 The `scratch`-based gateway image includes OVMF, `qemu-img`, and NVENC support
 with automatic software fallback. The [Docker guide](docs/docker.md) covers

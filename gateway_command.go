@@ -74,10 +74,20 @@ func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
 		flags.PrintDefaults()
 	}
 	var options serveOptions
-	bindServeFlags(flags, s, &options)
+	maxDiskSize := s.Get(config.VM_DISK_MAX_SIZE)
+	bindServeFlags(flags, s, &options, &maxDiskSize)
 	if err := parseCommand(flags, args); err != nil {
 		return serveOptions{}, err
 	}
+	maxDiskBytes, err := config.ParseByteSize(maxDiskSize)
+	if err != nil {
+		return serveOptions{}, fmt.Errorf(
+			"VM_DISK_MAX_SIZE (-vm-disk-max-size): %s: %w",
+			err.Error(),
+			errCommandUsage,
+		)
+	}
+	options.manager.MaxDiskBytes = maxDiskBytes
 	if (options.authFile == "") == (options.ldap.URL == "") {
 		return serveOptions{}, fmt.Errorf(
 			"choose either LDAP_URL (-ldap-url) or AUTH_FILE (-auth-file): %w", errCommandUsage,
@@ -97,7 +107,7 @@ func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
 }
 
 // Keep legacy flags as overrides; defaults and descriptions live in internal/config.
-func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptions) {
+func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptions, maxDiskSize *string) {
 	description := func(key string) string { return s.Description(key) + " [" + key + "]" }
 	stringFlag := func(target *string, name, key string) {
 		flags.StringVar(target, name, s.Get(key), description(key))
@@ -123,6 +133,9 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	intFlag(&options.manager.CPUs, "cpus", config.VM_VCPU_COUNT)
 	intFlag(&options.manager.MemoryMiB, "memory", config.VM_MEMORY_MIB)
 	intFlag(&options.manager.MemoryBudgetMiB, "memory-budget", config.VM_MEMORY_BUDGET_MIB)
+	intFlag(&options.manager.MemoryOverheadMiB, "memory-overhead", config.VM_MEMORY_OVERHEAD_MIB)
+	stringFlag(&options.manager.CgroupRoot, "vm-cgroup-root", config.VM_CGROUP_ROOT)
+	stringFlag(maxDiskSize, "vm-disk-max-size", config.VM_DISK_MAX_SIZE)
 	intFlag(&options.manager.MaxVMsPerUser, "max-vms-per-user", config.MAX_VDI_PER_USER)
 	intFlag(&options.manager.MaxCreations, "max-creations", config.MAX_CONCURRENT_CREATIONS)
 	intFlag(&options.manager.MaxRunning, "max-running", config.MAX_RUNNING_VMS)

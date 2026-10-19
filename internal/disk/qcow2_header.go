@@ -25,6 +25,9 @@ func validateHeaderGeometry(h *qcow2Header) error {
 	if uint64(h.headerLength) > clusterSize {
 		return errors.New("qcow2: header exceeds cluster size")
 	}
+	if clusterSize > qcow2L2CacheBytes {
+		return errors.New("qcow2: l2 table exceeds cache budget")
+	}
 	l1Bytes := uint64(h.l1Size) * 8
 	if l1Bytes > qcow2MaxL1Bytes {
 		return errors.New("qcow2: l1 table exceeds supported size")

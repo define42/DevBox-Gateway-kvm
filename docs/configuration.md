@@ -24,7 +24,10 @@ empty value remains empty. Malformed integer, boolean, or duration environment
 values fall back to their registered defaults. Parsed values still undergo the
 gateway's normal startup validation and default handling. For example, zero
 selects component defaults for CPU count, memory, quotas, session limits, and
-several timeouts. Durations use Go syntax such as `30s`, `10m`, and `8h`.
+several timeouts. `VM_DISK_MAX_SIZE` is stricter: a blank, zero, negative,
+fractional, malformed, or overflowing value fails startup. It is parsed after
+flags, so a valid explicit flag can override a malformed environment value.
+Durations use Go syntax such as `30s`, `10m`, and `8h`.
 Settings are read at startup; restart the gateway after changing them.
 
 The native executable does **not** automatically load a `.env` file. Docker
@@ -37,6 +40,9 @@ without shell expansion or quote characters around values.
 
 Defaults below are for the native executable. The Docker image changes
 `DATA_ROOT_DIR` to `/var/lib/gokvm` and `LISTEN_ADDR` to `0.0.0.0:8443`.
+Docker Compose bind-mounts the complete gateway state tree there from the host
+path selected by `GATEWAY_STORAGE_PATH`, which defaults to
+`/srv/devbox-storage`.
 
 | Environment variable | Default | Flag override | Purpose |
 | --- | --- | --- | --- |
@@ -50,7 +56,10 @@ Defaults below are for the native executable. The Docker image changes
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
 | `VM_VCPU_COUNT` | `2` | `-cpus` | vCPUs per desktop, from 1 to 64. |
 | `VM_MEMORY_MIB` | `4096` | `-memory` | MiB per desktop, from 256 to 1048576. |
-| `VM_MEMORY_BUDGET_MIB` | `0` | `-memory-budget` | Total desktop memory budget in MiB; 0 selects automatic capacity. An explicit value can lower that budget. |
+| `VM_MEMORY_BUDGET_MIB` | `0` | `-memory-budget` | Maximum MiB reserved for running desktops, including per-worker overhead; 0 selects automatic capacity. An explicit value can lower that budget. |
+| `VM_MEMORY_OVERHEAD_MIB` | `512` | `-memory-overhead` | Host-memory allowance above guest RAM in each worker's reservation and hard cgroup limit, from 64 to 16384 MiB. |
+| `VM_CGROUP_ROOT` | Empty | `-vm-cgroup-root` | Clean absolute path to the private delegated cgroup v2 subtree used for VM workers. Empty permits management but refuses every VM start. |
+| `VM_DISK_MAX_SIZE` | `500GB` | `-vm-disk-max-size` | Maximum virtual capacity of each template and managed VM disk. |
 | `MAX_VDI_PER_USER` | `3` | `-max-vms-per-user` | Desktop quota per account. |
 | `MAX_CONCURRENT_CREATIONS` | `2` | `-max-creations` | Gateway-wide simultaneous desktop provisioning limit, from `1` to `64`. Further requests wait within `VM_CREATE_TIMEOUT`. |
 | `MAX_RUNNING_VMS` | `4` | `-max-running` | Global running desktop limit. |
@@ -59,6 +68,40 @@ Defaults below are for the native executable. The Docker image changes
 | `VM_CREATE_TIMEOUT` | `30m` | `-vm-create-timeout` | Overall desktop provisioning timeout including queue wait, from `1m` to `24h`. |
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Time allowed for managed VM shutdown. |
+
+Every managed VM start requires `VM_CGROUP_ROOT`. Its directory must be a
+privately controlled, writable cgroup v2 domain subtree owned by the gateway's
+effective UID, with no resident processes. The `memory` controller must appear
+in both `cgroup.controllers` and `cgroup.subtree_control`; at gateway startup,
+the root's recursive `cgroup.events` state must report `populated 0`. Children
+created there must provide writable `cgroup.kill`. This requires Linux 5.14 or
+newer with cgroup v2 memory support and clone-time cgroup attachment available
+to the process.
+
+For every launch, the gateway creates a child cgroup, sets and verifies
+`memory.max` to guest RAM plus `VM_MEMORY_OVERHEAD_MIB`, disables swap with
+`memory.swap.max=0`, enables group OOM handling with `memory.oom.group=1`, and
+attaches the worker at clone time. Cleanup checks the child's recursive
+`populated` state, uses `cgroup.kill` when descendants remain, and releases the
+reservation only after verifying `populated 0` and removing the child. A
+cleanup failure blocks all later VM starts in that gateway process until the
+operator recovers the subtree and restarts it. An empty
+`VM_CGROUP_ROOT` still permits gateway and stopped-desktop management but starts
+no VM workers; an invalid configured root fails gateway startup. A kernel or
+runtime policy may still deny the clone-time `clone3` attachment after these
+checks pass, in which case that VM start is refused.
+
+`VM_DISK_MAX_SIZE` accepts a positive integer in bytes, optionally followed by
+`B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, or `TiB` (case-insensitive).
+Decimal units use powers of 1000, so the default `500GB` is exactly
+500,000,000,000 bytes. Binary units use powers of 1024, so `500GiB` is
+536,870,912,000 bytes. The setting is a per-disk virtual-capacity guard, not an
+allocated-block limit or aggregate physical-storage quota. It does not
+preallocate, grow, or shrink an image. See
+[shared base images and administration](gateway.md#shared-base-images-and-administration)
+for import and existing-VM behavior. H04 remains an operator-managed residual
+shared-storage-exhaustion risk; see
+[storage capacity responsibility](storage-isolation.md).
 
 ## Listener and TLS
 
@@ -130,11 +173,25 @@ address, CA path, account attributes, and group settings differ from the native
 executable's empty-directory defaults. File paths in Compose are container paths;
 add corresponding mounts when supplying certificates or an external base image.
 
-`GATEWAY_BIND`, `GATEWAY_HOST`, `GATEWAY_PORT`, and `KVM_GID` remain Compose
-host-deployment controls. `PUBLIC_ADDRESS` defaults to
+`GATEWAY_BIND`, `GATEWAY_HOST`, `GATEWAY_PORT`, `KVM_GID`, and
+`GATEWAY_STORAGE_PATH` are Compose host-deployment controls.
+`GATEWAY_STORAGE_PATH` defaults to `/srv/devbox-storage` and bind-mounts that
+host directory as the container's entire `/var/lib/gokvm` state tree, including
+VM disks, catalog and import data, certificates, ACME state, and metadata. It is
+not read by the native executable and does not change the native
+`DATA_ROOT_DIR` default. Keep `DATA_ROOT_DIR=/var/lib/gokvm` with the shipped
+Compose mount; an override requires updating the mount target as well.
+
+Compose does not configure or verify aggregate block or inode capacity,
+filesystem quotas, or a protected free-space reserve. The administrator must
+prepare the host path and owns capacity planning, optional quotas and reserves,
+monitoring, recovery, and backups; no particular filesystem type is required.
+See [storage capacity responsibility](storage-isolation.md).
+
+`PUBLIC_ADDRESS` defaults to
 `GATEWAY_HOST:GATEWAY_PORT` when it is unset. Keep the internal `LISTEN_ADDR`
 port aligned with the Compose port mapping and the state directory aligned with
-its persistent volume mount.
+its bind mount.
 
 Existing Compose `.env` files continue to work. These legacy Compose variables
 are used only when the corresponding canonical variable is unset:

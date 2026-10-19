@@ -29,6 +29,9 @@ const (
 
 	// Bound resident refcount block data independently of virtual disk size.
 	qcow2RefcountCacheBytes = 4 * 1024 * 1024
+	// Bound retained L2 table payload independently of virtual disk size. FIFO
+	// replacement keeps cache hits read-only so warmed reads can share mu.
+	qcow2L2CacheBytes = 8 * 1024 * 1024
 
 	qcow2OFlagZero       = uint64(1)
 	qcow2OFlagCompressed = uint64(1) << 62
@@ -89,8 +92,11 @@ type qcow2Image struct {
 	refcountBlocks    []qcow2RefcountBlock
 	refcountCacheNext int
 
-	l2Entries uint64
-	l2Cache   map[uint64][]uint64
+	l2Entries    uint64
+	l2Cache      map[uint64][]uint64
+	l2CacheFIFO  []uint64
+	l2CacheNext  int
+	l2CacheLimit int
 
 	// Warm reads share mu. Lazy metadata loading, writes, Sync and Close are
 	// exclusive so data mappings cannot change during a complete read request.
@@ -125,6 +131,7 @@ func (q *qcow2Image) open() error {
 	q.l1TableOffset = h.l1TableOffset
 	q.refcountTableOffset = h.refcountTableOffset
 	q.l2Entries = q.clusterSize / 8
+	q.l2CacheLimit = int(qcow2L2CacheBytes / q.clusterSize)
 	q.refcountBlockEntries = q.clusterSize / 2
 
 	l1Size, err := checkedInt(uint64(h.l1Size))
@@ -588,7 +595,7 @@ func (q *qcow2Image) ensureL2Table(l1Index uint64) ([]uint64, error) {
 	if err := q.updateL1Entry(l1Index, l2Off|qcow2OFlagCopied); err != nil {
 		return nil, q.rollbackNewCluster(l2Off, err)
 	}
-	q.l2Cache[l1Index] = l2
+	q.cacheL2(l1Index, l2)
 
 	return l2, nil
 }
@@ -651,9 +658,28 @@ func (q *qcow2Image) loadL2(l1Index uint64) ([]uint64, error) {
 		return nil, fmt.Errorf("qcow2: read l2 table: %w", err)
 	}
 
-	q.l2Cache[l1Index] = l2
+	q.cacheL2(l1Index, l2)
 
 	return l2, nil
+}
+
+// cacheL2 uses FIFO replacement under q.mu. L2 metadata updates reach disk
+// before the cached table changes, so an evicted table is always safe to reload.
+func (q *qcow2Image) cacheL2(l1Index uint64, table []uint64) {
+	if _, cached := q.l2Cache[l1Index]; cached {
+		q.l2Cache[l1Index] = table
+
+		return
+	}
+	if len(q.l2CacheFIFO) < q.l2CacheLimit {
+		q.l2CacheFIFO = append(q.l2CacheFIFO, l1Index)
+	} else {
+		victim := q.l2CacheFIFO[q.l2CacheNext]
+		delete(q.l2Cache, victim)
+		q.l2CacheFIFO[q.l2CacheNext] = l1Index
+		q.l2CacheNext = (q.l2CacheNext + 1) % q.l2CacheLimit
+	}
+	q.l2Cache[l1Index] = table
 }
 
 func (q *qcow2Image) updateL1Entry(l1Index, entry uint64) error {

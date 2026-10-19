@@ -44,6 +44,7 @@ func TestManagerProfilingLifecycle(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = m.Close() })
+			m.cgroups = testCgroupFactory{}
 			m.readResident = func(int) (uint64, error) { return 0, nil }
 			m.readMemory = func() (hostMemory, error) {
 				return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil

@@ -39,6 +39,7 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 		BaseImage: filepath.Join(dir, "base.raw"), Firmware: filepath.Join(dir, "code.fd"),
 		VarsTemplate: filepath.Join(dir, "vars.fd"), StartTimeout: 3 * time.Second,
 		StopTimeout: 100 * time.Millisecond, MaxVMsPerUser: 2, MaxRunning: 1,
+		MemoryOverheadMiB: 256,
 	}
 	for _, path := range []string{config.BaseImage, config.Firmware, config.VarsTemplate} {
 		if err := os.WriteFile(path, make([]byte, 4096), 0o600); err != nil {
@@ -57,6 +58,7 @@ func newTestManager(t *testing.T, behavior string) *Manager {
 	}
 	// Helper children do not allocate guest RAM; keep lifecycle tests independent
 	// of the test host and its cgroup memory limit.
+	manager.cgroups = testCgroupFactory{}
 	manager.readResident = func(int) (uint64, error) { return 0, nil }
 	manager.readMemory = func() (hostMemory, error) {
 		return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
@@ -104,6 +106,7 @@ func TestManagerRDPProfiles(t *testing.T) {
 				}
 			})
 			// The helper allocates no guest RAM.
+			m.cgroups = testCgroupFactory{}
 			m.readResident = func(int) (uint64, error) { return 0, nil }
 			m.readMemory = func() (hostMemory, error) {
 				return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
@@ -230,6 +233,7 @@ func TestManagerReloadWithoutConfiguredBaseImage(t *testing.T) {
 				t.Fatalf("VM source metadata = %+v, %v", loaded, err)
 			}
 			// The helper child does not allocate guest RAM.
+			reopened.cgroups = testCgroupFactory{}
 			reopened.readMemory = m.readMemory
 			reopened.readResident = m.readResident
 			if err := reopened.Start(t.Context(), vm.Owner, vm.ID); err != nil {

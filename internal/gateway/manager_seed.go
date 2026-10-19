@@ -200,6 +200,9 @@ func (m *Manager) prepareOpenImageWithProgress(
 	if !validID(record.ID) {
 		return fmt.Errorf("invalid VM identity: %w", ErrInvalid)
 	}
+	if _, err := validateOpenDisk(imageFile, m.config.MaxDiskBytes); err != nil {
+		return fmt.Errorf("selected VM image: %w", err)
+	}
 	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "preparing"}); err != nil {
 		return err
 	}
@@ -221,6 +224,9 @@ func (m *Manager) prepareOpenImageWithProgress(
 	}()
 	if err := cloneOpenFileWithProgress(ctx, imageFile, filepath.Join(staging, "disk.img"), report); err != nil {
 		return fmt.Errorf("clone VM base image: %w", err)
+	}
+	if _, err := m.validatePrivateDisk(filepath.Join(staging, "disk.img")); err != nil {
+		return fmt.Errorf("validate cloned VM disk: %w", err)
 	}
 	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "configuring"}); err != nil {
 		return err

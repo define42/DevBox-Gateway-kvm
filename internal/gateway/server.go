@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
@@ -336,6 +337,15 @@ func backendError(err error) (int, string) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return http.StatusNotFound, "That desktop could not be found."
+	case errors.Is(err, ErrCgroupUnavailable):
+		return http.StatusServiceUnavailable, "The host cannot enforce this desktop's memory limit. " +
+			"Ask your administrator to configure the delegated VM cgroup."
+	case errors.Is(err, syscall.ENOSPC), errors.Is(err, syscall.EDQUOT):
+		return http.StatusInsufficientStorage, "Host storage is full or its quota has been reached. " +
+			"Contact your administrator; the operation could not be completed."
+	case errors.Is(err, ErrDiskTooLarge):
+		return http.StatusConflict, "The virtual disk exceeds the maximum size allowed per VM. " +
+			"Choose a smaller base image or contact your administrator."
 	case errors.Is(err, ErrMemoryCapacity):
 		return http.StatusConflict, "Not enough host memory to start this desktop. " +
 			"Stop another desktop or contact your administrator."

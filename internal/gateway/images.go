@@ -87,8 +87,8 @@ func (m *Manager) loadImages() error {
 			return err
 		}
 		virtualSize := base.Size()
-		if err := base.Close(); err != nil {
-			return err
+		if err := validateAndCloseDiskImage(base, m.config.MaxDiskBytes); err != nil {
+			return fmt.Errorf("configured base image: %w", err)
 		}
 		info, err := os.Stat(m.config.BaseImage)
 		if err != nil {
@@ -252,9 +252,19 @@ func (m *Manager) ImportImage(ctx context.Context, name string, input io.Reader)
 	if err != nil {
 		return Image{}, err
 	}
+	if err := validateDiskSize(image.VirtualSizeBytes, m.config.MaxDiskBytes); err != nil {
+		return Image{}, fmt.Errorf("uploaded image: %w", err)
+	}
 	prepared := filepath.Join(staging, "disk.qcow2")
 	if err := normalizeUploadedQCOW2(ctx, upload, prepared, m.config.MaxImageUploadBytes); err != nil {
 		return Image{}, err
+	}
+	preparedVirtualSize, err := m.validatePrivateDisk(prepared)
+	if err != nil {
+		return Image{}, fmt.Errorf("normalized image: %w", err)
+	}
+	if preparedVirtualSize != image.VirtualSizeBytes {
+		return Image{}, fmt.Errorf("normalized image virtual size changed: %w", ErrInvalid)
 	}
 	info, err := os.Stat(prepared)
 	if err != nil {

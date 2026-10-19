@@ -9,6 +9,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"syscall"
 	"time"
 )
 
@@ -305,6 +306,12 @@ func (r *imageUploadReader) Read(p []byte) (int, error) {
 func imageError(w http.ResponseWriter, err error) {
 	var maxBytes *http.MaxBytesError
 	switch {
+	case errors.Is(err, syscall.ENOSPC), errors.Is(err, syscall.EDQUOT):
+		http.Error(w, "Host storage is full or its quota has been reached. "+
+			"Free space or adjust the host quota before retrying.", http.StatusInsufficientStorage)
+	case errors.Is(err, ErrDiskTooLarge):
+		http.Error(w, "The image's virtual disk exceeds the maximum size allowed per VM. "+
+			"Choose a smaller image or increase the gateway's VM disk size limit.", http.StatusRequestEntityTooLarge)
 	case errors.As(err, &maxBytes), errors.Is(err, ErrImageTooLarge):
 		http.Error(w, "The image exceeds the configured upload size limit.", http.StatusRequestEntityTooLarge)
 	case errors.Is(err, ErrImageToolUnavailable):

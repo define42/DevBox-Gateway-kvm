@@ -2,8 +2,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -26,6 +28,9 @@ const (
 	VM_VCPU_COUNT              = "VM_VCPU_COUNT"
 	VM_MEMORY_MIB              = "VM_MEMORY_MIB"
 	VM_MEMORY_BUDGET_MIB       = "VM_MEMORY_BUDGET_MIB"
+	VM_MEMORY_OVERHEAD_MIB     = "VM_MEMORY_OVERHEAD_MIB"
+	VM_CGROUP_ROOT             = "VM_CGROUP_ROOT"
+	VM_DISK_MAX_SIZE           = "VM_DISK_MAX_SIZE"
 	MAX_VDI_PER_USER           = "MAX_VDI_PER_USER"
 	MAX_CONCURRENT_CREATIONS   = "MAX_CONCURRENT_CREATIONS"
 	MAX_RUNNING_VMS            = "MAX_RUNNING_VMS"
@@ -66,6 +71,11 @@ const (
 
 // DefaultMaxImageUploadBytes bounds uploaded and normalized catalog files.
 const DefaultMaxImageUploadBytes int64 = 20 << 30
+
+// DefaultVMDiskMaxSize is the default maximum virtual capacity of a managed disk.
+const DefaultVMDiskMaxSize = "500GB"
+
+var errInvalidByteSize = errors.New("invalid byte size")
 
 // Kind identifies the underlying value type stored in a setting.
 type Kind uint8
@@ -119,6 +129,9 @@ func NewSettings(printSettings bool) *Settings {
 	s.SetInt(VM_VCPU_COUNT, "vCPUs per desktop", 2)
 	s.SetInt(VM_MEMORY_MIB, "MiB per desktop", 4096)
 	s.SetInt(VM_MEMORY_BUDGET_MIB, "Maximum MiB reserved for running desktops including overhead (0: automatic)", 0)
+	s.SetInt(VM_MEMORY_OVERHEAD_MIB, "Per-worker host memory allowance above guest RAM, enforced by cgroup", 512)
+	s.SetString(VM_CGROUP_ROOT, "Delegated cgroup v2 directory for memory-confined VM workers; required to start VMs", "")
+	s.SetString(VM_DISK_MAX_SIZE, "Maximum virtual disk capacity per template and desktop", DefaultVMDiskMaxSize)
 	s.SetInt(MAX_VDI_PER_USER, "Desktop quota per account", 3)
 	s.SetInt(MAX_CONCURRENT_CREATIONS, "Maximum simultaneous desktop provisioning operations", 2)
 	s.SetInt(MAX_RUNNING_VMS, "Global running desktop limit", 4)
@@ -371,6 +384,53 @@ func (s *Settings) Print(output io.Writer) error {
 	}
 
 	return table.Flush()
+}
+
+// ParseByteSize parses a positive integer byte count. SI units use powers of
+// 1000, IEC units use powers of 1024, and a value without a unit means bytes.
+func ParseByteSize(value string) (int64, error) {
+	if value == "" || value[0] < '0' || value[0] > '9' {
+		return 0, fmt.Errorf("%w %q: must start with a positive integer", errInvalidByteSize, value)
+	}
+
+	unitStart := 0
+	for unitStart < len(value) && value[unitStart] >= '0' && value[unitStart] <= '9' {
+		unitStart++
+	}
+
+	var multiplier int64
+	switch strings.ToUpper(value[unitStart:]) {
+	case "", "B":
+		multiplier = 1
+	case "KB":
+		multiplier = 1_000
+	case "MB":
+		multiplier = 1_000_000
+	case "GB":
+		multiplier = 1_000_000_000
+	case "TB":
+		multiplier = 1_000_000_000_000
+	case "KIB":
+		multiplier = 1 << 10
+	case "MIB":
+		multiplier = 1 << 20
+	case "GIB":
+		multiplier = 1 << 30
+	case "TIB":
+		multiplier = 1 << 40
+	default:
+		return 0, fmt.Errorf("%w %q: unsupported unit", errInvalidByteSize, value)
+	}
+
+	number, err := strconv.ParseInt(value[:unitStart], 10, 64)
+	if err != nil || number <= 0 {
+		return 0, fmt.Errorf("%w %q: must contain a positive integer", errInvalidByteSize, value)
+	}
+	if number > math.MaxInt64/multiplier {
+		return 0, fmt.Errorf("%w %q: exceeds the supported range", errInvalidByteSize, value)
+	}
+
+	return number * multiplier, nil
 }
 
 func environmentValue(id, fallback string) string {
