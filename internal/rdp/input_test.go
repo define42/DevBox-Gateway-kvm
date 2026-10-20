@@ -485,3 +485,134 @@ func FuzzInputDecoderStateful(f *testing.F) {
 		}
 	})
 }
+
+// pointerInputPacket exercises both wire encodings with identical event fields.
+func pointerInputPacket(fast bool, events ...[4]uint16) []byte {
+	if !fast {
+		return slowInput(events...)
+	}
+	data := []byte{0, byte(len(events))}
+	for _, event := range events {
+		code := byte(1)
+		if event[0] == 0x8004 {
+			code = 5
+		}
+		data = append(data, code<<5)
+		for _, value := range event[1:] {
+			data = binary.LittleEndian.AppendUint16(data, value)
+		}
+	}
+
+	return data
+}
+
+func TestInputRelativePointerPaths(t *testing.T) {
+	t.Parallel()
+	for _, fast := range []bool{false, true} {
+		t.Run(map[bool]string{false: "slow", true: "fast"}[fast], func(t *testing.T) {
+			t.Parallel()
+			decoder := InputDecoder{AllowRelativePointer: true}
+			packet := pointerInputPacket(fast,
+				[4]uint16{0x8001, 0x0800, 400, 300},
+				[4]uint16{0x8004, 0x9800, 0xfff4, 8},
+				[4]uint16{0x8004, 0x0800, 0x8000, 0x7fff},
+				[4]uint16{0x8004, 0xc000, 123, 456},
+				[4]uint16{0x8004, 0x8001}, // Unsupported extended button, valid flags.
+				[4]uint16{0x8004, 0xa000},
+				[4]uint16{0x8004, 0x1000},
+				[4]uint16{0x8001, 0x0278, 0xffff, 0xffff},
+				[4]uint16{0x8001, 0x0388, 0xffff, 0xffff},
+			)
+			want := []InputEvent{
+				{Kind: InputPointer, X: 400, Y: 300},
+				{Kind: InputRelativePointer, DX: -12, DY: 8, Buttons: 1},
+				{Kind: InputRelativePointer, DX: -32768, DY: 32767, Buttons: 1},
+				{Kind: InputRelativePointer, Buttons: 3},
+				{Kind: InputRelativePointer, Buttons: 3},
+				{Kind: InputRelativePointer, Buttons: 7},
+				{Kind: InputRelativePointer, Buttons: 6},
+				{Kind: InputRelativePointer, Buttons: 14},
+				{Kind: InputRelativePointer, Buttons: 6},
+				{Kind: InputRelativePointer, Buttons: 22},
+				{Kind: InputRelativePointer, Buttons: 6},
+			}
+			got, err := decoder.Decode(packet, fast)
+			if err != nil || !reflect.DeepEqual(got, want) {
+				t.Fatalf("relative input = %#v, %v; want %#v", got, err, want)
+			}
+			if got := decoder.ReleaseAll(); !reflect.DeepEqual(got, []InputEvent{{Kind: InputRelativePointer}}) {
+				t.Fatalf("relative release = %#v", got)
+			}
+			if got := decoder.ReleaseAll(); len(got) != 0 {
+				t.Fatalf("duplicate release = %#v", got)
+			}
+			if !decoder.AllowRelativePointer {
+				t.Fatal("reset lost negotiated relative permission")
+			}
+		})
+	}
+}
+
+func TestInputRelativePointerReturnsToAbsolute(t *testing.T) {
+	t.Parallel()
+	decoder := InputDecoder{AllowRelativePointer: true}
+	packet := pointerInputPacket(false,
+		[4]uint16{0x8004, 0x9800, 10, 20},
+		[4]uint16{0x8001, 0x0800, 500, 400},
+		[4]uint16{0x8001, 0x0278},
+	)
+	got, err := decoder.Decode(packet, false)
+	want := []InputEvent{
+		{Kind: InputRelativePointer, DX: 10, DY: 20, Buttons: 1},
+		{Kind: InputPointer, X: 500, Y: 400, Buttons: 1},
+		{Kind: InputPointer, X: 500, Y: 400, Buttons: 9},
+		{Kind: InputPointer, X: 500, Y: 400, Buttons: 1},
+	}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("absolute handoff = %#v, %v; want %#v", got, err, want)
+	}
+	if got := decoder.ReleaseAll(); !reflect.DeepEqual(got, []InputEvent{{Kind: InputPointer, X: 500, Y: 400}}) {
+		t.Fatalf("absolute release = %#v", got)
+	}
+}
+
+func TestInputRelativePointerRejectsInvalidPacketsAtomically(t *testing.T) {
+	t.Parallel()
+	for _, fast := range []bool{false, true} {
+		for _, flags := range []uint16{0x0004, 0x0040, 0x0200, 0x8000, 0x8800} {
+			decoder := InputDecoder{AllowRelativePointer: true, buttons: 4, x: 30, y: 40, wheel: 60}
+			before := decoder
+			packet := pointerInputPacket(fast,
+				[4]uint16{0x8004, 0x9800, 1, 2},
+				[4]uint16{0x8004, flags, 3, 4},
+			)
+			if events, err := decoder.Decode(packet, fast); !errors.Is(err, ErrInvalidInput) || events != nil {
+				t.Fatalf("fast=%v flags=%#x: got %v, %v", fast, flags, events, err)
+			}
+			if !reflect.DeepEqual(decoder, before) {
+				t.Fatalf("fast=%v flags=%#x: invalid packet changed state", fast, flags)
+			}
+		}
+		var disabled InputDecoder
+		packet := pointerInputPacket(fast, [4]uint16{0x8004, 0x0800, 1, 2})
+		if events, err := disabled.Decode(packet, fast); !errors.Is(err, ErrInvalidInput) || events != nil {
+			t.Fatalf("unnegotiated fast=%v: got %v, %v", fast, events, err)
+		}
+		for end := range len(packet) {
+			decoder := InputDecoder{AllowRelativePointer: true, relative: true, buttons: 1}
+			before := decoder
+			if events, err := decoder.Decode(packet[:end], fast); !errors.Is(err, ErrInvalidInput) || events != nil {
+				t.Fatalf("truncated fast=%v end=%d: got %v, %v", fast, end, events, err)
+			}
+			if !reflect.DeepEqual(decoder, before) {
+				t.Fatal("truncated relative event changed state")
+			}
+		}
+	}
+	decoder := InputDecoder{AllowRelativePointer: true}
+	packet := pointerInputPacket(true, [4]uint16{0x8004, 0x0800, 1, 2})
+	packet[2] |= 1 // Relative fast-path eventFlags MUST be zero.
+	if events, err := decoder.Decode(packet, true); !errors.Is(err, ErrInvalidInput) || events != nil {
+		t.Fatalf("nonzero relative event flags = %v, %v", events, err)
+	}
+}

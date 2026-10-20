@@ -336,6 +336,24 @@ drive redirection, microphone input, and multiple monitors are not implemented.
 The documented client setup uses FreeRDP; Microsoft Remote Desktop has not been
 validated.
 
+### Relative mouse input for games
+
+For UEFI guests, FreeRDP can send raw mouse movement through the VM's PS/2
+mouse while a game captures the pointer. Desktop movement continues to use
+its absolute tablet. Reconnect with a fresh RDP file and enable relative input
+and mouse grabbing in a recent FreeRDP client:
+
+```bash
+xfreerdp3 /path/to/desktop.rdp /mouse:relative:on,grab:on
+```
+
+Keep your existing graphics options, such as `/gfx:AVC420`. FreeRDP switches to
+relative movement while the guest cursor is hidden and the client has grabbed
+the mouse. Right Ctrl releases the client grab. Launch games normally; forcing
+SDL mouse-warp mode is unnecessary. Relative input is advertised only when the
+VM has a relative mouse device and the client supports the protocol extension.
+A virtio-tablet-only guest continues to use absolute input.
+
 ### RDP graphics profiles
 
 Managed desktops default to `RDP_PROFILE=office` for a 30 FPS AVC420 cap. Use

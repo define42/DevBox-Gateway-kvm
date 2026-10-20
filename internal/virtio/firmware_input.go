@@ -4,15 +4,17 @@ import "sync"
 
 // FirmwareInput keeps the firmware keyboard and mouse available until the guest
 // activates its absolute tablet. Keyboard events always use the firmware device.
-// Pointer events go to exactly one device, avoiding relative-mouse acceleration
-// and coordinate drift once the guest has initialized the tablet driver.
+// Desktop positions use the tablet after its driver starts; captured relative
+// motion uses the firmware mouse. Each event goes to exactly one device.
 type FirmwareInput struct {
-	mu       sync.Mutex
-	fallback DisplayInput
-	tablet   *InputDevice
-	absolute bool
-	buttons  uint8
-	x, y     uint16
+	mu            sync.Mutex
+	fallback      DisplayInput
+	tablet        *InputDevice
+	absolute      bool
+	relative      bool
+	buttons       uint8
+	x, y          uint16
+	width, height int
 }
 
 // NewFirmwareInput combines a firmware-compatible input device with a tablet.
@@ -50,25 +52,64 @@ func (p *FirmwareInput) PointerEventInBounds(buttons uint8, x, y uint16, width, 
 			if !p.absolute && p.buttons != 0 && p.fallback != nil {
 				// Finish any firmware drag at its previous position, without
 				// also moving the relative pointer to this absolute target.
-				p.fallback.PointerEvent(0, p.x, p.y)
-				p.buttons = 0
+				p.releaseFallbackPointerLocked()
 			}
-			p.absolute = true
+			p.absolute, p.relative = true, false
+			p.x, p.y, p.buttons = x, y, buttons&0x07
+			p.width, p.height = width, height
 			p.tablet.PointerEventInBounds(buttons, x, y, width, height)
 
 			return
 		}
 	}
-	if p.absolute {
+	if p.absolute || p.relative {
 		if relative, ok := p.fallback.(interface{ RebasePointer(uint16, uint16) }); ok {
 			relative.RebasePointer(x, y)
 		}
-		p.absolute = false
+		p.absolute, p.relative = false, false
 	}
 	if p.fallback != nil {
 		p.fallback.PointerEvent(buttons, x, y)
 	}
 	p.x, p.y, p.buttons = x, y, buttons&0x07
+}
+
+func (p *FirmwareInput) releaseFallbackPointerLocked() {
+	if p.relative {
+		if relative, ok := p.fallback.(RelativePointerInput); ok {
+			relative.RelativePointerEvent(0, 0, 0)
+		}
+
+		return
+	}
+	p.fallback.PointerEvent(0, p.x, p.y)
+}
+
+// SupportsRelativePointer reports whether the firmware device can accept
+// captured motion, so remote clients only negotiate it for usable sinks.
+func (p *FirmwareInput) SupportsRelativePointer() bool {
+	return supportsRelativePointer(p.fallback)
+}
+
+// RelativePointerEvent sends captured deltas to the firmware mouse. A held
+// tablet button is released at its previous position before changing devices.
+func (p *FirmwareInput) RelativePointerEvent(buttons uint8, dx, dy int16) {
+	relative, ok := p.fallback.(RelativePointerInput)
+	if !ok || !p.SupportsRelativePointer() {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.absolute && p.buttons != 0 && p.tablet != nil {
+		p.tablet.writeMu.Lock()
+		if p.tablet.pointerDriverReady() {
+			p.tablet.PointerEventInBounds(0, p.x, p.y, p.width, p.height)
+		}
+		p.tablet.writeMu.Unlock()
+	}
+	p.absolute, p.relative = false, true
+	p.buttons = buttons & 0x07
+	relative.RelativePointerEvent(buttons, dx, dy)
 }
 
 // pointerDriverReady requires writeMu to remain locked through event delivery.

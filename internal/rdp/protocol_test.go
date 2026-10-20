@@ -101,11 +101,25 @@ func negotiateSessionFixture(t *testing.T, client net.Conn, clientTLS *tls.Confi
 	return secured
 }
 
-func joinChannelsFixture(t *testing.T, secured net.Conn) {
+type relativeInputFixture struct {
+	clientVersion, serverVersion uint32
+	offered                      bool
+}
+
+func joinChannelsFixture(t *testing.T, secured net.Conn, input ...relativeInputFixture) {
 	t.Helper()
-	writeMCSFixture(t, secured, connectInitialFixture())
-	if response := readMCSFixture(t, secured); len(response) < 2 || response[0] != 0x7f || response[1] != 0x66 {
+	settings := relativeInputFixture{clientVersion: 0x80004, serverVersion: 0x80004}
+	if len(input) != 0 {
+		settings = input[0]
+	}
+	writeMCSFixture(t, secured, connectInitialFixture(settings.clientVersion))
+	response := readMCSFixture(t, secured)
+	if len(response) < 2 || response[0] != 0x7f || response[1] != 0x66 {
 		t.Fatalf("expected MCS Connect Response, got %x", response)
+	}
+	core := bytes.Index(response, []byte{1, 12, 12, 0})
+	if core < 0 || core+8 > len(response) || binary.LittleEndian.Uint32(response[core+4:]) != settings.serverVersion {
+		t.Fatalf("incorrect server core version: %x", response)
 	}
 	writeMCSFixture(t, secured, []byte{4, 1, 0, 1, 0})
 	writeMCSFixture(t, secured, []byte{0x28})
@@ -140,11 +154,24 @@ func joinChannelsFixture(t *testing.T, secured net.Conn) {
 	if got := int(binary.LittleEndian.Uint16(demand[:2])); got != len(demand) {
 		t.Errorf("Demand Active length = %d, want %d", got, len(demand))
 	}
+	inputOffset := bytes.Index(demand, []byte{13, 0, 88, 0})
+	if inputOffset < 0 || inputOffset+6 > len(demand) {
+		t.Fatal("missing input capability")
+	}
+	flags := binary.LittleEndian.Uint16(demand[inputOffset+4:])
+	if (flags&0x80 != 0) != settings.offered || flags&^uint16(0x80) != 0x31 {
+		t.Fatalf("input capability flags = %#x; relative offered=%v", flags, settings.offered)
+	}
 }
 
-func activateSessionFixture(t *testing.T, secured net.Conn) {
+func activateSessionFixture(t *testing.T, secured net.Conn, inputFlags ...uint16) {
 	t.Helper()
-	confirm := make([]byte, 16+6+4+28)
+	const baseSize = 16 + 6 + 4 + 28
+	size := baseSize
+	if len(inputFlags) != 0 {
+		size += 88
+	}
+	confirm := make([]byte, size)
 	put16(confirm, 0, len(confirm))
 	put16(confirm, 2, 0x13)
 	put16(confirm, 4, clientUser)
@@ -155,6 +182,14 @@ func activateSessionFixture(t *testing.T, secured net.Conn) {
 	put16(confirm, 26, 2)
 	put16(confirm, 28, 28)
 	put16(confirm, 30, 24)
+	if len(inputFlags) != 0 {
+		capability := confirm[baseSize:]
+		put16(capability, 0, 13)
+		put16(capability, 2, len(capability))
+		put16(capability, 4, int(inputFlags[0]))
+		put16(confirm, 14, 32+len(capability))
+		put16(confirm, 22, 2)
+	}
 	writeGlobalFixture(t, secured, confirm)
 	for _, expected := range []byte{0x1f, 0x14} {
 		if response := readGlobalFixture(t, secured); len(response) < 18 || response[14] != expected {
@@ -204,11 +239,15 @@ func protocolTestTLS(t *testing.T) (*tls.Config, *tls.Config) {
 	}, &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots, ServerName: "localhost"}
 }
 
-func connectInitialFixture() []byte {
+func connectInitialFixture(versions ...uint32) []byte {
 	core := make([]byte, 132)
 	put16(core, 0, 0xc001)
 	put16(core, 2, len(core))
-	binary.LittleEndian.PutUint32(core[4:8], 0x80004)
+	version := uint32(0x80004)
+	if len(versions) != 0 {
+		version = versions[0]
+	}
+	binary.LittleEndian.PutUint32(core[4:8], version)
 	put16(core, 8, 800)
 	put16(core, 10, 600)
 	gcc := appendPERLength([]byte{0, 5, 0, 0x14, 0x7c, 0, 1}, len(core)+14)
@@ -562,3 +601,108 @@ func FuzzProtocolParsers(f *testing.F) {
 }
 
 var _ io.Writer = (*shortWriter)(nil)
+
+func TestAcceptRelativePointerNegotiation(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name    string
+		version uint32
+		enable  bool
+		flags   uint16
+		want    bool
+	}{
+		{name: "default off", version: 0x80011, flags: 0xb1},
+		{name: "legacy version", version: 0x80004, enable: true, flags: 0xb1},
+		{name: "previous version", version: 0x80010, enable: true, flags: 0xb1},
+		{name: "negotiated", version: 0x80011, enable: true, flags: 0xb1, want: true},
+		{name: "client declined", version: 0x80011, enable: true, flags: 0x31},
+		{name: "future client", version: 0x80012, enable: true, flags: 0xb1, want: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			serverTLS, clientTLS := protocolTestTLS(t)
+			server, client := net.Pipe()
+			t.Cleanup(func() { _ = server.Close(); _ = client.Close() })
+			if err := client.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+				t.Fatal(err)
+			}
+			type result struct {
+				session *Session
+				err     error
+			}
+			accepted := make(chan result, 1)
+			go func() {
+				var options []AcceptOption
+				if test.enable {
+					options = append(options, WithRelativePointer())
+				}
+				session, err := Accept(server, serverTLS, 800, 600, options...)
+				if err != nil {
+					_ = server.Close()
+				}
+				accepted <- result{session, err}
+			}()
+			secured := negotiateSessionFixture(t, client, clientTLS)
+			settings := relativeInputFixture{clientVersion: test.version, serverVersion: 0x80004}
+			if test.enable && test.version >= 0x80011 {
+				settings.offered, settings.serverVersion = true, 0x80011
+			}
+			joinChannelsFixture(t, secured, settings)
+			activateSessionFixture(t, secured, test.flags)
+			completed := <-accepted
+			if completed.err != nil {
+				t.Fatal(completed.err)
+			}
+			if got := completed.session.RelativePointerSupported(); got != test.want {
+				t.Fatalf("negotiated relative input = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func relativeConfirmFixture(flags uint16) []byte {
+	p := make([]byte, 20+28+88)
+	put16(p, 0, len(p))
+	put16(p, 2, 0x13)
+	binary.LittleEndian.PutUint32(p[6:], shareID)
+	put16(p, 14, len(p)-16)
+	put16(p, 16, 2)
+	put16(p, 20, 2)
+	put16(p, 22, 28)
+	put16(p, 24, 24)
+	put16(p, 48, 13)
+	put16(p, 50, 88)
+	put16(p, 52, int(flags))
+
+	return p
+}
+
+func TestConfirmRelativePointerCapability(t *testing.T) {
+	t.Parallel()
+	s := &Session{relativePointerOffered: true}
+	valid := relativeConfirmFixture(0xb1)
+	if err := s.confirmActive(valid); err != nil || !s.RelativePointerSupported() {
+		t.Fatalf("relative negotiation failed: %v", err)
+	}
+	if err := s.confirmActiveDepth(valid, false); err != nil {
+		t.Fatalf("same capability during reactivation: %v", err)
+	}
+	if err := s.confirmActiveDepth(relativeConfirmFixture(0x31), false); err == nil || !s.RelativePointerSupported() {
+		t.Fatal("reactivation changed the negotiated input mode")
+	}
+	short := relativeConfirmFixture(0xb1)
+	short = short[:len(short)-1]
+	put16(short, 0, len(short))
+	put16(short, 14, len(short)-16)
+	put16(short, 50, 87)
+	duplicate := append(append([]byte(nil), valid...), valid[48:]...)
+	put16(duplicate, 0, len(duplicate))
+	put16(duplicate, 14, len(duplicate)-16)
+	put16(duplicate, 16, 3)
+	for _, packet := range [][]byte{short, duplicate} {
+		session := &Session{relativePointerOffered: true}
+		if err := session.confirmActive(packet); err == nil || session.RelativePointerSupported() {
+			t.Fatal("malformed input capability changed negotiation")
+		}
+	}
+}

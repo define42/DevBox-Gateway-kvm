@@ -196,7 +196,7 @@ func TestFirmwareInputResetRebasesFallbackAndRestoresAbsoluteInput(t *testing.T)
 func TestFirmwareInputConcurrentReset(t *testing.T) {
 	t.Parallel()
 	tablet := firmwareTablet(t)
-	input := NewFirmwareInput(&firmwareInputRecorder{}, tablet)
+	input := NewFirmwareInput(&firmwareRelativeRecorder{}, tablet)
 	var workers sync.WaitGroup
 	workers.Go(func() {
 		for range 250 {
@@ -210,9 +210,133 @@ func TestFirmwareInputConcurrentReset(t *testing.T) {
 			input.PointerEventInBounds(uint8(i%2), uint16(i%800), uint16(i%600), 800, 600)
 		}
 	})
+	workers.Go(func() {
+		for i := range 1000 {
+			input.RelativePointerEvent(uint8(i%2), int16(i%300), -int16(i%500))
+		}
+	})
 	workers.Wait()
 	writeCfg(tablet.ModernTransport, 20, 0, 1)
 	if events := takeTabletEvents(tablet); len(events) != 0 {
 		t.Fatalf("reset retained pointer events: %v", events)
+	}
+}
+
+type firmwareRelativeEvent struct {
+	buttons uint8
+	dx, dy  int16
+}
+
+type firmwareRelativeRecorder struct {
+	firmwareInputRecorder
+	relative []firmwareRelativeEvent
+}
+
+func (r *firmwareRelativeRecorder) RelativePointerEvent(buttons uint8, dx, dy int16) {
+	r.relative = append(r.relative, firmwareRelativeEvent{buttons: buttons, dx: dx, dy: dy})
+}
+
+func TestFirmwareInputRelativeSwitchReleasesPreviousDevice(t *testing.T) {
+	t.Parallel()
+	legacy := &firmwareRelativeRecorder{}
+	tablet := firmwareTablet(t)
+	input := NewFirmwareInput(legacy, tablet)
+	relative, ok := any(input).(interface{ RelativePointerEvent(uint8, int16, int16) })
+	if !ok {
+		t.Fatal("firmware input does not accept relative pointer input")
+	}
+	enableFirmwareTabletQueue(tablet)
+	writeCfg(tablet.ModernTransport, 20, 15, 1)
+	input.PointerEventInBounds(5, 400, 100, 800, 600)
+	_ = takeTabletEvents(tablet)
+	relative.RelativePointerEvent(5|8, 12, -3)
+	wantRelease := []inputEvent{
+		{typ: evAbs, code: absX, value: 16403},
+		{typ: evAbs, code: absY, value: 5488},
+		synEvent(),
+		{typ: evKey, code: btnLeft},
+		{typ: evKey, code: btnRight},
+		synEvent(),
+	}
+	if got := takeTabletEvents(tablet); !slices.Equal(got, wantRelease) {
+		t.Fatalf("tablet handoff did not release held buttons at the old position: %v", got)
+	}
+	if !slices.Equal(legacy.relative, []firmwareRelativeEvent{{buttons: 5 | 8, dx: 12, dy: -3}}) ||
+		len(legacy.points) != 0 {
+		t.Fatalf("relative motion was not forwarded unchanged: %+v, absolute=%v", legacy.relative, legacy.points)
+	}
+	// Disconnect releases the current device without moving either pointer.
+	relative.RelativePointerEvent(0, 0, 0)
+	if got := takeTabletEvents(tablet); len(got) != 0 {
+		t.Fatalf("relative disconnect also moved the tablet: %v", got)
+	}
+	relative.RelativePointerEvent(2, -7, 9)
+	input.PointerEventInBounds(2, 50, 60, 800, 600)
+	want := []firmwareRelativeEvent{{buttons: 5 | 8, dx: 12, dy: -3}, {}, {buttons: 2, dx: -7, dy: 9}, {}}
+	if !slices.Equal(legacy.relative, want) {
+		t.Fatalf("return to tablet did not release the relative mouse: %+v", legacy.relative)
+	}
+	got := takeTabletEvents(tablet)
+	if len(got) != 5 || got[3] != (inputEvent{typ: evKey, code: btnMiddle, value: 1}) {
+		t.Fatalf("tablet did not receive the held button after relative handoff: %v", got)
+	}
+}
+
+func TestFirmwareInputRelativeResetRebasesAbsoluteFallback(t *testing.T) {
+	t.Parallel()
+	legacy := &firmwareRelativeRecorder{}
+	tablet := firmwareTablet(t)
+	input := NewFirmwareInput(legacy, tablet)
+	relative, ok := any(input).(interface{ RelativePointerEvent(uint8, int16, int16) })
+	if !ok {
+		t.Fatal("firmware input does not accept relative pointer input")
+	}
+	enableFirmwareTabletQueue(tablet)
+	writeCfg(tablet.ModernTransport, 20, 15, 1)
+	input.PointerEventInBounds(1, 400, 100, 800, 600)
+	relative.RelativePointerEvent(1, 3, 4)
+	writeCfg(tablet.ModernTransport, 20, 0, 1)
+	relative.RelativePointerEvent(1, 5, 6)
+	input.PointerEventInBounds(1, 700, 500, 800, 600)
+	if !slices.Equal(legacy.rebases, []firmwarePointerEvent{{x: 700, y: 500}}) {
+		t.Fatalf("absolute fallback reused stale coordinate history: %v", legacy.rebases)
+	}
+	if !slices.Equal(legacy.points, []firmwarePointerEvent{{buttons: 1, x: 700, y: 500}}) {
+		t.Fatalf("absolute fallback changed the held button: %v", legacy.points)
+	}
+	if got := takeTabletEvents(tablet); len(got) != 0 {
+		t.Fatalf("relative input reached the reset tablet: %v", got)
+	}
+}
+
+type firmwareRelativeDisabledRecorder struct {
+	firmwareRelativeRecorder
+}
+
+func (*firmwareRelativeDisabledRecorder) SupportsRelativePointer() bool { return false }
+
+func TestFirmwareInputRelativeSupportRequiresUsableFallback(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		fallback DisplayInput
+		want     bool
+	}{
+		{name: "none"},
+		{name: "absolute only", fallback: &firmwareInputRecorder{}},
+		{name: "relative", fallback: &firmwareRelativeRecorder{}, want: true},
+		{name: "explicitly disabled", fallback: &firmwareRelativeDisabledRecorder{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			input := NewFirmwareInput(tc.fallback, nil)
+			if got := input.SupportsRelativePointer(); got != tc.want {
+				t.Fatalf("relative support = %v, want %v", got, tc.want)
+			}
+			input.RelativePointerEvent(1, 5, -6)
+			if disabled, ok := tc.fallback.(*firmwareRelativeDisabledRecorder); ok && len(disabled.relative) != 0 {
+				t.Fatal("disabled relative sink received motion")
+			}
+		})
 	}
 }

@@ -140,7 +140,12 @@ func activateRDPInputTestSession(t *testing.T, conn net.Conn) {
 
 func joinRDPInputTestChannels(t *testing.T, conn net.Conn, channels ...string) {
 	t.Helper()
-	writeRDPInputMCS(t, conn, rdpInputConnectInitial(channels...))
+	joinRDPInputTestChannelsWithVersion(t, conn, 0x80004, channels...)
+}
+
+func joinRDPInputTestChannelsWithVersion(t *testing.T, conn net.Conn, version uint32, channels ...string) []byte {
+	t.Helper()
+	writeRDPInputMCS(t, conn, rdpInputConnectInitialVersion(version, channels...))
 	if response := readRDPInputMCS(t, conn); len(response) < 2 || response[0] != 0x7f || response[1] != 0x66 {
 		t.Fatalf("expected MCS Connect Response, got %x", response)
 	}
@@ -167,12 +172,20 @@ func joinRDPInputTestChannels(t *testing.T, conn net.Conn, channels ...string) {
 	if len(license) != 20 || license[0] != 0x80 || license[4] != 0xff || license[8] != 7 {
 		t.Fatalf("expected valid-client license, got %x", license)
 	}
-	if demand := readRDPInputGlobal(t, conn); len(demand) < 6 || binary.LittleEndian.Uint16(demand[2:])&15 != 1 {
+	demand := readRDPInputGlobal(t, conn)
+	if len(demand) < 6 || binary.LittleEndian.Uint16(demand[2:])&15 != 1 {
 		t.Fatalf("expected Demand Active, got %x", demand)
 	}
+
+	return demand
 }
 
 func confirmRDPInputTestActive(t *testing.T, conn net.Conn) {
+	t.Helper()
+	confirmRDPInputTestActiveWithInput(t, conn, 0)
+}
+
+func confirmRDPInputTestActiveWithInput(t *testing.T, conn net.Conn, inputFlags uint16) {
 	t.Helper()
 	confirm := make([]byte, 16+6+4+28)
 	rdpInputPut16(confirm, 0, len(confirm))
@@ -185,6 +198,16 @@ func confirmRDPInputTestActive(t *testing.T, conn net.Conn) {
 	rdpInputPut16(confirm, 26, 2)
 	rdpInputPut16(confirm, 28, 28)
 	rdpInputPut16(confirm, 30, 24)
+	if inputFlags != 0 {
+		input := make([]byte, 88)
+		rdpInputPut16(input, 0, 13)
+		rdpInputPut16(input, 2, len(input))
+		rdpInputPut16(input, 4, int(inputFlags))
+		confirm = slices.Concat(confirm, input)
+		rdpInputPut16(confirm, 0, len(confirm))
+		rdpInputPut16(confirm, 14, 32+len(input))
+		rdpInputPut16(confirm, 22, 2)
+	}
 	writeRDPInputGlobal(t, conn, confirm)
 	for _, expected := range []byte{0x1f, 0x14} {
 		response := readRDPInputGlobal(t, conn)
@@ -214,11 +237,11 @@ func rdpInputUnicodePacket(codes ...uint16) []byte {
 	return append([]byte{data[0], byte(len(data) + 1)}, data[1:]...)
 }
 
-func rdpInputConnectInitial(channels ...string) []byte {
+func rdpInputConnectInitialVersion(version uint32, channels ...string) []byte {
 	core := make([]byte, 132)
 	rdpInputPut16(core, 0, 0xc001)
 	rdpInputPut16(core, 2, len(core))
-	binary.LittleEndian.PutUint32(core[4:8], 0x80004)
+	binary.LittleEndian.PutUint32(core[4:8], version)
 	rdpInputPut16(core, 8, 800)
 	rdpInputPut16(core, 10, 600)
 	if len(channels) != 0 {

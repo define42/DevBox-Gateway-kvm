@@ -269,6 +269,23 @@ type DisplayInput interface {
 	PointerEvent(buttonMask uint8, x, y uint16)
 }
 
+// RelativePointerInput receives unscaled mouse deltas; positive Y moves down.
+// It is optional because absolute tablets cannot preserve raw mouse movement.
+type RelativePointerInput interface {
+	RelativePointerEvent(buttonMask uint8, dx, dy int16)
+}
+
+func supportsRelativePointer(input DisplayInput) bool {
+	if _, ok := input.(RelativePointerInput); !ok {
+		return false
+	}
+	if supported, ok := input.(interface{ SupportsRelativePointer() bool }); ok {
+		return supported.SupportsRelativePointer()
+	}
+
+	return true
+}
+
 func (d *framebuffer) sendKeyEvent(down bool, keysym uint32) {
 	d.mu.Lock()
 	input := d.input

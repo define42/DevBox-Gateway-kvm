@@ -230,6 +230,30 @@ func (p *PS2Controller) PointerEvent(buttonMask uint8, x, y uint16) {
 	}
 }
 
+// RelativePointerEvent delivers captured mouse deltas without using desktop
+// coordinates. Positive Y points down, opposite to the PS/2 packet convention.
+// The next absolute event establishes a fresh baseline after capture ends.
+func (p *PS2Controller) RelativePointerEvent(buttonMask uint8, dx, dy int16) {
+	p.mu.Lock()
+	p.mouseInit = false
+	if !p.mouseEnabled || !p.mouseReporting {
+		p.mu.Unlock()
+
+		return
+	}
+	buttons := ps2Buttons(buttonMask)
+	oldButtons := p.mouseButtons
+	p.mouseButtons = buttons
+	queueEmpty := p.queueLen == 0
+	// Widen before negating so the minimum int16 Y delta remains positive.
+	p.enqueueMouseMotionLocked(buttons, oldButtons, int(dx), -int(dy), int(p.mouseID), ps2WheelDelta(buttonMask))
+	inject := queueEmpty && p.queueLen > 0 && p.irqEnabledLocked(true)
+	p.mu.Unlock()
+	if inject {
+		p.injectIRQ(true)
+	}
+}
+
 func (p *PS2Controller) writeCommand(cmd byte) {
 	switch cmd {
 	case 0x20: // Read controller command byte.

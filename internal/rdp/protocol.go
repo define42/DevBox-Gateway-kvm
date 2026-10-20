@@ -19,30 +19,33 @@ import (
 )
 
 const (
-	clientUser    = 1001
-	serverUser    = 1002
-	globalChannel = 1003
-	shareID       = 0x103ea
-	maxUserData   = 32767
+	clientUser             = 1001
+	serverUser             = 1002
+	globalChannel          = 1003
+	shareID                = 0x103ea
+	maxUserData            = 32767
+	relativePointerVersion = 0x00080011
 )
 
 // Session is an activated RDP display connection. One goroutine may read while
 // other goroutines write. Writes are serialized; reads must have one owner.
 type Session struct {
 	// Width and Height retain the initial negotiated size. Use Size for live geometry.
-	Width, Height int
-	BitsPerPixel  int
-	conn          net.Conn
-	writeMu       sync.Mutex
-	writeTimeout  time.Duration
-	pending       []queuedPacket
-	joined        map[uint16]bool
-	geometry      atomic.Uint64
-	display       displayState
-	dynamic       *dynamicState
-	graphics      *graphicsState
-	audio         *audioState
-	pointer       pointerState
+	Width, Height          int
+	BitsPerPixel           int
+	conn                   net.Conn
+	writeMu                sync.Mutex
+	writeTimeout           time.Duration
+	pending                []queuedPacket
+	joined                 map[uint16]bool
+	geometry               atomic.Uint64
+	display                displayState
+	dynamic                *dynamicState
+	graphics               *graphicsState
+	audio                  *audioState
+	pointer                pointerState
+	relativePointerOffered bool
+	relativePointer        bool
 }
 
 type queuedPacket struct {
@@ -50,13 +53,36 @@ type queuedPacket struct {
 	fast bool
 }
 
+type acceptOptions struct {
+	relativePointer bool
+}
+
+// AcceptOption configures optional capabilities advertised during activation.
+type AcceptOption func(*acceptOptions)
+
+// WithRelativePointer enables negotiation of signed relative mouse input.
+// Callers must have an input sink that can consume relative pointer events.
+func WithRelativePointer() AcceptOption {
+	return func(options *acceptOptions) { options.relativePointer = true }
+}
+
+// RelativePointerSupported reports whether both peers negotiated relative input.
+// The result remains fixed for the activated session, including display resizing.
+func (s *Session) RelativePointerSupported() bool { return s.relativePointer }
+
 // Accept negotiates TLS and the RDP connection sequence. Credentials in Client
 // Info are intentionally ignored; callers must authenticate and authorize the
 // transport before calling Accept. NLA is not supported. The caller owns conn,
 // including closing it when Accept returns an error.
-func Accept(conn net.Conn, config *tls.Config, width, height int) (*Session, error) {
+func Accept(conn net.Conn, config *tls.Config, width, height int, options ...AcceptOption) (*Session, error) {
 	if config == nil || width < 1 || width > 8192 || height < 1 || height > 8192 {
 		return nil, errors.New("rdp: invalid TLS configuration or desktop size")
+	}
+	var opts acceptOptions
+	for _, option := range options {
+		if option != nil {
+			option(&opts)
+		}
 	}
 	if err := conn.SetDeadline(time.Now().Add(15 * time.Second)); err != nil {
 		return nil, err
@@ -104,7 +130,8 @@ func Accept(conn net.Conn, config *tls.Config, width, height int) (*Session, err
 	if err != nil {
 		return nil, err
 	}
-	if err := s.writeMCS(connectResponse(requested, client.channels)); err != nil {
+	version := s.offerRelativePointer(opts.relativePointer, client.version)
+	if err := s.writeMCS(connectResponse(requested, client.channels, version)); err != nil {
 		return nil, err
 	}
 	s.dynamic = &dynamicState{channel: client.dynamicChannel}
@@ -124,6 +151,17 @@ func Accept(conn net.Conn, config *tls.Config, width, height int) (*Session, err
 	s.writeTimeout = 10 * time.Second
 
 	return s, nil
+}
+
+func (s *Session) offerRelativePointer(enabled bool, clientVersion uint32) uint32 {
+	// MS-RDPBCGR 2.2.7.1.6 requires ignoring the client's relative input bit
+	// when its core protocol version predates RDP 10.12.
+	s.relativePointerOffered = enabled && clientVersion >= relativePointerVersion
+	if s.relativePointerOffered {
+		return relativePointerVersion
+	}
+
+	return 0x80004
 }
 
 type activation struct {
@@ -654,6 +692,7 @@ func takeBER(p []byte, tag byte) (value, rest []byte, err error) {
 }
 
 type clientSettings struct {
+	version        uint32
 	width, height  int
 	channels       int
 	dynamicChannel uint16
@@ -736,6 +775,7 @@ func parseConnectInitialDetails(p []byte) (clientSettings, error) {
 			if len(payload) >= 142 {
 				settings.graphics = binary.LittleEndian.Uint16(payload[140:142])&0x100 != 0
 			}
+			settings.version = binary.LittleEndian.Uint32(payload[:4])
 			settings.width = int(binary.LittleEndian.Uint16(payload[4:6]))
 			settings.height = int(binary.LittleEndian.Uint16(payload[6:8]))
 			core = true
@@ -781,11 +821,11 @@ func ber(tag byte, body []byte) []byte {
 	return append(p, body...)
 }
 
-func connectResponse(requested uint32, channels int) []byte {
+func connectResponse(requested uint32, channels int, version uint32) []byte {
 	core := make([]byte, 12)
 	put16(core, 0, 0x0c01)
 	put16(core, 2, len(core))
-	binary.LittleEndian.PutUint32(core[4:8], 0x80004)
+	binary.LittleEndian.PutUint32(core[4:8], version)
 	binary.LittleEndian.PutUint32(core[8:12], requested)
 	security := []byte{2, 12, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	network := make([]byte, 8+2*channels+2*(channels%2))
@@ -865,6 +905,9 @@ func (s *Session) demandActive() []byte {
 	put16(bitmap, 16, 1)
 	input := make([]byte, 84)
 	put16(input, 0, 0x0031)
+	if s.relativePointerOffered {
+		put16(input, 0, 0x00b1)
+	}
 	binary.LittleEndian.PutUint32(input[8:12], 4)
 	binary.LittleEndian.PutUint32(input[16:20], 12)
 	capabilities := make([]byte, 0, 180)
@@ -918,6 +961,7 @@ func (s *Session) confirmActiveDepth(p []byte, update bool) error {
 	bitmap := false
 	pointerSeen := false
 	pointer := pointerCapabilities{}
+	inputSeen, relativePointer := false, false
 	for i := 0; i < count; i++ {
 		if off > len(p)-4 {
 			return errors.New("rdp: missing capability header")
@@ -951,15 +995,36 @@ func (s *Session) confirmActiveDepth(p []byte, update bool) error {
 				pointer.alpha = int(binary.LittleEndian.Uint16(p[off+8 : off+10]))
 			}
 		}
+		if kind == 13 {
+			if inputSeen || n < 88 {
+				return errors.New("rdp: invalid input capability")
+			}
+			inputSeen = true
+			relativePointer = s.relativePointerOffered && binary.LittleEndian.Uint16(p[off+4:off+6])&0x0080 != 0
+		}
 		off += n
 	}
 	if !bitmap || off != len(p) {
 		return errors.New("rdp: incomplete capability data")
 	}
+	if err := s.confirmRelativePointer(relativePointer, update); err != nil {
+		return err
+	}
 	s.pointer.mu.Lock()
 	s.pointer.caps = pointer
 	s.pointer.reset()
 	s.pointer.mu.Unlock()
+
+	return nil
+}
+
+func (s *Session) confirmRelativePointer(enabled, update bool) error {
+	if !update && s.relativePointer != enabled {
+		return errors.New("rdp: relative input capability changed during reactivation")
+	}
+	if update {
+		s.relativePointer = enabled
+	}
 
 	return nil
 }

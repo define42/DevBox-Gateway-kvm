@@ -16,6 +16,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -397,7 +398,14 @@ func (d *RDPDisplay) handleConn(conn net.Conn) {
 
 func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 	conn = trackRDPBandwidth(conn, d.telemetry)
-	session, err := rdp.Accept(conn, d.tls, 1024, 768)
+	d.mu.Lock()
+	relativePointer := supportsRelativePointer(d.input)
+	d.mu.Unlock()
+	var options []rdp.AcceptOption
+	if relativePointer {
+		options = append(options, rdp.WithRelativePointer())
+	}
+	session, err := rdp.Accept(conn, d.tls, 1024, 768, options...)
 	if err != nil {
 		return err
 	}
@@ -426,7 +434,7 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 		return err
 	}
 
-	var decoder rdp.InputDecoder
+	decoder := rdp.InputDecoder{AllowRelativePointer: session.RelativePointerSupported()}
 	defer func() { d.dispatchInput(session, decoder.ReleaseAll()) }()
 	refresh := make(chan struct{}, 1)
 	stop := make(chan struct{})
@@ -455,6 +463,7 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 		}
 	}()
 
+	relativePointerLogged := false
 	for {
 		data, fastPath, err := session.ReadPacket()
 		if err != nil {
@@ -480,6 +489,12 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 		events, err := decoder.Decode(data, fastPath)
 		if err != nil {
 			return err
+		}
+		if !relativePointerLogged && slices.ContainsFunc(events, func(event rdp.InputEvent) bool {
+			return event.Kind == rdp.InputRelativePointer
+		}) {
+			log.Printf("rdp: relative mouse input active")
+			relativePointerLogged = true
 		}
 		d.dispatchInput(session, events)
 	}
@@ -890,6 +905,15 @@ func (d *RDPDisplay) dispatchInput(session *rdp.Session, events []rdp.InputEvent
 			// Normalize against the same geometry used above, even if the
 			// guest publishes a resized framebuffer while input is in flight.
 			sendPointerEventInBounds(input, event.Buttons, uint16(x), uint16(y), width, height)
+			d.pointerInputMu.Unlock()
+		case rdp.InputRelativePointer:
+			d.pointerInputMu.Lock()
+			d.mu.Lock()
+			input := d.input
+			d.mu.Unlock()
+			if relative, ok := input.(RelativePointerInput); ok {
+				relative.RelativePointerEvent(event.Buttons, event.DX, event.DY)
+			}
 			d.pointerInputMu.Unlock()
 		}
 	}

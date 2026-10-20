@@ -14,22 +14,25 @@ var ErrInvalidInput = errors.New("invalid RDP input")
 // maxHeldKeys bounds per-connection state, including arbitrary Unicode keysyms.
 const maxHeldKeys = 256
 
-// InputKind identifies a keyboard or absolute pointer update.
+// InputKind identifies a keyboard, absolute pointer, or relative pointer update.
 type InputKind uint8
 
 const (
 	InputKey InputKind = iota
 	InputPointer
+	InputRelativePointer
 )
 
 // InputEvent uses X11 keysyms and pointer button bits for the guest input sink.
 // Bits 0, 1, and 2 are left, middle, and right;
-// bits 3 and 4 are momentary wheel up and down events.
+// bits 3 and 4 are momentary wheel up and down events. X/Y are absolute pixel
+// positions; DX/DY are signed relative movement, without desktop scaling.
 type InputEvent struct {
 	Kind    InputKind
 	Down    bool
 	Key     uint32
 	X, Y    uint16
+	DX, DY  int16
 	Buttons uint8
 }
 
@@ -38,9 +41,13 @@ type InputEvent struct {
 // Lock-state synchronization is ignored: the guest handles Caps/Num/Scroll Lock
 // through their ordinary key events.
 type InputDecoder struct {
+	// AllowRelativePointer must reflect the session's negotiated input capability.
+	AllowRelativePointer bool
+
 	held        map[uint32]struct{}
 	buttons     uint8
 	x, y        uint16
+	relative    bool
 	wheel       int
 	pause       bool
 	unicodeHigh [2]uint16
@@ -162,10 +169,17 @@ func (d *InputDecoder) fastPath(data []byte) ([]InputEvent, error) {
 				binary.LittleEndian.Uint16(data[2:]), binary.LittleEndian.Uint16(data[4:]))
 		case 4: // TS_FP_UNICODE_KEYBOARD_EVENT
 			events = d.unicode(events, flags&1 == 0, binary.LittleEndian.Uint16(data))
-		case 5:
-			// Relative pointer input is not advertised by this server.
-
-			return nil, fmt.Errorf("%w: relative pointer input is not supported", ErrInvalidInput)
+		case 5: // TS_FP_RELPOINTER_EVENT
+			if flags != 0 {
+				return nil, fmt.Errorf("%w: invalid relative pointer event header", ErrInvalidInput)
+			}
+			var err error
+			events, err = d.relativePointer(events, binary.LittleEndian.Uint16(data),
+				int16(binary.LittleEndian.Uint16(data[2:])), int16(binary.LittleEndian.Uint16(data[4:])))
+			if err != nil {
+				return nil, err
+			}
+		case 2, 3, 6:
 			// Extended mouse buttons, synchronize and QoE timestamps are consumed
 			// without forwarding: they have no equivalent in the guest input sink.
 		}
@@ -201,6 +215,12 @@ func (d *InputDecoder) slowPath(data []byte) ([]InputEvent, error) {
 			events = d.unicode(events, flags&0x8000 == 0, code)
 		case 0x8001:
 			events = d.pointer(events, flags, code, binary.LittleEndian.Uint16(data[10:]))
+		case 0x8004:
+			var err error
+			events, err = d.relativePointer(events, flags, int16(code), int16(binary.LittleEndian.Uint16(data[10:])))
+			if err != nil {
+				return nil, err
+			}
 		default:
 
 			return nil, fmt.Errorf("%w: unknown slow-path input event %#x", ErrInvalidInput, kind)
@@ -332,13 +352,20 @@ func (d *InputDecoder) pointer(events []InputEvent, flags, x, y uint16) []InputE
 			} else {
 				d.wheel -= 120
 			}
-			events = append(events, InputEvent{Kind: InputPointer, X: d.x, Y: d.y, Buttons: d.buttons | button},
-				InputEvent{Kind: InputPointer, X: d.x, Y: d.y, Buttons: d.buttons})
+			press, release := d.pointerState(), d.pointerState()
+			press.Buttons |= button
+			events = append(events, press, release)
 		}
 
 		return events
 	}
-	d.x, d.y = x, y
+	d.x, d.y, d.relative = x, y, false
+	d.pointerButtons(flags)
+
+	return append(events, d.pointerState())
+}
+
+func (d *InputDecoder) pointerButtons(flags uint16) {
 	for _, button := range [...]struct {
 		flag uint16
 		mask uint8
@@ -351,8 +378,35 @@ func (d *InputDecoder) pointer(events []InputEvent, flags, x, y uint16) []InputE
 			}
 		}
 	}
+}
 
-	return append(events, InputEvent{Kind: InputPointer, X: x, Y: y, Buttons: d.buttons})
+func (d *InputDecoder) relativePointer(events []InputEvent, flags uint16, dx, dy int16) ([]InputEvent, error) {
+	if !d.AllowRelativePointer {
+		return nil, fmt.Errorf("%w: relative pointer input was not negotiated", ErrInvalidInput)
+	}
+	// MS-RDPBCGR 2.2.8.1.1.3.1.1.7: relative events allow movement and
+	// standard/extended button flags, but no wheel or reserved flag bits.
+	const buttons = 0x7003
+	if flags&^uint16(0xf803) != 0 || flags&0x8000 != 0 && flags&buttons == 0 {
+		return nil, fmt.Errorf("%w: invalid relative pointer flags %#x", ErrInvalidInput, flags)
+	}
+	d.relative = true
+	d.pointerButtons(flags)
+	event := d.pointerState()
+	if flags&0x0800 != 0 {
+		event.DX, event.DY = dx, dy
+	}
+	// Extended buttons have no guest equivalent, but their packets may also
+	// contain movement or standard button changes.
+	return append(events, event), nil
+}
+
+func (d *InputDecoder) pointerState() InputEvent {
+	if d.relative {
+		return InputEvent{Kind: InputRelativePointer, Buttons: d.buttons}
+	}
+
+	return InputEvent{Kind: InputPointer, X: d.x, Y: d.y, Buttons: d.buttons}
 }
 
 // ReleaseAll clears held keys and mouse buttons when a connection closes so a
@@ -363,9 +417,10 @@ func (d *InputDecoder) ReleaseAll() []InputEvent {
 		events = append(events, InputEvent{Kind: InputKey, Key: key})
 	}
 	if d.buttons != 0 {
-		events = append(events, InputEvent{Kind: InputPointer, X: d.x, Y: d.y})
+		d.buttons = 0
+		events = append(events, d.pointerState())
 	}
-	*d = InputDecoder{}
+	*d = InputDecoder{AllowRelativePointer: d.AllowRelativePointer}
 
 	return events
 }
