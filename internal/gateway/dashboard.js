@@ -8,16 +8,18 @@
   // an old VM's response overwrite a newer selection.
   function createPerformancePanel({ nodes, fetchSample, isVisible, sessionExpired,
     schedule = setTimeout, unschedule = clearTimeout }) {
-    const metrics = ["cpu", "resident", "guest-memory", "connections", "encoder", "frames", "fps", "encode", "write", "ack"];
+    const networkMetrics = ["rdp-download", "rdp-upload", "data-sent", "data-received"];
+    const metrics = ["cpu", "resident", "guest-memory", "connections", "encoder", "frames", "fps", "encode", "write", "ack", ...networkMetrics];
     const statuses = {
       stopped: ["Stopped", "secondary", "This DevBox is stopped. Runtime measurements are unavailable."],
       starting: ["Starting", "secondary", "Waiting for the new VM process to produce a sample."],
-      live: ["Live", "success", "Measurements describe this VM process. Frame rates and timings cover the latest sampling interval."],
+      live: ["Live", "success", "Measurements describe this VM process. Rates and timings cover the latest sampling interval."],
       stale: ["Stale", "warning", "The last sample is out of date. Measurements are hidden until a fresh sample arrives."],
       unavailable: ["Unavailable", "secondary", "Performance measurements are unavailable. This panel will retry automatically."],
     };
     const encoders = { "": "Not active", bitmap: "Bitmap", software: "Software H.264", nvenc: "NVIDIA NVENC", mixed: "Mixed" };
     const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+    const bandwidthNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
     let selected = null;
     let generation = 0;
     let timer = null;
@@ -60,6 +62,15 @@
         if (sample[name] !== null && !finite(sample[name])) throw new Error("Invalid performance measurement");
       }
       if (sample.residentBytes !== null && !count(sample.residentBytes)) throw new Error("Invalid resident memory");
+      if (sample.network !== undefined && sample.network !== null) {
+        const network = sample.network;
+        if (typeof network !== "object" || Array.isArray(network) ||
+          !count(network.sentBytes) || !count(network.receivedBytes) ||
+          (network.sentMbps !== null && !finite(network.sentMbps)) ||
+          (network.receivedMbps !== null && !finite(network.receivedMbps))) {
+          throw new Error("Invalid RDP network measurements");
+        }
+      }
       return sample;
     }
 
@@ -69,6 +80,22 @@
       if (value === null) return "Not sampled";
       const gib = value >= 1024 ** 3;
       return format(value / (gib ? 1024 ** 3 : 1024 ** 2), gib ? " GiB" : " MiB");
+    }
+
+    function bandwidth(value) {
+      if (value === null) return "Not sampled";
+      if (value > 0 && value < 0.001) return "<" + bandwidthNumber.format(0.001) + " Mbps";
+      return bandwidthNumber.format(value) + " Mbps";
+    }
+
+    function dataBytes(value) {
+      const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+      let unit = 0;
+      while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit++;
+      }
+      return number.format(value) + " " + units[unit];
     }
 
     function render(sample) {
@@ -88,6 +115,14 @@
       text("encode", format(sample.encodeMs, " ms"));
       text("write", format(sample.writeMs, " ms"));
       text("ack", format(sample.ackMs, " ms"));
+      if (sample.network === undefined || sample.network === null) {
+        for (const name of networkMetrics) text(name, "Unavailable");
+      } else {
+        text("rdp-download", bandwidth(sample.network.sentMbps));
+        text("rdp-upload", bandwidth(sample.network.receivedMbps));
+        text("data-sent", dataBytes(sample.network.sentBytes));
+        text("data-received", dataBytes(sample.network.receivedBytes));
+      }
     }
 
     async function poll() {
@@ -186,6 +221,7 @@
   const performanceNodes = Object.fromEntries([
     "subtitle", "status", "message", "sampled-at", "metrics", "cpu", "resident", "guest-memory",
     "connections", "encoder", "frames", "fps", "encode", "write", "ack",
+    "rdp-download", "rdp-upload", "data-sent", "data-received",
   ].map((name) => [name, document.getElementById("performance-" + name)]));
   const vmPerformance = createPerformancePanel({
     nodes: performanceNodes, fetchSample: (...args) => fetch(...args), sessionExpired,

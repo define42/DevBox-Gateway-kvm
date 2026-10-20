@@ -71,9 +71,23 @@ backend errors fail the request instead of returning a misleading partial report
 | `sampleIntervalSeconds` | Actual interval used for this VM's rate calculations. The report-level field is the nominal five-second export period. |
 | `framesSent`, `framesPerSecond` | Lifetime successful sends and recent send rate, aggregated across viewers; not client-displayed FPS. |
 | `payloadBytes`, `payloadBytesPerSecond` | Lifetime graphics payload and interval throughput; excludes protocol/transport overhead and does not measure link capacity. |
+| `network.sentBytes`, `network.receivedBytes` | Cumulative RDP transport bytes sent from VM → client and received from client → VM, across all connections since this VM process started. |
+| `network.sentMbps`, `network.receivedMbps` | Recent RDP download and upload rates respectively, using the actual measured interval and decimal Mbps (1 Mbps = 1,000,000 bits/s). Null until two valid samples are available. |
 | `encodeMs`, `writeMs` | Interval average H.264 codec service time and graphics transport write time, in milliseconds. Not percentiles. Capture/conversion is excluded from encoding; write time can include backpressure. |
 | `ackMs` | Slowest current viewer's smoothed graphics acknowledgment turnaround, including client processing. Not pure network RTT or input-to-display delay; an old ACK value alone cannot rule out a stalled client. |
 | `pipeline` | Additional graphics-stage measurements described below; null for stopped/unavailable/older workers. |
+
+The additive `network` object contains `sentBytes`, `receivedBytes`, `sentMbps`,
+and `receivedMbps`; older workers produce `network: null` rather than invented
+zeros. Counts include negotiation, TLS records, and all RDP channels at the
+worker's RDP endpoint. They exclude TCP/IP overhead and guest internet traffic
+and are not an exact external network accounting measure. Unlike graphics
+`payloadBytes`, these counters include transport and non-graphics traffic.
+
+RDP totals persist across reconnects and reset when the VM process restarts.
+There is no persistent traffic history. The Performance panel displays rates in
+Mbps and formats byte totals using IEC units (B, KiB, MiB, GiB, TiB); JSON totals
+remain byte counts. The initial sample provides totals while both rates are null.
 
 ### Graphics pipeline
 

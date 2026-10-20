@@ -140,6 +140,7 @@ func TestPerfSchemaPrivacyAndDownload(t *testing.T) {
 			sampledAt := time.Date(2026, time.October, 18, 12, 0, 0, 0, time.UTC)
 			cpu, interval, fps, payloadRate := 251.5, 5.25, 9.5, 2048.5
 			encode, write, ack := 4.5, 0.3, 27.5
+			sentMbps, receivedMbps := 1.25, 0.003
 			resident := uint64(2 << 30)
 			want := VMPerformance{
 				State: "live", SampledAt: &sampledAt, SampleIntervalSeconds: &interval,
@@ -147,6 +148,9 @@ func TestPerfSchemaPrivacyAndDownload(t *testing.T) {
 				RequestedEncoder: "auto", RDPProfile: "office", Connections: 2, Encoder: "software",
 				FramesSent: 100, FramesPerSecond: &fps, PayloadBytes: 4096, PayloadBytesPerSecond: &payloadRate,
 				EncodeMs: &encode, WriteMs: &write, ACKMs: &ack,
+				Network: &VMNetworkPerformance{
+					SentBytes: 12000, ReceivedBytes: 3000, SentMbps: &sentMbps, ReceivedMbps: &receivedMbps,
+				},
 				Pipeline: &VMPipelinePerformance{
 					CaptureMs: &write, ConvertMs: &encode, OutstandingACKs: 2,
 				},
@@ -177,7 +181,8 @@ func TestPerfSchemaPrivacyAndDownload(t *testing.T) {
 			performance := checkPerfJSONKeys(t, entry["performance"], "state", "sampledAt", "sampleIntervalSeconds",
 				"cpuPercent", "residentBytes", "guestMemoryBytes", "vcpus", "requestedEncoder", "rdpProfile",
 				"connections", "encoder", "framesSent", "framesPerSecond", "payloadBytes", "payloadBytesPerSecond",
-				"encodeMs", "writeMs", "ackMs", "pipeline")
+				"encodeMs", "writeMs", "ackMs", "pipeline", "network")
+			checkPerfJSONKeys(t, performance["network"], "sentBytes", "receivedBytes", "sentMbps", "receivedMbps")
 			checkPerfJSONKeys(t, performance["pipeline"], "transferMs", "transferBytesPerSecond",
 				"flushMs", "flushesPerSecond", "flushedPixelsPerSecond", "fullRefreshesPerSecond",
 				"scanoutSwitchesPerSecond", "captureMs", "convertMs", "ackBlockedMsPerSecond",

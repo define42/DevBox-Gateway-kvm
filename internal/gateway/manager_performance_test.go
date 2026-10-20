@@ -296,22 +296,26 @@ func TestManagerPerformanceOwnershipAndLaunchIsolation(t *testing.T) {
 		t.Fatalf("provisioning state = %+v", got)
 	}
 	old := &processPerformance{}
-	if !old.decode(performanceTestJSON(t, performanceTestSample()), time.Now()) {
+	sample := performanceTestSample()
+	sample.Network = &telemetry.NetworkSnapshot{SentBytes: 1000, ReceivedBytes: 500}
+	if !old.decode(performanceTestJSON(t, sample), time.Now()) {
 		t.Fatal("sample rejected")
 	}
 	v.record.State, v.run = "running", &managedProcess{done: make(chan struct{}), performance: old}
 	v.publish()
-	if got, _ := m.Performance(t.Context(), "alice", record.ID); got.State != "live" || got.FramesSent != 10 {
+	if got, _ := m.Performance(t.Context(), "alice", record.ID); got.State != "live" || got.FramesSent != 10 ||
+		got.Network == nil || got.Network.SentBytes != 1000 || got.Network.ReceivedBytes != 500 {
 		t.Fatalf("active process missing data: %+v", got)
 	}
 	close(v.run.done)
-	if got, _ := m.Performance(t.Context(), "alice", record.ID); got.State != "stopped" || got.SampledAt != nil {
+	if got, _ := m.Performance(t.Context(), "alice", record.ID); got.State != "stopped" ||
+		got.SampledAt != nil || got.Network != nil {
 		t.Fatalf("exited process still appears live: %+v", got)
 	}
 	v.run = &managedProcess{done: make(chan struct{}), performance: &processPerformance{}}
 	v.publish()
 	if got, _ := m.Performance(t.Context(), "alice", record.ID); got.State != "unavailable" || got.FramesSent != 0 ||
-		got.SampledAt != nil || got.CPUPercent != nil {
+		got.SampledAt != nil || got.CPUPercent != nil || got.Network != nil {
 		t.Fatalf("new launch inherited old data: %+v", got)
 	}
 	canceled, stop := context.WithCancel(t.Context())

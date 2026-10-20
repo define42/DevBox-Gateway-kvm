@@ -20,7 +20,8 @@ const performanceStaleAfter = 3 * telemetry.Interval
 // VMPerformance is a bounded, owner-scoped view of one current VM process.
 // CPUPercent counts one fully used host CPU as 100%; null means unavailable.
 // Timings are interval averages, except ACKMs, which is the latest ACK sample.
-// PayloadBytes excludes transport overhead; rates use the measured sample interval.
+// PayloadBytes excludes transport overhead; Network includes RDP transport bytes.
+// All rates use the measured sample interval.
 type VMPerformance struct {
 	State                 string                 `json:"state"`
 	SampledAt             *time.Time             `json:"sampledAt"`
@@ -41,6 +42,7 @@ type VMPerformance struct {
 	WriteMs               *float64               `json:"writeMs"`
 	ACKMs                 *float64               `json:"ackMs"`
 	Pipeline              *VMPipelinePerformance `json:"pipeline"`
+	Network               *VMNetworkPerformance  `json:"network"`
 }
 
 // PerformanceBackend optionally supplies private in-memory worker telemetry.
@@ -212,7 +214,7 @@ func performanceAdvances(previous, current telemetry.Snapshot) bool {
 	if current.CPUSeconds != nil && previous.CPUSeconds != nil && *current.CPUSeconds < *previous.CPUSeconds {
 		return false
 	}
-	if !current.Pipeline.MonotonicAfter(previous.Pipeline) {
+	if !current.Pipeline.MonotonicAfter(previous.Pipeline) || !networkAdvances(previous.Network, current.Network) {
 		return false
 	}
 
@@ -231,7 +233,7 @@ func (p *processPerformance) snapshot(now time.Time) VMPerformance {
 	result := VMPerformance{
 		State: "live", SampledAt: &received, Connections: current.Connections,
 		Encoder: current.Encoder, FramesSent: current.FramesSent, PayloadBytes: current.PayloadBytes,
-		Pipeline: pipelinePerformance(previous, current),
+		Pipeline: pipelinePerformance(previous, current), Network: networkPerformance(previous, current),
 	}
 	if now.Sub(received) > performanceStaleAfter {
 		result.State = "stale"

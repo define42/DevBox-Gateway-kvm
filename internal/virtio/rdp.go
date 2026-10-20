@@ -389,6 +389,7 @@ func (d *RDPDisplay) handleConn(conn net.Conn) {
 }
 
 func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
+	conn = trackRDPBandwidth(conn, d.telemetry)
 	session, err := rdp.Accept(conn, d.tls, 1024, 768)
 	if err != nil {
 		return err

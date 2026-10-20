@@ -119,6 +119,10 @@ func performanceReportNotes() []string {
 			"NVENC accelerates video encoding, not the browser inside the guest. Empty means no active encoder.",
 		"FPS and payload bytes/second aggregate server sends across viewers, not displayed FPS or link capacity. " +
 			"Idle desktops legitimately send few frames. Payload bytes exclude transport overhead.",
+		"network reports RDP bytes at the VM endpoint, including negotiation, TLS and all channels, " +
+			"excluding TCP/IP overhead and guest networking. Sent is VM to client (download); received is client to VM " +
+			"(upload). Mbps uses decimal megabits per second. Totals span reconnects until VM restart; " +
+			"rates need two samples. A null network means unavailable or unsupported worker telemetry.",
 		"encodeMs and writeMs are interval averages, not percentiles. Encode time excludes capture/conversion. " +
 			"ACK is the slowest current viewer's smoothed send-to-ACK turnaround, " +
 			"not pure network or input-to-display latency.",

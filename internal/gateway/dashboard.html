@@ -173,6 +173,10 @@
               <div class="performance-metric"><dt>Host resident memory</dt><dd id="performance-resident">Not sampled</dd><dd class="performance-hint">Memory resident in the host process, not guest free RAM.</dd></div>
               <div class="performance-metric"><dt>Configured guest RAM</dt><dd id="performance-guest-memory">Not sampled</dd><dd class="performance-hint">RAM configured for this DevBox.</dd></div>
               <div class="performance-metric"><dt>Connections</dt><dd id="performance-connections">Not sampled</dd><dd class="performance-hint">Current RDP connections.</dd></div>
+              <div class="performance-metric"><dt>RDP download</dt><dd id="performance-rdp-download">Not sampled</dd><dd class="performance-hint">VM → client, over the latest sampling interval.</dd></div>
+              <div class="performance-metric"><dt>RDP upload</dt><dd id="performance-rdp-upload">Not sampled</dd><dd class="performance-hint">Client → VM, over the latest sampling interval.</dd></div>
+              <div class="performance-metric"><dt>Data sent</dt><dd id="performance-data-sent">Not sampled</dd><dd class="performance-hint">VM → client, since VM start.</dd></div>
+              <div class="performance-metric"><dt>Data received</dt><dd id="performance-data-received">Not sampled</dd><dd class="performance-hint">Client → VM, since VM start.</dd></div>
               <div class="performance-metric"><dt>Encoder</dt><dd id="performance-encoder">Not sampled</dd><dd class="performance-hint">Active graphics encoding backend.</dd></div>
               <div class="performance-metric"><dt>Frames sent</dt><dd id="performance-frames">Not sampled</dd><dd class="performance-hint">Cumulative for the current VM process.</dd></div>
               <div class="performance-metric"><dt>FPS sent</dt><dd id="performance-fps">Not sampled</dd><dd class="performance-hint">Frames sent per second, not client-presented FPS.</dd></div>
@@ -180,6 +184,7 @@
               <div class="performance-metric"><dt>Transport write average</dt><dd id="performance-write">Not sampled</dd><dd class="performance-hint">Local RDP write time, including backpressure; not end-to-end latency.</dd></div>
               <div class="performance-metric"><dt>ACK turnaround</dt><dd id="performance-ack">Not sampled</dd><dd class="performance-hint">Network and client acknowledgement time, not input latency.</dd></div>
             </dl>
+            <p class="small text-body-secondary mb-2">RDP traffic across all connections; totals reset when the VM restarts.</p>
             <p class="small text-body-secondary mb-0">Unavailable and not-yet-sampled measurements are shown as text, never as zero.</p>
           </div>
         </div>

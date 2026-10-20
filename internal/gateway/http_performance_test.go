@@ -67,7 +67,10 @@ func TestVMPerformanceEnforcesOwnership(t *testing.T) {
 						t.Errorf("untrusted owner or context: %s, %s, %v", owner, id, ctx.Err())
 					}
 
-					return VMPerformance{State: "live", Encoder: "software", Connections: 1, FramesSent: 42}, nil
+					return VMPerformance{
+						State: "live", Encoder: "software", Connections: 1, FramesSent: 42,
+						Network: &VMNetworkPerformance{SentBytes: 12000, ReceivedBytes: 3000},
+					}, nil
 				},
 			}
 			if test.anonymous {
@@ -83,7 +86,8 @@ func TestVMPerformanceEnforcesOwnership(t *testing.T) {
 			}
 			if test.status == http.StatusOK {
 				var got VMPerformance
-				if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || got.FramesSent != 42 {
+				if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || got.FramesSent != 42 ||
+					got.Network == nil || got.Network.SentBytes != 12000 || got.Network.ReceivedBytes != 3000 {
 					t.Fatalf("performance response: %+v, %v", got, err)
 				}
 			}
@@ -99,7 +103,8 @@ func TestVMPerformanceOptionalBackendAndErrors(t *testing.T) {
 	s.routes().ServeHTTP(w, performanceRequest(raw, "mine"))
 	var got VMPerformance
 	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || w.Code != http.StatusOK ||
-		got.State != "unavailable" || got.CPUPercent != nil || got.ResidentBytes != nil || got.GuestMemoryBytes != 4<<30 {
+		got.State != "unavailable" || got.CPUPercent != nil || got.ResidentBytes != nil ||
+		got.GuestMemoryBytes != 4<<30 || got.Network != nil {
 		t.Fatalf("optional telemetry invented metrics: %+v, %v, status %d", got, err, w.Code)
 	}
 	base.vms[0].State = "creating"

@@ -22,8 +22,9 @@ var ErrSnapshot = errors.New("invalid VM telemetry snapshot")
 // Snapshot contains process-lifetime counters and current connection gauges.
 // CPUSeconds and ResidentBytes are nil when the operating-system sample failed.
 // CPU time includes guest execution charged to this process, not only Go work.
-// Frame counts are server sends, bytes exclude wire overhead, and ACKNanos is
-// send-to-ACK turnaround including client processing, not input/display latency.
+// Frame counts are server sends and payload bytes exclude wire overhead.
+// ACKNanos is send-to-ACK turnaround including client processing, not
+// input/display latency.
 type Snapshot struct {
 	Version        uint32            `json:"version"`
 	Sequence       uint64            `json:"sequence"`
@@ -40,6 +41,7 @@ type Snapshot struct {
 	WriteCount     uint64            `json:"writeCount"`
 	ACKNanos       uint64            `json:"ackNanos"`
 	Pipeline       *PipelineSnapshot `json:"pipeline,omitempty"`
+	Network        *NetworkSnapshot  `json:"network,omitempty"`
 }
 
 // Validate checks the fixed schema's value domain, not cumulative ordering.
@@ -63,6 +65,9 @@ func (s Snapshot) Validate() error {
 	if s.Connections == 0 && (s.Encoder != "" || s.ACKNanos != 0) {
 		return ErrSnapshot
 	}
+	if err := s.Network.Validate(); err != nil {
+		return err
+	}
 	if err := s.Pipeline.Validate(); err != nil {
 		return err
 	}
@@ -83,18 +88,20 @@ func finiteNonnegative(value float64) bool {
 // firmware resets. Work counters are atomic and never perform I/O; membership
 // and ACK-wait transitions share a short lock with heartbeat observation.
 type Collector struct {
-	start       time.Time
-	sequence    atomic.Uint64
-	frames      atomic.Uint64
-	bytes       atomic.Uint64
-	encodeNanos atomic.Uint64
-	encodeCount atomic.Uint64
-	writeNanos  atomic.Uint64
-	writeCount  atomic.Uint64
-	mu          sync.Mutex // Membership and ACK waits only; never held over I/O.
-	connections map[*Connection]struct{}
-	pipeline    pipelineCounters
-	ackBlocked  uint64 // Completed ACK wait intervals, protected by mu.
+	start         time.Time
+	sequence      atomic.Uint64
+	frames        atomic.Uint64
+	bytes         atomic.Uint64
+	encodeNanos   atomic.Uint64
+	encodeCount   atomic.Uint64
+	writeNanos    atomic.Uint64
+	writeCount    atomic.Uint64
+	sentBytes     atomic.Uint64
+	receivedBytes atomic.Uint64
+	mu            sync.Mutex // Membership and ACK waits only; never held over I/O.
+	connections   map[*Connection]struct{}
+	pipeline      pipelineCounters
+	ackBlocked    uint64 // Completed ACK wait intervals, protected by mu.
 }
 
 func New() *Collector {
@@ -127,6 +134,7 @@ func (c *Collector) Snapshot() Snapshot {
 		FramesSent: c.frames.Load(), PayloadBytes: c.bytes.Load(),
 		EncodeNanos: c.encodeNanos.Load(), EncodeCount: c.encodeCount.Load(),
 		WriteNanos: c.writeNanos.Load(), WriteCount: c.writeCount.Load(),
+		Network: &NetworkSnapshot{SentBytes: c.sentBytes.Load(), ReceivedBytes: c.receivedBytes.Load()},
 	}
 	c.mu.Lock()
 	snapshot.Pipeline = c.pipeline.snapshot()

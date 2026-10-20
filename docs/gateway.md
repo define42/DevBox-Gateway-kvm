@@ -151,11 +151,20 @@ not overlaid on the native RDP session.
 | --- | --- |
 | VM process CPU | CPU time used by the VM process, including vCPU and encoding work. 100% means one host CPU core; values can exceed 100%. |
 | Host resident memory | RAM resident in the VM process, not the guest's used/free RAM. Configured guest memory is shown separately. |
+| RDP download / upload | VM → client and client → VM traffic over the measured sampling interval, in decimal Mbps (1 Mbps = 1,000,000 bits/s). |
+| Data sent / received | Cumulative VM → client and client → VM bytes since this VM process started, displayed as B, KiB, MiB, GiB, or TiB. |
 | Encoder | The active encoding backend: software, NVIDIA NVENC, or bitmap fallback. No active connection means no active encoder. |
 | Frames sent / sent FPS | Successful server frame sends since this VM process started, and the recent send rate. These are not frames displayed by the client; an idle screen can correctly show zero FPS. |
 | Encoding | Average H.264 codec time during the latest sample interval; excludes capture and color conversion. Unavailable for bitmap-only intervals. |
 | Transport write | Average time writing graphics data to the local RDP transport during the latest sample interval. Can include backpressure; it is not end-to-end network latency. |
 | ACK turnaround | The latest graphics acknowledgment turnaround, including network and client processing. It is not input latency or a pure network RTT. |
+
+RDP traffic includes negotiation, TLS, and all RDP channels measured at the worker
+endpoint. It excludes TCP/IP overhead and guest internet traffic, so it is not an
+exact measurement of external network usage. Totals combine all connections and
+survive reconnects; restarting the VM resets them. No persistent traffic history
+is stored. Initial bandwidth rates remain unmeasured until two valid samples are
+available; older workers show the traffic measurements as unavailable.
 
 Missing measurements are shown as unavailable, not as zero. Samples become stale
 after 15 seconds without an update. Restarting a desktop resets its process
@@ -171,8 +180,9 @@ required.
 
 The authenticated `GET /perf` endpoint exports an owner-scoped JSON report for
 diagnosis, with actual encoder, configured vCPUs/encoder/profile, CPU/RSS, frame
-and payload rates, and encoding/write/ACK timings. Use `/perf?download=1` to save
-it, or `/perf?vm=<id>&download=1` for one owned desktop. See
+and payload rates, RDP bandwidth and transfer totals, and encoding/write/ACK
+timings. Use `/perf?download=1` to save it, or `/perf?vm=<id>&download=1` for one
+owned desktop. See
 [performance diagnostics](performance.md) for collection and interpretation.
 
 Its additive `pipeline` object reports virtio transfer/flush work, framebuffer

@@ -26,11 +26,14 @@ func TestExporterIdleHeartbeatAndDroppedSnapshot(t *testing.T) {
 			collector.run(ctx, func(data []byte) { packets <- data })
 		}()
 		first := decodeSnapshot(t, <-packets)
-		if first.Sequence != 1 || first.Connections != 0 || first.ElapsedSeconds != 0 {
+		if first.Sequence != 1 || first.Connections != 0 || first.ElapsedSeconds != 0 ||
+			first.Network == nil || first.Network.SentBytes != 0 || first.Network.ReceivedBytes != 0 {
 			t.Fatalf("initial idle snapshot: %+v", first)
 		}
 		connection := collector.Connect()
 		connection.Sent(100)
+		collector.NetworkSent(150)
+		collector.NetworkReceived(30)
 		connection.Close()
 		time.Sleep(Interval)
 		synctest.Wait()
@@ -41,7 +44,8 @@ func TestExporterIdleHeartbeatAndDroppedSnapshot(t *testing.T) {
 		synctest.Wait()
 		third := decodeSnapshot(t, <-packets)
 		if third.Sequence != 3 || third.ElapsedSeconds != (2*Interval).Seconds() ||
-			third.FramesSent != 1 || third.PayloadBytes != 100 || third.Connections != 0 {
+			third.FramesSent != 1 || third.PayloadBytes != 100 || third.Connections != 0 ||
+			third.Network == nil || third.Network.SentBytes != 150 || third.Network.ReceivedBytes != 30 {
 			t.Fatalf("idle heartbeat lost counters after drop: %+v", third)
 		}
 		cancel()
