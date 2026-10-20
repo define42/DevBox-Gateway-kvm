@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -68,7 +69,8 @@ type Manager struct {
 	imageMu      sync.RWMutex
 	images       map[string]Image
 	imageImports chan struct{}
-	creations    chan struct{} // Bounds provisioning I/O across all owners.
+	creations    chan struct{}        // Bounds provisioning I/O across all owners.
+	deletionFS   vmDeletionFilesystem // Nil uses the host filesystem; tests inject I/O failures.
 	//nolint:containedctx // Owns the manager lifetime; never stores a caller context.
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -312,6 +314,13 @@ func (m *Manager) load() error {
 	}
 	names := make(map[string]bool)
 	for _, entry := range entries {
+		if id, deleting := strings.CutPrefix(entry.Name(), ".deleting-"); deleting && validID(id) {
+			if err := m.cleanupDeletedVM(filepath.Join(root, entry.Name())); err != nil {
+				log.Printf("gateway VM deletion cleanup pending: vm=%q: %v", id, err)
+			}
+
+			continue
+		}
 		if id, creating := strings.CutPrefix(entry.Name(), ".creating-"); creating && validID(id) {
 			// The exclusive manager lock means these are interrupted creations.
 			if err := os.RemoveAll(filepath.Join(root, entry.Name())); err != nil {
@@ -839,42 +848,6 @@ func (m *Manager) Stop(ctx context.Context, owner, id string) error {
 
 		return m.save(v.record)
 	}
-}
-
-// Delete removes an owned, stopped desktop and its persistent state.
-func (m *Manager) Delete(ctx context.Context, owner, id string) error {
-	ctx, finish, err := m.operation(ctx)
-	if err != nil {
-		return err
-	}
-	defer finish()
-
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	v, err := m.lookup(owner, id)
-	if err != nil {
-		return err
-	}
-	if err := v.lock(ctx); err != nil {
-		return err
-	}
-	defer v.unlock()
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if v.run != nil || v.record.State != "stopped" {
-		return ErrConflict
-	}
-	if err := os.RemoveAll(m.directory(id)); err != nil { //nolint:gosec // Owned VM ID validated by lookup.
-		return err
-	}
-	m.mu.Lock()
-	delete(m.vms, id)
-	m.mu.Unlock()
-	v.record.State = "deleted"
-
-	return nil
 }
 
 // RDP resolves only a running VM owned by the caller; identity is pinned by the proxy.

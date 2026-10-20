@@ -636,6 +636,12 @@ RDP connections. `VM_CREATE_TIMEOUT` bounds creation including queue wait
 (30 seconds by default). If the guest needs confirmation or does not shut down, it remains running; use its
 graphical power menu and refresh status. **Delete** requires a stopped VM and
 permanently removes its disk, firmware variables, seed, and metadata.
+Deletion first moves the VM into a private `.deleting-<id>` directory and syncs
+the parent directory before removing files. Once moved, the desktop leaves the
+inventory even if file cleanup returns an error. Startup retries these pending
+deletions; cleanup failures are logged without preventing other desktops from
+loading. Resolve the reported filesystem error and restart the gateway to retry
+cleanup. Pending files continue to consume storage until removal succeeds.
 
 Stopping the gateway requests ACPI shutdown of running VMs. After its
 `VM_STOP_TIMEOUT` wait it escalates to SIGTERM, then SIGKILL if necessary. Shut
