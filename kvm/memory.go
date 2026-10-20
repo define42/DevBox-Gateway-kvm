@@ -41,9 +41,10 @@ func SetTSSAddr(vmFd uintptr, addr uint32) error {
 	return err
 }
 
-// SetIdentityMapAddr sets the address of a 4k-sized-page for a vm.
-func SetIdentityMapAddr(vmFd uintptr, addr uint32) error {
-	_, err := Ioctl(vmFd, IIOW(kvmSetIdentityMapAddr, 8), uintptr(unsafe.Pointer(&addr)))
+// SetIdentityMapAddr sets the guest address of the VM's 4 KiB identity-map page.
+// KVM expects a pointer to a 64-bit address, even for a page below 4 GiB.
+func SetIdentityMapAddr(vmFd uintptr, addr uint64) error {
+	_, err := Ioctl(vmFd, IIOW(kvmSetIdentityMapAddr, unsafe.Sizeof(addr)), uintptr(unsafe.Pointer(&addr)))
 
 	return err
 }

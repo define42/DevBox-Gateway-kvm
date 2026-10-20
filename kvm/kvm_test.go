@@ -93,7 +93,10 @@ func TestCreateVM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := kvm.SetIdentityMapAddr(vmFd, 0xffffc000); err != nil {
+	// Keep the address explicitly 64-bit to match KVM_SET_IDENTITY_MAP_ADDR's
+	// __u64 argument, even though the page lives below 4 GiB.
+	const identityMapAddr uint64 = 0xffffc000
+	if err := kvm.SetIdentityMapAddr(vmFd, identityMapAddr); err != nil {
 		t.Fatal(err)
 	}
 

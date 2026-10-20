@@ -6,6 +6,10 @@ const (
 	ps2DataPort   = uint64(0x60)
 	ps2StatusPort = uint64(0x64)
 
+	ps2QueueCapacity = 1024
+	// Leave room for deferred mouse state plus a complete command reply.
+	ps2InputQueueLimit = ps2QueueCapacity - 16
+
 	ps2ACK     = byte(0xfa)
 	ps2BATPass = byte(0xaa)
 	ps2Resend  = byte(0xfe)
@@ -43,8 +47,18 @@ type PS2Controller struct {
 	mu sync.Mutex
 
 	commandByte byte
-	queue       []ps2Pending
+	queue       [ps2QueueCapacity]ps2Pending
+	queueLen    int
 	expect      ps2Expect
+
+	// Every accepted make reserves its complete break sequence. Other traffic
+	// cannot consume that space, even when the guest stops reading input.
+	keysDown        [256]bool
+	keyReleaseBytes int
+	// Motion can be dropped under pressure; the latest button state must still
+	// be delivered. This fixed slot is flushed as soon as a whole packet fits.
+	mousePending    [4]byte
+	mousePendingLen int
 
 	keyboardEnabled bool
 	keyboardScan    bool
@@ -93,7 +107,7 @@ func (p *PS2Controller) Read(port uint64, data []byte) error {
 		data[0], injectNext, nextAux = p.popLocked()
 	case ps2StatusPort:
 		data[0] = ps2StatusSystemFlag
-		if len(p.queue) > 0 {
+		if p.queueLen > 0 {
 			data[0] |= ps2StatusOutputFull
 			if p.queue[0].aux {
 				data[0] |= ps2StatusAuxData
@@ -143,16 +157,44 @@ func (p *PS2Controller) KeyEvent(down bool, keysym uint32) {
 		return
 	}
 
+	seq := ps2KeySequence(makeSeq, down)
+	key := int(makeSeq.code)
+	if makeSeq.extended {
+		key |= 0x80
+	}
 	p.mu.Lock()
-	enabled := p.keyboardEnabled && p.keyboardScan
-	p.mu.Unlock()
+	if !p.keyboardEnabled || !p.keyboardScan {
+		p.mu.Unlock()
 
-	if !enabled {
 		return
 	}
 
-	seq := ps2KeySequence(makeSeq, down)
-	p.enqueue(seq, false)
+	queueEmpty := p.queueLen == 0
+	queued := false
+	switch {
+	case !down && p.keysDown[key]:
+		// This space was reserved with the make. A deferred mouse packet may
+		// consume ordinary admission capacity but cannot displace this break.
+		p.keyReleaseBytes -= len(seq)
+		p.keysDown[key] = false
+		p.appendLocked(seq, false)
+		queued = true
+	case down && !p.keysDown[key]:
+		p.keyReleaseBytes += len(seq)
+		queued = p.enqueueLocked(seq, false, ps2InputQueueLimit)
+		if queued {
+			p.keysDown[key] = true
+		} else {
+			p.keyReleaseBytes -= len(seq)
+		}
+	default:
+		queued = p.enqueueLocked(seq, false, ps2InputQueueLimit)
+	}
+	inject := queued && queueEmpty && p.irqEnabledLocked(false)
+	p.mu.Unlock()
+	if inject {
+		p.injectIRQ(false)
+	}
 }
 
 // PointerEvent converts an absolute pointer update into PS/2 mouse packets.
@@ -178,16 +220,23 @@ func (p *PS2Controller) PointerEvent(buttonMask uint8, x, y uint16) {
 	buttons := ps2Buttons(buttonMask)
 	oldButtons := p.mouseButtons
 	p.mouseButtons = buttons
-	mouseID := p.mouseID
+	queueEmpty := p.queueLen == 0
+	p.enqueueMouseMotionLocked(buttons, oldButtons, dx, dy, int(p.mouseID), ps2WheelDelta(buttonMask))
+	inject := queueEmpty && p.queueLen > 0 && p.irqEnabledLocked(true)
 	p.mu.Unlock()
 
-	p.enqueueMouseMotion(buttons, oldButtons, dx, dy, int(mouseID), ps2WheelDelta(buttonMask))
+	if inject {
+		p.injectIRQ(true)
+	}
 }
 
 func (p *PS2Controller) writeCommand(cmd byte) {
 	switch cmd {
 	case 0x20: // Read controller command byte.
-		p.enqueue([]byte{p.commandByte}, false)
+		p.mu.Lock()
+		commandByte := p.commandByte
+		p.mu.Unlock()
+		p.enqueue([]byte{commandByte}, false)
 	case 0x60: // Write controller command byte.
 		p.mu.Lock()
 		p.expect = ps2ExpectControllerConfig
@@ -288,6 +337,23 @@ func (p *PS2Controller) handleKeyboardCommand(cmd byte) {
 
 func (p *PS2Controller) handleMouseCommand(cmd byte) {
 	p.mu.Lock()
+	reply := p.mouseReplyLocked(cmd)
+	reset := !p.mouseParam && cmd == 0xff
+	pending := p.mousePendingLen
+	if reset {
+		pending = 0
+	}
+	// Commit the deferred packet, reply and mode change together. If a guest
+	// command flood leaves no room, ignore the whole command so it can retry;
+	// never announce a new packet format before old-format bytes are queued.
+	if pending+len(reply) > ps2QueueCapacity-p.queueLen-p.keyReleaseBytes {
+		p.mu.Unlock()
+
+		return
+	}
+	queueEmpty := p.queueLen == 0
+	p.appendLocked(p.mousePending[:pending], true)
+	p.mousePendingLen = 0
 	if p.mouseParam {
 		paramCmd := p.mouseParamCmd
 		p.mouseParam = false
@@ -295,74 +361,62 @@ func (p *PS2Controller) handleMouseCommand(cmd byte) {
 		if paramCmd == 0xf3 {
 			p.recordMouseSampleLocked(cmd)
 		}
-		p.mu.Unlock()
-		p.enqueue([]byte{ps2ACK}, true)
-
-		return
+	} else {
+		switch cmd {
+		case 0xff:
+			p.mouseReporting = false
+			p.mouseID = 0
+			p.mouseSamples = [3]byte{}
+		case 0xf3, 0xe8:
+			p.mouseParam = true
+			p.mouseParamCmd = cmd
+		case 0xf4:
+			p.mouseReporting = true
+		case 0xf5, 0xf6:
+			p.mouseReporting = false
+		default:
+		}
 	}
+	p.appendLocked(reply, true)
+	inject := queueEmpty && p.irqEnabledLocked(true)
 	p.mu.Unlock()
+	if inject {
+		p.injectIRQ(true)
+	}
+}
 
+func (p *PS2Controller) mouseReplyLocked(cmd byte) []byte {
+	if p.mouseParam {
+		return []byte{ps2ACK}
+	}
 	switch cmd {
 	case 0xff: // Reset.
-		p.mu.Lock()
-		p.mouseReporting = false
-		p.mouseID = 0
-		p.mouseSamples = [3]byte{}
-		p.mu.Unlock()
-		p.enqueue([]byte{ps2ACK, ps2BATPass, 0x00}, true)
-	case 0xf2: // Get device ID: standard PS/2 mouse.
-		p.mu.Lock()
-		id := p.mouseID
-		p.mu.Unlock()
-		p.enqueue([]byte{ps2ACK, id}, true)
-	case 0xf3, 0xe8: // Set sample rate / resolution, then parameter byte.
-		p.mu.Lock()
-		p.mouseParam = true
-		p.mouseParamCmd = cmd
-		p.mu.Unlock()
-		p.enqueue([]byte{ps2ACK}, true)
-	case 0xf4: // Enable data reporting.
-		p.mu.Lock()
-		p.mouseReporting = true
-		p.mu.Unlock()
-		p.enqueue([]byte{ps2ACK}, true)
-	case 0xf5: // Disable data reporting.
-		p.mu.Lock()
-		p.mouseReporting = false
-		p.mu.Unlock()
-		p.enqueue([]byte{ps2ACK}, true)
+		return []byte{ps2ACK, ps2BATPass, 0x00}
+	case 0xf2: // Get device ID.
+		return []byte{ps2ACK, p.mouseID}
 	case 0xe9: // Status request.
-		p.enqueue([]byte{ps2ACK, 0x00, 0x02, 100}, true)
-	case 0xe6, 0xe7, 0xea, 0xec, 0xee, 0xf0, 0xf6:
-		if cmd == 0xf6 {
-			p.mu.Lock()
-			p.mouseReporting = false
-			p.mu.Unlock()
-		}
-		p.enqueue([]byte{ps2ACK}, true)
+		return []byte{ps2ACK, 0x00, 0x02, 100}
 	case 0xeb: // Read data.
-		p.mu.Lock()
-		buttons := p.mouseButtons
-		p.mu.Unlock()
-		p.mu.Lock()
-		mouseID := int(p.mouseID)
-		p.mu.Unlock()
-		p.enqueue(append([]byte{ps2ACK}, ps2MousePacket(buttons, 0, 0, mouseID, 0)...), true)
+		return append([]byte{ps2ACK}, ps2MousePacket(p.mouseButtons, 0, 0, int(p.mouseID), 0)...)
+	case 0xf3, 0xe8, 0xf4, 0xf5, 0xe6, 0xe7, 0xea, 0xec, 0xee, 0xf0, 0xf6:
+		return []byte{ps2ACK}
 	default:
-		p.enqueue([]byte{ps2Resend}, true)
+		return []byte{ps2Resend}
 	}
 }
 
 func (p *PS2Controller) popLocked() (byte, bool, bool) {
-	if len(p.queue) == 0 {
+	if p.queueLen == 0 {
 		return 0, false, false
 	}
 
 	v := p.queue[0].data
-	copy(p.queue, p.queue[1:])
-	p.queue = p.queue[:len(p.queue)-1]
+	copy(p.queue[:p.queueLen-1], p.queue[1:p.queueLen])
+	p.queueLen--
+	p.queue[p.queueLen] = ps2Pending{}
+	p.flushMouseLocked()
 
-	if len(p.queue) == 0 {
+	if p.queueLen == 0 {
 		return v, false, false
 	}
 
@@ -377,17 +431,42 @@ func (p *PS2Controller) enqueue(data []byte, aux bool) {
 	}
 
 	p.mu.Lock()
-	queueEmpty := len(p.queue) == 0
-	for _, b := range data {
-		p.queue = append(p.queue, ps2Pending{data: b, aux: aux})
-	}
-
-	inject := queueEmpty && p.irqEnabledLocked(p.queue[0].aux)
+	queueEmpty := p.queueLen == 0
+	queued := p.enqueueLocked(data, aux, ps2QueueCapacity)
+	inject := queued && queueEmpty && p.irqEnabledLocked(aux)
 	p.mu.Unlock()
 
 	if inject {
 		p.injectIRQ(aux)
 	}
+}
+
+// enqueueLocked admits a whole packet, including space already promised to
+// key releases and deferred mouse state. No partially read data is evicted.
+func (p *PS2Controller) enqueueLocked(data []byte, aux bool, limit int) bool {
+	if len(data) > limit-p.queueLen-p.keyReleaseBytes-p.mousePendingLen {
+		return false
+	}
+	p.appendLocked(data, aux)
+
+	return true
+}
+
+// appendLocked is called only after capacity is checked or reserved.
+func (p *PS2Controller) appendLocked(data []byte, aux bool) {
+	for _, b := range data {
+		p.queue[p.queueLen] = ps2Pending{data: b, aux: aux}
+		p.queueLen++
+	}
+}
+
+func (p *PS2Controller) flushMouseLocked() {
+	if p.mousePendingLen == 0 ||
+		p.queueLen+p.keyReleaseBytes+p.mousePendingLen > ps2InputQueueLimit {
+		return
+	}
+	p.appendLocked(p.mousePending[:p.mousePendingLen], true)
+	p.mousePendingLen = 0
 }
 
 func (p *PS2Controller) irqEnabledLocked(aux bool) bool {
@@ -425,12 +504,19 @@ func (p *PS2Controller) recordMouseSampleLocked(sample byte) {
 	}
 }
 
-func (p *PS2Controller) enqueueMouseMotion(buttons, oldButtons uint8, dx, dy int, mouseID, wheel int) {
+func (p *PS2Controller) enqueueMouseMotionLocked(buttons, oldButtons uint8, dx, dy int, mouseID, wheel int) {
 	for dx != 0 || dy != 0 || wheel != 0 || buttons != oldButtons {
 		chunkX := clampMouseDelta(dx)
 		chunkY := clampMouseDelta(dy)
 		chunkWheel := clampMouseWheel(wheel)
-		p.enqueue(ps2MousePacket(buttons, chunkX, chunkY, mouseID, chunkWheel), true)
+		// A newer packet supersedes any deferred button state. If it cannot
+		// fit, retain only its zero-motion state and stop expanding movement.
+		p.mousePendingLen = 0
+		if !p.enqueueLocked(ps2MousePacket(buttons, chunkX, chunkY, mouseID, chunkWheel), true, ps2InputQueueLimit) {
+			p.mousePendingLen = copy(p.mousePending[:], ps2MousePacket(buttons, 0, 0, mouseID, 0))
+
+			return
+		}
 
 		dx -= chunkX
 		dy -= chunkY
