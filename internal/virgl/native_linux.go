@@ -164,6 +164,9 @@ func (b *nativeBackend) CreateContext(id uint32, name string) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	code := C.virgl_renderer_context_create(C.uint32_t(id), C.uint32_t(len(name)), cname)
+	// Creating a context changes EGL's current context without updating all
+	// of virgl's context tracking. Restore both before the next guest batch.
+	C.virgl_renderer_force_ctx_0()
 	if err := nativeError("create context", code); err != nil {
 		return err
 	}
@@ -196,6 +199,9 @@ func (b *nativeBackend) CreateResource(args ResourceArgs) error {
 		depth: C.uint32_t(args.Depth), array_size: C.uint32_t(args.ArraySize),
 		last_level: C.uint32_t(args.LastLevel), nr_samples: C.uint32_t(args.NrSamples), flags: C.uint32_t(args.Flags),
 	}
+	// Allocation binds and unbinds textures/buffers. Keep those changes out
+	// of guest contexts, whose bindings virgl caches between command batches.
+	C.virgl_renderer_force_ctx_0()
 	if err := nativeError("create resource", C.virgl_renderer_resource_create(&cargs, nil, 0)); err != nil {
 		return err
 	}

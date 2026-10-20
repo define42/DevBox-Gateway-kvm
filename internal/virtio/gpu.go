@@ -718,13 +718,12 @@ func (g *GPU) cmdResourceCreate2D(req []byte) []byte {
 	default:
 		return g.respNoData(gpuRespErrInvalidParameter)
 	}
+	if g.renderer != nil {
+		return g.createNative2D(id, format, width, height)
+	}
 	bytes := pixels * gpuBytesPerPixel
 	if bytes > gpuResourceLimit-g.resourceBytes || len(g.resources) >= gpuMaxResources {
 		return g.respNoData(gpuRespErrOutOfMemory)
-	}
-
-	if g.renderer != nil {
-		return g.createNative2D(id, format, width, height)
 	}
 	g.resources[id] = &gpuResource{
 		width:  width,

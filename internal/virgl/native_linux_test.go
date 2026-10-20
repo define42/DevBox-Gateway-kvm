@@ -4,11 +4,106 @@ package virgl
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"runtime"
 	"testing"
 	"time"
 )
+
+// Native creation must preserve the context and texture bindings established
+// by guest commands. Virgl caches both, so setting the same sampler view again
+// cannot repair an overwritten binding or a stale current-context cache.
+//
+//nolint:paralleltest // Uses the one process-wide native renderer.
+func TestNativeCreationPreservesGuestTextureBinding(t *testing.T) {
+	args := ResourceArgs{
+		Handle: 1, Target: 2, Format: 67, Bind: 1 << 3,
+		Width: 2, Height: 2, Depth: 1, ArraySize: 1,
+	}
+	testCases := []struct {
+		name   string
+		create func(*Renderer) error
+	}{
+		{
+			name: "resource",
+			create: func(r *Renderer) error {
+				other := args
+				other.Handle = 2
+
+				return r.CreateResource(other)
+			},
+		},
+		{
+			name: "context",
+			create: func(r *Renderer) error {
+				return r.CreateContext(2, "other")
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r, err := New()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := r.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			if err := r.CreateContext(1, "texture-binding"); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.CreateResource(args); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.ContextAttachResource(1, 1); err != nil {
+				t.Fatal(err)
+			}
+			submit := func(words ...uint32) {
+				t.Helper()
+				data := make([]byte, len(words)*4)
+				for i, word := range words {
+					binary.LittleEndian.PutUint32(data[i*4:], word)
+				}
+				if err := r.Submit(1, data); err != nil {
+					t.Fatal(err)
+				}
+			}
+			binding := func() int {
+				t.Helper()
+				var value int
+				if err := r.call(func(backend) error {
+					var err error
+					value, err = nativeTextureBinding()
+
+					return err
+				}); err != nil {
+					t.Fatal(err)
+				}
+
+				return value
+			}
+			// CREATE_OBJECT(SAMPLER_VIEW): RGBA8, mip/layer zero, identity swizzle.
+			// SET_SAMPLER_VIEWS: fragment shader, slot zero, the created view.
+			submit(0x00060601, 1, 1, 67, 0, 0, 0x688, 0x0003000a, 1, 0, 1)
+			want := binding()
+			if want == 0 {
+				t.Fatal("guest sampler view did not bind its texture")
+			}
+			if err := tc.create(r); err != nil {
+				t.Fatal(err)
+			}
+			// Resume the guest context with its unchanged sampler view. This is a
+			// valid command that deliberately preserves virgl's cached binding.
+			submit(0x0003000a, 1, 0, 1)
+			if got := binding(); got != want {
+				t.Fatalf("native creation changed guest texture binding: got %d, want %d", got, want)
+			}
+		})
+	}
+}
 
 // Run explicitly with -tags 'virgl integration' on a host with EGL support.
 //

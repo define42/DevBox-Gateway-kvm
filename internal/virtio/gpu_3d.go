@@ -41,6 +41,9 @@ const (
 	gpuMax3DRequest = (16 << 20) + gpuCtrlHdrLen + 8
 	gpuMax3DBacking = 131072
 	gpuMaxContexts  = 256
+	// Games and compositors retain many small native resources without
+	// approaching their independent texture and guest-backing byte budgets.
+	gpuMax3DResources = 4096
 	// GNOME wallpaper transitions overlap full-size textures, mip chains and
 	// native upload buffers. Ubuntu's bundled 10000x5622 wallpaper exceeds
 	// one GiB of native resources during a transition. Guest backing remains
@@ -247,7 +250,7 @@ func (g *GPU) createNativeResource(args virgl.ResourceArgs) []byte {
 	if !valid {
 		return g.respNoData(gpuRespErrInvalidParameter)
 	}
-	if charge > gpu3DResourceLimit-g.resource3DBytes || len(g.resources) >= gpuMaxResources {
+	if charge > gpu3DResourceLimit-g.resource3DBytes || len(g.resources) >= gpuMax3DResources {
 		return g.respNoData(gpuRespErrOutOfMemory)
 	}
 	if err := g.renderer.CreateResource(args); err != nil {
