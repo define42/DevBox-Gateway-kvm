@@ -70,6 +70,7 @@ func run(ctx context.Context, args []string) error {
 		Network:        bootArgs.Network,
 		Disk:           bootArgs.Disk,
 		CloudInit:      bootArgs.CloudInit,
+		GPU3D:          bootArgs.GPU3D,
 		RDPProfile:     rdpProfile,
 		RDPWait:        bootArgs.RDPWait,
 		RDPCert:        bootArgs.RDPCert,

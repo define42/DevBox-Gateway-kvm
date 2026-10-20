@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	bootflag "github.com/define42/DevBox-Gateway-kvm/internal/flag"
 	"golang.org/x/sys/unix"
 )
 
@@ -121,6 +122,28 @@ func TestManagerRDPProfiles(t *testing.T) {
 			}
 			if string(profile) != test.want {
 				t.Fatalf("child RDP profile = %q, want %q", profile, test.want)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest // The inherited environment is part of the worker configuration contract.
+func TestManagerGPU3DOverridesWorkerEnvironment(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		t.Run(strconv.FormatBool(enabled), func(t *testing.T) {
+			t.Setenv("VM_GPU_3D", strconv.FormatBool(!enabled))
+			m := newTestManager(t, "graceful")
+			m.config.GPU3D = enabled
+			vm := createManagerVM(t, m, "alice", "desktop")
+			if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+				t.Fatal(err)
+			}
+			value, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.gpu-3d"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(value) != strconv.FormatBool(enabled) {
+				t.Fatalf("child GPU 3D setting = %q, want %t", value, enabled)
 			}
 		})
 	}
@@ -594,7 +617,24 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 			args[arg] = os.Args[i+1]
 		}
 	}
+	for i, arg := range os.Args {
+		if arg != "boot" {
+			continue
+		}
+		boot, _, err := bootflag.ParseArgs(append([]string{"devbox-kvm"}, os.Args[i:]...))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "parse helper boot arguments:", err)
+			os.Exit(2)
+		}
+		args["-gpu-3d"] = strconv.FormatBool(boot.GPU3D)
+
+		break
+	}
 	dir := filepath.Dir(args["-d"])
+	if err := os.WriteFile(filepath.Join(dir, "helper.gpu-3d"), []byte(args["-gpu-3d"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper GPU configuration:", err)
+		os.Exit(2)
+	}
 	signals := make(chan os.Signal, 4)
 	signal.Notify(signals, syscall.SIGUSR1, syscall.SIGTERM)
 	if err := os.WriteFile(filepath.Join(dir, "helper.pid"), []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {

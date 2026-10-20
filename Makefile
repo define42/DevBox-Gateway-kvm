@@ -10,6 +10,7 @@ QCOW2_KEYBOARD ?= us
 QCOW2_ARGS ?=
 GATEWAY_STATE ?= ./.devbox-kvm-gateway
 GATEWAY_IMAGE ?=
+GATEWAY_BUILD_TAGS ?= nvenc
 GATEWAY_ARGS ?=
 LDAP_PORT ?= 1636
 GATEWAY_LDAP_LOCAL ?= 1
@@ -25,7 +26,7 @@ OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
 
 # Docker builds use their own Go toolchain.
-ifneq ($(MAKECMDGOALS),gateway-docker)
+ifneq ($(filter-out gateway-docker nvidia,$(or $(MAKECMDGOALS),default)),)
 export GOPATH := $(shell $(GO) env GOPATH)
 export PATH := $(GOPATH)/bin:$(PATH)
 endif
@@ -38,6 +39,11 @@ $(GOPATH)/bin/stringer:
 devbox-kvm:
 	$(MAKE) generate
 	$(GO) build -o devbox-kvm .
+
+# Optional guest OpenGL; the ordinary build remains usable with CGO_ENABLED=0.
+.PHONY: devbox-kvm-virgl
+devbox-kvm-virgl: generate
+	CGO_ENABLED=1 $(GO) build -tags virgl -o devbox-kvm .
 
 golangci-lint:
 	curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/$(GOLANGCI_LINT_VERSION)/install.sh \
@@ -149,6 +155,32 @@ gateway-docker:
 	./docker/configure.sh
 	docker compose up --build -d gateway
 
+# NVIDIA rendering and encoding with the required VM memory delegation.
+.PHONY: nvidia
+nvidia: export VM_GPU_3D ?= true
+nvidia: export NVIDIA_DRIVER_CAPABILITIES ?= compute,video,utility,graphics
+nvidia: export NVIDIA_RENDER_NODE ?=
+nvidia:
+	./docker/configure.sh
+	@set -eu; \
+		node="$${NVIDIA_RENDER_NODE:-}"; \
+		if [ -z "$$node" ]; then \
+			for vendor in /sys/class/drm/renderD*/device/vendor; do \
+				[ -r "$$vendor" ] || continue; \
+				[ "$$(cat "$$vendor")" = 0x10de ] || continue; \
+				node="/dev/dri/$$(basename "$$(dirname "$$(dirname "$$vendor")")")"; \
+				break; \
+			done; \
+		fi; \
+		if [ -z "$$node" ] || [ ! -c "$$node" ]; then \
+			echo 'NVIDIA render node not found; check the driver or set NVIDIA_RENDER_NODE=/dev/dri/renderDNNN.' >&2; \
+			exit 1; \
+		fi; \
+		echo "Using NVIDIA render node $$node"; \
+		GPU_RENDER_NODE="$$node" RENDER_GID="$$(stat -c '%g' "$$node")" \
+			docker compose -f compose.yaml -f compose.cgroup.yaml \
+				-f compose.virgl.yaml -f compose.nvidia.yaml up --build -d gateway
+
 # Native gateway configuration uses the same ENV keys as the executable.
 # Scope native defaults to this target so Docker uses Compose/.env settings.
 # Retain the GATEWAY_* make variables as defaults for existing invocations.
@@ -170,7 +202,7 @@ ifeq ($(GATEWAY_LDAP_LOCAL),1)
 gateway: ldap
 endif
 gateway: generate
-	CGO_ENABLED=1 $(GO) build -tags nvenc -o devbox-kvm .
+	CGO_ENABLED=1 $(GO) build -tags "$(GATEWAY_BUILD_TAGS)" -o devbox-kvm .
 	@set -eu; mkdir -p -m 700 "$(DATA_ROOT_DIR)"; \
 	if [ -n "$(BASE_IMAGE)" ] && [ ! -e "$(BASE_IMAGE)" ]; then \
 		command -v qemu-img >/dev/null 2>&1 || { echo "Install qemu-utils for one-time image conversion." >&2; exit 1; }; \
@@ -182,3 +214,8 @@ gateway: generate
 	fi
 	@echo "Open https://localhost:8443 and sign in with your LDAP account. See testldap/README.md for local accounts."
 	./devbox-kvm serve $(GATEWAY_ARGS)
+
+# Include OpenGL support; VM_GPU_3D still controls whether guests can use it.
+.PHONY: gateway-virgl
+gateway-virgl: GATEWAY_BUILD_TAGS=nvenc,virgl
+gateway-virgl: gateway

@@ -6,7 +6,7 @@ FROM golang:1.26-trixie AS build
 RUN test "$(dpkg --print-architecture)" = amd64 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        libavcodec-dev libavutil-dev pkg-config \
+        libavcodec-dev libavutil-dev libvirglrenderer-dev libegl-dev libgbm-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -19,7 +19,7 @@ COPY kvm/ ./kvm/
 COPY pkg/ ./pkg/
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 go build -tags nvenc -trimpath -buildvcs=false \
+    CGO_ENABLED=1 go build -tags nvenc,virgl -trimpath -buildvcs=false \
         -ldflags="-s -w" -o /out/devbox-kvm .
 
 FROM debian:trixie-slim AS runtime-deps
@@ -27,6 +27,7 @@ FROM debian:trixie-slim AS runtime-deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates libavcodec61 libavutil59 ovmf qemu-utils \
+        libvirglrenderer1 libegl1 libegl-mesa0 libgl1 libgles2 libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/* \
     && test -r /usr/share/OVMF/OVMF_CODE_4M.fd \
     && test -r /usr/share/OVMF/OVMF_VARS_4M.fd \
@@ -68,7 +69,13 @@ install -d -m 0700 -o 10001 -g 10001 /rootfs/var/lib/devbox-kvm
 
 # ldd includes transitive dependencies and the ELF interpreter. Dereference
 # symlinks so the copied files do not depend on Debian's merged /usr layout.
-ldd /usr/local/bin/devbox-kvm /usr/bin/qemu-img > /tmp/runtime-libraries
+# EGL vendor dispatch and Mesa drivers are loaded dynamically, so ldd on the
+# executable alone misses them. Include every copied driver and its dependencies.
+ldd /usr/local/bin/devbox-kvm /usr/bin/qemu-img \
+    /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0 \
+    /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/x86_64-linux-gnu/libGLESv2.so.2 \
+    /usr/lib/x86_64-linux-gnu/libgbm.so.1 /usr/lib/x86_64-linux-gnu/dri/*.so \
+    > /tmp/runtime-libraries
 if grep -q 'not found' /tmp/runtime-libraries; then
     cat /tmp/runtime-libraries
     exit 1
@@ -89,6 +96,11 @@ cp --parents -L /usr/local/bin/devbox-kvm /usr/bin/qemu-img /sbin/ldconfig \
     /etc/os-release /etc/debian_version /etc/ld.so.conf /rootfs
 cp -a /etc/ld.so.conf.d /rootfs/etc/
 install -d /rootfs/usr/lib/x86_64-linux-gnu /rootfs/usr/local/lib
+cp --parents -L /usr/lib/x86_64-linux-gnu/libEGL.so.1 \
+    /usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0 /usr/lib/x86_64-linux-gnu/libGL.so.1 \
+    /usr/lib/x86_64-linux-gnu/libGLESv2.so.2 /usr/lib/x86_64-linux-gnu/libgbm.so.1 /rootfs
+cp -aL /usr/lib/x86_64-linux-gnu/dri /rootfs/usr/lib/x86_64-linux-gnu/
+cp -a --parents /usr/share/glvnd/egl_vendor.d /usr/share/drirc.d /rootfs
 
 # Keep attribution for the packaged runtime and the application's codecs.
 for copyright in /usr/share/doc/*/copyright; do
@@ -134,7 +146,7 @@ FROM scratch AS runtime
 COPY --from=rootfs /rootfs/ /
 LABEL org.opencontainers.image.title="DevBox-Gateway-kvm" \
       org.opencontainers.image.source="https://github.com/define42/DevBox-Gateway-kvm" \
-      org.opencontainers.image.description="Minimal KVM desktop gateway with optional NVIDIA NVENC encoding"
+      org.opencontainers.image.description="Minimal KVM desktop gateway with optional guest OpenGL and NVIDIA NVENC encoding"
 ENV PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
     DATA_ROOT_DIR=/var/lib/devbox-kvm \

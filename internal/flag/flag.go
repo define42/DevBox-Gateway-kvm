@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 )
@@ -55,6 +56,7 @@ type BootArgs struct {
 	Network        string
 	Disk           string
 	CloudInit      string
+	GPU3D          bool
 	RDPProfile     string
 	RDPFD          int
 	TelemetryFD    int
@@ -93,6 +95,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.Disk, "d", "", "path of disk file (for /dev/vda)")
 	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
 		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
+	settings := config.NewSettings()
+	bootCmd.BoolVar(&c.GPU3D, "gpu-3d", settings.Bool(config.VM_GPU_3D),
+		settings.Description(config.VM_GPU_3D)+" ["+config.VM_GPU_3D+"]")
 	bootCmd.StringVar(&c.RDPProfile, "rdp-profile", rdp.ProfileSmooth,
 		"gateway-internal RDP display profile: office (30 FPS) or smooth (60 FPS); requires -rdp-fd")
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,

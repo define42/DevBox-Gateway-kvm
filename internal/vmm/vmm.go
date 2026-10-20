@@ -15,6 +15,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/term"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virgl"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sync/errgroup"
 )
@@ -54,6 +55,7 @@ type Config struct {
 	Network        string
 	Disk           string
 	CloudInit      string
+	GPU3D          bool // Enable guest OpenGL through the optional virglrenderer backend.
 	RDPProfile     string
 	RDPWait        bool
 	RDPCert        string
@@ -103,6 +105,7 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 	switch v.RDPH264Encoder {
 	case "", "software", "nvenc", "auto":
 	default:
+
 		return errRDPH264EncoderConfig
 	}
 	if v.RDPH264Encoder != "" && !v.RDPH264 {
@@ -127,6 +130,12 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 // Init validates configuration, opens KVM and attaches the configured devices.
 // Call it once before Setup. On failure it closes any machine it created.
 func (v *VMM) Init() (initErr error) {
+	if v.GPU3D && !virgl.Available() {
+		return fmt.Errorf(
+			"guest OpenGL requires CGO_ENABLED=1 and -tags virgl; "+
+				"disable with VM_GPU_3D=false or -gpu-3d=false: %w", virgl.ErrUnavailable,
+		)
+	}
 	if err := v.validateUEFIBootSource(); err != nil {
 		return err
 	}
@@ -215,6 +224,10 @@ func (v *VMM) initNetwork(m *machine.Machine) error {
 
 func (v *VMM) initDisplay(m *machine.Machine) error {
 	if v.RDPListenerFile == nil {
+		if v.GPU3D {
+			return m.AddGPUDisplayWithOptions(nil, v.Telemetry, true)
+		}
+
 		return nil
 	}
 
@@ -230,7 +243,7 @@ func (v *VMM) initDisplay(m *machine.Machine) error {
 		return err
 	}
 
-	if err := m.AddGPUDisplayWithTelemetry(display, v.Telemetry); err != nil {
+	if err := m.AddGPUDisplayWithOptions(display, v.Telemetry, v.GPU3D); err != nil {
 		_ = display.Close()
 
 		return err

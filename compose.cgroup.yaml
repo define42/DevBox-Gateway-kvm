@@ -1,0 +1,16 @@
+# Requires sudo ./docker/setup-cgroup.sh on a rootful systemd Docker host.
+services:
+  gateway:
+    # The worker subtree is a sibling of the container scope in this slice.
+    cgroup: host
+    cgroup_parent: devbox.slice
+    security_opt:
+      - seccomp=./docker/seccomp-vm.json
+    environment:
+      VM_CGROUP_ROOT: /run/devbox-vms
+    volumes:
+      - type: bind
+        source: /sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers
+        target: /run/devbox-vms
+        bind:
+          create_host_path: false

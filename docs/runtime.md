@@ -363,7 +363,68 @@ for a reproducible comparison and its limits.
 
 ### Guest graphics
 
-Virtio-gpu is a 2D framebuffer device; there is no guest 3D acceleration.
+Virtio-gpu defaults to a 2D framebuffer. Optional virglrenderer support enables
+OpenGL for Linux guests using Mesa's virgl driver. The host renders submitted
+3D commands through EGL, and completed frames are read back into the existing
+RDP framebuffer. This path accelerates guest rendering independently of the
+selected H.264 encoder; it does not provide GPU passthrough, Vulkan, or zero-copy
+video encoding.
+
+On Debian/Ubuntu, build the optional backend with:
+
+```bash
+sudo apt install build-essential pkg-config libvirglrenderer-dev libegl-dev libgbm-dev
+make devbox-kvm-virgl
+# Or: CGO_ENABLED=1 go build -tags virgl -o devbox-kvm .
+```
+
+For both guest OpenGL and NVENC, also install the NVENC build dependencies below
+and use `CGO_ENABLED=1 go build -tags 'nvenc virgl' -o devbox-kvm .`.
+`make gateway-virgl` builds both backends before starting the gateway.
+A normal `CGO_ENABLED=0` build remains supported with 3D disabled.
+
+Enable the renderer in the gateway service environment, with the usual gateway
+settings already configured:
+
+```bash
+VM_GPU_3D=true ./devbox-kvm serve
+# Disable guest 3D, including in a binary compiled with virgl support:
+VM_GPU_3D=false ./devbox-kvm serve
+```
+
+The same environment variable applies to direct `boot` commands, which attach
+a headless 3D GPU when enabled and retain the serial console without requiring
+an RDP listener. Explicit
+`serve -gpu-3d=false` or `boot -gpu-3d=false` overrides the environment. The
+gateway forwards its resolved boolean to every worker, so a false override
+cannot accidentally be re-enabled by the worker's inherited environment.
+When enabled, an unavailable build or a failed renderer initialization is an
+error. Setting `false` skips renderer initialization entirely.
+
+The host needs working EGL/OpenGL drivers and access to its DRM render node,
+usually `/dev/dri/renderD128`. Grant the service user the node's group access
+and restart its service/session after group membership changes. No X server or
+host graphical session is needed. Containers must pass through the render node
+and its group; see [Docker guest OpenGL](docker.md#guest-opengl).
+
+The guest needs `CONFIG_DRM_VIRTIO_GPU` and Mesa with the virgl Gallium driver.
+Inside the guest's graphical session, run `glxinfo -B` (usually supplied by
+`mesa-utils`) and check that the OpenGL renderer reports `virgl`. Then run a
+small OpenGL application and view it through RDP. A renderer containing
+`llvmpipe` or `softpipe` indicates software rendering; check host drivers/device
+access as well as guest Mesa. Confirm host GPU activity while rendering before
+claiming hardware acceleration: a virgl renderer can itself use a host software
+EGL implementation.
+
+Native 3D textures and buffers share a 2 GiB accounting budget. This allows
+GNOME wallpaper transitions to retain previous textures, the incoming image,
+its mipmaps, and an upload buffer at the same time. Guest-memory backing has a
+separate 512 MiB limit; these limits do not preallocate memory or change the
+worker's enforced cgroup memory limit.
+
+Apply a changed gateway setting by restarting the gateway and starting fresh
+VM workers. Reconnecting RDP or rebooting only the guest keeps its existing
+virtual GPU configuration.
 
 For framebuffer console output, a custom Linux kernel needs
 `CONFIG_DRM_VIRTIO_GPU`, `CONFIG_DRM_FBDEV_EMULATION`, and
@@ -525,8 +586,8 @@ frames. IDR frames are sent for initialization, resize, refresh, and recovery;
 the software path disables deblocking to reduce latency. A two-frame decode
 window and acknowledgement-based pacing also bound the work sent to a client.
 
-Browser rendering can remain CPU-bound inside the guest because there is no 3D
-acceleration, even when host NVENC is active. Check the active encoder in the
+Browser rendering can remain CPU-bound inside the guest when `VM_GPU_3D=false`,
+even when host NVENC is active. Check the active encoder in the
 gateway's **Performance** view before attributing choppy scrolling to hardware
 encoding. Managed worker output is discarded rather than saved in console logs.
 
@@ -590,6 +651,19 @@ Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to change C
 count, or `DEVBOX_KVM_BINARY=/path/to/devbox-kvm` for an existing binary. Alternate GNU-EFI
 locations use `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`. This checks the firmware
 platform, not every guest OS.
+
+For native virgl transfers, reset/fence completion, and readback into the RDP
+framebuffer, with the virgl build dependencies and working host EGL:
+
+```bash
+DEVBOX_KVM_TEST_VIRGL=1 CGO_ENABLED=1 go test -tags 'virgl integration' \
+  ./internal/virgl ./internal/virtio -run 'TestNative|TestGPUVirgl.*Integration' \
+  -count=1 -timeout 2m -v
+```
+
+This exercises the native renderer without starting a guest. It can run with a
+software host EGL driver and therefore does not prove hardware acceleration;
+also verify the renderer and GPU activity in a real guest as described above.
 
 For actual NVIDIA encoding, with `ffmpeg` and the NVENC build dependencies:
 

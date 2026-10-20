@@ -233,7 +233,7 @@ image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 | Image catalog | Validated standalone QCOW2 uploads become available in Create DevBox; compressed images are normalized with `qemu-img`. |
 | Desktop access | Owner-only, short-lived RDP grants; administrators do not gain access to other users' consoles. |
 | Graphics | Native RDP console with bitmap or H.264 AVC420 output, software encoding, and optional NVIDIA NVENC. |
-| Display and input | Virtio-gpu 2D display, keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
+| Display and input | Virtio-gpu display with optional virgl OpenGL (`VM_GPU_3D=true`), keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
 | Audio | RDP playback enabled by default: 48 kHz stereo PCM16 with guest driver/audio-stack and client support; no microphone capture. |
 | Networking | Managed VMs use DHCP, DNS, and outbound networking through `user-isolated`, which blocks host loopback destinations. |
 | Persistence | VM disks, firmware settings, seeds, image catalog, and metadata survive gateway restarts. |
@@ -299,8 +299,9 @@ This is currently a **single-host application**. VM processes run under the
 same host account; host users must be trusted. Managed guest networking blocks
 host loopback access but can still reach LAN/private destinations. The RDP
 implementation uses TLS and does not support NLA, clipboard/drive redirection,
-or multiple monitors. Graphics are 2D; Intel VA-API and Quick Sync encoding are
-not implemented. Audio supports playback only, not microphone capture.
+or multiple monitors. Graphics default to 2D; optional [guest OpenGL](docs/runtime.md#guest-graphics)
+uses virglrenderer and can be disabled with `VM_GPU_3D=false`. Intel VA-API and
+Quick Sync encoding are not implemented. Audio supports playback only, not microphone capture.
 
 The migrated DevBox workflow includes authentication, provisioning, RDP access,
 and administrator image/VM management. The former application's libvirt, Splunk,

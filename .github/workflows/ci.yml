@@ -122,10 +122,11 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '1.26.x'
-    - name: Install AVC decoder and optional NVENC build dependencies
+    - name: Install AVC decoder and optional NVENC/virgl build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg pkg-config libavcodec-dev libavutil-dev
+        sudo apt-get install -y ffmpeg pkg-config libavcodec-dev libavutil-dev \
+          libvirglrenderer-dev libegl1 libegl-mesa0 libgl1-mesa-dri
     - name: Build bundled pure-Go AVC without cgo
       env:
         CGO_ENABLED: '0'
@@ -133,16 +134,25 @@ jobs:
     - name: Test bundled pure-Go AVC and RDP without cgo
       env:
         CGO_ENABLED: '0'
-      run: go test -short ./internal/rdp/... ./internal/virtio ./internal/vmm ./internal/flag
-    - name: Build and test optional NVENC backend without a GPU
+      run: go test -short ./internal/rdp/... ./internal/virgl ./internal/virtio ./internal/vmm ./internal/flag
+    - name: Build and test optional NVENC/virgl backends without a GPU
       env:
         CGO_ENABLED: '1'
       run: |
-        go build -tags nvenc ./...
-        go test -short -tags nvenc ./internal/rdp/... ./internal/virtio ./internal/vmm ./internal/flag
+        go build -tags nvenc,virgl ./...
+        go test -short -tags nvenc,virgl ./internal/rdp/... ./internal/virgl ./internal/virtio ./internal/vmm ./internal/flag
+    - name: Test native virgl rendering with software EGL
+      env:
+        CGO_ENABLED: '1'
+        LIBGL_ALWAYS_SOFTWARE: '1'
+        EGL_PLATFORM: surfaceless
+        DEVBOX_KVM_TEST_VIRGL: '1'
+      run: |
+        go test -tags 'virgl integration' ./internal/virgl ./internal/virtio \
+          -run 'TestNative|TestGPUVirgl.*Integration' -count=1 -timeout 2m -v
     - name: Check AVC and RDP concurrency
       run: |
-        go test -race ./internal/audio
+        go test -race ./internal/audio ./internal/virgl
         go test -race ./internal/rdp/...
         go test -race ./internal/virtio ./internal/vmm -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror|Blk)'
         go test -race -tags=integration -count=1 ./internal/virtio -run '^TestRDPDisplayAudio'

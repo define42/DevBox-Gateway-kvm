@@ -33,6 +33,7 @@ const defaultMaxCreations = 2
 type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	Encoder, Keyboard                                  string
+	GPU3D                                              bool   // Enable virgl guest OpenGL when each worker starts.
 	RDPProfile                                         string // office (30 FPS) by default; smooth selects 60 FPS.
 	VMProfiling                                        bool   // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
@@ -669,6 +670,8 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
 		"-rdp-profile", m.config.RDPProfile,
+		// Explicit false prevents the worker from inheriting a conflicting VM_GPU_3D.
+		fmt.Sprintf("-gpu-3d=%t", m.config.GPU3D),
 		"-audio", "rdp",
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.

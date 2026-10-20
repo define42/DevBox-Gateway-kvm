@@ -15,6 +15,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virgl"
 )
 
 var errCommandUsage = errors.New("invalid command arguments")
@@ -23,6 +24,12 @@ func runServe(ctx context.Context, args []string, output io.Writer) (serveErr er
 	options, err := readServeOptions(args, output)
 	if err != nil {
 		return err
+	}
+	if options.manager.GPU3D && options.manager.Binary == "" && !virgl.Available() {
+		return fmt.Errorf(
+			"VM_GPU_3D=true (-gpu-3d): rebuild with CGO_ENABLED=1 and -tags virgl, "+
+				"or disable with VM_GPU_3D=false: %w", virgl.ErrUnavailable,
+		)
 	}
 	manager, config, ldap := options.manager, options.gateway, options.ldap
 	certificates, authFile := options.certificates, options.authFile
@@ -124,6 +131,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	stringFlag(&options.manager.DataDir, "state", config.DATA_ROOT_DIR)
 	stringFlag(&options.manager.BaseImage, "image", config.BASE_IMAGE)
 	stringFlag(&options.manager.Binary, "vm-binary", config.VM_BINARY)
+	boolFlag(&options.manager.GPU3D, "gpu-3d", config.VM_GPU_3D)
 	stringFlag(&options.manager.Firmware, "uefi", config.UEFI_CODE)
 	stringFlag(&options.manager.VarsTemplate, "uefi-vars-template", config.UEFI_VARS_TEMPLATE)
 	stringFlag(&options.manager.Encoder, "encoder", config.H264_ENCODER)

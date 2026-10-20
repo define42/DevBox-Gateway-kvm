@@ -51,6 +51,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `DATA_ROOT_DIR` | `.devbox-kvm-gateway` | `-state` | Private persistent state directory. |
 | `BASE_IMAGE` | Empty | `-image` | Optional immutable raw or supported uncompressed QCOW2 default template. Omit to use administrator uploads. |
 | `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
+| `VM_GPU_3D` | `false` | `-gpu-3d` | Enable guest OpenGL via virglrenderer; requires a `virgl` build and host EGL. `false` retains the 2D device without initializing a renderer. Applies when each VM starts. |
 | `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
 | `H264_ENCODER` | `auto` | `-encoder` | `auto`, `nvenc`, or `software`. |
@@ -71,6 +72,11 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_CREATE_TIMEOUT` | `30m` | `-vm-create-timeout` | Overall desktop provisioning timeout including queue wait, from `1m` to `24h`. |
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Guest ACPI shutdown wait; a dashboard stop timeout leaves the guest running. Gateway exit also has separate forced-termination and host-cleanup waits. |
+
+Set `VM_GPU_3D=false` to disable guest 3D. After changing it, restart the gateway
+and start new VM workers; reconnecting RDP or rebooting within a running guest
+does not apply a gateway configuration change. See [guest graphics](runtime.md#guest-graphics)
+for builds, host/guest requirements, and renderer verification.
 
 Managed desktops enable virtio-snd playback over RDP automatically; there is no
 separate gateway audio setting. Guests need the `snd_virtio` driver and an audio

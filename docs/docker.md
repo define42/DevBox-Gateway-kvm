@@ -1,14 +1,45 @@
 # Docker
 
 The default Docker image starts from `scratch` and includes DevBox-Gateway-kvm,
-OVMF, `qemu-img`, CA certificates, and the shared libraries needed for NVENC and
-image conversion. The executable uses dynamic linking; NVENC also loads NVIDIA
-driver libraries supplied by the host. The runtime has no shell, package manager,
+OVMF, `qemu-img`, CA certificates, and the shared libraries needed for NVENC,
+virglrenderer/Mesa OpenGL, and image conversion. The executable uses dynamic
+linking; NVENC also loads NVIDIA driver libraries supplied by the host. The runtime has no shell, package manager,
 or FFmpeg command-line tool.
 
 It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
 and working `/dev/kvm` access. If Linux itself runs in a VM, nested virtualization
 must be enabled.
+
+## Guest OpenGL
+
+The gateway image includes the `virgl` backend, but guest 3D is disabled by
+default. The base Compose file does not require a host GPU. For a Mesa-compatible
+DRM render node, complete the
+[storage and cgroup setup below](#start-the-gateway-and-ldap-with-compose), then
+add the optional GPU overlay:
+
+```bash
+RENDER_GID=$(stat -c %g /dev/dri/renderD128) VM_GPU_3D=true \
+  docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.virgl.yaml \
+    up --build -d gateway
+```
+
+Persist `RENDER_GID` and `VM_GPU_3D=true` in `.env` for later invocations. Keep all
+three Compose files by also setting
+`COMPOSE_FILE=compose.yaml:compose.cgroup.yaml:compose.virgl.yaml`. If the
+render node is different, set `GPU_RENDER_NODE` to its absolute host path and
+use that node's group ID. It is mapped to `/dev/dri/renderD128` inside the
+container so the renderer can discover it at the usual location. The overlay
+grants the container user access to that node without running as root. Host GPU
+drivers must support EGL/OpenGL; NVIDIA NVENC configuration alone does not
+provide guest OpenGL.
+
+To disable guest 3D, set `VM_GPU_3D=false` in `.env` and recreate the gateway
+with the same Compose files. The renderer will not initialize, even if a GPU
+is still exposed. Stop and start desktops with the new gateway configuration;
+reconnecting RDP does not change the virtual GPU. See
+[guest graphics](runtime.md#guest-graphics) for guest Mesa requirements and
+renderer verification. The existing KVM and cgroup requirements still apply.
 
 ## Start the gateway and LDAP with Compose
 
@@ -38,28 +69,41 @@ Do not point this setting at unrelated or non-empty data. An old
 migrates it automatically; selecting this host path starts with the state found
 at that path.
 
-Then run from the repository root:
+Then run from the repository root on a host with **systemd 254 or newer**,
+**cgroup v2**, and **rootful Docker using the systemd cgroup driver without UID
+remapping**:
 
 ```bash
-make gateway-docker
-docker compose logs -f gateway ldap
+sudo ./docker/setup-cgroup.sh
+./docker/configure.sh
+docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
+docker compose -f compose.yaml -f compose.cgroup.yaml logs -f gateway ldap
 ```
 
-The target runs `./docker/configure.sh`, then
-`docker compose up --build -d gateway`. The setup helper detects `/dev/kvm`'s
-group and writes `KVM_GID` to `.env`, which Compose loads automatically. It
-creates `.env` from `.env.example` when needed and preserves your other settings
-on later runs. The gateway continues to run as UID 10001. State already stored
-in the selected host directory is preserved.
+The first helper installs persistent host cgroup delegation; it does not restart
+Docker. The second detects `/dev/kvm`'s group and writes `KVM_GID` to `.env`,
+creating that file from `.env.example` when needed and preserving other settings.
+The gateway continues to run as UID 10001. State already stored in the selected
+host directory is preserved. For other host/runtime arrangements, provide the
+[required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts)
+yourself; the supplied helper rejects unsupported configurations.
 
-The default Compose deployment leaves `VM_CGROUP_ROOT` empty and therefore
-refuses every VM start. Catalog, creation, and stopped-desktop management remain
-available. Before running a desktop, complete the
-[required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts).
+Persist the Compose file selection in `.env` so subsequent commands, including
+`make gateway-docker`, retain the delegation:
 
-After updating this checkout, run `make gateway-docker` again to rebuild the
-gateway image and recreate its container. `docker compose restart`
-reuses the existing binary. If an older image reports
+```dotenv
+COMPOSE_FILE=compose.yaml:compose.cgroup.yaml
+```
+
+With guest OpenGL, append `:compose.virgl.yaml` and configure the GPU as described
+above. Explicit `-f` options override `COMPOSE_FILE`, so include every required
+overlay when using them. The base `compose.yaml` alone leaves `VM_CGROUP_ROOT`
+empty: management remains available, but desktop starts are refused.
+
+After updating this checkout, run `make gateway-docker` to rebuild the
+gateway image and recreate its container using the saved `COMPOSE_FILE`.
+Stop desktops first to let guest applications shut down cleanly.
+`docker compose restart` reuses the existing binary. If an older image reports
 `choose either -ldap-url or -auth-file: invalid command arguments` after the
 environment configuration migration, it may be ignoring the new variables;
 that message does not necessarily mean both authentication methods are set.
@@ -263,8 +307,10 @@ then run from a checkout of that release:
 
 ```bash
 export RELEASE_TAG=v2026.10.11-195952-g012345abcdef # Replace with a published tag.
+sudo ./docker/setup-cgroup.sh
 ./docker/configure.sh
-docker compose -f compose.yaml -f compose.published.yaml up --no-build --pull always -d
+docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.published.yaml \
+  up --no-build --pull always -d
 ```
 
 The override selects prebuilt images; `--no-build` keeps Compose from building
@@ -403,58 +449,104 @@ Managed guest networking uses `user-isolated`; it needs neither a TUN device nor
 
 ## Required cgroup v2 delegation for VM starts
 
-`compose.yaml` passes `VM_MEMORY_OVERHEAD_MIB` and `VM_CGROUP_ROOT` into the
-container, but it deliberately does not create a host cgroup, delegate it, or
-mount it. With the default empty `VM_CGROUP_ROOT`, the gateway remains available
-for management while every VM start fails closed.
+The message “The host cannot enforce this desktop's memory limit” means that
+VM worker memory isolation is unavailable. Creating an ordinary directory or
+setting `VM_CGROUP_ROOT` alone does not configure it. The base Compose file starts
+the management plane but intentionally refuses desktop starts until delegation
+is supplied.
 
-The operator must provide a dedicated cgroup v2 domain subtree with:
+For the supported rootful Docker/systemd setup, run:
 
-- ownership by the container's effective UID (10001 in the supplied image) and
-  no group or other write permission;
-- an empty `cgroup.procs` file;
-- `cgroup.events` reporting recursive `populated 0` at gateway startup, so no
-  live process remains anywhere below the subtree;
-- `memory` listed in both `cgroup.controllers` and
-  `cgroup.subtree_control`;
-- writable `cgroup.kill` controls in children created by the gateway; and
-- a writable, scoped bind mount of only that delegated subtree at a private,
-  clean absolute path in the container, with no symlink components.
+```bash
+sudo ./docker/setup-cgroup.sh
+./docker/configure.sh
+docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
+```
 
-VM starts require Linux 5.14 or newer, cgroup v2 memory support, and clone-time
-cgroup attachment. A container runtime or syscall policy can still deny the
-required `clone3` cgroup attachment even when the mounted control files look
-correct; that launch fails closed. Grant only the specific runtime permission
-needed for this operation rather than using privileged mode or broad
-capabilities.
+The helper requires Linux 5.14 or newer with cgroup v2 memory support, systemd
+254 or newer, Docker's `systemd` cgroup driver, and no rootless mode or UID
+remapping. It installs and enables `devbox-vm-cgroup.service` under `devbox.slice`,
+plus a Docker ordering drop-in so delegation is prepared before Docker on future
+boots. Docker is not restarted. Rerunning the installer leaves an already-active
+service and its workers running; stop desktops and the gateway before explicitly
+restarting the delegation service.
 
-Set `VM_CGROUP_ROOT` to that container path. Do not mount all of `/sys` or
-`/sys/fs/cgroup` read-write, run the gateway as privileged, or add
-`CAP_SYS_ADMIN`. How the dedicated subtree is delegated depends on the host init
-system and container runtime; see the kernel's
+The service creates and delegates this host subtree to UID 10001:
+
+```text
+/sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers
+```
+
+`compose.cgroup.yaml` mounts only that subtree writable at `/run/devbox-vms`,
+sets `VM_CGROUP_ROOT=/run/devbox-vms`, and places the gateway's Docker scope in
+`devbox.slice`. It uses the host cgroup namespace so clone-time attachment can
+reach the worker subtree. The included seccomp profile retains Docker's default
+syscall policy with `clone3` permitted for worker attachment. No privileged mode,
+`CAP_SYS_ADMIN`, or writable mount of the complete host cgroup hierarchy is
+required. Keep the overlay on every Compose invocation, or save
+`COMPOSE_FILE=compose.yaml:compose.cgroup.yaml` in `.env` and append any GPU or
+other required overlays.
+
+Check delegation with:
+
+```bash
+systemctl status devbox-vm-cgroup.service
+sudo cat /sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers/cgroup.subtree_control
+sudo cat /sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers/cgroup.events
+```
+
+The service stays `active (running)` to preserve its delegated subtree. Subtree
+control must include `memory`, and events must report `populated 0` while all
+desktops are stopped. The gateway
+checks that the subtree has no live descendants at startup and validates the
+delegation again before every launch. It fails closed if the subtree is missing,
+incorrectly delegated, or still contains workers from an earlier run.
+
+For other deployment arrangements, provide a dedicated cgroup v2 domain subtree
+with ownership by the container's effective host UID, no group or other write
+permission, no live descendants at gateway startup, and `memory` enabled in both
+`cgroup.controllers` and `cgroup.subtree_control`. Children must support writable
+`cgroup.kill`. Mount only that delegated subtree writable at a private, clean
+absolute container path, and set `VM_CGROUP_ROOT` to that path. The runtime must
+permit `clone3` with cgroup attachment, including write access to the common
+ancestor's `cgroup.procs` under the kernel's delegation rules. See the kernel's
 [cgroup v2 documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html).
-When a non-empty root is configured, gateway startup also checks its recursive
-`populated` state and refuses to start if live descendants were left by an
-earlier run. The gateway validates the delegation again for every launch and
-refuses to start the worker if it is missing or has drifted.
 
 Each worker receives `memory.max` equal to `VM_MEMORY_MIB` plus
 `VM_MEMORY_OVERHEAD_MIB` (default 512 MiB, accepted range 64 to 16384 MiB),
-`memory.swap.max=0`, and `memory.oom.group=1`. The worker is attached during
-clone, before it can run outside the limit. When setting Docker's own memory
-limit, allow for every running guest and its overhead, the gateway's 1 GiB
-admission headroom, and other runtime usage. Use `VM_MEMORY_BUDGET_MIB` and
-`MAX_RUNNING_VMS` for additional admission limits; see
-[memory limits](gateway.md#serve-options).
+`memory.swap.max=0`, and `memory.oom.group=1`. It joins that cgroup during clone,
+before it can run outside the limit. With the supplied overlay, workers are
+outside the Docker container's own cgroup, so a Docker container memory limit
+does **not** cap their aggregate usage. Configure `MemoryMax` on `devbox.slice`
+for an enforced limit covering both gateway and workers. Allow room for every
+running guest and its overhead, the gateway's 1 GiB admission headroom, and other
+runtime usage. Use `VM_MEMORY_BUDGET_MIB` and `MAX_RUNNING_VMS` for additional
+admission limits; see [memory limits](gateway.md#serve-options).
 
 On worker exit, cleanup checks `cgroup.events`, writes `cgroup.kill` if residual
 descendants remain, waits for recursive `populated 0`, and then removes the
 launch cgroup. The reservation is not released until that succeeds. If cleanup
-cannot be verified, the management plane remains available but every later VM
-start is blocked. The operator must inspect and recover the dedicated subtree,
-then restart the gateway; do not bypass the check with a less isolated launch.
+cannot be verified, management remains available but every later VM start is
+blocked. Inspect and recover the dedicated subtree, then restart the gateway.
 
 ## Enable NVIDIA NVENC
+
+After the host storage/cgroup setup and NVIDIA Container Toolkit installation,
+start the NVIDIA variant with:
+
+```bash
+make nvidia
+```
+
+This rebuilds and starts the gateway and its LDAP dependency with the cgroup,
+virgl, and NVIDIA Compose overlays. It detects the first NVIDIA DRM render node
+and its group, enables guest 3D by default, and requests the NVIDIA graphics and
+video driver libraries. Select a particular GPU with
+`make nvidia NVIDIA_RENDER_NODE=/dev/dri/renderD129`. Disable guest 3D while
+retaining the NVIDIA runtime with `VM_GPU_3D=false make nvidia` (or
+`make nvidia VM_GPU_3D=false`). Host Go is not required. The existing
+`H264_ENCODER` setting controls whether NVENC is required or may fall back to
+software.
 
 Install a compatible NVIDIA driver and the
 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
@@ -462,11 +554,13 @@ on the host, and configure its Docker runtime. With Compose, enable the NVIDIA
 override:
 
 ```bash
-docker compose -f compose.yaml -f compose.nvidia.yaml up --build -d
+docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.nvidia.yaml \
+  up --build -d
 ```
 
 Set `H264_ENCODER=nvenc` in `.env` to require hardware encoding. Keep the same
-`-f compose.yaml -f compose.nvidia.yaml` options for subsequent Compose commands.
+`-f compose.yaml -f compose.cgroup.yaml -f compose.nvidia.yaml` options for
+subsequent Compose commands, or persist those files in `COMPOSE_FILE`.
 
 For `docker run`, add these options before the image name:
 
@@ -476,7 +570,12 @@ For `docker run`, add these options before the image name:
 
 The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility`. Keep `video`
 enabled if overriding this variable; it exposes the driver libraries needed for
-NVENC. See NVIDIA's
+NVENC. To also use NVIDIA's OpenGL/EGL driver for `VM_GPU_3D=true`, set
+`NVIDIA_DRIVER_CAPABILITIES=compute,video,utility,graphics` in `.env` (the NVIDIA
+Compose overlay forwards it), or pass that value with `docker run -e`. Include
+the render-node overlay if the renderer needs the host's DRM device. Driver
+capabilities enable the host libraries; verify guest/host renderers as described
+in [guest graphics](runtime.md#guest-graphics). See NVIDIA's
 [driver capability reference](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/docker-specialized.html#driver-capabilities).
 
 The default `H264_ENCODER=auto` falls back to software if NVENC cannot be

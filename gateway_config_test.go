@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
+	"github.com/define42/DevBox-Gateway-kvm/internal/virgl"
 )
 
 func clearServeEnvironment(t *testing.T) {
@@ -265,5 +267,50 @@ func TestServeHelpDocumentsEnvironment(t *testing.T) {
 		if !strings.Contains(output.String(), "["+key+"]") {
 			t.Errorf("help omits %s", key)
 		}
+	}
+}
+
+//nolint:paralleltest // Verifies environment defaults and explicit flag precedence.
+func TestServeGPU3DConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		env  string
+		args []string
+		want bool
+	}{
+		{name: "disabled default"},
+		{name: "enabled environment", env: "true", want: true},
+		{name: "disabled environment", env: "false"},
+		{name: "malformed environment disables", env: "invalid"},
+		{name: "flag disables environment", env: "true", args: []string{"-gpu-3d=false"}},
+		{name: "flag enables environment", env: "false", args: []string{"-gpu-3d=true"}, want: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			clearServeEnvironment(t)
+			t.Setenv(config.VM_GPU_3D, test.env)
+			options, err := readServeOptions(append([]string{"-auth-file=local.json"}, test.args...), io.Discard)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if options.manager.GPU3D != test.want {
+				t.Fatalf("GPU3D = %t, want %t", options.manager.GPU3D, test.want)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeRejectsUnavailableGPU3DBeforeOpeningAuthFile(t *testing.T) {
+	if virgl.Available() {
+		t.Skip("this build includes virgl support")
+	}
+	clearServeEnvironment(t)
+	t.Setenv(config.VM_GPU_3D, "true")
+	err := runServe(context.Background(), []string{"-auth-file=/missing-auth-file"}, io.Discard)
+	if !errors.Is(err, virgl.ErrUnavailable) {
+		t.Fatalf("startup error = %v, want unavailable renderer before authentication I/O", err)
+	}
+	if !strings.Contains(err.Error(), "VM_GPU_3D=false") {
+		t.Fatalf("startup error must explain how to disable 3D: %v", err)
 	}
 }
