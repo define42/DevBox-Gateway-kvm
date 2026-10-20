@@ -403,6 +403,21 @@ func (t *ModernTransport) commonImage() [commonCfgLen]byte {
 	return b
 }
 
+// validCommonWrite requires an exact writable register and access width.
+// Queue addresses use independent, aligned 32-bit low/high accesses.
+func validCommonWrite(off uint64, size int) bool {
+	switch off {
+	case 0, 8, 12, 32, 36, 40, 44, 48, 52:
+		return size == 4
+	case 16, 22, 24, 26, 28:
+		return size == 2
+	case 20:
+		return size == 1
+	default:
+		return false
+	}
+}
+
 // mmioCommonCfg serves reads/writes of the common configuration structure.
 func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 	if !isWrite {
@@ -422,6 +437,12 @@ func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 		t.commonMu.RUnlock()
 		copy(data, img[off:end])
 
+		return
+	}
+
+	// Validate before decoding or invoking callbacks: malformed status writes
+	// must not reset the device, and malformed queue writes must not enable it.
+	if !validCommonWrite(off, len(data)) {
 		return
 	}
 

@@ -465,13 +465,23 @@ func (d *InputDevice) flushEvents() error {
 	return d.Interrupt()
 }
 
+func inputQueueSize(q *SplitQueue) uint16 {
+	if q.Size == 0 || q.Size > QueueSize {
+		return QueueSize
+	}
+
+	return q.Size
+}
+
 func (d *InputDevice) flushEventsLocked() error {
 	q := d.VirtQueue[inputEventQueue]
 	if q == nil {
 		return ErrVQNotInit
 	}
 
-	if d.LastAvailIdx[inputEventQueue] == LoadU16(&q.Avail.Idx) {
+	queueSize := inputQueueSize(q)
+	available := LoadU16(&q.Avail.Idx) - d.LastAvailIdx[inputEventQueue]
+	if available == 0 || available > queueSize {
 		return errNoInputEvent
 	}
 
@@ -480,7 +490,7 @@ func (d *InputDevice) flushEventsLocked() error {
 		return errNoInputEvent
 	}
 
-	head := q.Avail.Ring[d.LastAvailIdx[inputEventQueue]%QueueSize]
+	head := q.Avail.Ring[d.LastAvailIdx[inputEventQueue]%queueSize]
 	usedLen, written := d.writeEvent(q, head, ev)
 	if !written {
 		d.pending = append([]inputEvent{ev}, d.pending...)
@@ -489,8 +499,8 @@ func (d *InputDevice) flushEventsLocked() error {
 	}
 
 	uidx := LoadU16(&q.Used.Idx)
-	q.Used.Ring[uidx%QueueSize].ID = uint32(head)
-	q.Used.Ring[uidx%QueueSize].Len = usedLen
+	q.Used.Ring[uidx%queueSize].ID = uint32(head)
+	q.Used.Ring[uidx%queueSize].Len = usedLen
 	StoreAddU16(&q.Used.Idx, 1)
 	d.LastAvailIdx[inputEventQueue]++
 
@@ -498,31 +508,31 @@ func (d *InputDevice) flushEventsLocked() error {
 }
 
 func (d *InputDevice) writeEvent(q *SplitQueue, head uint16, ev inputEvent) (uint32, bool) {
-	var raw [inputEventLen]byte
-	binary.LittleEndian.PutUint16(raw[0:], ev.typ)
-	binary.LittleEndian.PutUint16(raw[2:], ev.code)
-	binary.LittleEndian.PutUint32(raw[4:], uint32(ev.value))
-
 	descID := head
-	written := 0
+	queueSize := inputQueueSize(q)
+	var visited [QueueSize]bool
+	var writable [QueueSize][]byte
+	segments, remaining := 0, inputEventLen
 
+	// Snapshot the complete chain before modifying guest memory. An invalid
+	// tail must not publish a partial event or reuse a cyclic writable buffer.
 	for {
-		desc := q.Desc[descID]
-		if desc.Flags&descFWrite != 0 {
-			n := int(desc.Len)
-			if n > len(raw)-written {
-				n = len(raw) - written
-			}
-
-			end := desc.Addr + uint64(n)
-			if n > 0 && guestmem.ValidRange(d.Mem, desc.Addr, uint64(n)) {
-				copy(d.Mem[desc.Addr:end], raw[written:written+n])
-				written += n
-			}
+		if descID >= queueSize || visited[descID] {
+			return 0, false
 		}
-
-		if written == len(raw) {
-			return inputEventLen, true
+		visited[descID] = true
+		desc := q.Desc[descID]
+		if desc.Flags & ^uint16(descFNext|descFWrite) != 0 ||
+			!guestmem.ValidRange(d.Mem, desc.Addr, uint64(desc.Len)) {
+			return 0, false
+		}
+		if desc.Flags&descFWrite != 0 {
+			n := min(uint64(desc.Len), uint64(remaining))
+			if n > 0 {
+				writable[segments] = d.Mem[desc.Addr : desc.Addr+n]
+				segments++
+				remaining -= int(n) // n is bounded by the eight-byte event.
+			}
 		}
 
 		if desc.Flags&descFNext == 0 {
@@ -532,7 +542,20 @@ func (d *InputDevice) writeEvent(q *SplitQueue, head uint16, ev inputEvent) (uin
 		descID = desc.Next
 	}
 
-	return uint32(written), false
+	if remaining != 0 {
+		return 0, false
+	}
+
+	var raw [inputEventLen]byte
+	binary.LittleEndian.PutUint16(raw[0:], ev.typ)
+	binary.LittleEndian.PutUint16(raw[2:], ev.code)
+	binary.LittleEndian.PutUint32(raw[4:], uint32(ev.value))
+	written := 0
+	for _, segment := range writable[:segments] {
+		written += copy(segment, raw[written:])
+	}
+
+	return inputEventLen, true
 }
 
 func (d *InputDevice) drainStatusQueue() error {
@@ -552,15 +575,19 @@ func (d *InputDevice) drainStatusQueueLocked() error {
 		return ErrVQNotInit
 	}
 
-	if d.LastAvailIdx[inputStatusQueue] == LoadU16(&q.Avail.Idx) {
+	queueSize := inputQueueSize(q)
+	available := LoadU16(&q.Avail.Idx) - d.LastAvailIdx[inputStatusQueue]
+	if available == 0 || available > queueSize {
 		return errNoInputEvent
 	}
 
-	for d.LastAvailIdx[inputStatusQueue] != LoadU16(&q.Avail.Idx) {
-		head := q.Avail.Ring[d.LastAvailIdx[inputStatusQueue]%QueueSize]
+	// Process only this bounded publication, even if the guest keeps adding
+	// entries while the device mutex is held.
+	for range available {
+		head := q.Avail.Ring[d.LastAvailIdx[inputStatusQueue]%queueSize]
 		uidx := LoadU16(&q.Used.Idx)
-		q.Used.Ring[uidx%QueueSize].ID = uint32(head)
-		q.Used.Ring[uidx%QueueSize].Len = 0
+		q.Used.Ring[uidx%queueSize].ID = uint32(head)
+		q.Used.Ring[uidx%queueSize].Len = 0
 		StoreAddU16(&q.Used.Idx, 1)
 		d.LastAvailIdx[inputStatusQueue]++
 	}
