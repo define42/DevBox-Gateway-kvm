@@ -110,8 +110,7 @@ make test
 ```
 
 This runs generation and lints the default packages plus the integration-tagged
-VMM, machine, and virtio packages, then runs
-`go test -count=1 -timeout 30m -coverprofile c.out ./...` in a fresh user/network
+VMM, machine, and virtio packages, then runs `make coverage` in a fresh user/network
 namespace with loopback enabled. It also runs the required `make test-qcow2`
 firmware/disk smoke test and `make test-audio`, then finishes with
 `go mod tidy -diff`. It does not download or build Linux kernels or a standalone
@@ -191,9 +190,34 @@ CGO_ENABLED=1 go test -race -tags=integration -count=1 ./internal/virtio \
 
 ### CI coverage
 
+```bash
+make coverage                     # Run the default suite and enforce 80% coverage.
+make coverage-check               # Check the existing c.out without rerunning tests.
+go tool cover -func=c.out          # Inspect function-level coverage.
+go tool cover -html=c.out          # Browse uncovered source statements.
+```
+
+`make coverage` uses `go test -count=1 -timeout 30m -covermode=atomic
+-coverpkg=./... -coverprofile c.out ./...`. Cross-package instrumentation counts
+code reached through public APIs and end-to-end package tests, not only the
+package's own tests. Atomic counters also support concurrent execution.
+
+The gate requires at least **80% of statements across all module packages**;
+it does not average package percentages or exclude bundled codec, generated Go,
+or command code. It compares the unrounded statement totals, so 79.999% fails.
+Per-package lines printed by `go test -coverpkg=./...` show each test binary's
+contribution, not the aggregate; use the gate's summary or `go tool cover` for
+the combined result. Integration-tagged tests run separately and do not count
+toward this default-suite threshold.
+
+The self-contained codec tests run without the optional upstream `res/` corpus.
+Missing optional fixtures do not bypass the coverage gate. The coverage command
+still needs the full suite's KVM/network prerequisites listed above.
+
 The [CI workflow](../.github/workflows/ci.yml) runs the default Go suite and the
 QCOW2/UEFI smoke test ten times, with lint, coverage, and `make test-audio` on the
-first run. Separate jobs check the pure-Go and NVENC-tagged builds, selected race
+first run. `make test` enforces the threshold before CI uploads `c.out` to
+Coveralls. Separate jobs check the pure-Go and NVENC-tagged builds, selected race
 tests (including RDP audio), and the dashboard JavaScript.
 The [vulnerability workflow](../.github/workflows/govulncheck.yml) runs
 `govulncheck` against the module. Other integration-tagged tests and physical GPU

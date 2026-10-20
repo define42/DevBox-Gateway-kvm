@@ -30,7 +30,8 @@ dashboard tests, optional integrations, and the code layout.
   changing commands, defaults, configuration, or guest requirements.
 - Run the relevant focused tests and `make golangci`. When the host prerequisites
   are available, run `make test` for the full suite, including QCOW2/UEFI and audio
-  checks. Do not treat skipped hardware checks as passes.
+  checks and the 80% repository-wide statement coverage gate. `make coverage`
+  runs the coverage suite alone. Do not treat skipped hardware checks as passes.
 - In the pull request, explain the user-visible change and list the checks run,
   their results, and any checks you could not run.
 

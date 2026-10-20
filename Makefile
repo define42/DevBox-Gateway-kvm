@@ -57,13 +57,24 @@ golangci: golangci-lint
 test:
 	$(MAKE) generate
 	$(MAKE) golangci
-	# A fresh network namespace starts with loopback down.
-	unshare --user --net --map-root-user \
-		sh -c 'ip link set lo up && exec "$$@"' sh \
-		"$(GO)" test -count=1 -timeout 30m -coverprofile c.out ./...
+	$(MAKE) coverage
 	$(MAKE) test-qcow2
 	$(MAKE) test-audio
 	$(GO) mod tidy -diff
+
+# Count statements reached through other packages as well as package-local tests.
+# Keep all module packages in the denominator, including bundled codec tools.
+.PHONY: coverage
+coverage:
+	# A fresh network namespace starts with loopback down.
+	unshare --user --net --map-root-user \
+		sh -c 'ip link set lo up && exec "$$@"' sh \
+		"$(GO)" test -count=1 -timeout 30m -covermode=atomic -coverpkg=./... -coverprofile c.out ./...
+	$(MAKE) coverage-check
+
+.PHONY: coverage-check
+coverage-check:
+	awk -v minimum=80 -f scripts/check-coverage.awk c.out
 
 # Exercise the gateway's disk/firmware path without external kernel fixtures.
 .PHONY: test-qcow2

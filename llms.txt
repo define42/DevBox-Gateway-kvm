@@ -49,7 +49,9 @@
 
 Run focused tests before the full make test target; the full suite requires KVM,
 network namespaces, and host tools. make test includes lint, QCOW2/UEFI, and audio
-checks. Optional NVENC hardware tests need explicit opt-in; compilation alone does
+checks and an 80% repository-wide statement coverage gate. make coverage runs the
+default suite with cross-package instrumentation, retaining all module packages
+in the denominator. Optional NVENC hardware tests need explicit opt-in; compilation alone does
 not verify GPU encoding. Use the development guide for exact commands.
 
 Do not use live gateway disks as fixtures or publish private state, credentials,
