@@ -39,6 +39,9 @@ The local setup below needs:
 
 - An **x86-64 Linux host** with hardware virtualization and read/write access to
   `/dev/kvm`. Nested virtualization must be available when the host is itself a VM.
+- A private, delegated **cgroup v2 subtree** configured as `VM_CGROUP_ROOT` to
+  start managed VMs. The gateway does not create the delegation; see
+  [VM isolation requirements](docs/gateway.md#serve-options).
 - **Go 1.26 or newer**, Git, and Make.
 - **OVMF firmware**: matching plain, non-SMM CODE and VARS files. The defaults are
   `/usr/share/OVMF/OVMF_CODE_4M.fd` and `/usr/share/OVMF/OVMF_VARS_4M.fd`.
@@ -66,6 +69,8 @@ A desktop image must already contain an x86-64 UEFI-bootable Linux installation,
 systemd, cloud-init, a graphical desktop, a display manager, and virtio drivers
 for its disk, network, and display. Provisioning creates the user and configures
 the system; it does not install a desktop into a server image.
+Managed UEFI guests use a PS/2 keyboard and a virtio-input absolute tablet once
+the guest driver is ready; firmware pointer input uses PS/2.
 Audio playback additionally requires the guest's `snd_virtio` driver and a
 working desktop audio stack; see [audio requirements](docs/runtime.md#audio).
 
@@ -107,6 +112,15 @@ This starts the bundled LDAP directory, builds gokvm, and serves the gateway on
 **https://localhost:8443**. A new state directory has an empty image catalog.
 For this local setup, accept the generated self-signed certificate in your
 browser and RDP client.
+
+With `VM_CGROUP_ROOT` unset, login, image uploads, and desktop creation work, but
+every VM start is refused. Before starting desktops, prepare the
+[required delegation](docs/gateway.md#serve-options) and supply its path when
+launching the gateway, for example:
+
+```bash
+VM_CGROUP_ROOT=/path/to/delegated-subtree make gateway
+```
 
 Sign in with one of the public development accounts:
 
@@ -150,9 +164,10 @@ file. Standalone `boot -rdp` listeners and the direct `make rdp` helper are no
 longer supported.
 
 Shut down desktops before stopping the gateway when guest application state
-matters. Stopping the gateway also stops its VM processes; saved desktops remain
-on disk and can be started again. The development LDAP service stays running
-until you run `make ldap-stop`.
+matters. Gateway shutdown requests guest ACPI shutdown, then forcibly stops
+workers that exceed `VM_STOP_TIMEOUT` (30 seconds by default). Saved desktops
+remain on disk and can be started again. The development LDAP service stays
+running until you run `make ldap-stop`.
 
 ### Run in Docker
 
@@ -180,6 +195,12 @@ make gateway-docker
 This runs `./docker/configure.sh`, then `docker compose up --build -d gateway`.
 Run it again after updating the checkout to rebuild the gateway and recreate
 its container while preserving state in the selected host directory.
+
+The default Compose stack starts the management plane only. Starting VMs also
+requires a dedicated delegated cgroup v2 subtree, a scoped container mount, and
+`VM_CGROUP_ROOT`; follow the [container delegation requirements](docs/docker.md#required-cgroup-v2-delegation-for-vm-starts).
+Do not replace scoped delegation with a privileged container or a writable mount
+of the host's entire cgroup hierarchy.
 
 Open **https://localhost:8443**, accept the local self-signed certificate, and
 sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload
@@ -213,6 +234,7 @@ image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 | Desktop access | Owner-only, short-lived RDP grants; administrators do not gain access to other users' consoles. |
 | Graphics | Native RDP console with bitmap or H.264 AVC420 output, software encoding, and optional NVIDIA NVENC. |
 | Display and input | Virtio-gpu 2D display, keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
+| Audio | RDP playback enabled by default: 48 kHz stereo PCM16 with guest driver/audio-stack and client support; no microphone capture. |
 | Networking | Managed VMs use DHCP, DNS, and outbound networking through `user-isolated`, which blocks host loopback destinations. |
 | Persistence | VM disks, firmware settings, seeds, image catalog, and metadata survive gateway restarts. |
 
@@ -278,8 +300,7 @@ same host account; host users must be trusted. Managed guest networking blocks
 host loopback access but can still reach LAN/private destinations. The RDP
 implementation uses TLS and does not support NLA, clipboard/drive redirection,
 or multiple monitors. Graphics are 2D; Intel VA-API and Quick Sync encoding are
-not implemented. The internal RDP backend supports audio, but managed gateway
-desktops do not currently enable it.
+not implemented. Audio supports playback only, not microphone capture.
 
 The migrated DevBox workflow includes authentication, provisioning, RDP access,
 and administrator image/VM management. The former application's libvirt, Splunk,
@@ -309,8 +330,13 @@ flags override them. LDAP is the authentication path used by `make gateway`.
   and low-level virtualization references.
 - [Bundled LDAP directory](testldap/README.md): development accounts and directory setup.
 - [H.264 library](pkg/h264/README.md): the separately importable codec API.
+- [Documentation index for tools](llms.txt): entry points for repository and
+  operational documentation.
 
 ## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and focused
+checks.
 
 Build the application from the repository root:
 

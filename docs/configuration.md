@@ -16,6 +16,8 @@ ADMIN_GROUP=devbox-admins \
 Exactly one of `LDAP_URL` and `AUTH_FILE` must be set. Authentication, TLS,
 paths, and supported value ranges are validated during startup. See the
 [gateway guide](gateway.md) for LDAP, certificates, VM admission, and storage.
+This example starts the management UI; starting desktops additionally requires
+the delegated `VM_CGROUP_ROOT` described below.
 
 Precedence is **explicit command-line flag → environment variable → default**.
 Existing flags remain supported, including explicit false and empty overrides.
@@ -53,6 +55,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
 | `H264_ENCODER` | `auto` | `-encoder` | `auto`, `nvenc`, or `software`. |
 | `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` (30 FPS) or `smooth` (60 FPS); bitmap fallback stays at 30 FPS. Applies when a managed VM starts. |
+| `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
 | `VM_VCPU_COUNT` | `2` | `-cpus` | vCPUs per desktop, from 1 to 64. |
 | `VM_MEMORY_MIB` | `4096` | `-memory` | MiB per desktop, from 256 to 1048576. |
@@ -67,12 +70,31 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `IMAGE_UPLOAD_TIMEOUT` | `30m` | `-image-upload-timeout` | Overall upload/import timeout, from `1m` to `24h`. |
 | `VM_CREATE_TIMEOUT` | `30m` | `-vm-create-timeout` | Overall desktop provisioning timeout including queue wait, from `1m` to `24h`. |
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
-| `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Time allowed for managed VM shutdown. |
+| `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Guest ACPI shutdown wait; a dashboard stop timeout leaves the guest running. Gateway exit also has separate forced-termination and host-cleanup waits. |
+
+Managed desktops enable virtio-snd playback over RDP automatically; there is no
+separate gateway audio setting. Guests need the `snd_virtio` driver and an audio
+stack, and clients must enable sound. See [audio requirements](runtime.md#audio).
+
+`GATEWAY_VM_PROFILING` takes effect for newly started workers after a gateway
+restart. Set it to `false` to disable the private profiling sockets in Compose.
+See [administrator CPU profiling](performance.md#optional-administrator-cpu-profiling)
+for access requirements and capture limits.
+
+During gateway exit, VMs receive their ACPI shutdown request concurrently. After
+`VM_STOP_TIMEOUT`, each remaining worker receives SIGTERM and then SIGKILL if
+needed, with up to two seconds after each signal (or `VM_STOP_TIMEOUT` when it
+is shorter). Final host cleanup gets a separate, fixed two-second wait, including
+pending metadata writes. A timeout reports an error while the state lock remains
+held until cleanup finishes. Keep the service manager's stop timeout longer than
+these waits; the supplied Compose configuration allows 45 seconds with the
+default 30-second guest timeout.
 
 Every managed VM start requires `VM_CGROUP_ROOT`. Its directory must be a
-privately controlled, writable cgroup v2 domain subtree owned by the gateway's
-effective UID, with no resident processes. The `memory` controller must appear
-in both `cgroup.controllers` and `cgroup.subtree_control`; at gateway startup,
+privately controlled, writable cgroup v2 domain subtree, reached without
+symlinks and owned by the gateway's effective UID, with no resident processes.
+The `memory` controller must appear in both `cgroup.controllers` and
+`cgroup.subtree_control`; at gateway startup,
 the root's recursive `cgroup.events` state must report `populated 0`. Children
 created there must provide writable `cgroup.kill`. This requires Linux 5.14 or
 newer with cgroup v2 memory support and clone-time cgroup attachment available
@@ -174,10 +196,13 @@ for deployment requirements.
 
 The root [`compose.yaml`](../compose.yaml) passes every setting above to the
 gateway and starts it with `serve`. [`.env.example`](../.env.example) includes
-all settings and configures the bundled development LDAP directory. Its LDAP
-address, CA path, account attributes, and group settings differ from the native
+the deployment defaults and configures the bundled development LDAP directory.
+Its LDAP address, CA path, account attributes, and group settings differ from the native
 executable's empty-directory defaults. File paths in Compose are container paths;
 add corresponding mounts when supplying certificates or an external base image.
+Compose also enables `GATEWAY_VM_PROFILING` by default. It passes
+`VM_CGROUP_ROOT` into the container but does not delegate or mount a subtree;
+see the [required container cgroup setup](docker.md#required-cgroup-v2-delegation-for-vm-starts).
 
 `GATEWAY_BIND`, `GATEWAY_HOST`, `GATEWAY_PORT`, `KVM_GID`, and
 `GATEWAY_STORAGE_PATH` are Compose host-deployment controls.

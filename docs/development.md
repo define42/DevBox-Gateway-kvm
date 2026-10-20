@@ -1,7 +1,8 @@
 # Development
 
-Run the commands below from the repository root. For operating the application,
-see the [gateway guide](gateway.md) and [VM runtime guide](runtime.md).
+Run the commands below from the repository root. New contributors can start with
+[CONTRIBUTING.md](../CONTRIBUTING.md). For operating the application, see the
+[gateway guide](gateway.md) and [VM runtime guide](runtime.md).
 
 ## Build and contribute
 
@@ -44,6 +45,7 @@ builds the CLI with its existing executable name; there is no separate
 | [`kvm`](../kvm) | Public Go wrappers for Linux KVM ioctls |
 | [`pkg/h264`](../pkg/h264), [`pkg/h264/api`](../pkg/h264/api) | Public bundled Go H.264 codec and its API |
 | [`internal/gateway`](../internal/gateway) | HTTPS UI, LDAP authentication, image catalog, VM lifecycle, and token-routed RDP |
+| [`internal/config`](../internal/config), [`internal/flag`](../internal/flag) | Environment-backed gateway settings and VM CLI options |
 | [`internal/vmm`](../internal/vmm) | VM configuration, boot orchestration, and shutdown |
 | [`internal/machine`](../internal/machine), [`internal/guestmem`](../internal/guestmem) | KVM machine setup, loaders, platform memory layout, and guest memory validation |
 | [`internal/virtio`](../internal/virtio), [`internal/pci`](../internal/pci), [`internal/iodev`](../internal/iodev) | Devices, PCI transport, framebuffer, and guest input |
@@ -60,9 +62,10 @@ were moved under `internal/` without compatibility packages. The public `kvm`,
 [codec guide](../pkg/h264/README.md) for its API and the
 [porting notes](../pkg/h264/PORTING.md) for its implementation history.
 
-The gateway starts a separate gokvm process for each running desktop. Each process
-opens KVM and its own disk, firmware variables, seed, and TLS RDP listener. RDP
-captures the VM's console framebuffer and sends input to emulated guest devices;
+The gateway starts a separate gokvm process for each running desktop. Each worker
+opens KVM and its own disk, firmware variables, and seed, then adopts the private
+RDP Unix listener created by the gateway. RDP uses TLS, captures the VM's console
+framebuffer, and sends input to emulated guest devices;
 it does not start a guest XRDP session. The gateway authenticates and routes
 connections before proxying them to the selected VM. See
 [`Manager.startProcess`](../internal/gateway/manager.go) and the
@@ -74,7 +77,7 @@ The following package selections exercise the gateway, provisioning, graphics,
 input, networking, and storage without booting a guest:
 
 ```bash
-CGO_ENABLED=0 go test -short ./internal/gateway ./internal/cloudinit
+CGO_ENABLED=0 go test -short ./internal/config ./internal/gateway ./internal/cloudinit
 CGO_ENABLED=0 go test -short ./internal/rdp/... \
   ./internal/virtio ./internal/vmm ./internal/flag
 CGO_ENABLED=0 go test ./internal/audio ./internal/usernet ./internal/disk ./scripts
@@ -90,7 +93,14 @@ For concurrency changes, run the relevant race checks with cgo enabled:
 ```bash
 CGO_ENABLED=1 go test -race ./internal/gateway ./internal/audio ./internal/rdp/...
 CGO_ENABLED=1 go test -race ./internal/virtio ./internal/vmm \
-  -run 'Test(RDP|GPU|MultiDisplay|Audio|Sound|Modern|Framebuffer|SerialMirror)'
+  -run 'Test(RDP|GPU|Audio|Sound|Modern|Framebuffer|Input|FirmwareInput|Blk)'
+```
+
+For dashboard changes, use the same JavaScript checks as the Node.js 22 CI job:
+
+```bash
+node --check internal/gateway/dashboard.js
+node --test internal/gateway/dashboard.test.cjs
 ```
 
 ## Full suite and CI
@@ -100,11 +110,12 @@ make test
 ```
 
 This runs generation and lints the default packages plus the integration-tagged
-VMM code, then runs
+VMM, machine, and virtio packages, then runs
 `go test -count=1 -timeout 30m -coverprofile c.out ./...` in a fresh user/network
 namespace with loopback enabled. It also runs the required `make test-qcow2`
-firmware/disk smoke test and finishes with `go mod tidy -diff`. It does not
-download or build Linux kernels or a standalone initrd.
+firmware/disk smoke test and `make test-audio`, then finishes with
+`go mod tidy -diff`. It does not download or build Linux kernels or a standalone
+initrd.
 
 On Debian/Ubuntu, install the full suite's host tools with:
 
@@ -156,9 +167,34 @@ GOKVM_TEST_OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd \
 failure instead of a skip. `make test-qcow2` sets it automatically, including
 when called by `make test` and CI.
 
+### Audio integration checks
+
+```bash
+make test-audio
+```
+
+This is part of `make test`. It checks UEFI virtio-sound PCI/ACPI registration,
+interrupt acknowledgement, and worker cleanup using KVM, then verifies RDP audio
+negotiation, stereo PCM delivery across reconnects, and desktop input/output when
+the client has no audio channel. It does not boot a guest OS, require a sound
+card, or prove that a particular desktop image has a working audio driver.
+The machine check skips when KVM is absent or inaccessible; inspect the verbose
+output when running this target on its own. The preceding `make test-qcow2` step
+in the full suite treats missing KVM as a failure.
+
+The RDP-only checks need no KVM device and also run under the race detector in CI:
+
+```bash
+CGO_ENABLED=1 go test -race -tags=integration -count=1 ./internal/virtio \
+  -run '^TestRDPDisplayAudio'
+```
+
+### CI coverage
+
 The [CI workflow](../.github/workflows/ci.yml) runs the default Go suite and the
-QCOW2/UEFI smoke test ten times, with lint and coverage on the first run. A
-separate job checks the pure-Go and NVENC-tagged builds plus selected race tests.
+QCOW2/UEFI smoke test ten times, with lint, coverage, and `make test-audio` on the
+first run. Separate jobs check the pure-Go and NVENC-tagged builds, selected race
+tests (including RDP audio), and the dashboard JavaScript.
 The [vulnerability workflow](../.github/workflows/govulncheck.yml) runs
 `govulncheck` against the module. Other integration-tagged tests and physical GPU
 checks below remain opt-in; the NVENC CI build does not prove that a host GPU can
@@ -248,7 +284,9 @@ Set these variables to any nonempty value for device traces:
 | --- | --- |
 | `GOKVM_TRACE_IO` | Guest port I/O exits |
 | `GOKVM_TRACE_MMIO` | Unhandled guest MMIO accesses |
-| `GOKVM_TRACE_ATAPI` | Commands received by the emulated ATAPI device |
+
+Use these traces for direct developer boots. Managed workers discard standard
+output and error; use gateway telemetry and diagnostics for those desktops.
 
 `boot -T N` enables instruction tracing with a skip interval. Managed VM
 telemetry reports framebuffer, conversion, encoding, transport, and pacing

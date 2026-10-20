@@ -37,8 +37,10 @@ var errRDPWaitConfig = errors.New("RDP boot wait requires an RDP listener")
 
 var errRDPListenerConfig = errors.New("RDP requires an inherited Unix listener and gateway process identity")
 
-// Config defines the configuration of the
-// virtual machine, as determined by flags.
+// Config selects a VM's local boot files, devices and host resources.
+// Direct boot uses Kernel, optional Initrd and Params; UEFI boot instead uses
+// UEFI, UEFIVars and Disk. CloudInit is an optional read-only NoCloud seed ISO,
+// not a boot source. Init validates the supported combinations.
 type Config struct {
 	Debug          bool
 	Dev            string
@@ -47,7 +49,7 @@ type Config struct {
 	UEFI           string
 	UEFIVars       string
 	Params         string
-	ParamsSet      bool
+	ParamsSet      bool // Records an explicit Params value, including empty, for UEFI validation.
 	TapIfName      string
 	Network        string
 	Disk           string
@@ -60,7 +62,7 @@ type Config struct {
 	RDPH264Encoder string
 	RDPH264Threads int
 	RDPStats       bool
-	Audio          string
+	Audio          string // Empty or "none" disables audio; "rdp" requires RDPListenerFile.
 	NCPUs          int
 	MemSize        int
 	TraceCount     int
@@ -74,6 +76,9 @@ type Config struct {
 	Telemetry *telemetry.Collector
 }
 
+// VMM owns one machine lifecycle: Init, Setup, then Boot or BootContext.
+// Boot closes the machine on return; callers that stop before booting must call
+// Close themselves. A closed VMM cannot be reused, including after a guest reset.
 type VMM struct {
 	*machine.Machine
 	Config
@@ -83,6 +88,7 @@ type VMM struct {
 	closeErr   error
 }
 
+// New stores c without validating it or acquiring host resources.
 func New(c Config) *VMM {
 	return &VMM{
 		Machine: nil,
@@ -118,7 +124,8 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 	return nil
 }
 
-// Init instantiates a machine.
+// Init validates configuration, opens KVM and attaches the configured devices.
+// Call it once before Setup. On failure it closes any machine it created.
 func (v *VMM) Init() (initErr error) {
 	if err := v.validateUEFIBootSource(); err != nil {
 		return err
@@ -244,6 +251,8 @@ func (v *VMM) display(input virtio.DisplayInput) (virtio.Display, error) {
 	return display, nil
 }
 
+// Setup loads local UEFI firmware or a Linux/PVH kernel and optional initrd into
+// an initialized machine. It does not start the guest and closes the VMM on error.
 func (v *VMM) Setup() (setupErr error) {
 	defer func() {
 		if setupErr != nil {
@@ -258,7 +267,7 @@ func (v *VMM) Setup() (setupErr error) {
 	}
 
 	var initrd io.ReaderAt
-	// Kernel arg required to load kernel or firmware image
+	// Direct boot always requires a local kernel image.
 	kern, err := os.Open(v.Kernel)
 	if err != nil {
 		return err
@@ -355,13 +364,15 @@ func kernelParamName(field string) string {
 	return name
 }
 
-// Boot runs the VM until a CPU stops or terminal input requests shutdown.
+// Boot runs the prepared VM with a background context and closes it on return.
 func (v *VMM) Boot() error {
 	return v.BootContext(context.Background())
 }
 
-// BootContext coordinates CPU and terminal workers and returns the first real
-// execution error. Cancellation wakes CPUs even when KVM_RUN is blocked in HLT.
+// BootContext runs the prepared VM, optionally waiting for an RDP client first.
+// Cancellation wakes CPUs even when KVM_RUN is blocked in HLT. Before returning,
+// it joins execution workers and closes the machine. Execution, cancellation and
+// cleanup errors are joined in the returned error.
 func (v *VMM) BootContext(ctx context.Context) (bootErr error) {
 	defer func() { bootErr = errors.Join(bootErr, v.Close()) }()
 	if err := ctx.Err(); err != nil {
@@ -423,8 +434,9 @@ func (v *VMM) BootContext(ctx context.Context) (bootErr error) {
 	return errors.Join(err, stopErr, ctx.Err())
 }
 
-// Close stops the machine and persists attached state. Setup must finish before
-// Close begins. Repeated calls are safe.
+// Close stops the machine and persists attached state. Init and Setup must not
+// overlap Close. Repeated or concurrent calls return the same result. Borrowed
+// resources such as the original RDPListenerFile remain owned by the caller.
 func (v *VMM) Close() error {
 	v.closeOnce.Do(func() {
 		if v.Machine != nil {

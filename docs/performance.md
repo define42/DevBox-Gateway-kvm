@@ -121,22 +121,26 @@ does not expose host-wide data to ordinary desktop users.
 
 ## Optional administrator CPU profiling
 
-CPU profiling is separate from `/perf`. It is disabled by default and uses a
-private Unix socket, never a TCP listener or the gateway's public HTTP router.
+CPU profiling is separate from `/perf`. The native executable defaults it to
+disabled; the supplied Compose configuration defaults `GATEWAY_VM_PROFILING` to
+`true`. It uses a private Unix socket, never a TCP listener or the gateway's
+public HTTP router. See the [configuration reference](configuration.md#storage-and-desktops)
+for defaults and overrides.
 Only the host operator or container service account with access to the private
 VM state directory can connect. A web administrator session does not grant this
 access. No heap, goroutine, command-line, trace, or arbitrary pprof endpoints are
 registered. No profile is started by reading `/perf`.
 
-Set this in the Compose project's `.env` to enable the facility for newly started
-workers:
+To enable the facility explicitly, set this in the Compose project's `.env`, or
+export it in the native gateway's environment:
 
 ```dotenv
 GATEWAY_VM_PROFILING=true
 ```
 
-Rebuild/recreate the gateway as shown above, **after saving guest work**, then
-start the desktop again. This is not a live toggle for an already running worker.
+After changing the setting, recreate the container or restart the native gateway,
+**after saving guest work**, then start the desktop again. This is not a live
+toggle for an already running worker.
 The equivalent operator flag is `serve -vm-profiling`; a standalone worker accepts
 `boot -profile-socket /absolute/private/directory/cpu.sock`. The directory must
 already exist, belong to the worker's OS user, and have no group/other permissions.
@@ -205,5 +209,5 @@ activity window, and compare an equal-duration idle capture with a scrolling one
 
 Profiles contain function names, source/binary paths and runtime details; review
 them before sharing. Set `GATEWAY_VM_PROFILING=false` and recreate the gateway
-during a planned restart to disable the facility again. No profiles are retained
+during a planned restart to disable the facility. No profiles are retained
 automatically by the server; files saved by the operator remain until removed.

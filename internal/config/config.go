@@ -1,4 +1,6 @@
 // Package config defines the gateway's environment-backed runtime settings.
+// Settings registers defaults and captures environment overrides; the command
+// layer applies flags and validates the resulting runtime configuration.
 package config
 
 import (
@@ -109,7 +111,7 @@ type Settings struct {
 // NewSettings registers gateway defaults and applies environment overrides.
 // Invalid integer, boolean, and duration overrides retain their defaults.
 // Strings preserve explicit empty values; surrounding whitespace is removed.
-// Callers must still validate runtime settings.
+// It does not parse command-line flags or validate runtime constraints.
 func NewSettings() *Settings {
 	s := &Settings{m: make(map[string]*Setting)}
 

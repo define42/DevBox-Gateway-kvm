@@ -28,6 +28,8 @@ const defaultMaxCreations = 2
 
 // ManagerConfig supplies operator-controlled resources for managed UEFI guests.
 // BaseImage is optional; when set, it must be a standalone raw or uncompressed qcow2 image.
+// StartTimeout bounds readiness checks. StopTimeout is the guest's graceful
+// shutdown allowance; it does not include all escalation and host-cleanup waits.
 type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	Encoder, Keyboard                                  string
@@ -44,7 +46,8 @@ type ManagerConfig struct {
 }
 
 // Manager persists each VM's disk, firmware variables, seed and TLS identity.
-// Each running guest is an isolated gokvm child process. Close stops all children.
+// Each running guest is an isolated gokvm child process. The manager exclusively
+// owns its state directory until Close has finished all tracked cleanup.
 type Manager struct {
 	config       ManagerConfig
 	mu           sync.Mutex
@@ -125,6 +128,7 @@ type managedProcess struct {
 }
 
 // NewManager opens an exclusively owned state directory and loads saved VMs.
+// The caller must call Close to stop children and release the state-directory lock.
 func NewManager(config ManagerConfig) (*Manager, error) {
 	if err := normalizeManagerConfig(&config); err != nil {
 		return nil, err
@@ -947,9 +951,14 @@ func (m *Manager) terminate(run *managedProcess) error {
 	return errors.Join(termErr, killErr)
 }
 
-// Close requests ACPI shutdown, then bounds cleanup with SIGTERM and SIGKILL.
-// Concurrent callers wait for the same result. The exclusive state lock remains
-// held until every child and in-flight operation has finished.
+// Close cancels manager operations and requests ACPI shutdown for running guests.
+// It allows StopTimeout for graceful shutdown before SIGTERM/SIGKILL escalation,
+// then waits up to two additional seconds for host cleanup and state-lock release.
+//
+// If the final wait expires, cleanup continues in the background, retaining the
+// exclusive state lock until every child and in-flight operation has finished.
+// Concurrent and repeated calls return the original result, even if background
+// cleanup has since completed.
 func (m *Manager) Close() error {
 	m.closeOnce.Do(func() {
 		m.mu.Lock()

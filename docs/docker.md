@@ -92,10 +92,16 @@ for the report fields and limitations. The endpoint is private; share the downlo
 report, never your login cookie.
 
 The report also includes virtio transfer/flush, framebuffer capture/conversion,
-and RDP ACK-wait measurements. For function-level CPU investigation, optional
-`GATEWAY_VM_PROFILING=true` enables private, bounded worker profiles without
-opening a port. This requires a planned gateway recreation and new worker starts;
-see [administrator profiling](performance.md#optional-administrator-cpu-profiling).
+and RDP ACK-wait measurements. Compose defaults `GATEWAY_VM_PROFILING` to `true`,
+enabling private, bounded worker CPU profiles without opening a port. The native
+executable defaults it to `false`. Changing the setting requires a gateway
+recreation and new worker starts; see
+[administrator profiling](performance.md#optional-administrator-cpu-profiling).
+
+Managed desktops also enable RDP sound playback automatically. The container
+needs no host sound device or audio passthrough. Guests need `snd_virtio` and a
+working audio stack, and clients must enable sound; see
+[audio requirements](runtime.md#audio).
 
 The gateway manages its own certificate: by default it generates and persists a
 self-signed identity for the hostname in `PUBLIC_ADDRESS` (by default,
@@ -413,7 +419,7 @@ The operator must provide a dedicated cgroup v2 domain subtree with:
   `cgroup.subtree_control`;
 - writable `cgroup.kill` controls in children created by the gateway; and
 - a writable, scoped bind mount of only that delegated subtree at a private,
-  clean absolute path in the container.
+  clean absolute path in the container, with no symlink components.
 
 VM starts require Linux 5.14 or newer, cgroup v2 memory support, and clone-time
 cgroup attachment. A container runtime or syscall policy can still deny the
@@ -505,9 +511,15 @@ docker start devbox-gateway-kvm
 ```
 
 Shut down desktops through their graphical session or the dashboard first when
-guest application state matters. Gateway shutdown requests ACPI power-off and
-allows `VM_STOP_TIMEOUT` (30 seconds by default) before terminating remaining VM
-processes; keep Docker's stop timeout longer than this setting to allow cleanup.
+guest application state matters. A dashboard stop timeout leaves the guest
+running. Gateway shutdown instead requests ACPI power-off for all VMs in
+parallel, waits `VM_STOP_TIMEOUT` (30 seconds by default), then sends SIGTERM and
+SIGKILL to remaining workers if necessary. Each forced-termination wait is at
+most two seconds (or `VM_STOP_TIMEOUT` if shorter). Final host cleanup, including
+metadata persistence, has a separate fixed two-second wait. If it times out,
+shutdown reports an error and retains the state lock until cleanup completes.
+Keep Docker's stop timeout longer than the guest wait plus these cleanup waits;
+increase `stop_grace_period` or `--stop-timeout` when increasing `VM_STOP_TIMEOUT`.
 Saved desktops remain in the host storage directory and load as stopped after
 restart. Removing the container, including with `docker compose down -v`, does
 not delete this bind-mounted data; only an explicit host-side operation can

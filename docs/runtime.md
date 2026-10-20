@@ -53,8 +53,12 @@ file. `boot -help` is the complete CLI reference.
 | `-T count` | `0` | Instructions to skip between trace prints; zero disables tracing. |
 
 Boot inputs must be local files; the runtime does not download boot media.
+Direct loading of live/install ISOs or Unified Kernel Images (UKIs) is
+unsupported. CIDATA seed ISOs remain supported through `-cloud-init` as guest
+configuration data.
 Standalone boots use a serial console, with networking disabled by default.
-The gateway enables graphics for its managed workers automatically.
+The gateway enables graphics and RDP sound playback for its managed workers
+automatically.
 
 The inherited `-rdp-fd` and `-telemetry-fd` descriptors and the worker's RDP
 tuning flags are internal gateway interfaces, not standalone access modes.
@@ -156,6 +160,8 @@ preserving the existing VM files.
 Gateway RDP displays firmware graphics through virtio-gpu. Firmware input uses
 PS/2; once the guest initializes virtio-input, pointer input switches to an
 absolute tablet to avoid acceleration drift. The keyboard continues through PS/2.
+If the guest resets its tablet driver, pointer input returns to PS/2 until the
+tablet is ready again.
 
 Gateway-managed RDP VMs have no serial UART or host terminal input. Host
 terminal messages are gokvm diagnostics. OVMF's virtio-gpu graphics protocol does not
@@ -296,16 +302,6 @@ in the guest. `-t tap0` selects a host TAP interface and cannot be combined with
 `-net`; the operator supplies its host network configuration. Networking is off
 unless requested.
 
-Allow at least 2 GiB for browser workloads. A 1 GiB Slax desktop can exhaust RAM
-and compressed swap while RDP stays connected; inspect `free -m` and `vmstat 1`
-in the guest. More tabs may need more memory. The tested Slax image also lacks
-its default CA bundle; for HTTPS certificate errors, run inside Slax:
-
-```bash
-update-ca-certificates
-ln -s certs/ca-certificates.crt /etc/ssl/cert.pem
-```
-
 ## Remote display and input
 
 ### Gateway RDP console
@@ -387,8 +383,8 @@ layouts leave the current size active.
 
 RDP controls the GPU's preferred mode, but the guest must apply the
 virtio-gpu DRM/RandR hotplug notification to change its desktop resolution.
-Otherwise its previous image is scaled to the RDP window. The fixed 1024×768
-VESA fallback also scales. Linux may round mode widths to an 8-pixel boundary.
+Otherwise its previous image is scaled to the RDP window. Linux may round mode
+widths to an 8-pixel boundary.
 Pointer coordinates use the current framebuffer size during mode changes.
 
 For X11 desktops without automatic preferred-mode handling, such as Fluxbox,
@@ -401,7 +397,7 @@ sh ./gokvm-resize &       # Follow changes once per second.
 ```
 
 The helper requires `xrandr` and handles one connected `Virtual-*` output. For
-Slax autostart, place it at `~/.local/bin/gokvm-resize` and add
+Fluxbox autostart, place it at `~/.local/bin/gokvm-resize` and add
 `sh "$HOME/.local/bin/gokvm-resize" &` before Fluxbox starts in
 `~/.fluxbox/startup`. Desktops already handling preferred modes need no helper.
 
@@ -529,10 +525,10 @@ frames. IDR frames are sent for initialization, resize, refresh, and recovery;
 the software path disables deblocking to reduce latency. A two-frame decode
 window and acknowledgement-based pacing also bound the work sent to a client.
 
-VGA/VESA fallbacks publish full frames. Browser rendering can remain CPU-bound
-inside the guest because there is no 3D acceleration,
-even when host NVENC is active. Confirm the negotiated encoder in the server log
-before attributing choppy scrolling to hardware encoding.
+Browser rendering can remain CPU-bound inside the guest because there is no 3D
+acceleration, even when host NVENC is active. Check the active encoder in the
+gateway's **Performance** view before attributing choppy scrolling to hardware
+encoding. Managed worker output is discarded rather than saved in console logs.
 
 ## Audio
 
@@ -572,7 +568,10 @@ For device debugging, set these environment variables to any nonempty value:
 | --- | --- |
 | `GOKVM_TRACE_IO` | Guest port I/O exits. |
 | `GOKVM_TRACE_MMIO` | Unhandled guest MMIO accesses. |
-| `GOKVM_TRACE_ATAPI` | Commands received by the emulated ATAPI device. |
+
+These trace variables are intended for direct developer boots. Gateway-managed
+workers discard standard output and standard error; use the gateway performance
+view and diagnostics download for managed desktops.
 
 The following checks are opt-in and start test guests or exercise hardware.
 

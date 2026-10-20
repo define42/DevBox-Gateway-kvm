@@ -98,10 +98,13 @@ needed. `qemu-img` is still needed to prepare compressed images and for catalog
 imports that require conversion. `H264_ENCODER=auto` also uses software encoding
 when the binary has no NVENC support. `make gateway` always rebuilds the NVENC
 target, so use the direct `serve` command to keep this build.
+As with `make gateway`, configure the [required VM cgroup delegation](#serve-options)
+and pass `VM_CGROUP_ROOT` when launching `serve` before trying to start desktops.
 
 ## Create and connect to a desktop
 
-Once an administrator has uploaded at least one template:
+Once an administrator has uploaded at least one template and the gateway has a
+valid `VM_CGROUP_ROOT`:
 
 1. Sign in, select **Create DevBox**, enter a name, and choose a **Base Image**.
    Names use lowercase letters, digits, and interior hyphens, up to 63 characters.
@@ -130,6 +133,11 @@ Each VM receives an independent clone of the selected image, a private firmware
 variables file, a NoCloud seed, and a private TLS identity. Existing VMs keep
 their owners and provisioned guest passwords. Renaming or changing a directory
 account does not migrate VM ownership or update an existing guest's password.
+
+Managed UEFI desktops display through virtio-gpu. Keyboard input uses PS/2;
+pointer input uses PS/2 during firmware boot and switches to an absolute
+virtio-input tablet when the guest driver is ready. Include the virtio-input
+driver for absolute pointer input; PS/2 remains the fallback until it is ready.
 
 ### View VM performance
 
@@ -225,9 +233,15 @@ throughput or guarantees of session density; CPU, resolution, content, and the
 selected encoder still determine actual performance. See the
 [runtime profile reference](runtime.md#rdp-graphics-profiles) for details.
 
-Clipboard redirection is not implemented, and
-managed VMs currently do not enable audio, even though the downloaded file
-contains client preferences for these features.
+Managed VMs enable audio playback by default: 48 kHz stereo, signed 16-bit PCM
+over RDP. The guest needs the `snd_virtio` driver and a working desktop audio
+stack. The downloaded file requests sound on the client and disables microphone
+capture. Enable local sound in the client; an audio-disabled or unsupported
+client can still use graphics and input. Restart existing VMs after upgrading
+to an audio-enabled worker. See [audio requirements and troubleshooting](runtime.md#audio).
+
+Clipboard redirection and microphone capture are not implemented. The
+downloaded file's clipboard preference does not add server-side support.
 
 RDP access must use the dashboard's downloaded file and authenticate through the
 gateway. Standalone `boot -rdp` listeners and the direct `make rdp` helper are
@@ -292,8 +306,9 @@ also cancels an in-progress import.
 
 A usable template must contain an x86-64 UEFI bootloader, systemd, cloud-init,
 a graphical desktop, a display manager, and virtio disk, network, and display
-drivers. Upload validation checks storage format, not
-whether the installed guest can boot or provision successfully.
+drivers, plus PS/2 keyboard and virtio-input tablet support. Audio playback also
+requires `snd_virtio` and a desktop audio stack. Upload validation checks storage
+format, not whether the installed guest can boot or provision successfully.
 
 - Uploads must contain standalone QCOW2 version 2 or 3 data. The file picker
   accepts `.qcow2`, `.img`, and `.raw` names, but raw-format uploads are rejected.
@@ -401,6 +416,10 @@ LDAP_REQUIRED_GROUP='CN=Desktop Users,OU=Groups,DC=example,DC=com' \
 ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
 ./gokvm serve
 ```
+
+For desktop starts, also set `VM_CGROUP_ROOT` to the prepared private subtree
+described under [`serve` options](#serve-options). Without it the management
+plane starts, but VM starts are refused.
 
 Use the configured public hostname in the browser and downloaded RDP files.
 HTTPS and RDP share one TCP port. An ordinary HTTP reverse proxy cannot carry
@@ -580,6 +599,10 @@ protected. The VM's private Unix RDP listener accepts only the gateway process,
 verified using kernel peer credentials. This does not isolate the service from
 a compromised host account or a privileged host administrator.
 
+Managed worker standard output and error are discarded rather than written to
+persistent per-VM logs, so guest-controlled output cannot fill the state disk.
+Use the performance panel and gateway diagnostics for host-side troubleshooting.
+
 Managed VMs use `-net user-isolated`. They retain IPv4 DHCP/DNS and outbound
 TCP/UDP, while host loopback destinations are denied. This restriction does not
 make the guest network an offline environment or isolate all reachable host/LAN
@@ -594,7 +617,7 @@ RDP connections. `VM_CREATE_TIMEOUT` bounds creation including queue wait
 **Stop** requests the guest's ACPI power button and waits up to `VM_STOP_TIMEOUT`
 (30 seconds by default). If the guest needs confirmation or does not shut down, it remains running; use its
 graphical power menu and refresh status. **Delete** requires a stopped VM and
-permanently removes its disk, firmware variables, seed, metadata, and log.
+permanently removes its disk, firmware variables, seed, and metadata.
 
 Stopping the gateway requests ACPI shutdown of running VMs. After its
 `VM_STOP_TIMEOUT` wait it escalates to SIGTERM, then SIGKILL if necessary. Shut

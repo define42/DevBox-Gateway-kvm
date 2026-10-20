@@ -160,9 +160,11 @@ type inputEvent struct {
 	value int32
 }
 
-// InputDevice is a modern virtio-input keyboard or absolute tablet.
 var _ pci.CapsAndMMIO = (*InputDevice)(nil)
 
+// InputDevice is a modern virtio-input keyboard or absolute tablet.
+// Its owner starts IOThreadEntry, calls Close, and waits for the worker to return
+// before releasing the guest memory supplied to the constructor.
 type InputDevice struct {
 	*ModernTransport
 
@@ -272,6 +274,8 @@ func (d *InputDevice) Notify(idx int) {
 	}
 }
 
+// IOThreadEntry services guest queues until Close is called. The owner runs it
+// once in a goroutine and is responsible for waiting for it to return.
 func (d *InputDevice) IOThreadEntry() {
 	log.Printf("virtio-input: %s IOThreadEntry started", d.name)
 
@@ -309,7 +313,8 @@ func (d *InputDevice) drain(idx int) {
 	_ = d.ReinjectIfPending()
 }
 
-// KeyEvent satisfies DisplayInput for keyboard devices.
+// KeyEvent queues a supported keysym for a keyboard device. Tablets and unknown
+// keysyms are ignored.
 func (d *InputDevice) KeyEvent(down bool, keysym uint32) {
 	if d.kind != inputKindKeyboard {
 		return
@@ -335,7 +340,10 @@ func (d *InputDevice) PointerEvent(buttonMask uint8, x, y uint16) {
 }
 
 // PointerEventInBounds sends a pixel position in the current framebuffer to an
-// absolute tablet. Keyboard devices ignore pointer events.
+// absolute tablet, clamping positions to the framebuffer edges. Button mask bits
+// 0, 1 and 2 represent left, middle and right; rising bits 3 and 4 scroll up and
+// down. Wheel events are relative; pointer movement is always absolute.
+// Keyboard devices and nonpositive framebuffer dimensions are ignored.
 func (d *InputDevice) PointerEventInBounds(buttonMask uint8, x, y uint16, width, height int) {
 	if d.kind != inputKindTablet || width <= 0 || height <= 0 {
 		return
@@ -364,7 +372,7 @@ func (d *InputDevice) PointerEventInBounds(buttonMask uint8, x, y uint16, width,
 func inputAbsolutePosition(position uint16, size int) int32 {
 	// Map pixel centers rather than the outside edges. Linux mousedev scales an
 	// absolute maximum to width (one past the last pixel); avoiding that value
-	// prevents a one-pixel offset after reaching a screen edge in legacy Xvesa.
+	// prevents a one-pixel offset after reaching a screen edge via mousedev.
 	return int32((2*min(int(position), size-1) + 1) * inputAbsMax / (2 * size))
 }
 
@@ -391,6 +399,8 @@ func (d *InputDevice) resetLocked() {
 	d.buttons = 0
 }
 
+// Close discards pending input and signals the queue worker to stop. Repeated
+// calls are safe, but Close does not wait for IOThreadEntry to return.
 func (d *InputDevice) Close() error {
 	d.closeOnce.Do(func() {
 		d.mu.Lock()
@@ -630,11 +640,16 @@ func (d *InputDevice) evBitmap(subsel uint8) [128]byte {
 	return bitmap
 }
 
+// NewInputKeyboard creates a keyboard using borrowed guest memory. It ignores
+// pointer events and leaves worker startup and shutdown to the caller.
 func NewInputKeyboard(irq uint8, inject func() error, mem []byte) *InputDevice {
 	return newInputDevice("gokvm keyboard", inputKindKeyboard, irq, InputKeyboardMMIOBase, inject, mem)
 }
 
-// NewInputTablet creates an absolute pointer suitable for remote display input.
+// NewInputTablet creates an absolute pointer with buttons and wheel scrolling
+// using borrowed guest memory. It ignores key events and leaves worker startup
+// and shutdown to the caller. Use PointerEventInBounds for current display sizes;
+// PointerEvent assumes a 1024x768 framebuffer.
 func NewInputTablet(irq uint8, inject func() error, mem []byte) *InputDevice {
 	return newInputDevice("gokvm tablet", inputKindTablet, irq, InputPointerMMIOBase, inject, mem)
 }
@@ -662,22 +677,27 @@ func newInputDevice(
 }
 
 // InputPair sends remote keyboard events to one virtio-input device and pointer
-// events to another.
+// events to another. It does not own either device's lifecycle.
 type InputPair struct {
 	keyboard *InputDevice
 	pointer  *InputDevice
 }
 
+// NewInputPair combines a keyboard and absolute tablet for DisplayInput.
+// A nil device disables that event stream without affecting the other.
 func NewInputPair(keyboard, pointer *InputDevice) *InputPair {
 	return &InputPair{keyboard: keyboard, pointer: pointer}
 }
 
+// KeyEvent forwards to the keyboard, if both the pair and keyboard are non-nil.
 func (p *InputPair) KeyEvent(down bool, keysym uint32) {
 	if p != nil && p.keyboard != nil {
 		p.keyboard.KeyEvent(down, keysym)
 	}
 }
 
+// PointerEvent forwards pointer input using the default 1024x768 framebuffer.
+// A nil pair or pointer device ignores the event.
 func (p *InputPair) PointerEvent(buttonMask uint8, x, y uint16) {
 	if p != nil && p.pointer != nil {
 		p.pointer.PointerEvent(buttonMask, x, y)
@@ -685,6 +705,7 @@ func (p *InputPair) PointerEvent(buttonMask uint8, x, y uint16) {
 }
 
 // PointerEventInBounds preserves the framebuffer dimensions for absolute input.
+// A nil pair or pointer device ignores the event.
 func (p *InputPair) PointerEventInBounds(buttonMask uint8, x, y uint16, width, height int) {
 	if p != nil && p.pointer != nil {
 		p.pointer.PointerEventInBounds(buttonMask, x, y, width, height)
