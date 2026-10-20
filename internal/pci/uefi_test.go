@@ -14,7 +14,7 @@ func TestUEFIChipsetEnumeration(t *testing.T) {
 	if err := p.AddUEFIChipset(); err != nil {
 		t.Fatal(err)
 	}
-	p.AddDevices(pci.NewIDEController())
+	p.AddDevices(pci.NewBridge())
 	for _, tc := range []struct {
 		name     string
 		slot     int
@@ -25,7 +25,7 @@ func TestUEFIChipsetEnumeration(t *testing.T) {
 		{name: "ISA", slot: 1, want: 0x70008086},
 		{name: "missing function", slot: 1, function: 1, want: 0xffffffff},
 		{name: "PM", slot: 1, function: 3, want: 0x71138086},
-		{name: "next device", slot: 2, want: 0x70108086},
+		{name: "next device", slot: 2, want: 0x12378086},
 		{name: "missing slot", slot: 3, want: 0xffffffff},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestUEFIChipsetEnumeration(t *testing.T) {
 			if err := p.AddUEFIChipset(); err != nil {
 				t.Fatal(err)
 			}
-			p.AddDevices(pci.NewIDEController())
+			p.AddDevices(pci.NewBridge())
 			if got := readPCIConfig(t, p, tc.slot, tc.function, 0); got != tc.want {
 				t.Fatalf("identity = %#x, want %#x", got, tc.want)
 			}

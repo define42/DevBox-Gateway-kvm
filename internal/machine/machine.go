@@ -41,7 +41,6 @@ const (
 	serialIRQ              = 4
 	ps2KeyboardIRQ         = 1
 	ps2MouseIRQ            = 12
-	idePrimaryIRQ          = 14
 	virtioNetIRQ           = 9
 	virtioBlkIRQ           = 10
 	virtioGPUIRQ           = 11
@@ -299,14 +298,6 @@ func (m *Machine) addBlockDevice(v *virtio.Blk) {
 	m.connectVirtioIRQ(v.ModernTransport, virtioBlkIRQ)
 	m.deviceWG.Go(v.IOThreadEntry)
 	m.pci.AddDevices(v)
-}
-
-func (m *Machine) AddReadOnlyCDROM(r io.ReaderAt, size int64) {
-	m.pci.AddDevices(pci.NewIDEController())
-
-	for _, dev := range iodev.NewATAPICDROM(r, size, m.InjectIDEPrimaryIRQ) {
-		m.AddDevice(dev)
-	}
 }
 
 func (m *Machine) AddGPUDisplay(display virtio.Display) error {
@@ -1122,19 +1113,6 @@ func (m *Machine) InjectPS2MouseIRQ() error {
 	}
 
 	if err := kvm.IRQLineStatus(m.vmFd, ps2MouseIRQ, 1); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// InjectIDEPrimaryIRQ injects a primary IDE channel interrupt.
-func (m *Machine) InjectIDEPrimaryIRQ() error {
-	if err := kvm.IRQLineStatus(m.vmFd, idePrimaryIRQ, 0); err != nil {
-		return err
-	}
-
-	if err := kvm.IRQLineStatus(m.vmFd, idePrimaryIRQ, 1); err != nil {
 		return err
 	}
 

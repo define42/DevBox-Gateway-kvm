@@ -27,6 +27,7 @@ var (
 	ErrThreads   = errors.New("H.264 slice count must be between 1 and 16")
 	ErrBackend   = errors.New("H.264 encoder must be software, nvenc, or auto")
 	ErrFrameRate = errors.New("H.264 frame rate must be between 1 and 60")
+	ErrQP        = errors.New("H.264 quantizer must be between 0 and 51")
 )
 
 // Backend selects an H.264 encoder implementation.
@@ -40,12 +41,13 @@ const (
 	BackendAuto Backend = "auto"
 )
 
-// Options controls the backend, software slice count, frame rate, and measurements.
+// Options controls the backend, software slices, frame rate, quantizer, and measurements.
 type Options struct {
 	Threads   int
 	Measure   bool
 	Backend   Backend // Empty selects software; NVENC requires the nvenc build tag and cgo.
 	FrameRate int     // Zero selects FrameRate; otherwise must be between 1 and FrameRate.
+	QP        *int    // Nil selects DefaultQP; explicit values range from MinQP to MaxQP.
 }
 
 // EncodeStats describes the most recent Encode or EncodeDamage call. Encoding
@@ -72,6 +74,7 @@ type Encoder struct {
 	retry            bool
 	frame            int64
 	frameRate        int
+	qp               int
 	threads          int
 	requestedThreads int
 	backend          Backend
@@ -92,13 +95,15 @@ func NewEncoder(width, height int) (*Encoder, error) {
 // for small pictures; Threads reports the effective software count, or zero for
 // NVENC. BackendNVENC returns errors directly; BackendAuto can fall back to software.
 // FrameRate selects the codec clock; zero preserves the 60-FPS default. Callers
-// must pace Encode calls to the selected rate to bound encoding work.
+// must pace Encode calls to the selected rate to bound encoding work. QP controls
+// quantization: higher values reduce quality and usually produce fewer bytes.
+// Nil QP preserves DefaultQP; the value is copied during construction.
 func NewEncoderWithOptions(width, height int, options Options) (*Encoder, error) {
 	return newEncoderWithNVENC(width, height, options, newNVENCEncoder)
 }
 
 func newEncoderWithNVENC(
-	width, height int, options Options, createNVENC func(int, int, int) (codecEncoder, error),
+	width, height int, options Options, createNVENC func(int, int, int, int) (codecEncoder, error),
 ) (*Encoder, error) {
 	if width < 16 || height < 16 || width > maxDimension || height > maxDimension || width%2 != 0 || height%2 != 0 {
 		return nil, ErrGeometry
@@ -113,6 +118,10 @@ func newEncoderWithNVENC(
 	if frameRate < 1 || frameRate > FrameRate {
 		return nil, ErrFrameRate
 	}
+	qp, err := ResolveQP(options.QP)
+	if err != nil {
+		return nil, err
+	}
 	backend := options.Backend
 	if backend == "" {
 		backend = BackendSoftware
@@ -123,10 +132,10 @@ func newEncoderWithNVENC(
 
 	e := &Encoder{
 		width: width, height: height, requestedThreads: options.Threads,
-		measure: options.Measure, auto: backend == BackendAuto, frameRate: frameRate,
+		measure: options.Measure, auto: backend == BackendAuto, frameRate: frameRate, qp: qp,
 	}
 	if backend != BackendSoftware {
-		codec, err := createNVENC(width, height, frameRate)
+		codec, err := createNVENC(width, height, frameRate, qp)
 		switch {
 		case err == nil:
 			e.codec, e.backend = codec, BackendNVENC
@@ -152,6 +161,9 @@ func (e *Encoder) Threads() int { return e.threads }
 // FrameRate reports the configured frame rate, including after automatic fallback.
 func (e *Encoder) FrameRate() int { return e.frameRate }
 
+// QP reports the configured quantizer, including after automatic fallback.
+func (e *Encoder) QP() int { return e.qp }
+
 // Backend reports the active implementation, including after automatic fallback.
 func (e *Encoder) Backend() Backend { return e.backend }
 
@@ -159,7 +171,7 @@ func (e *Encoder) Backend() Backend { return e.backend }
 func (e *Encoder) FallbackReason() error { return e.fallbackReason }
 
 func (e *Encoder) useSoftware() error {
-	codec, threads, err := newCodecEncoder(e.width, e.height, e.requestedThreads, e.frameRate)
+	codec, threads, err := newCodecEncoder(e.width, e.height, e.requestedThreads, e.frameRate, e.qp)
 	if err != nil {
 		return err
 	}

@@ -237,6 +237,14 @@ encoding, converting colors, and invoking the full-picture H.264 codec.
 Changes between frames are coalesced without losing pending damage; idle screens
 are not encoded. This controls graphics only, not input, cursor updates, or audio.
 
+`H264_QP` (or `serve -h264-qp`) sets H.264 quantization: default `20`, minimum `0`,
+maximum `51`, inclusive. Lower values improve quality and increase traffic;
+higher values compress more and reduce quality. The same value applies to
+software and NVENC, including automatic fallback. QP does not impose a guaranteed
+Mbps cap, and even QP `0` retains AVC420 chroma subsampling. Restart the gateway
+and start new VM processes to apply a change; see the
+[configuration reference](configuration.md#storage-and-desktops).
+
 Four continuously changing AVC420 sessions target at most 120 encoded frames per second
 with `office`, instead of 240 with `smooth`. These are workload caps, not measured
 throughput or guarantees of session density; CPU, resolution, content, and the

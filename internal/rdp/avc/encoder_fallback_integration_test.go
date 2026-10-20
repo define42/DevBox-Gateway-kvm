@@ -22,13 +22,13 @@ func TestNVENCHardwareFallback(t *testing.T) {
 		t.Skip("set DEVBOX_KVM_TEST_NVENC=1 to test the NVIDIA GPU")
 	}
 	const width, height, frameRate = 640, 360, 30
-	codec, err := newNVENCEncoder(width, height, frameRate)
+	codec, err := newNVENCEncoder(width, height, frameRate, DefaultQP)
 	if err != nil {
 		t.Fatal(err)
 	}
 	hardware := &failingHardwareCodec{codecEncoder: codec}
 	encoder, err := newEncoderWithNVENC(width, height, Options{Backend: BackendAuto, Threads: 1, FrameRate: frameRate},
-		func(int, int, int) (codecEncoder, error) { return hardware, nil })
+		func(int, int, int, int) (codecEncoder, error) { return hardware, nil })
 	if err != nil {
 		hardware.close()
 		t.Fatal(err)

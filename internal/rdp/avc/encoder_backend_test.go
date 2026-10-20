@@ -39,7 +39,7 @@ func TestEncoderBackendSelection(t *testing.T) {
 			codec := &recordingCodec{}
 			var probes int
 			encoder, err := newEncoderWithNVENC(640, 480, Options{Threads: 2, Backend: test.backend},
-				func(int, int, int) (codecEncoder, error) {
+				func(int, int, int, int) (codecEncoder, error) {
 					probes++
 					if test.hardwareErr != nil {
 						return nil, test.hardwareErr
@@ -106,13 +106,13 @@ func TestEncoderBackendFailure(t *testing.T) {
 			// A real codec supplies the initial stream; the wrapper injects a
 			// device failure without requiring a GPU in normal test runs.
 			const frameRate = 30
-			codec, _, err := newCodecEncoder(64, 48, 1, frameRate)
+			codec, _, err := newCodecEncoder(64, 48, 1, frameRate, DefaultQP)
 			if err != nil {
 				t.Fatal(err)
 			}
 			hardware := &failingHardwareCodec{codecEncoder: codec}
 			encoder, err := newEncoderWithNVENC(64, 48, Options{Threads: 2, Backend: backend, FrameRate: frameRate},
-				func(int, int, int) (codecEncoder, error) { return hardware, nil })
+				func(int, int, int, int) (codecEncoder, error) { return hardware, nil })
 			if err != nil {
 				hardware.close()
 				t.Fatal(err)

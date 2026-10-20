@@ -13,7 +13,6 @@ const (
 	// Avoid periodic IDR latency and full-desktop repaints between those events.
 	codecIntraPeriod          uint32 = 0
 	codecLoopFilterDisableIDC int32  = 1
-	codecQP                          = 20
 )
 
 // codecConfig keeps policy alternatives private while allowing benchmarks to
@@ -29,14 +28,16 @@ type openH264Encoder struct {
 	width, height int
 }
 
-func newCodecEncoder(width, height, threads, frameRate int) (codecEncoder, int, error) {
-	return newCodecEncoderWithConfig(width, height, threads, frameRate, codecConfig{
+func newCodecEncoder(width, height, threads, frameRate, qp int) (codecEncoder, int, error) {
+	return newCodecEncoderWithConfig(width, height, threads, frameRate, qp, codecConfig{
 		intraPeriod:          codecIntraPeriod,
 		loopFilterDisableIDC: codecLoopFilterDisableIDC,
 	})
 }
 
-func newCodecEncoderWithConfig(width, height, threads, frameRate int, config codecConfig) (codecEncoder, int, error) {
+func newCodecEncoderWithConfig(
+	width, height, threads, frameRate, qp int, config codecConfig,
+) (codecEncoder, int, error) {
 	slices := min(threads, (height+15)/16)
 	param, err := openh264.DefaultEncoderParams(width, height, api.UNSPECIFIED_BIT_RATE, float32(frameRate))
 	if err != nil {
@@ -60,7 +61,7 @@ func newCodecEncoderWithConfig(width, height, threads, frameRate int, config cod
 	param.ESpsPpsIdStrategy = api.CONSTANT_ID
 
 	layer := &param.SSpatialLayers[0]
-	layer.IDLayerQp = codecQP
+	layer.IDLayerQp = int32(qp)
 	layer.UiProfileIdc = api.PRO_BASELINE
 	layer.SSliceArgument.UiSliceMode = api.SM_SINGLE_SLICE
 	layer.SSliceArgument.UiSliceNum = 1

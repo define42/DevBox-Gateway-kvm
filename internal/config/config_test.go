@@ -25,6 +25,7 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.UEFI_CODE:                  "/usr/share/OVMF/OVMF_CODE_4M.fd",
 		config.UEFI_VARS_TEMPLATE:         "/usr/share/OVMF/OVMF_VARS_4M.fd",
 		config.H264_ENCODER:               "auto",
+		config.H264_QP:                    "20",
 		config.RDP_PROFILE:                "office",
 		config.GATEWAY_VM_PROFILING:       "false",
 		config.VM_KEYBOARD:                "us",

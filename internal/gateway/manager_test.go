@@ -627,12 +627,17 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 			os.Exit(2)
 		}
 		args["-gpu-3d"] = strconv.FormatBool(boot.GPU3D)
+		args["-rdp-h264-qp"] = strconv.Itoa(boot.RDPH264QP)
 
 		break
 	}
 	dir := filepath.Dir(args["-d"])
 	if err := os.WriteFile(filepath.Join(dir, "helper.gpu-3d"), []byte(args["-gpu-3d"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper GPU configuration:", err)
+		os.Exit(2)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-h264-qp"), []byte(args["-rdp-h264-qp"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper QP:", err)
 		os.Exit(2)
 	}
 	signals := make(chan os.Signal, 4)
@@ -752,4 +757,74 @@ func managerHelperListen(args map[string]string, behavior string) error {
 	}()
 
 	return nil
+}
+
+func TestManagerH264QPWorkerConfiguration(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		qp   *int
+		want int
+	}{
+		{name: "default", want: 20},
+		{name: "minimum", qp: new(0), want: 0},
+		{name: "maximum", qp: new(51), want: 51},
+		{name: "custom", qp: new(28), want: 28},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config := managerTestConfig(t, "graceful")
+			config.H264QP = test.qp
+			m, err := NewManager(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := m.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			if config.H264QP != nil {
+				// Future workers must use the configuration captured at startup.
+				*config.H264QP = 52
+			}
+			m.cgroups = testCgroupFactory{}
+			m.readResident = func(int) (uint64, error) { return 0, nil }
+			m.readMemory = func() (hostMemory, error) {
+				return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
+			}
+			vm := createManagerVM(t, m, "alice", "desktop")
+			if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+				t.Fatal(err)
+			}
+			qp, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.rdp-h264-qp"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(qp) != strconv.Itoa(test.want) {
+				t.Fatalf("child QP = %q, want %d", qp, test.want)
+			}
+		})
+	}
+}
+
+func TestManagerRejectsInvalidH264QP(t *testing.T) {
+	t.Parallel()
+	for _, qp := range []int{-1, 52} {
+		t.Run(strconv.Itoa(qp), func(t *testing.T) {
+			t.Parallel()
+			config := managerTestConfig(t, "graceful")
+			config.H264QP = &qp
+			m, err := NewManager(config)
+			if m != nil {
+				_ = m.Close()
+			}
+			if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "H264_QP") {
+				t.Fatalf("invalid QP accepted: %v", err)
+			}
+			if _, err := os.Stat(config.DataDir); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("invalid QP caused state-directory creation")
+			}
+		})
+	}
 }

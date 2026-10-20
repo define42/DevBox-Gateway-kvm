@@ -10,6 +10,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 )
 
 var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'seed', or 'auth-user' subcommands")
@@ -21,6 +22,8 @@ var ErrRDPH264 = errors.New("-rdp-h264 requires gateway-internal -rdp-fd")
 var ErrRDPProfile = errors.New("-rdp-profile must be office or smooth and requires gateway-internal -rdp-fd")
 
 var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software, nvenc, or auto and requires -rdp-h264")
+
+var ErrRDPH264QP = errors.New("-rdp-h264-qp must be between 0 and 51 and requires -rdp-h264")
 
 var ErrRDPH264Threads = errors.New("-rdp-h264-threads must be 0 (auto) or 1..16 and requires -rdp-h264")
 
@@ -66,6 +69,7 @@ type BootArgs struct {
 	RDPKey         string
 	RDPH264        bool
 	RDPH264Encoder string
+	RDPH264QP      int
 	RDPH264Threads int
 	RDPStats       bool
 	Audio          string
@@ -115,6 +119,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"enable H.264 AVC420 graphics for compatible RDP clients")
 	bootCmd.StringVar(&c.RDPH264Encoder, "rdp-h264-encoder", "software",
 		"H.264 encoder: software, nvenc, or auto (NVENC with software fallback); requires -rdp-h264")
+	bootCmd.IntVar(&c.RDPH264QP, "rdp-h264-qp", avc.DefaultQP,
+		"H.264 quantization: min 0, max 51; lower means higher quality and more bandwidth (requires -rdp-h264)")
 	bootCmd.IntVar(&c.RDPH264Threads, "rdp-h264-threads", 0,
 		"software H.264 slices: 0 selects one automatically, "+
 			"1..16 requests a count within the host budget (requires -rdp-h264)")
@@ -136,7 +142,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if c.NCPUs < 1 || c.NCPUs > ebda.MaxVCPUs {
 		return nil, ErrCPUCount
 	}
-	var threadsSet, encoderSet, profileSet bool
+	var threadsSet, encoderSet, profileSet, qpSet bool
 	bootCmd.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "p":
@@ -145,6 +151,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 			threadsSet = true
 		case "rdp-h264-encoder":
 			encoderSet = true
+		case "rdp-h264-qp":
+			qpSet = true
 		case "rdp-profile":
 			profileSet = true
 		}
@@ -155,7 +163,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if err := selectUEFIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
-	if err := validateRDPOptions(c, threadsSet, encoderSet, profileSet); err != nil {
+	if err := validateRDPOptions(c, threadsSet, encoderSet, profileSet, qpSet); err != nil {
 		return nil, err
 	}
 	if err := validateTelemetryOptions(c); err != nil {
@@ -176,7 +184,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	return c, nil
 }
 
-func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) error {
+func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet, qpSet bool) error {
 	if c.RDPFD != 0 && c.RDPFD < 3 {
 		return ErrRDPFD
 	}
@@ -189,6 +197,20 @@ func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) er
 	if c.RDPWait && c.RDPFD == 0 {
 		return ErrRDPWait
 	}
+	if err := validateRDPH264Options(c, threadsSet, encoderSet, qpSet); err != nil {
+		return err
+	}
+	if c.RDPStats && c.RDPFD == 0 {
+		return ErrRDPStats
+	}
+	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDPFD == 0) {
+		return ErrAudio
+	}
+
+	return nil
+}
+
+func validateRDPH264Options(c *BootArgs, threadsSet, encoderSet, qpSet bool) error {
 	if c.RDPH264 && c.RDPFD == 0 {
 		return ErrRDPH264
 	}
@@ -203,11 +225,8 @@ func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet bool) er
 	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
 		return ErrRDPH264Threads
 	}
-	if c.RDPStats && c.RDPFD == 0 {
-		return ErrRDPStats
-	}
-	if (c.Audio != "" && c.Audio != "none" && c.Audio != "rdp") || (c.Audio == "rdp" && c.RDPFD == 0) {
-		return ErrAudio
+	if _, err := avc.ResolveQP(&c.RDPH264QP); err != nil || (qpSet && !c.RDPH264) {
+		return ErrRDPH264QP
 	}
 
 	return nil

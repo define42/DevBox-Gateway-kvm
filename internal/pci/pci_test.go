@@ -467,11 +467,11 @@ func TestPCISparseFunctionsKeepIndependentBARs(t *testing.T) {
 	if err := p.AddDeviceAt(5, 0, first); err != nil {
 		t.Fatal(err)
 	}
-	p.AddDevices(pci.NewIDEController())
+	p.AddDevices(pci.NewBridge())
 	if got := readPCIConfig(t, p, 5, 0, 0x0c); got&0x00800000 == 0 {
 		t.Fatal("late function zero does not advertise multiple functions")
 	}
-	if got := readPCIConfig(t, p, 6, 0, 0); got != 0x70108086 {
+	if got := readPCIConfig(t, p, 6, 0, 0); got != 0x12378086 {
 		t.Fatalf("sequential registration did not continue after explicit slot: %#x", got)
 	}
 	barOffset := 0x10 + 4*first.MMIOBARIndex()

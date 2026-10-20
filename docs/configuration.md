@@ -55,6 +55,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
 | `H264_ENCODER` | `auto` | `-encoder` | `auto`, `nvenc`, or `software`. |
+| `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
 | `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` (30 FPS) or `smooth` (60 FPS); bitmap fallback stays at 30 FPS. Applies when a managed VM starts. |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
@@ -77,6 +78,13 @@ Set `VM_GPU_3D=false` to disable guest 3D. After changing it, restart the gatewa
 and start new VM workers; reconnecting RDP or rebooting within a running guest
 does not apply a gateway configuration change. See [guest graphics](runtime.md#guest-graphics)
 for builds, host/guest requirements, and renderer verification.
+
+`H264_QP` is shared by software and NVENC encoding, including automatic fallback.
+Zero is valid and selects the highest supported quality; AVC420 still uses chroma
+subsampling, so it does not promise lossless RGB. QP controls compression, not a
+guaranteed Mbps limit. Set `H264_QP=28` in Compose's `.env`, or run
+`H264_QP=28 make nvidia`. Recreate/restart the gateway and start new VM processes
+to apply the change; reconnecting RDP does not apply it.
 
 Managed desktops enable virtio-snd playback over RDP automatically; there is no
 separate gateway audio setting. Guests need the `snd_virtio` driver and an audio

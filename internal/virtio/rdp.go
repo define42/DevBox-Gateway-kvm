@@ -32,6 +32,7 @@ import (
 const rdpResizeDelay = 150 * time.Millisecond
 
 var (
+	errRDPQP              = errors.New("rdp: H.264 QP must be between 0 and 51 and requires H.264")
 	errRDPEncoder         = errors.New("rdp: H.264 encoder must be software, nvenc, or auto and requires H.264")
 	errRDPListener        = errors.New("rdp: an inherited abstract Unix listener is required")
 	errRDPGatewayIdentity = errors.New("rdp: a valid gateway process identity is required")
@@ -50,6 +51,7 @@ type RDPConfig struct {
 	TLS         *tls.Config
 	H264        bool
 	H264Encoder string // Empty selects the software encoder.
+	H264QP      *int   // Nil selects QP 20; 0..51, with lower values using more bandwidth for higher quality.
 	Profile     string // office (30 FPS) or smooth (60 FPS); empty selects smooth.
 	Audio       bool
 	H264Threads int // Slice request; zero chooses a bounded automatic count.
@@ -73,6 +75,7 @@ type RDPDisplay struct {
 	h264           bool
 	h264Backend    avc.Backend
 	h264Slices     int
+	h264QP         int
 	frameRate      int
 	stats          bool
 	telemetry      *telemetry.Collector
@@ -119,6 +122,10 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 		(options.H264Threads != 0 && !options.H264) {
 		return nil, errRDPThreads
 	}
+	qp, err := avc.ResolveQP(options.H264QP)
+	if err != nil || (options.H264QP != nil && !options.H264) {
+		return nil, errRDPQP
+	}
 	listener, ok := options.Listener.(*net.UnixListener)
 	if !ok || listener == nil || !isAbstractUnixAddress(listener.Addr()) {
 		return nil, errRDPListener
@@ -137,12 +144,12 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 	if options.H264 {
 		// Fail before opening the listener if the H.264 encoder cannot initialize.
 		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{
-			Backend: backend, Threads: slices, FrameRate: frameRate,
+			Backend: backend, Threads: slices, FrameRate: frameRate, QP: &qp,
 		})
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("rdp: H.264 encoder=%s requested=%s max_fps=%d", encoder.Backend(), backend, frameRate)
+		log.Printf("rdp: H.264 encoder=%s requested=%s max_fps=%d qp=%d", encoder.Backend(), backend, frameRate, qp)
 		if reason := encoder.FallbackReason(); reason != nil {
 			log.Printf("rdp: H.264 using software fallback: %v", reason)
 		}
@@ -164,7 +171,7 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 	display := &RDPDisplay{
 		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
-		h264Backend: backend, h264Slices: slices, frameRate: frameRate,
+		h264Backend: backend, h264Slices: slices, h264QP: qp, frameRate: frameRate,
 		telemetry: options.Telemetry, gatewayPID: int32(options.GatewayPID), gatewayUID: options.GatewayUID,
 		getParentPID: getParentPID,
 	}
@@ -532,7 +539,7 @@ func (d *RDPDisplay) writeFrames(
 	}
 	writer := &rdpFrameWriter{
 		session: session, bitmap: bitmap, width: width, height: height, force: true,
-		backend: d.h264Backend, slices: d.h264Slices, frameRate: d.frameRate,
+		backend: d.h264Backend, slices: d.h264Slices, frameRate: d.frameRate, h264QP: &d.h264QP,
 		stats: rdpFrameStats{
 			enabled: d.stats, peer: conn.RemoteAddr().String(), telemetry: d.telemetry.Connect(),
 		},
@@ -636,6 +643,7 @@ type rdpFrameWriter struct {
 	height    int
 	graphics  bool
 	frameRate int
+	h264QP    *int
 	sequence  uint64
 	force     bool
 	nextFrame time.Time
@@ -803,6 +811,7 @@ func (w *rdpFrameWriter) write(frame displayFrame, damage []image.Rectangle, for
 		width, height := w.session.Size()
 		encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
 			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.measuring(), FrameRate: w.frameRate,
+			QP: w.h264QP,
 		})
 		if err != nil {
 			return false, err
@@ -810,11 +819,12 @@ func (w *rdpFrameWriter) write(frame displayFrame, damage []image.Rectangle, for
 		w.avc = encoder
 		force = true // A new encoder starts an independent reference chain.
 		log.Printf(
-			"rdp: client %s H.264 encoder=%s slices=%d max_fps=%d",
+			"rdp: client %s H.264 encoder=%s slices=%d max_fps=%d qp=%d",
 			w.stats.peer,
 			encoder.Backend(),
 			encoder.Threads(),
 			encoder.FrameRate(),
+			encoder.QP(),
 		)
 		if reason := encoder.FallbackReason(); reason != nil {
 			log.Printf("rdp: client %s H.264 using software fallback: %v", w.stats.peer, reason)

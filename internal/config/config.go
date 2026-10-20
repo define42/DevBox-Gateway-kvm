@@ -23,6 +23,7 @@ const (
 	UEFI_CODE                  = "UEFI_CODE"
 	UEFI_VARS_TEMPLATE         = "UEFI_VARS_TEMPLATE"
 	H264_ENCODER               = "H264_ENCODER"
+	H264_QP                    = "H264_QP"
 	RDP_PROFILE                = "RDP_PROFILE"
 	GATEWAY_VM_PROFILING       = "GATEWAY_VM_PROFILING"
 	VM_KEYBOARD                = "VM_KEYBOARD"
@@ -123,6 +124,8 @@ func NewSettings() *Settings {
 	s.SetString(UEFI_CODE, "OVMF CODE firmware", "/usr/share/OVMF/OVMF_CODE_4M.fd")
 	s.SetString(UEFI_VARS_TEMPLATE, "Matching pristine OVMF variables template", "/usr/share/OVMF/OVMF_VARS_4M.fd")
 	s.SetString(H264_ENCODER, "H.264 encoder: auto, nvenc, software", "auto")
+	s.SetInt(H264_QP, "H.264 quantizer: min 0, max 51; lower = higher quality/more bandwidth, "+
+		"higher = more compression", 20)
 	s.SetString(RDP_PROFILE, "Desktop graphics profile: office (30 FPS), smooth (60 FPS)", "office")
 	s.SetBool(GATEWAY_VM_PROFILING, "Enable private, on-demand VM worker CPU profiling sockets", false)
 	s.SetString(VM_KEYBOARD, "Guest keyboard layout", "us")

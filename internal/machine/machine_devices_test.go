@@ -1,7 +1,6 @@
 package machine
 
 import (
-	"bytes"
 	"errors"
 	"testing"
 
@@ -42,7 +41,6 @@ func TestMachinePeripheralRegistrationAndClose(t *testing.T) {
 	input := m.AddVirtioInput()
 	input.KeyEvent(true, 'a')
 	input.PointerEvent(1, 400, 300)
-	m.AddReadOnlyCDROM(bytes.NewReader(make([]byte, 2048)), 2048)
 	for _, test := range []struct {
 		base     uint64
 		deviceID uint16
@@ -60,9 +58,6 @@ func TestMachinePeripheralRegistrationAndClose(t *testing.T) {
 		if m.pciIRQLines[irq] == nil {
 			t.Fatalf("UEFI device %#x has no shared interrupt source", test.deviceID)
 		}
-	}
-	if len(m.devices) != 2 || m.devices[0].IOPort() != 0x1f0 || m.devices[1].IOPort() != 0x3f6 {
-		t.Fatal("read-only CD-ROM did not expose its command and control ports")
 	}
 	if err := m.Close(); err != nil {
 		t.Fatal(err)

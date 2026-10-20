@@ -69,7 +69,7 @@ func BenchmarkCodecPolicy(b *testing.B) {
 		for _, candidate := range configs {
 			b.Run(fmt.Sprintf("1080p/%s/%s", workload, candidate.name), func(b *testing.B) {
 				frames, regions := slicedDesktopFrames(1920, 1080, workload == "Scroll")
-				codec, slices, err := newCodecEncoderWithConfig(1920, 1080, 4, FrameRate, candidate.config)
+				codec, slices, err := newCodecEncoderWithConfig(1920, 1080, 4, FrameRate, DefaultQP, candidate.config)
 				if err != nil {
 					b.Fatal(err)
 				}

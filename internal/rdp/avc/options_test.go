@@ -74,7 +74,7 @@ func TestHardwareFrameRateOptions(t *testing.T) {
 			probes := 0
 			encoder, err := newEncoderWithNVENC(64, 48,
 				Options{Threads: 1, FrameRate: test.rate, Backend: test.backend},
-				func(width, height, rate int) (codecEncoder, error) {
+				func(width, height, rate, _ int) (codecEncoder, error) {
 					probes++
 					if width != 64 || height != 48 || rate != test.want {
 						t.Fatalf("NVENC options = %dx%d at %d FPS", width, height, rate)
@@ -122,7 +122,7 @@ func TestFrameRateTimestampsAndRetry(t *testing.T) {
 			hardware := &failingHardwareCodec{codecEncoder: recorded}
 			encoder, err := newEncoderWithNVENC(16, 16,
 				Options{Threads: 1, Backend: BackendNVENC, FrameRate: test.requested},
-				func(int, int, int) (codecEncoder, error) { return hardware, nil })
+				func(int, int, int, int) (codecEncoder, error) { return hardware, nil })
 			if err != nil {
 				t.Fatal(err)
 			}

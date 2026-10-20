@@ -69,7 +69,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/devbox-kvm",
 		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
-		"H264_ENCODER": "software", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
+		"H264_ENCODER": "software", "H264_QP": "28", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
 		"VM_DISK_MAX_SIZE":       "750GiB",
@@ -92,13 +92,14 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	qp := 28
 	want := serveOptions{
 		manager: gateway.ManagerConfig{
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
 			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
-			RDPProfile: "smooth",
-			CPUs:       6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
+			RDPProfile: "smooth", H264QP: &qp,
+			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
 			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
 		},
@@ -263,6 +264,13 @@ func TestServeHelpDocumentsEnvironment(t *testing.T) {
 	if !strings.HasPrefix(output.String(), "Usage: devbox-kvm serve [flags]\n") {
 		t.Fatalf("help does not identify the executable: %q", output.String())
 	}
+	for _, text := range []string{
+		"-h264-qp", "min 0, max 51", "lower = higher quality/more bandwidth", "higher = more compression",
+	} {
+		if !strings.Contains(output.String(), text) {
+			t.Errorf("help omits H264_QP description %q", text)
+		}
+	}
 	for _, key := range config.NewSettings().Keys() {
 		if !strings.Contains(output.String(), "["+key+"]") {
 			t.Errorf("help omits %s", key)
@@ -312,5 +320,51 @@ func TestServeRejectsUnavailableGPU3DBeforeOpeningAuthFile(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "VM_GPU_3D=false") {
 		t.Fatalf("startup error must explain how to disable 3D: %v", err)
+	}
+}
+
+//nolint:paralleltest // Verifies environment defaults and explicit flag precedence.
+func TestServeH264QPConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		env     string
+		args    []string
+		want    int
+		invalid bool
+	}{
+		{name: "default", want: 20},
+		{name: "minimum", env: "0", want: 0},
+		{name: "maximum", env: "51", want: 51},
+		{name: "custom", env: "28", want: 28},
+		{name: "trimmed", env: " 28 ", want: 28},
+		{name: "malformed uses default", env: "invalid", want: 20},
+		{name: "flag minimum overrides environment", env: "28", args: []string{"-h264-qp=0"}, want: 0},
+		{name: "flag overrides invalid environment", env: "52", args: []string{"-h264-qp=28"}, want: 28},
+		{name: "environment below minimum", env: "-1", invalid: true},
+		{name: "environment above maximum", env: "52", invalid: true},
+		{name: "flag below minimum", args: []string{"-h264-qp=-1"}, invalid: true},
+		{name: "flag above maximum", args: []string{"-h264-qp=52"}, invalid: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			clearServeEnvironment(t)
+			if test.env != "" {
+				t.Setenv(config.H264_QP, test.env)
+			}
+			options, err := readServeOptions(append([]string{"-auth-file=local.json"}, test.args...), io.Discard)
+			if test.invalid {
+				if !errors.Is(err, errCommandUsage) || !strings.Contains(err.Error(), "H264_QP") ||
+					!strings.Contains(err.Error(), "51") {
+					t.Fatalf("invalid QP error = %v, want named setting and range", err)
+				}
+
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if options.manager.H264QP == nil || *options.manager.H264QP != test.want {
+				t.Fatalf("QP = %v, want %d", options.manager.H264QP, test.want)
+			}
+		})
 	}
 }

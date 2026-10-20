@@ -157,7 +157,7 @@ func newFixedSliceTestEncoder(t *testing.T, width, height, slices, workers int) 
 	param.BEnableAdaptiveQuant = false
 	param.IEntropyCodingModeFlag = 0
 	layer := &param.SSpatialLayers[0]
-	layer.IDLayerQp = codecQP
+	layer.IDLayerQp = DefaultQP
 	layer.UiProfileIdc = api.PRO_BASELINE
 	layer.SSliceArgument.UiSliceMode = api.SM_FIXEDSLCNUM_SLICE
 	layer.SSliceArgument.UiSliceNum = uint32(slices)

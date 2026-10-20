@@ -15,6 +15,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/cert"
 	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
+	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virgl"
 )
 
@@ -95,6 +96,9 @@ func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
 		)
 	}
 	options.manager.MaxDiskBytes = maxDiskBytes
+	if _, err := avc.ResolveQP(options.manager.H264QP); err != nil {
+		return serveOptions{}, fmt.Errorf("H264_QP (-h264-qp): %s: %w", err.Error(), errCommandUsage)
+	}
 	if (options.authFile == "") == (options.ldap.URL == "") {
 		return serveOptions{}, fmt.Errorf(
 			"choose either LDAP_URL (-ldap-url) or AUTH_FILE (-auth-file): %w", errCommandUsage,
@@ -135,6 +139,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	stringFlag(&options.manager.Firmware, "uefi", config.UEFI_CODE)
 	stringFlag(&options.manager.VarsTemplate, "uefi-vars-template", config.UEFI_VARS_TEMPLATE)
 	stringFlag(&options.manager.Encoder, "encoder", config.H264_ENCODER)
+	options.manager.H264QP = flags.Int("h264-qp", s.Int(config.H264_QP), description(config.H264_QP))
 	stringFlag(&options.manager.RDPProfile, "rdp-profile", config.RDP_PROFILE)
 	boolFlag(&options.manager.VMProfiling, "vm-profiling", config.GATEWAY_VM_PROFILING)
 	stringFlag(&options.manager.Keyboard, "keyboard", config.VM_KEYBOARD)

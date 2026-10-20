@@ -188,7 +188,10 @@ clients must explicitly trust that certificate.
 All gateway settings are passed through environment variables from `.env` or
 the shell. Set `RDP_PROFILE=office` (the default) for a 30 FPS H.264 cap, or
 `smooth` for 60 FPS. Bitmap fallback remains capped at 30 FPS. Restart managed
-VMs to apply a profile change. Set
+VMs to apply a profile change. `H264_QP` controls H.264 compression quality with
+a default of `20` and an inclusive range of `0`–`51`. Lower values improve
+quality and increase traffic; higher values compress more and reduce quality.
+This is not a guaranteed Mbps cap. Set
 `H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`,
 `VM_MEMORY_OVERHEAD_MIB`, `VM_CGROUP_ROOT`, and `MAX_RUNNING_VMS` to change the
 defaults of automatic encoding, 2 vCPUs, 4096 MiB per guest, 512 MiB of worker
@@ -547,6 +550,16 @@ retaining the NVIDIA runtime with `VM_GPU_3D=false make nvidia` (or
 `make nvidia VM_GPU_3D=false`). Host Go is not required. The existing
 `H264_ENCODER` setting controls whether NVENC is required or may fall back to
 software.
+
+For example, use QP 28 to trade some image quality for lower H.264 traffic:
+
+```bash
+H264_QP=28 make nvidia
+```
+
+Or persist `H264_QP=28` in `.env`. The same value applies to NVENC and software,
+including automatic fallback. Save guest work before recreating the gateway,
+then start the desktops again; the setting applies to new VM processes.
 
 Install a compatible NVIDIA driver and the
 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)

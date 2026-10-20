@@ -62,8 +62,8 @@ automatically.
 
 The inherited `-rdp-fd` and `-telemetry-fd` descriptors and the worker's RDP
 tuning flags are internal gateway interfaces, not standalone access modes.
-Configure managed desktop graphics with the gateway's `H264_ENCODER` and
-`RDP_PROFILE` settings instead. No unsafe public-RDP override is provided.
+Configure managed desktop graphics with the gateway's `H264_ENCODER`, `H264_QP`,
+and `RDP_PROFILE` settings instead. No unsafe public-RDP override is provided.
 
 Guests larger than 3.25 GiB use separate low and high RAM regions, reserving PCI
 address space below 4 GiB. The requested `-m` value is RAM; the device address
@@ -479,6 +479,17 @@ files.
 Clients without AVC420 support receive bitmap updates. AVC420 uses lossy YUV
 4:2:0, so small colored text can appear softer than bitmap output. AVC444 is
 not implemented. Graphics encoding does not change console authentication.
+
+Set `H264_QP` (or `serve -h264-qp`) to control H.264 quantization. The default is
+`20`, the minimum is `0`, and the maximum is `51`, inclusive. Lower QP improves
+quality and increases traffic; higher QP compresses more and reduces quality.
+QP `0` is the highest supported quality, but AVC420 chroma subsampling still
+precludes a promise of lossless RGB. QP is not a guaranteed Mbps cap.
+
+The gateway passes the value to each worker with `-rdp-h264-qp`. Software and
+NVENC use the same value, including when `auto` falls back to software. Changing
+it requires restarting the gateway and starting new VM processes; reconnecting
+RDP or rebooting within the guest does not update the worker's setting.
 
 ### Optional NVIDIA NVENC
 
