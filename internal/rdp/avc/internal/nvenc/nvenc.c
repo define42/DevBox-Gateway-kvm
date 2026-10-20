@@ -12,7 +12,7 @@
 #include <libavutil/mem.h>
 #include <libavutil/opt.h>
 
-struct GokvmNVENC {
+struct DevBoxKVMNVENC {
     AVCodecContext *context;
     AVFrame *frame;
     AVPacket *packet;
@@ -26,7 +26,7 @@ static int fail(char *detail, size_t size, const char *operation, int code) {
     return code;
 }
 
-void gokvm_nvenc_free(GokvmNVENC *encoder) {
+void devbox_kvm_nvenc_free(DevBoxKVMNVENC *encoder) {
     if (!encoder)
         return;
     av_packet_free(&encoder->packet);
@@ -35,14 +35,14 @@ void gokvm_nvenc_free(GokvmNVENC *encoder) {
     av_free(encoder);
 }
 
-GokvmNVENC *gokvm_nvenc_new(int width, int height, int frame_rate, int qp,
-                          char *detail, size_t detail_size) {
+DevBoxKVMNVENC *devbox_kvm_nvenc_new(int width, int height, int frame_rate, int qp,
+                                   char *detail, size_t detail_size) {
     const AVCodec *codec = avcodec_find_encoder_by_name("h264_nvenc");
     if (!codec) {
         snprintf(detail, detail_size, "ffmpeg has no h264_nvenc encoder");
         return NULL;
     }
-    GokvmNVENC *encoder = av_mallocz(sizeof(*encoder));
+    DevBoxKVMNVENC *encoder = av_mallocz(sizeof(*encoder));
     if (!encoder) {
         fail(detail, detail_size, "allocate encoder", AVERROR(ENOMEM));
         return NULL;
@@ -123,13 +123,13 @@ GokvmNVENC *gokvm_nvenc_new(int width, int height, int frame_rate, int qp,
     return encoder;
 
 error:
-    gokvm_nvenc_free(encoder);
+    devbox_kvm_nvenc_free(encoder);
     return NULL;
 }
 
-int gokvm_nvenc_encode(GokvmNVENC *encoder, const uint8_t *i420, int force,
-                       int64_t timestamp, uint8_t **data, int *size,
-                       char *detail, size_t detail_size) {
+int devbox_kvm_nvenc_encode(DevBoxKVMNVENC *encoder, const uint8_t *i420, int force,
+                           int64_t timestamp, uint8_t **data, int *size,
+                           char *detail, size_t detail_size) {
     AVFrame *frame = encoder->frame;
     AVPacket *packet = encoder->packet;
     av_packet_unref(packet);

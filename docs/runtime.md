@@ -1,6 +1,6 @@
 # VM runtime and gateway RDP reference
 
-Use `gokvm boot` to run a single VM directly for development. RDP access is
+Use `devbox-kvm boot` to run a single VM directly for development. RDP access is
 available only through the gateway UI: sign in, start your desktop, and open its
 downloaded RDP file. Standalone `boot -rdp <address>` listeners are not supported.
 For the LDAP dashboard, image catalog, managed desktops, and RDP downloads, see the
@@ -11,9 +11,9 @@ Commands below run from the repository root. A normal server build needs Go
 1.26.0 or newer and no C compiler or native codec library:
 
 ```bash
-CGO_ENABLED=0 go build -o gokvm .
-./gokvm probe
-./gokvm boot -help
+CGO_ENABLED=0 go build -o devbox-kvm .
+./devbox-kvm probe
+./devbox-kvm boot -help
 ```
 
 The host must be x86-64 Linux with hardware virtualization enabled and read/write
@@ -67,7 +67,7 @@ Configure managed desktop graphics with the gateway's `H264_ENCODER` and
 
 Guests larger than 3.25 GiB use separate low and high RAM regions, reserving PCI
 address space below 4 GiB. The requested `-m` value is RAM; the device address
-hole does not reduce it. Allow additional host memory for gokvm and other
+hole does not reduce it. Allow additional host memory for devbox-kvm and other
 applications.
 
 Guest RAM uses a zero-initialized anonymous mapping outside the Go heap. Startup
@@ -87,7 +87,7 @@ run. For the Debian/Ubuntu 4 MiB layout:
 
 ```bash
 cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
-./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+./devbox-kvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 \
   -m 2G -c 2 -net user
 ```
@@ -128,10 +128,10 @@ On the first run, the target preserves the source image and creates:
 
 | File | Purpose |
 | --- | --- |
-| `rocky9-xfce-v2.4.16.gokvm.qcow2` | Writable standalone working disk, converted without compressed clusters. |
-| `rocky9-xfce-v2.4.16.gokvm.qcow2.vars.fd` | Persistent per-VM firmware variables. |
-| `rocky9-xfce-v2.4.16.gokvm.qcow2.seed.iso` | Persistent NoCloud account seed. |
-| `rocky9-xfce-v2.4.16.gokvm.qcow2.seed.iso.credentials.json` | Generated guest username and random password, mode 0600. |
+| `rocky9-xfce-v2.4.16.devbox-kvm.qcow2` | Writable standalone working disk, converted without compressed clusters. |
+| `rocky9-xfce-v2.4.16.devbox-kvm.qcow2.vars.fd` | Persistent per-VM firmware variables. |
+| `rocky9-xfce-v2.4.16.devbox-kvm.qcow2.seed.iso` | Persistent NoCloud account seed. |
+| `rocky9-xfce-v2.4.16.devbox-kvm.qcow2.seed.iso.credentials.json` | Generated guest username and random password, mode 0600. |
 
 The example creates a `rocky` account; the source image has no preset login.
 Later runs reuse the disk, VARS, seed, and credentials. These generated files
@@ -164,10 +164,10 @@ If the guest resets its tablet driver, pointer input returns to PS/2 until the
 tablet is ready again.
 
 Gateway-managed RDP VMs have no serial UART or host terminal input. Host
-terminal messages are gokvm diagnostics. OVMF's virtio-gpu graphics protocol does not
+terminal messages are devbox-kvm diagnostics. OVMF's virtio-gpu graphics protocol does not
 provide a directly mapped linear framebuffer: after firmware exits, its last
 frame remains until a guest graphics driver publishes another frame. Early
-Linux text needs a guest-supported graphical console; gokvm does not synthesize
+Linux text needs a guest-supported graphical console; devbox-kvm does not synthesize
 it from serial output.
 
 The Rocky example image's bootloader uses `console=ttyS0,115200n8`. Change its
@@ -176,7 +176,7 @@ graphical console. UEFI mode does not rewrite these arguments. Gateway RDP shows
 the current screen rather than replaying missed screens.
 
 Shut down from the guest when possible. For UEFI guests, sending SIGUSR1 to the
-`gokvm boot` process requests an ACPI power-button event; the guest decides how
+`devbox-kvm boot` process requests an ACPI power-button event; the guest decides how
 to handle it. SIGINT/SIGTERM, including Ctrl+C, stop
 the VM and close its disks and VARS store; they do not perform an orderly guest
 OS shutdown. The serial shortcut **Ctrl-a, then x** is available for standalone
@@ -192,13 +192,13 @@ See [EDK2's virtio-blk request validation](https://github.com/tianocore/edk2/blo
 ## Direct Linux and PVH boot
 
 These modes load a Linux kernel directly; they do not run BIOS/UEFI bootloader
-code. Their built-in kernel arguments describe gokvm's direct-boot environment.
+code. Their built-in kernel arguments describe devbox-kvm's direct-boot environment.
 Use `-p` to replace those arguments when a guest needs a different root device or
 init program. UEFI disk boot instead preserves the installed bootloader's
 configuration.
 
 ```bash
-./gokvm boot -k /path/to/bzImage -i /path/to/initrd
+./devbox-kvm boot -k /path/to/bzImage -i /path/to/initrd
 ```
 
 This starts a serial-console VM. A kernel with a PVH entry point selects the PVH
@@ -221,7 +221,7 @@ contents. The primary disk appears as `/dev/vda`. Attaching a disk does not sele
 a disk bootloader: use `-uefi`, or provide a direct kernel and any required initrd.
 
 ```bash
-./gokvm boot -k /path/to/bzImage -i /path/to/initrd -d ./disk.qcow2
+./devbox-kvm boot -k /path/to/bzImage -i /path/to/initrd -d ./disk.qcow2
 qemu-img create -f qcow2 blank.qcow2 4G
 ```
 
@@ -266,9 +266,9 @@ and virtio drivers, create a fresh per-VM VARS copy and account seed:
 
 ```bash
 cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
-./gokvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
+./devbox-kvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
 # Read seed.iso.credentials.json for the generated guest login.
-./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+./devbox-kvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
   -m 4G -c 2 -net user
 ```
@@ -388,17 +388,17 @@ widths to an 8-pixel boundary.
 Pointer coordinates use the current framebuffer size during mode changes.
 
 For X11 desktops without automatic preferred-mode handling, such as Fluxbox,
-copy [scripts/gokvm-resize](../scripts/gokvm-resize) into the guest and run it
+copy [scripts/devbox-kvm-resize](../scripts/devbox-kvm-resize) into the guest and run it
 from its graphical session:
 
 ```bash
-sh ./gokvm-resize --once  # Apply once.
-sh ./gokvm-resize &       # Follow changes once per second.
+sh ./devbox-kvm-resize --once  # Apply once.
+sh ./devbox-kvm-resize &       # Follow changes once per second.
 ```
 
 The helper requires `xrandr` and handles one connected `Virtual-*` output. For
-Fluxbox autostart, place it at `~/.local/bin/gokvm-resize` and add
-`sh "$HOME/.local/bin/gokvm-resize" &` before Fluxbox starts in
+Fluxbox autostart, place it at `~/.local/bin/devbox-kvm-resize` and add
+`sh "$HOME/.local/bin/devbox-kvm-resize" &` before Fluxbox starts in
 `~/.fluxbox/startup`. Desktops already handling preferred modes need no helper.
 
 ## H.264 and hardware encoding
@@ -408,7 +408,7 @@ AVC420 requires no C compiler, native codec library, or special build tag;
 selected amd64 codec kernels use SIMD with scalar fallbacks.
 
 ```bash
-CGO_ENABLED=0 go build -o gokvm .
+CGO_ENABLED=0 go build -o devbox-kvm .
 ```
 
 Follow the [software-only gateway setup](gateway.md#build-without-nvenc) and set
@@ -426,14 +426,14 @@ Debian/Ubuntu:
 
 ```bash
 sudo apt install build-essential pkg-config libavcodec-dev libavutil-dev
-CGO_ENABLED=1 go build -tags nvenc -o gokvm .
+CGO_ENABLED=1 go build -tags nvenc -o devbox-kvm .
 ```
 
 Select `H264_ENCODER=nvenc` to require hardware encoding, or `auto` to allow
 software fallback, in the [gateway configuration](configuration.md).
 
 Runtime requires an NVIDIA GPU with H.264 NVENC support, a working NVIDIA
-driver, and FFmpeg libraries containing `h264_nvenc`. gokvm links to these
+driver, and FFmpeg libraries containing `h264_nvenc`. devbox-kvm links to these
 libraries; it does not launch `ffmpeg`. If the CLI tool is installed, check the
 host encoder independently:
 
@@ -561,13 +561,13 @@ replaying disconnected audio. Microphone capture is unsupported.
 
 ## Diagnostics and compatibility checks
 
-`gokvm probe` reports host KVM capabilities and supported CPUID information.
+`devbox-kvm probe` reports host KVM capabilities and supported CPUID information.
 For device debugging, set these environment variables to any nonempty value:
 
 | Variable | Output |
 | --- | --- |
-| `GOKVM_TRACE_IO` | Guest port I/O exits. |
-| `GOKVM_TRACE_MMIO` | Unhandled guest MMIO accesses. |
+| `DEVBOX_KVM_TRACE_IO` | Guest port I/O exits. |
+| `DEVBOX_KVM_TRACE_MMIO` | Unhandled guest MMIO accesses. |
 
 These trace variables are intended for direct developer boots. Gateway-managed
 workers discard standard output and standard error; use the gateway performance
@@ -587,14 +587,14 @@ files (`gnu-efi`), a C compiler/binutils, mtools, `qemu-img`, and Python 3. It
 builds an EFI fixture and boots isolated raw/qcow2 disks with a serial console;
 source firmware is untouched. Failures retain logs, disks, and firmware variables.
 Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to change CPU
-count, or `GOKVM_BINARY=/path/to/gokvm` for an existing binary. Alternate GNU-EFI
+count, or `DEVBOX_KVM_BINARY=/path/to/devbox-kvm` for an existing binary. Alternate GNU-EFI
 locations use `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`. This checks the firmware
 platform, not every guest OS.
 
 For actual NVIDIA encoding, with `ffmpeg` and the NVENC build dependencies:
 
 ```bash
-GOKVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
+DEVBOX_KVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
   ./internal/rdp/avc -run '^TestNVENCHardware' -count=1 -timeout 2m -v
 ```
 

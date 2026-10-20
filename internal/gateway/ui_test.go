@@ -12,7 +12,7 @@ func TestDashboardResourcesHaveRestrictedTypesAndPolicy(t *testing.T) {
 	for _, tc := range []struct{ path, contentType string }{
 		{"/static/theme.css", "text/css"},
 		{"/static/dashboard.css", "text/css"},
-		{"/static/gokvm.css", "text/css"},
+		{"/static/devbox-kvm.css", "text/css"},
 		{"/static/dashboard.js", "text/javascript"},
 		{"/static/vendor/bootstrap/5.3.2/bootstrap.min.css", "text/css"},
 		{"/static/vendor/bootstrap-icons/1.11.3/fonts/bootstrap-icons.woff2", "font/woff2"},

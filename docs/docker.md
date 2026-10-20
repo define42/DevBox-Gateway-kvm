@@ -14,7 +14,7 @@ must be enabled.
 
 The root Compose stack builds the gateway and starts the bundled development
 LDAP directory. No desktop image is needed to start it. Compose bind-mounts one
-private host directory at `/var/lib/gokvm` for all gateway state and deliberately
+private host directory at `/var/lib/devbox-kvm` for all gateway state and deliberately
 does not create the source directory.
 
 For a fresh deployment, use a new, empty, dedicated directory. On rootful Docker
@@ -121,7 +121,7 @@ LDAP:
 
 | Storage | Contents |
 | --- | --- |
-| `${GATEWAY_STORAGE_PATH:-/srv/devbox-storage}` mounted at `/var/lib/gokvm` | Desktop state, uploaded images, gateway TLS identity, and ACME storage |
+| `${GATEWAY_STORAGE_PATH:-/srv/devbox-storage}` mounted at `/var/lib/devbox-kvm` | Desktop state, uploaded images, gateway TLS identity, and ACME storage |
 | `ldap-tls` | LDAP certificate/key and directory configuration |
 | `ldap-ca` | LDAP public certificate shared with the gateway |
 
@@ -284,8 +284,8 @@ docker run --rm devbox-gateway-kvm:local serve -help
 
 The default command starts `serve`, using environment configuration. It requires
 authentication settings; the command above explicitly requests help without
-starting a server. The image sets `DATA_ROOT_DIR=/var/lib/gokvm` and
-`LISTEN_ADDR=0.0.0.0:8443`. The entrypoint is `gokvm`, so commands such as
+starting a server. The image sets `DATA_ROOT_DIR=/var/lib/devbox-kvm` and
+`LISTEN_ADDR=0.0.0.0:8443`. The entrypoint is `devbox-kvm`, so commands such as
 `serve`, `boot`, and `probe` follow the image name directly. Check KVM
 access using the same device and supplementary group used by the gateway:
 
@@ -327,11 +327,11 @@ docker run -d --name devbox-gateway-kvm \
   --device /dev/kvm:/dev/kvm \
   --group-add "$(stat -c '%g' /dev/kvm)" \
   --publish 8443:8443 \
-  --mount type=bind,source=/srv/devbox-storage,target=/var/lib/gokvm \
-  --mount type=bind,source=/etc/devbox-gateway-kvm/tls,target=/etc/gokvm/tls,readonly \
+  --mount type=bind,source=/srv/devbox-storage,target=/var/lib/devbox-kvm \
+  --mount type=bind,source=/etc/devbox-gateway-kvm/tls,target=/etc/devbox-kvm/tls,readonly \
   --env PUBLIC_ADDRESS=desktops.example.com:8443 \
-  --env CERT_FILE=/etc/gokvm/tls/fullchain.pem \
-  --env KEY_FILE=/etc/gokvm/tls/key.pem \
+  --env CERT_FILE=/etc/devbox-kvm/tls/fullchain.pem \
+  --env KEY_FILE=/etc/devbox-kvm/tls/key.pem \
   --env LDAP_URL=ldaps://directory.example.com \
   --env LDAP_BASE_DN=dc=example,dc=com \
   --env LDAP_USER_DOMAIN=example.com \

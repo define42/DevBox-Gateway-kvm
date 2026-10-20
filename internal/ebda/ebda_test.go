@@ -40,6 +40,14 @@ func TestMPTableDescribesConfiguredCPUs(t *testing.T) {
 			if string(table[:4]) != "PCMP" || table[6] != 4 {
 				t.Fatalf("invalid MP table header: %x", table[:44])
 			}
+			if got := string(table[8:16]); got != "DEVBOXVM" {
+				t.Errorf("MP table OEM ID = %q, want DEVBOXVM", got)
+			}
+			for _, value := range table[16:34] {
+				if value != 0 {
+					t.Fatalf("OEM ID overwrote adjacent product/OEM fields: %x", table[16:34])
+				}
+			}
 			length := int(binary.LittleEndian.Uint16(table[4:6]))
 			if length != len(table) || length != 44+20*cpus {
 				t.Fatalf("table length=%d, serialized=%d, want %d", length, len(table), 44+20*cpus)

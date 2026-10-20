@@ -895,7 +895,7 @@ func rdpCertificate() (tls.Certificate, error) {
 	}
 	now := time.Now()
 	template := &x509.Certificate{
-		SerialNumber: serial, Subject: pkix.Name{CommonName: "gokvm console"},
+		SerialNumber: serial, Subject: pkix.Name{CommonName: "devbox-kvm console"},
 		NotBefore: now.Add(-time.Minute), NotAfter: now.Add(24 * time.Hour),
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},

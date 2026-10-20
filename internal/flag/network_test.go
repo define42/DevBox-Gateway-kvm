@@ -29,7 +29,7 @@ func TestNetworkOptions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			args, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, tc.args...))
+			args, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
 			if tc.invalid {
 				if !errors.Is(err, flag.ErrNetwork) {
 					t.Fatalf("got %v, want network option error", err)

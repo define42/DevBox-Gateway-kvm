@@ -884,7 +884,7 @@ func (s *Session) demandActive() []byte {
 		put16(header, 2, len(c.data)+4)
 		capabilities = append(append(capabilities, header...), c.data...)
 	}
-	description := []byte("gokvm\x00")
+	description := []byte("devbox-kvm\x00")
 	p := make([]byte, 14+len(description)+4+len(capabilities)+4)
 	put16(p, 0, len(p))
 	put16(p, 2, 0x11)

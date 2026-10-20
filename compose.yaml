@@ -31,12 +31,12 @@ services:
     volumes:
       - type: bind
         source: "${GATEWAY_STORAGE_PATH:-/srv/devbox-storage}"
-        target: /var/lib/gokvm
+        target: /var/lib/devbox-kvm
         bind:
           create_host_path: false
-      - ldap-ca:/etc/gokvm/ldap:ro
+      - ldap-ca:/etc/devbox-kvm/ldap:ro
     environment:
-      DATA_ROOT_DIR: "${DATA_ROOT_DIR-/var/lib/gokvm}"
+      DATA_ROOT_DIR: "${DATA_ROOT_DIR-/var/lib/devbox-kvm}"
       BASE_IMAGE: "${BASE_IMAGE-}"
       VM_BINARY: "${VM_BINARY-}"
       UEFI_CODE: "${UEFI_CODE-/usr/share/OVMF/OVMF_CODE_4M.fd}"
@@ -74,7 +74,7 @@ services:
       LDAP_USERNAME_ATTRIBUTE: "${LDAP_USERNAME_ATTRIBUTE-mail}"
       LDAP_REQUIRED_GROUP: "${LDAP_REQUIRED_GROUP-ou=team10_r,ou=groups,dc=glauth,dc=com}"
       ADMIN_GROUP: "${ADMIN_GROUP-devbox-admins}"
-      LDAP_CA_FILE: "${LDAP_CA_FILE-/etc/gokvm/ldap/cert.pem}"
+      LDAP_CA_FILE: "${LDAP_CA_FILE-/etc/devbox-kvm/ldap/cert.pem}"
       LDAP_INSECURE_LOOPBACK: "${LDAP_INSECURE_LOOPBACK-false}"
       LDAP_AUTH_TIMEOUT: "${LDAP_AUTH_TIMEOUT-10s}"
       SESSION_TTL: "${SESSION_TTL-8h}"

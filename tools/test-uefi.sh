@@ -42,7 +42,7 @@ if [[ ! -f "$uefi_include_dir/efi.h" ]]; then
     exit 1
 fi
 
-uefi_test_dir=$(mktemp -d "${TMPDIR:-/tmp}/gokvm-uefi-smoke.XXXXXX")
+uefi_test_dir=$(mktemp -d "${TMPDIR:-/tmp}/devbox-kvm-uefi-smoke.XXXXXX")
 uefi_cleanup() {
     local uefi_status=$?
     if [[ $uefi_status == 0 && ${UEFI_KEEP_ARTIFACTS:-0} != 1 ]]; then
@@ -53,9 +53,9 @@ uefi_cleanup() {
 }
 trap uefi_cleanup EXIT
 
-uefi_binary=${GOKVM_BINARY:-}
+uefi_binary=${DEVBOX_KVM_BINARY:-}
 if [[ -z "$uefi_binary" ]]; then
-    uefi_binary="$uefi_test_dir/gokvm"
+    uefi_binary="$uefi_test_dir/devbox-kvm"
     (cd -- "$uefi_repo_dir" && CGO_ENABLED=0 go build -o "$uefi_binary" .)
 fi
 cc -I"$uefi_include_dir" -I"$uefi_include_dir/x86_64" -I"$uefi_include_dir/protocol" \
@@ -94,13 +94,13 @@ import sys
 
 log = Path(sys.argv[1]).read_text(errors="replace")
 expected = {
-    "GOKVM TEST EFI ENTRY": 2,
-    "GOKVM TEST VARS WRITE OK": 2,
-    "GOKVM TEST RESET": 1,
-    "GOKVM TEST VARS PERSISTED": 1,
-    "GOKVM TEST SHUTDOWN": 1,
+    "DEVBOX_KVM TEST EFI ENTRY": 2,
+    "DEVBOX_KVM TEST VARS WRITE OK": 2,
+    "DEVBOX_KVM TEST RESET": 1,
+    "DEVBOX_KVM TEST VARS PERSISTED": 1,
+    "DEVBOX_KVM TEST SHUTDOWN": 1,
 }
-if "GOKVM TEST FAILED" in log:
+if "DEVBOX_KVM TEST FAILED" in log:
     raise SystemExit(log)
 for marker, count in expected.items():
     actual = log.count(marker)

@@ -39,7 +39,7 @@ func TestUEFIInputAttachesFirmwareControllerAndAbsoluteTablet(t *testing.T) {
 	tablet.WriteDeviceConfig(0, []byte{1, 0})
 	var config [136]byte
 	tablet.ReadDeviceConfig(0, config[:])
-	if string(config[8:8+int(config[2])]) != "gokvm tablet" {
+	if string(config[8:8+int(config[2])]) != "devbox-kvm tablet" {
 		t.Fatal("UEFI pointer is not the absolute tablet")
 	}
 }

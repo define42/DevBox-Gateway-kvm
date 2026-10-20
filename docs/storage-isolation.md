@@ -4,7 +4,7 @@
 
 This is a fresh deployment. Docker Compose uses the Compose-only
 `GATEWAY_STORAGE_PATH` variable to select the host state directory. Its default
-is `/srv/devbox-storage`, which is bind-mounted as `/var/lib/gokvm` in the
+is `/srv/devbox-storage`, which is bind-mounted as `/var/lib/devbox-kvm` in the
 gateway container.
 
 The mount contains the entire gateway state tree, not only VM disks. This
@@ -13,9 +13,9 @@ and import staging, seeds, VM and gateway certificates and keys, ACME state,
 metadata, temporary files, and the manager lock.
 
 `GATEWAY_STORAGE_PATH` does not change native execution. The native
-`DATA_ROOT_DIR` default remains `.gokvm-gateway`, and operators may continue to
+`DATA_ROOT_DIR` default is `.devbox-kvm-gateway`, and operators may
 override it with `DATA_ROOT_DIR` or `-state`. Inside the Docker image,
-`DATA_ROOT_DIR` defaults to `/var/lib/gokvm`. Keep that value for the shipped
+`DATA_ROOT_DIR` defaults to `/var/lib/devbox-kvm`. Keep that value for the shipped
 Compose mount; changing it also requires updating the mount target, otherwise
 the gateway may write outside the persistent host directory.
 

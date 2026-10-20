@@ -3,7 +3,7 @@ version: 2
 project_name: DevBox-Gateway-kvm
 
 builds:
-- binary: gokvm
+- binary: devbox-kvm
   env:
   - CGO_ENABLED=0
   goos:
@@ -39,7 +39,7 @@ release:
   header: |
     DevBox-Gateway-kvm built from commit `{{ .FullCommit }}`.
 
-    The Linux amd64 archive includes the `gokvm` binary with software H.264
+    The Linux amd64 archive includes the `devbox-kvm` binary with software H.264
     encoding. Install OVMF and qemu-utils on the host for gateway use.
 
     The container includes OVMF, qemu-img, and NVENC support:

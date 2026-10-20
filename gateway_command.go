@@ -69,7 +69,7 @@ func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
 	flags := flag.NewFlagSet("serve", flag.ContinueOnError)
 	flags.SetOutput(output)
 	flags.Usage = func() {
-		fmt.Fprintln(output, "Usage: gokvm serve [flags]")
+		fmt.Fprintln(output, "Usage: devbox-kvm serve [flags]")
 		fmt.Fprintln(output, "Configuration is read from environment variables; explicit flags override them.")
 		flags.PrintDefaults()
 	}
@@ -228,7 +228,7 @@ func serveIdentity(state string, c *gateway.Config, options cert.Options) error 
 
 // createPrivateFile publishes a complete private file without replacing a path.
 func createPrivateFile(path string, data []byte) error {
-	file, err := os.CreateTemp(filepath.Dir(path), ".gokvm-*")
+	file, err := os.CreateTemp(filepath.Dir(path), ".devbox-kvm-*")
 	if err != nil {
 		return err
 	}

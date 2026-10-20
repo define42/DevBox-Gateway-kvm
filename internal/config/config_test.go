@@ -18,7 +18,7 @@ func TestNewSettingsDefaults(t *testing.T) {
 	}
 	settings := config.NewSettings()
 	want := map[string]string{
-		config.DATA_ROOT_DIR:              ".gokvm-gateway",
+		config.DATA_ROOT_DIR:              ".devbox-kvm-gateway",
 		config.BASE_IMAGE:                 "",
 		config.VM_BINARY:                  "",
 		config.UEFI_CODE:                  "/usr/share/OVMF/OVMF_CODE_4M.fd",

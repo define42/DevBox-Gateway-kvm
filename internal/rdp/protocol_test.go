@@ -130,6 +130,16 @@ func joinChannelsFixture(t *testing.T, secured net.Conn) {
 	if kind, err := shareType(demand); err != nil || kind != 1 {
 		t.Fatalf("expected Demand Active, got %x, %v", demand, err)
 	}
+	const description = "devbox-kvm\x00"
+	if len(demand) < 14+len(description)+4 || int(binary.LittleEndian.Uint16(demand[10:12])) != len(description) {
+		t.Fatalf("invalid Demand Active source descriptor length: %x", demand)
+	}
+	if got := string(demand[14 : 14+len(description)]); got != description {
+		t.Errorf("Demand Active source descriptor = %q, want %q", got, description)
+	}
+	if got := int(binary.LittleEndian.Uint16(demand[:2])); got != len(demand) {
+		t.Errorf("Demand Active length = %d, want %d", got, len(demand))
+	}
 }
 
 func activateSessionFixture(t *testing.T, secured net.Conn) {

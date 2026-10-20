@@ -20,7 +20,7 @@ COPY pkg/ ./pkg/
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=1 go build -tags nvenc -trimpath -buildvcs=false \
-        -ldflags="-s -w" -o /out/gokvm .
+        -ldflags="-s -w" -o /out/devbox-kvm .
 
 FROM debian:trixie-slim AS runtime-deps
 
@@ -32,21 +32,21 @@ RUN apt-get update \
     && test -r /usr/share/OVMF/OVMF_VARS_4M.fd \
     && groupadd --gid 10001 devbox \
     && useradd --uid 10001 --gid 10001 --no-create-home \
-        --home-dir /var/lib/gokvm --shell /usr/sbin/nologin devbox \
-    && install -d -m 0700 -o devbox -g devbox /var/lib/gokvm
+        --home-dir /var/lib/devbox-kvm --shell /usr/sbin/nologin devbox \
+    && install -d -m 0700 -o devbox -g devbox /var/lib/devbox-kvm
 
-COPY --from=build /out/gokvm /usr/local/bin/gokvm
+COPY --from=build /out/devbox-kvm /usr/local/bin/devbox-kvm
 COPY LICENSE LICENSE-OpenH264 LICENSE-go.264 /usr/share/doc/devbox-gateway-kvm/
 
 # The NVIDIA Container Toolkit injects the host driver when --gpus is supplied.
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
-    DATA_ROOT_DIR=/var/lib/gokvm \
+    DATA_ROOT_DIR=/var/lib/devbox-kvm \
     LISTEN_ADDR=0.0.0.0:8443
 
 USER 10001:10001
-WORKDIR /var/lib/gokvm
+WORKDIR /var/lib/devbox-kvm
 EXPOSE 8443/tcp
-ENTRYPOINT ["/usr/local/bin/gokvm"]
+ENTRYPOINT ["/usr/local/bin/devbox-kvm"]
 # Serving requires authentication configuration; see docs/docker.md.
 CMD ["serve"]
 
@@ -64,11 +64,11 @@ RUN <<'EOF'
 set -eu
 install -d -m 0755 /rootfs
 install -d -m 1777 /rootfs/tmp
-install -d -m 0700 -o 10001 -g 10001 /rootfs/var/lib/gokvm
+install -d -m 0700 -o 10001 -g 10001 /rootfs/var/lib/devbox-kvm
 
 # ldd includes transitive dependencies and the ELF interpreter. Dereference
 # symlinks so the copied files do not depend on Debian's merged /usr layout.
-ldd /usr/local/bin/gokvm /usr/bin/qemu-img > /tmp/runtime-libraries
+ldd /usr/local/bin/devbox-kvm /usr/bin/qemu-img > /tmp/runtime-libraries
 if grep -q 'not found' /tmp/runtime-libraries; then
     cat /tmp/runtime-libraries
     exit 1
@@ -83,7 +83,7 @@ done < /tmp/runtime-library-paths
 # even when the gateway's own glibc dependencies no longer list them.
 cp --parents -L /lib/x86_64-linux-gnu/libdl.so.2 \
     /lib/x86_64-linux-gnu/libpthread.so.0 /lib/x86_64-linux-gnu/librt.so.1 /rootfs
-cp --parents -L /usr/local/bin/gokvm /usr/bin/qemu-img /sbin/ldconfig \
+cp --parents -L /usr/local/bin/devbox-kvm /usr/bin/qemu-img /sbin/ldconfig \
     /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_VARS_4M.fd \
     /etc/ssl/certs/ca-certificates.crt /etc/passwd /etc/group /etc/nsswitch.conf \
     /etc/os-release /etc/debian_version /etc/ld.so.conf /rootfs
@@ -101,7 +101,7 @@ dpkg-query -W > /rootfs/usr/share/doc/devbox-gateway-kvm/runtime-packages.txt
 # NVIDIA's runtime uses the Debian marker and loader configuration when adding
 # host driver libraries. Build a cache for this filesystem, not the build stage.
 ldconfig -r /rootfs
-chroot --userspec=10001:10001 /rootfs /usr/local/bin/gokvm serve -help
+chroot --userspec=10001:10001 /rootfs /usr/local/bin/devbox-kvm serve -help
 chroot --userspec=10001:10001 /rootfs /usr/bin/qemu-img --version
 EOF
 
@@ -115,9 +115,9 @@ RUN apt-get update \
     && install -d -m 0755 -o 10001 -g 10001 /ldap-ca
 COPY --from=glauth /app/glauth /app/glauth
 RUN /app/glauth --version
-COPY --chmod=0755 docker/start-ldap.sh /usr/local/bin/gokvm-start-ldap
-COPY testldap/default-config.cfg /usr/local/share/gokvm-ldap/config.cfg
-COPY testldap/LICENSE /usr/local/share/gokvm-ldap/LICENSE
+COPY --chmod=0755 docker/start-ldap.sh /usr/local/bin/devbox-kvm-start-ldap
+COPY testldap/default-config.cfg /usr/local/share/devbox-kvm-ldap/config.cfg
+COPY testldap/LICENSE /usr/local/share/devbox-kvm-ldap/LICENSE
 LABEL org.opencontainers.image.title="DevBox-Gateway-kvm LDAP" \
       org.opencontainers.image.source="https://github.com/define42/DevBox-Gateway-kvm" \
       org.opencontainers.image.description="Development LDAP directory with persistent TLS identity"
@@ -127,7 +127,7 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=5 \
     CMD openssl s_client -connect 127.0.0.1:389 -servername ldap \
         -verify_hostname ldap -verify_return_error -CAfile /app/config/cert.pem \
         </dev/null >/dev/null 2>&1
-ENTRYPOINT ["/usr/local/bin/gokvm-start-ldap"]
+ENTRYPOINT ["/usr/local/bin/devbox-kvm-start-ldap"]
 
 # Scratch removes the distribution tools, not NVENC's dynamic dependencies.
 FROM scratch AS runtime
@@ -137,10 +137,10 @@ LABEL org.opencontainers.image.title="DevBox-Gateway-kvm" \
       org.opencontainers.image.description="Minimal KVM desktop gateway with optional NVIDIA NVENC encoding"
 ENV PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
-    DATA_ROOT_DIR=/var/lib/gokvm \
+    DATA_ROOT_DIR=/var/lib/devbox-kvm \
     LISTEN_ADDR=0.0.0.0:8443
 USER 10001:10001
-WORKDIR /var/lib/gokvm
+WORKDIR /var/lib/devbox-kvm
 EXPOSE 8443/tcp
-ENTRYPOINT ["/usr/local/bin/gokvm"]
+ENTRYPOINT ["/usr/local/bin/devbox-kvm"]
 CMD ["serve"]

@@ -80,7 +80,7 @@ make gateway GATEWAY_LDAP_LOCAL=0 \
   GATEWAY_LDAP_USERNAME_ATTRIBUTE=sAMAccountName \
   GATEWAY_LDAP_REQUIRED_GROUP='CN=Desktop Users,OU=Groups,DC=example,DC=com' \
   GATEWAY_LDAP_ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
-  GATEWAY_LDAP_CA=/etc/gokvm/directory-ca.pem
+  GATEWAY_LDAP_CA=/etc/devbox-kvm/directory-ca.pem
 ```
 
 | Make variable | Default |
@@ -111,14 +111,15 @@ or an email address matching `GATEWAY_LDAP_DOMAIN`; its local part identifies th
 account and owns its workspaces.
 
 `make gateway` has no generated-auth-file fallback. The optional
-`gokvm serve -auth-file` CLI mode remains available for explicit loopback-only
+`devbox-kvm serve -auth-file` CLI mode remains available for explicit loopback-only
 development setups and never grants administrator roles. Old
-`.gokvm-gateway/auth.json` and `.gokvm-gateway/auth.json.credentials.json` files are not used by the LDAP setup, and existing `developer` workspaces are not
+`.devbox-kvm-gateway/auth.json` and `.devbox-kvm-gateway/auth.json.credentials.json`
+files are not used by the LDAP setup, and existing `developer` workspaces are not
 reassigned to an LDAP account.
 
 Image uploads default to 20 GiB and 30 minutes. Override them with
 `GATEWAY_ARGS="-image-upload-limit 42949672960 -image-upload-timeout 1h"`.
 The size limit also applies to normalized images. Install `qemu-utils` to import
-compressed QCOW2 images; `qemu-img` is used only for conversion, and gokvm runs
+compressed QCOW2 images; `qemu-img` is used only for conversion, and devbox-kvm runs
 all VMs. See [the gateway documentation](../docs/gateway.md) for
 image requirements and storage behavior.

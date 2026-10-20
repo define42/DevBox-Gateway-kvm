@@ -84,7 +84,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		`noapic noacpi nowatchdog nmi_watchdog=0 mitigations=off lapic `+
 		`pci=realloc=off `+
 		`virtio_pci.force_legacy=1 rdinit=/init init=/init `+
-		`gokvm.ipv4_addr=192.168.20.1/24`,
+		`devbox-kvm.ipv4_addr=192.168.20.1/24`,
 		"kernel command-line parameters")
 	bootCmd.StringVar(&c.TapIfName, "t", "", `name of tap interface. `+
 		`If the string is an empty, no tap intarface is created. (default"")`)

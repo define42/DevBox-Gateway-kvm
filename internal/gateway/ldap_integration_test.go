@@ -12,13 +12,13 @@ import (
 // Run with make gateway-ldap-test; ordinary Go tests require no Docker daemon.
 func bundledLDAPConfig(t *testing.T) LDAPConfig {
 	t.Helper()
-	address := os.Getenv("GOKVM_TEST_LDAP_URL")
+	address := os.Getenv("DEVBOX_KVM_TEST_LDAP_URL")
 	if address == "" {
 		t.Skip("run make gateway-ldap-test to test the bundled GLAuth directory")
 	}
-	ca := os.Getenv("GOKVM_TEST_LDAP_CA")
+	ca := os.Getenv("DEVBOX_KVM_TEST_LDAP_CA")
 	if ca == "" {
-		t.Fatal("GOKVM_TEST_LDAP_CA is required with GOKVM_TEST_LDAP_URL")
+		t.Fatal("DEVBOX_KVM_TEST_LDAP_CA is required with DEVBOX_KVM_TEST_LDAP_URL")
 	}
 
 	return LDAPConfig{

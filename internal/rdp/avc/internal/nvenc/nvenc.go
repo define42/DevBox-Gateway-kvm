@@ -26,7 +26,7 @@ var (
 
 // Encoder owns one native encoder. Calls must be serialized, including Close.
 type Encoder struct {
-	native *C.GokvmNVENC
+	native *C.DevBoxKVMNVENC
 	size   int
 }
 
@@ -39,8 +39,14 @@ func New(width, height, frameRate, qp int) (*Encoder, error) {
 		return nil, errOptions
 	}
 	var detail [256]C.char
-	native := C.gokvm_nvenc_new(C.int(width), C.int(height), C.int(frameRate), C.int(qp),
-		&detail[0], C.size_t(len(detail)))
+	native := C.devbox_kvm_nvenc_new(
+		C.int(width),
+		C.int(height),
+		C.int(frameRate),
+		C.int(qp),
+		&detail[0],
+		C.size_t(len(detail)),
+	)
 	if native == nil {
 		return nil, fmt.Errorf("%w: %s", errNative, C.GoString(&detail[0]))
 	}
@@ -66,8 +72,16 @@ func (e *Encoder) Encode(i420 []byte, force bool, timestamp int64) ([]byte, erro
 	var detail [256]C.char
 	var data *C.uint8_t
 	var size C.int
-	result := C.gokvm_nvenc_encode(e.native, (*C.uint8_t)(unsafe.Pointer(&i420[0])),
-		idr, C.int64_t(timestamp), &data, &size, &detail[0], C.size_t(len(detail)))
+	result := C.devbox_kvm_nvenc_encode(
+		e.native,
+		(*C.uint8_t)(unsafe.Pointer(&i420[0])),
+		idr,
+		C.int64_t(timestamp),
+		&data,
+		&size,
+		&detail[0],
+		C.size_t(len(detail)),
+	)
 	if result < 0 {
 		return nil, fmt.Errorf("%w: %s", errNative, C.GoString(&detail[0]))
 	}
@@ -78,7 +92,7 @@ func (e *Encoder) Encode(i420 []byte, force bool, timestamp int64) ([]byte, erro
 // Close releases all native and GPU resources and is safe to call repeatedly.
 func (e *Encoder) Close() {
 	if e.native != nil {
-		C.gokvm_nvenc_free(e.native)
+		C.devbox_kvm_nvenc_free(e.native)
 		e.native = nil
 	}
 }

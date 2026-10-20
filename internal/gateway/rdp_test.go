@@ -25,7 +25,7 @@ func startEchoBackend(t *testing.T) Endpoint {
 func startTestBackend(t *testing.T, beforeCopy func(net.Conn) bool) Endpoint {
 	t.Helper()
 	certificate, certPEM, _, _ := testTLSIdentity(t, "backend.test")
-	address := "@gokvm-rdp-test-" + rand.Text()
+	address := "@devbox-kvm-rdp-test-" + rand.Text()
 	ln, err := net.Listen("unix", address)
 	if err != nil {
 		t.Fatal(err)
@@ -352,11 +352,11 @@ func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 			case "TCP non-loopback":
 				endpoint.Address = "192.0.2.1:3389"
 			case "pathname socket":
-				endpoint.Address = "/tmp/gokvm.sock"
+				endpoint.Address = "/tmp/devbox-kvm.sock"
 			case "empty abstract socket":
 				endpoint.Address = "@"
 			case "embedded NUL":
-				endpoint.Address = "@gokvm\x00attacker"
+				endpoint.Address = "@devbox-kvm\x00attacker"
 			case "overlong abstract socket":
 				endpoint.Address = "@" + strings.Repeat("x", maxAbstractUnixSocketNameLen)
 			}
@@ -391,7 +391,7 @@ func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 
 func TestRDPBackendAddressLengthBoundary(t *testing.T) {
 	t.Parallel()
-	prefix := "@gokvm-boundary-" + rand.Text()
+	prefix := "@devbox-kvm-boundary-" + rand.Text()
 	maximum := prefix + strings.Repeat("x", maxAbstractUnixSocketNameLen-len(prefix))
 	if !validRDPBackendAddress(maximum) {
 		t.Fatal("maximum-length Linux abstract socket name rejected")

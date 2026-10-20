@@ -43,7 +43,7 @@ func TestParseBootArgs(t *testing.T) {
 	t.Parallel()
 
 	args := []string{
-		"gokvm",
+		"devbox-kvm",
 		"boot",
 		"-i",
 		"initrd_path",
@@ -127,7 +127,7 @@ func TestParseBootArgsWithDefaults(t *testing.T) {
 	t.Parallel()
 
 	args := []string{
-		"gokvm",
+		"devbox-kvm",
 		"boot",
 	}
 
@@ -152,7 +152,7 @@ func TestParseBootArgsWithDefaults(t *testing.T) {
 		`noapic noacpi nowatchdog nmi_watchdog=0 mitigations=off lapic `+
 		`pci=realloc=off `+
 		`virtio_pci.force_legacy=1 rdinit=/init init=/init `+
-		`gokvm.ipv4_addr=192.168.20.1/24` {
+		`devbox-kvm.ipv4_addr=192.168.20.1/24` {
 		t.Error("invalid kernel command-line parameters")
 	}
 
@@ -203,7 +203,7 @@ func TestParseBootArgsRejectsRemovedDisplayFlags(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, _, err := flag.ParseArgs([]string{"gokvm", "boot", tc.flag, tc.value})
+			_, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", tc.flag, tc.value})
 			if err == nil || !strings.Contains(err.Error(), "flag provided but not defined: "+tc.flag) {
 				t.Fatalf("removed display flag %s returned %v, want unknown flag", tc.flag, err)
 			}
@@ -225,7 +225,7 @@ func TestParseBootArgsRejectsRemovedMediaFlags(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, _, err := flag.ParseArgs([]string{"gokvm", "boot", tc.flag, tc.value})
+			_, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", tc.flag, tc.value})
 			if err == nil || !strings.Contains(err.Error(), "flag provided but not defined: "+tc.flag) {
 				t.Fatalf("removed media flag %s returned %v, want unknown flag", tc.flag, err)
 			}
@@ -235,7 +235,7 @@ func TestParseBootArgsRejectsRemovedMediaFlags(t *testing.T) {
 
 func TestParseBootArgsPreservesExplicitEmptyParams(t *testing.T) {
 	t.Parallel()
-	c, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-k", "vmlinux", "-p", ""})
+	c, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-k", "vmlinux", "-p", ""})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestParseBootArgsCPUCount(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-c", strconv.Itoa(tc.count)})
+			c, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-c", strconv.Itoa(tc.count)})
 			if !tc.valid {
 				if !errors.Is(err, flag.ErrCPUCount) {
 					t.Fatalf("got %v, want %v", err, flag.ErrCPUCount)
@@ -280,7 +280,7 @@ func TestParseBootArgsCPUCount(t *testing.T) {
 func TestParseBootArgsPreservesExplicitCPUParams(t *testing.T) {
 	t.Parallel()
 	const params = `notsc tsc_early_khz=2000 debug apic=debug show_lapic=all nosmp dyndbg="file smpboot.c +p"`
-	c, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-p", params})
+	c, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-p", params})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +296,7 @@ func TestRDPRequiresCertificatePair(t *testing.T) {
 		{"-rdp-fd", "3", "-rdp-key", "console.key"},
 		{"-rdp-cert", "console.crt", "-rdp-key", "console.key"},
 	} {
-		if _, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, args...)); !errors.Is(err, flag.ErrRDPOptions) {
+		if _, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, args...)); !errors.Is(err, flag.ErrRDPOptions) {
 			t.Errorf("args %v: got %v, want %v", args, err, flag.ErrRDPOptions)
 		}
 	}
@@ -304,7 +304,7 @@ func TestRDPRequiresCertificatePair(t *testing.T) {
 
 func TestRDPH264RequiresListener(t *testing.T) {
 	t.Parallel()
-	if _, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-rdp-h264"}); !errors.Is(err, flag.ErrRDPH264) {
+	if _, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-rdp-h264"}); !errors.Is(err, flag.ErrRDPH264) {
 		t.Fatalf("H.264 without RDP listener: got %v, want %v", err, flag.ErrRDPH264)
 	}
 }
@@ -357,7 +357,7 @@ func TestRDPH264EncoderOptions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, tc.args...))
+			c, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
 			if !errors.Is(err, tc.err) {
 				t.Fatalf("got %v, want %v", err, tc.err)
 			}
@@ -406,7 +406,7 @@ func TestRDPH264ThreadOptions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			c, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, tc.args...))
+			c, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
 			if !errors.Is(err, tc.err) {
 				t.Fatalf("got %v, want %v", err, tc.err)
 			}
@@ -419,10 +419,10 @@ func TestRDPH264ThreadOptions(t *testing.T) {
 
 func TestRDPStatisticsOptions(t *testing.T) {
 	t.Parallel()
-	if _, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-rdp-stats"}); !errors.Is(err, flag.ErrRDPStats) {
+	if _, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-rdp-stats"}); !errors.Is(err, flag.ErrRDPStats) {
 		t.Fatalf("statistics without RDP listener: got %v, want %v", err, flag.ErrRDPStats)
 	}
-	c, _, err := flag.ParseArgs([]string{"gokvm", "boot", "-rdp-fd", "3", "-rdp-stats"})
+	c, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-rdp-fd", "3", "-rdp-stats"})
 	if err != nil || !c.RDPStats || c.RDPH264 {
 		t.Fatalf("statistics should work for bitmap RDP: config %+v, error %v", c, err)
 	}
@@ -432,7 +432,7 @@ func TestParseProbeArgs(t *testing.T) {
 	t.Parallel()
 
 	args := []string{
-		"gokvm",
+		"devbox-kvm",
 		"probe",
 	}
 

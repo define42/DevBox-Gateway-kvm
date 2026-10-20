@@ -1,13 +1,13 @@
-# DevBox-Gateway-kvm
+# devbox-kvm
 
 > A Linux x86-64 KVM virtual-machine runtime and authenticated HTTPS/RDP desktop gateway, written in Go.
 
 ## Project
 
-- Module: github.com/define42/DevBox-Gateway-kvm; executable: gokvm.
+- Module: github.com/define42/DevBox-Gateway-kvm; executable: devbox-kvm.
 - Application entry points are at the repository root. The commands are serve,
   boot, probe, seed, and auth-user; use each command's -help for current flags.
-- Build from the repository root: CGO_ENABLED=0 go build -o gokvm .
+- Build from the repository root: CGO_ENABLED=0 go build -o devbox-kvm .
 - Requires Go 1.26.0 or newer. Running guests requires Linux KVM access.
 - This is experimental software, not a production security boundary.
 

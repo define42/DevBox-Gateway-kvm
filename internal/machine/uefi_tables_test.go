@@ -40,6 +40,12 @@ func TestUEFITablesFirmwareRelocation(t *testing.T) {
 	if string(rsdp[:8]) != "RSD PTR " {
 		t.Fatalf("invalid RSDP signature %q", rsdp[:8])
 	}
+	if got := string(rsdp[9:15]); got != "DEVBOX" {
+		t.Errorf("RSDP OEM ID = %q, want DEVBOX", got)
+	}
+	if rsdp[15] != 0 {
+		t.Fatalf("RSDP revision = %d, want 0", rsdp[15])
+	}
 	tables := loaded[uefiACPITablesFile]
 	rsdt := lookupUEFITestTable(t, tables, uint64(binary.LittleEndian.Uint32(rsdp[16:])), "RSDT")
 	fadt := lookupUEFITestTable(t, tables, uint64(binary.LittleEndian.Uint32(rsdt[36:])), "FACP")
@@ -112,6 +118,38 @@ func TestUEFITablesRejectInvalidTopology(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestACPITableBrandingPreservesHeaderFields(t *testing.T) {
+	t.Parallel()
+
+	body := []byte{0x11, 0x22, 0x33, 0x44}
+	table := acpiTable("TEST", 7, body)
+	if got := string(table[10:16]); got != "DEVBOX" {
+		t.Errorf("OEM ID = %q, want DEVBOX", got)
+	}
+	if got := string(table[16:24]); got != "DEVBOXVM" {
+		t.Errorf("OEM table ID = %q, want DEVBOXVM", got)
+	}
+	if got := string(table[28:32]); got != "DVBX" {
+		t.Errorf("creator ID = %q, want DVBX", got)
+	}
+	if table[8] != 7 {
+		t.Errorf("table revision = %d, want 7", table[8])
+	}
+	if got := binary.LittleEndian.Uint32(table[24:28]); got != 1 {
+		t.Errorf("OEM revision = %d, want 1", got)
+	}
+	if got := binary.LittleEndian.Uint32(table[32:36]); got != 1 {
+		t.Errorf("creator revision = %d, want 1", got)
+	}
+	if got := binary.LittleEndian.Uint32(table[4:8]); got != uint32(len(table)) {
+		t.Errorf("table length = %d, want %d", got, len(table))
+	}
+	if !bytes.Equal(table[36:], body) {
+		t.Errorf("table body = %x, want %x", table[36:], body)
+	}
+	assertACPIChecksum(t, table)
 }
 
 func TestUEFITablesPCIWindowExcludesKVMReservedMemory(t *testing.T) {

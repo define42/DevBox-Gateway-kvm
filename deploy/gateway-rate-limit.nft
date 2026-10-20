@@ -6,9 +6,9 @@ define gateway_ipv6 = 2001:db8::10
 define gateway_port = 8443
 
 # Fail if already installed, instead of silently appending duplicate rules.
-create table inet gokvm_gateway_edge
+create table inet devbox_kvm_gateway_edge
 
-table inet gokvm_gateway_edge {
+table inet devbox_kvm_gateway_edge {
     set syn_ipv4 {
         type ipv4_addr
         flags dynamic,timeout

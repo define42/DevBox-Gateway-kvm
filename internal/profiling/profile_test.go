@@ -19,7 +19,7 @@ import (
 func profileTestDirectory(t *testing.T) string {
 	t.Helper()
 	// Keep paths shorter than sockaddr_un even with long test names.
-	directory, err := os.MkdirTemp("", "gokvm-prof-")
+	directory, err := os.MkdirTemp("", "devbox-kvm-prof-")
 	if err != nil {
 		t.Fatal(err)
 	}

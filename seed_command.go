@@ -163,7 +163,7 @@ func (a seedAccount) generate(hashPath string, stdin bool, input io.Reader) (clo
 		credential = localCredential{Username: a.username, Password: password}
 	}
 	if a.instance == "" {
-		a.instance = "gokvm-" + strings.ToLower(rand.Text())
+		a.instance = "devbox-kvm-" + strings.ToLower(rand.Text())
 	}
 	seed, err := gateway.DesktopSeed(a.username, hash, a.hostname, a.instance, a.keyboard)
 

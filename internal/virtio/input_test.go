@@ -41,7 +41,7 @@ func TestInputKeyboardConfig(t *testing.T) {
 	v := NewInputKeyboard(5, func() error { return nil }, nil)
 
 	cfg := readInputConfig(v, inputCfgIDName, 0)
-	if string(cfg[inputUnionOff:inputUnionOff+cfg[2]]) != "gokvm keyboard" {
+	if string(cfg[inputUnionOff:inputUnionOff+cfg[2]]) != "devbox-kvm keyboard" {
 		t.Fatalf("name: got %q", cfg[inputUnionOff:inputUnionOff+cfg[2]])
 	}
 
@@ -230,8 +230,8 @@ func TestInputTabletConfig(t *testing.T) {
 
 	v := NewInputTablet(6, func() error { return nil }, nil)
 	cfg := readInputConfig(v, inputCfgIDName, 0)
-	if got := string(cfg[inputUnionOff : inputUnionOff+cfg[2]]); got != "gokvm tablet" {
-		t.Fatalf("tablet name = %q, want gokvm tablet", got)
+	if got := string(cfg[inputUnionOff : inputUnionOff+cfg[2]]); got != "devbox-kvm tablet" {
+		t.Fatalf("tablet name = %q, want devbox-kvm tablet", got)
 	}
 	cfg = readInputConfig(v, inputCfgIDDevids, 0)
 	if cfg[2] != 8 || binary.LittleEndian.Uint16(cfg[inputUnionOff+4:]) != 0x0003 {
@@ -405,7 +405,7 @@ func TestInputConcurrentConfigurationAndQueues(t *testing.T) {
 			switch cfg[0] {
 			case 0: // Reset/default configuration.
 			case inputCfgIDName:
-				if string(cfg[inputUnionOff:inputUnionOff+int(cfg[2])]) != "gokvm keyboard" {
+				if string(cfg[inputUnionOff:inputUnionOff+int(cfg[2])]) != "devbox-kvm keyboard" {
 					t.Error("input name/configuration selector snapshot was torn")
 
 					return

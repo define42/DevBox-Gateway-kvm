@@ -887,7 +887,7 @@ func (m *Machine) runOnce(cpu int, fd uintptr) (bool, error) {
 	case kvm.EXITIO:
 		direction, size, port, count, offset := m.runs[cpu].IO()
 		f := m.ioportHandlers[port][direction]
-		if os.Getenv("GOKVM_TRACE_IO") != "" {
+		if os.Getenv("DEVBOX_KVM_TRACE_IO") != "" {
 			dir := "out"
 			if direction == kvm.EXITIOIN {
 				dir = "in"
@@ -915,7 +915,7 @@ func (m *Machine) runOnce(cpu int, fd uintptr) (bool, error) {
 
 		if dev, offset, ok := m.pci.LookupMMIO(physAddr); ok {
 			dev.MMIO(offset, data, isWrite)
-		} else if os.Getenv("GOKVM_TRACE_MMIO") != "" {
+		} else if os.Getenv("DEVBOX_KVM_TRACE_MMIO") != "" {
 			log.Printf("unhandled MMIO @%#x len=%d write=%v",
 				physAddr, len(data), isWrite)
 		}
@@ -1001,7 +1001,7 @@ func (m *Machine) initIOPortHandlers() {
 	// with everything that comes with it.
 	// For now, we will exit without regard to the value. Should we wish
 	// to have more sophisticated cf9 handling, we will need to modify
-	// gokvm a bit more.
+	// devbox-kvm a bit more.
 	funcOutbCF9 := func(port uint64, bytes []byte) error {
 		if len(bytes) == 1 && bytes[0] == 0xe {
 			return fmt.Errorf("write 0xe to cf9: %w", ErrWriteToCF9)

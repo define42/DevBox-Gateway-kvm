@@ -11,7 +11,7 @@ func TestParseUEFIBoot(t *testing.T) {
 	t.Parallel()
 
 	args := []string{
-		"gokvm", "boot", "-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd",
+		"devbox-kvm", "boot", "-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd",
 		"-d", "guest.qcow2", "-c", "4", "-m", "2G", "-net", "user", "-rdp-fd", "3",
 	}
 	c, _, err := flag.ParseArgs(args)
@@ -37,7 +37,7 @@ func TestUEFIRejectsConflictingBootFlags(t *testing.T) {
 			t.Run(name+"/"+value, func(t *testing.T) {
 				t.Parallel()
 				args := []string{
-					"gokvm", "boot", "-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd",
+					"devbox-kvm", "boot", "-uefi", "OVMF_CODE.fd", "-uefi-vars", "guest_VARS.fd",
 					"-d", "guest.qcow2", "-" + name, value,
 				}
 				if _, _, err := flag.ParseArgs(args); !errors.Is(err, flag.ErrUEFIBootSource) {
@@ -62,7 +62,7 @@ func TestUEFIRequiresFirmwarePairAndDisk(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			args := append([]string{"gokvm", "boot"}, tc.args...)
+			args := append([]string{"devbox-kvm", "boot"}, tc.args...)
 			if _, _, err := flag.ParseArgs(args); !errors.Is(err, tc.err) {
 				t.Fatalf("got %v, want %v", err, tc.err)
 			}

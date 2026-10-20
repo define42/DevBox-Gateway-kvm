@@ -27,7 +27,7 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 	dir := t.TempDir()
 	binary := filepath.Join(dir, "helper")
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
-	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 GOKVM_MANAGER_HELPER=" + quote(behavior) +
+	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 DEVBOX_KVM_MANAGER_HELPER=" + quote(behavior) +
 		" exec " + quote(os.Args[0]) +
 		" -test.run='^TestManagerHelperProcess$' -- \"$@\"\n"
 	//nolint:gosec // The private test helper must be executable by its owner.
@@ -584,7 +584,7 @@ func managerAssertReaped(t *testing.T, dir string) {
 // TestManagerHelperProcess runs only in exec'd test children. It provides the
 // actual pinned RDP/TLS startup exchange and distinct shutdown failure modes.
 func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a standalone signal-driven subprocess.
-	behavior := os.Getenv("GOKVM_MANAGER_HELPER")
+	behavior := os.Getenv("DEVBOX_KVM_MANAGER_HELPER")
 	if behavior == "" {
 		return
 	}

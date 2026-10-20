@@ -1,6 +1,6 @@
 # Gateway configuration
 
-`gokvm serve` reads all gateway settings from environment variables through
+`devbox-kvm serve` reads all gateway settings from environment variables through
 [`internal/config/config.go`](../internal/config/config.go), following the
 [DevBox-Gateway configuration design](https://github.com/define42/DevBox-Gateway/blob/main/internal/config/config.go).
 Set exported variables in your service environment or pass them before the command:
@@ -10,7 +10,7 @@ LDAP_URL=ldaps://directory.example.com \
 LDAP_BASE_DN=dc=example,dc=com \
 LDAP_USER_DOMAIN=example.com \
 ADMIN_GROUP=devbox-admins \
-./gokvm serve
+./devbox-kvm serve
 ```
 
 Exactly one of `LDAP_URL` and `AUTH_FILE` must be set. Authentication, TLS,
@@ -41,14 +41,14 @@ without shell expansion or quote characters around values.
 ## Storage and desktops
 
 Defaults below are for the native executable. The Docker image changes
-`DATA_ROOT_DIR` to `/var/lib/gokvm` and `LISTEN_ADDR` to `0.0.0.0:8443`.
+`DATA_ROOT_DIR` to `/var/lib/devbox-kvm` and `LISTEN_ADDR` to `0.0.0.0:8443`.
 Docker Compose bind-mounts the complete gateway state tree there from the host
 path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 `/srv/devbox-storage`.
 
 | Environment variable | Default | Flag override | Purpose |
 | --- | --- | --- | --- |
-| `DATA_ROOT_DIR` | `.gokvm-gateway` | `-state` | Private persistent state directory. |
+| `DATA_ROOT_DIR` | `.devbox-kvm-gateway` | `-state` | Private persistent state directory. |
 | `BASE_IMAGE` | Empty | `-image` | Optional immutable raw or supported uncompressed QCOW2 default template. Omit to use administrator uploads. |
 | `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
 | `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
@@ -207,10 +207,10 @@ see the [required container cgroup setup](docker.md#required-cgroup-v2-delegatio
 `GATEWAY_BIND`, `GATEWAY_HOST`, `GATEWAY_PORT`, `KVM_GID`, and
 `GATEWAY_STORAGE_PATH` are Compose host-deployment controls.
 `GATEWAY_STORAGE_PATH` defaults to `/srv/devbox-storage` and bind-mounts that
-host directory as the container's entire `/var/lib/gokvm` state tree, including
+host directory as the container's entire `/var/lib/devbox-kvm` state tree, including
 VM disks, catalog and import data, certificates, ACME state, and metadata. It is
 not read by the native executable and does not change the native
-`DATA_ROOT_DIR` default. Keep `DATA_ROOT_DIR=/var/lib/gokvm` with the shipped
+`DATA_ROOT_DIR` default. Keep `DATA_ROOT_DIR=/var/lib/devbox-kvm` with the shipped
 Compose mount; an override requires updating the mount target as well.
 
 Compose does not configure or verify aggregate block or inode capacity,

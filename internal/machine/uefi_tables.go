@@ -21,7 +21,7 @@ const (
 
 var errUEFIACPI = errors.New("invalid UEFI ACPI configuration")
 
-// buildUEFITables describes the devices implemented by GoKVM, rather than
+// buildUEFITables describes the devices implemented by devbox-kvm, rather than
 // advertising QEMU devices that are not present. OVMF relocates these tables
 // using its fw_cfg loader and installs them through EFI_ACPI_TABLE_PROTOCOL.
 // The loader format is defined by OvmfPkg/Include/IndustryStandard/QemuLoader.h.
@@ -83,7 +83,7 @@ func buildUEFITables(cpuCount int, functions []pci.Function) (map[string][]byte,
 
 	rsdp := make([]byte, 20)
 	copy(rsdp, "RSD PTR ")
-	copy(rsdp[9:], "GOKVM ")
+	copy(rsdp[9:15], "DEVBOX")
 	binary.LittleEndian.PutUint32(rsdp[16:], rsdtOffset)
 
 	loader := make([]byte, 0, 12*qemuLoaderSize)
@@ -133,10 +133,10 @@ func acpiTable(signature string, revision byte, body []byte) []byte {
 	copy(table, signature)
 	binary.LittleEndian.PutUint32(table[4:], uint32(len(table)))
 	table[8] = revision
-	copy(table[10:], "GOKVM ")
-	copy(table[16:], "GOKVMPC ")
+	copy(table[10:16], "DEVBOX")
+	copy(table[16:24], "DEVBOXVM")
 	binary.LittleEndian.PutUint32(table[24:], 1)
-	copy(table[28:], "GOKV")
+	copy(table[28:32], "DVBX")
 	binary.LittleEndian.PutUint32(table[32:], 1)
 	copy(table[acpiHeaderSize:], body)
 	var sum byte

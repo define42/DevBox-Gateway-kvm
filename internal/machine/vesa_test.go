@@ -31,9 +31,24 @@ func TestVESAFallbackAndBIOSAgree(t *testing.T) {
 		t.Fatal("text fallback does not observe guest RAM")
 	}
 	m.installVESABIOS()
-	bios := m.mem[vesaBIOSBase : vesaBIOSBase+0x380]
+	bios := m.mem[vesaBIOSBase : vesaBIOSBase+0x400]
 	if bios[0] != 0x55 || bios[1] != 0xaa || string(bios[0x80:0x84]) != "VESA" {
 		t.Fatal("installed VESA BIOS lacks its ROM and VBE signatures")
+	}
+	if size := int(bios[2]) * 512; size != len(bios) {
+		t.Fatalf("ROM size = %d, want %d", size, len(bios))
+	}
+	oemPointer := binary.LittleEndian.Uint32(bios[0x86:0x8a])
+	oemAddress := uint64(oemPointer>>16)*16 + uint64(oemPointer&0xffff)
+	const oemName = "devbox-kvm VBE\x00"
+	if oemAddress < vesaBIOSBase || oemAddress+uint64(len(oemName)) > vesaBIOSBase+uint64(len(bios)) {
+		t.Fatalf("VBE OEM string pointer %#x is outside the BIOS ROM", oemAddress)
+	}
+	if got := string(m.mem[oemAddress : oemAddress+uint64(len(oemName))]); got != oemName {
+		t.Errorf("VBE OEM string = %q, want %q", got, oemName)
+	}
+	if version := binary.LittleEndian.Uint16(bios[0x84:0x86]); version != 0x0200 {
+		t.Errorf("VBE version = %#x, want 0x0200", version)
 	}
 	if binary.LittleEndian.Uint16(m.mem[vesaInt10Vector:]) != vesaBIOSEntry ||
 		binary.LittleEndian.Uint16(m.mem[vesaInt10Vector+2:]) != vesaBIOSSegment {

@@ -32,7 +32,7 @@ func TestTelemetryDescriptorOption(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			args, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, test.args...))
+			args, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, test.args...))
 			if !errors.Is(err, test.err) {
 				t.Fatalf("ParseArgs error = %v, want %v", err, test.err)
 			}

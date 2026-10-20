@@ -9,7 +9,7 @@ import (
 
 func TestATAPIDiscoveryPackets(t *testing.T) {
 	t.Parallel()
-	inquiry := []byte("\x05\x80\x05\x02\x1f\x00\x00\x00GOKVM   VIRTUAL CD-ROM  1.0 ")
+	inquiry := []byte("\x05\x80\x05\x02\x1f\x00\x00\x00DEVBOX  VIRTUAL CD-ROM  1.0 ")
 	discInfo := make([]byte, 34)
 	copy(discInfo, []byte{0, 32, 0x0e, 1, 1, 1})
 	for _, test := range []struct {

@@ -13,7 +13,7 @@ import (
 
 func reservedRDPFile(tb testing.TB) (*os.File, string) {
 	tb.Helper()
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@gokvm-test-" + rand.Text(), Net: "unix"})
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@devbox-kvm-test-" + rand.Text(), Net: "unix"})
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestInheritedRDPListenerRejectsTCPAndPathname(t *testing.T) {
 				address = filepath.Join(t.TempDir(), "rdp.sock")
 			}
 			if network == "unixpacket" {
-				address = "@gokvm-test-" + rand.Text()
+				address = "@devbox-kvm-test-" + rand.Text()
 			}
 			listener, err := net.Listen(network, address)
 			if err != nil {
@@ -184,7 +184,7 @@ func TestInheritedRDPListenerRejectsTCPAndPathname(t *testing.T) {
 
 func TestInheritedRDPListenerRejectsConnectedSocket(t *testing.T) {
 	t.Parallel()
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@gokvm-test-" + rand.Text(), Net: "unix"})
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@devbox-kvm-test-" + rand.Text(), Net: "unix"})
 	if err != nil {
 		t.Fatal(err)
 	}

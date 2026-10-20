@@ -65,9 +65,9 @@ func buildVESABIOS() []byte {
 		currentBIOSModeOff = 0x6f
 		currentVBEModeOff  = 0x70
 		modeListOff        = 0x72
-		oemStringOff       = 0x76
 		vbeInfoOff         = 0x80
 		modeInfoOff        = 0x280
+		oemStringOff       = 0x380
 	)
 
 	code := []byte{
@@ -81,7 +81,9 @@ func buildVESABIOS() []byte {
 		0x02, 0xb9, 0x80, 0x00, 0xf3, 0xa5, 0x1f, 0xb8, 0x4f, 0x00, 0xcf,
 	}
 
-	bios := make([]byte, 0x380)
+	// The two-sector ROM has room for the OEM string after the mode data;
+	// placing it before vbeInfoOff would overwrite the fixed VBE header.
+	bios := make([]byte, 0x400)
 	copy(bios, []byte{0x55, 0xaa, 0x02})
 	copy(bios[vesaBIOSEntry:], code)
 
@@ -89,7 +91,7 @@ func buildVESABIOS() []byte {
 	binary.LittleEndian.PutUint16(bios[currentVBEModeOff:], 0x4000|vesaMode)
 	binary.LittleEndian.PutUint16(bios[modeListOff:], vesaMode)
 	binary.LittleEndian.PutUint16(bios[modeListOff+2:], 0xffff)
-	copy(bios[oemStringOff:], "gokvm VBE\x00")
+	copy(bios[oemStringOff:], "devbox-kvm VBE\x00")
 
 	copy(bios[vbeInfoOff:], "VESA")
 	binary.LittleEndian.PutUint16(bios[vbeInfoOff+4:], 0x0200)

@@ -65,7 +65,7 @@ func TestServeDefaultVMDiskSize(t *testing.T) {
 func TestServeEnvironmentConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
-		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/gokvm",
+		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/devbox-kvm",
 		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
 		"H264_ENCODER": "software", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
@@ -93,7 +93,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	want := serveOptions{
 		manager: gateway.ManagerConfig{
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
-			DataDir: "/srv/desktops", Binary: "/opt/gokvm", BaseImage: "/srv/images/desktop.qcow2",
+			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
 			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
 			RDPProfile: "smooth",
 			CPUs:       6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
@@ -257,6 +257,9 @@ func TestServeHelpDocumentsEnvironment(t *testing.T) {
 	var output bytes.Buffer
 	if _, err := readServeOptions([]string{"-help"}, &output); !errors.Is(err, flag.ErrHelp) {
 		t.Fatalf("help: %v", err)
+	}
+	if !strings.HasPrefix(output.String(), "Usage: devbox-kvm serve [flags]\n") {
+		t.Fatalf("help does not identify the executable: %q", output.String())
 	}
 	for _, key := range config.NewSettings().Keys() {
 		if !strings.Contains(output.String(), "["+key+"]") {

@@ -18,8 +18,8 @@ import (
 //
 //nolint:paralleltest // GPU tests serialize access to limited hardware sessions.
 func TestNVENCHardwareFallback(t *testing.T) {
-	if os.Getenv("GOKVM_TEST_NVENC") != "1" {
-		t.Skip("set GOKVM_TEST_NVENC=1 to test the NVIDIA GPU")
+	if os.Getenv("DEVBOX_KVM_TEST_NVENC") != "1" {
+		t.Skip("set DEVBOX_KVM_TEST_NVENC=1 to test the NVIDIA GPU")
 	}
 	const width, height, frameRate = 640, 360, 30
 	codec, err := newNVENCEncoder(width, height, frameRate)

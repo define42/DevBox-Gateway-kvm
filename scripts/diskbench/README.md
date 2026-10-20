@@ -47,7 +47,7 @@ QCOW2 zero-cluster shortcuts. QCOW2 uses 64 KiB clusters and is preallocated by
 conversion, so the benchmark measures existing mappings, not image growth.
 
 * `random_read`: the entire working set is read before timing random reads.
-  Guest `O_DIRECT` bypasses the guest cache, while gokvm's backend uses the host
+  Guest `O_DIRECT` bypasses the guest cache, while devbox-kvm's backend uses the host
   page cache. `host-buffered` is the warmed cache comparison; `host-direct`
   additionally shows filesystem direct I/O. These are explicitly different cache
   paths: guest direct reads are **not** host device direct reads. No global host

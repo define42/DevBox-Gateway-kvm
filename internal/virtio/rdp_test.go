@@ -255,7 +255,7 @@ func TestRDPDisplayAuthenticatesRealParentProcess(t *testing.T) {
 	defer cancel()
 	//nolint:gosec // Re-executes this test binary with a fixed helper-test selector.
 	server := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRDPDisplayGatewayServerHelper$")
-	server.Env = append(os.Environ(), "GOKVM_RDP_GATEWAY_SERVER_HELPER=1")
+	server.Env = append(os.Environ(), "DEVBOX_KVM_RDP_GATEWAY_SERVER_HELPER=1")
 	server.ExtraFiles = []*os.File{file}
 	stdin, err := server.StdinPipe()
 	if err != nil {
@@ -296,7 +296,7 @@ func TestRDPDisplayAuthenticatesRealParentProcess(t *testing.T) {
 
 	//nolint:gosec // Re-executes this test binary with a fixed helper-test selector.
 	rogue := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestRDPDisplayUnauthorizedPeerHelper$")
-	rogue.Env = append(os.Environ(), "GOKVM_RDP_UNAUTHORIZED_PEER_HELPER="+address)
+	rogue.Env = append(os.Environ(), "DEVBOX_KVM_RDP_UNAUTHORIZED_PEER_HELPER="+address)
 	if output, err := rogue.CombinedOutput(); err != nil {
 		t.Fatalf("different-PID peer helper: %v\n%s", err, output)
 	}
@@ -320,7 +320,7 @@ func TestRDPDisplayAuthenticatesRealParentProcess(t *testing.T) {
 }
 
 func TestRDPDisplayGatewayServerHelper(t *testing.T) {
-	if os.Getenv("GOKVM_RDP_GATEWAY_SERVER_HELPER") != "1" {
+	if os.Getenv("DEVBOX_KVM_RDP_GATEWAY_SERVER_HELPER") != "1" {
 		return
 	}
 	t.Parallel()
@@ -351,7 +351,7 @@ func TestRDPDisplayGatewayServerHelper(t *testing.T) {
 }
 
 func TestRDPDisplayUnauthorizedPeerHelper(t *testing.T) {
-	address := os.Getenv("GOKVM_RDP_UNAUTHORIZED_PEER_HELPER")
+	address := os.Getenv("DEVBOX_KVM_RDP_UNAUTHORIZED_PEER_HELPER")
 	if address == "" {
 		return
 	}
@@ -398,6 +398,9 @@ func TestRDPDisplayTLSMinimumVersionAndCertificate(t *testing.T) {
 	state := secured.ConnectionState()
 	if state.Version < tls.VersionTLS12 || len(state.VerifiedChains) == 0 {
 		t.Fatalf("unverified or obsolete TLS connection: version %#x, chains %d", state.Version, len(state.VerifiedChains))
+	}
+	if got := state.PeerCertificates[0].Subject.CommonName; got != "devbox-kvm console" {
+		t.Errorf("console certificate common name = %q, want devbox-kvm console", got)
 	}
 	if err := secured.Close(); err != nil {
 		t.Fatal(err)
@@ -543,7 +546,7 @@ func newRDPTestDisplayWithConfig(t *testing.T, options RDPConfig) *RDPDisplay {
 
 func newRDPTestListener(t *testing.T) *net.UnixListener {
 	t.Helper()
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@gokvm-test-" + rand.Text(), Net: "unix"})
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: "@devbox-kvm-test-" + rand.Text(), Net: "unix"})
 	if err != nil {
 		t.Fatal(err)
 	}

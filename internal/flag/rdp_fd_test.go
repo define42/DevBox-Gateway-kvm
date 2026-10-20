@@ -26,7 +26,7 @@ func TestRDPInheritedListenerOptions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			args, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, tc.args...))
+			args, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
 			if tc.bad {
 				if !errors.Is(err, flag.ErrRDPFD) {
 					t.Fatalf("got %v, want inherited RDP listener option error", err)
@@ -50,7 +50,7 @@ func TestStandaloneRDPFlagRemoved(t *testing.T) {
 		t.Run(address, func(t *testing.T) {
 			t.Parallel()
 			for _, args := range [][]string{{"-rdp", address}, {"-rdp=" + address}} {
-				_, _, err := flag.ParseArgs(append([]string{"gokvm", "boot"}, args...))
+				_, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, args...))
 				if err == nil || !strings.Contains(err.Error(), "flag provided but not defined: -rdp") {
 					t.Fatalf("standalone RDP flag accepted: %v", err)
 				}

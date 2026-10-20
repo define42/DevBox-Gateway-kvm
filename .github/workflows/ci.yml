@@ -62,7 +62,7 @@ jobs:
     - name: Build DevBox-Gateway-kvm
       env:
         GOFLAGS: "-buildvcs=false"
-      run: make gokvm
+      run: make devbox-kvm
 
     - name: Run tests (iteration 1/10 with lint and coverage)
       env:

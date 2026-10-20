@@ -9,9 +9,9 @@ focused tests without booting a guest:
 ```bash
 git clone https://github.com/define42/DevBox-Gateway-kvm.git
 cd DevBox-Gateway-kvm
-CGO_ENABLED=0 go build -o gokvm .
-./gokvm serve -help
-./gokvm boot -help
+CGO_ENABLED=0 go build -o devbox-kvm .
+./devbox-kvm serve -help
+./devbox-kvm boot -help
 CGO_ENABLED=0 go test -short ./internal/config ./internal/flag \
   ./internal/gateway ./internal/cloudinit
 ```

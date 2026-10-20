@@ -55,7 +55,7 @@ root/CAP_NET_ADMIN. Keep an out-of-band administrative session available:
 ```bash
 sudo nft --check --file deploy/gateway-rate-limit.nft
 sudo nft --file deploy/gateway-rate-limit.nft
-sudo nft list table inet gokvm_gateway_edge
+sudo nft list table inet devbox_kvm_gateway_edge
 ```
 
 The first command in the file refuses installation if its dedicated table already
@@ -66,7 +66,7 @@ system's boot-time configuration so they survive a reboot. To remove only this
 example's protection:
 
 ```bash
-sudo nft delete table inet gokvm_gateway_edge
+sudo nft delete table inet devbox_kvm_gateway_edge
 ```
 
 No firewall rules are automatically installed by the gateway or Compose.

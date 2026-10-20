@@ -2,7 +2,7 @@
 
 The gateway serves the web dashboard, authenticates users, provisions persistent
 Linux desktops, and routes downloaded RDP files to the correct VM. Each desktop
-runs in a separate gokvm process using KVM, UEFI firmware, and gokvm's own RDP
+runs in a separate devbox-kvm process using KVM, UEFI firmware, and devbox-kvm's own RDP
 console. The RDP connection shows the guest's shared screen, including firmware
 and its graphical login. It does not create a separate guest XRDP session.
 
@@ -45,16 +45,16 @@ separately and `make ldap-stop` to stop it. See the
 [LDAP setup](../testldap/README.md) for every demo account, certificate handling,
 external-directory variables, and authentication tests.
 
-A new gateway starts with an empty image catalog in `.gokvm-gateway/images`.
+A new gateway starts with an empty image catalog in `.devbox-kvm-gateway/images`.
 Sign in as `administrator`, open **Admin → Base Images**, and upload a compatible
 QCOW2 desktop image. Users can then select it when creating a desktop. Templates
 and desktop disks persist across restarts. `qemu-img` performs image conversion
-only; gokvm runs the VMs.
+only; devbox-kvm runs the VMs.
 
 | Make variable | Default | Purpose |
 | --- | --- | --- |
 | `QCOW2_IMAGE` | `./rocky9-xfce-v2.4.16.qcow2` | Source used only when an explicit `GATEWAY_IMAGE` needs creating. |
-| `GATEWAY_STATE` | `./.gokvm-gateway` | Private persistent state. |
+| `GATEWAY_STATE` | `./.devbox-kvm-gateway` | Private persistent state. |
 | `GATEWAY_IMAGE` | Empty | Optional protected default image; if set and absent, converted from `QCOW2_IMAGE`. |
 | `GATEWAY_ARGS` | Empty | Additional `serve` flags. |
 | `OVMF_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | Firmware code. |
@@ -67,7 +67,7 @@ variables remain helper aliases for the local setup; explicit `serve` flags
 override environment values. To opt into a preconfigured protected default, for example:
 
 ```bash
-make gateway GATEWAY_IMAGE=./.gokvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2
+make gateway GATEWAY_IMAGE=./.devbox-kvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2
 ```
 
 This prepares the destination once if absent, then reuses it. The original
@@ -80,7 +80,7 @@ To use the bundled software encoder without a C compiler or native codec
 libraries, build directly and start LDAP separately:
 
 ```bash
-CGO_ENABLED=0 go build -o gokvm .
+CGO_ENABLED=0 go build -o devbox-kvm .
 make ldap
 H264_ENCODER=software \
 LDAP_URL=ldaps://127.0.0.1:1636 LDAP_BASE_DN=dc=glauth,dc=com \
@@ -88,7 +88,7 @@ LDAP_USER_DOMAIN=example.com LDAP_USER_FILTER='(mail=%s)' \
 LDAP_USERNAME_ATTRIBUTE=mail \
 LDAP_REQUIRED_GROUP=ou=team10_r,ou=groups,dc=glauth,dc=com \
 ADMIN_GROUP=devbox-admins LDAP_CA_FILE=./testldap/.tls/cert.pem \
-./gokvm serve
+./devbox-kvm serve
 ```
 
 Open the same **https://localhost:8443** page and use the demo accounts above.
@@ -316,7 +316,7 @@ format, not whether the installed guest can boot or provision successfully.
   corrupt flags, and unsupported incompatible features are rejected.
 - Compressed images and some other unsupported layouts are checked and converted
   with `qemu-img` when necessary. Install `qemu-utils` on the gateway host for
-  this import path. Images already supported by gokvm need no conversion tool.
+  this import path. Images already supported by devbox-kvm need no conversion tool.
 - Every template and managed VM disk has a default maximum virtual capacity of
   `500GB`, controlled by `VM_DISK_MAX_SIZE` (`-vm-disk-max-size`).
 - Administrator QCOW2 imports retain an independent 1 TiB virtual-capacity
@@ -406,15 +406,15 @@ browsers and RDP clients. The host must have matching OVMF firmware. An administ
 image templates after startup:
 
 ```bash
-DATA_ROOT_DIR=/var/lib/gokvm \
+DATA_ROOT_DIR=/var/lib/devbox-kvm \
 LISTEN_ADDR=0.0.0.0:8443 PUBLIC_ADDRESS=desktops.example.com:8443 \
-CERT_FILE=/etc/gokvm/fullchain.pem KEY_FILE=/etc/gokvm/key.pem \
+CERT_FILE=/etc/devbox-kvm/fullchain.pem KEY_FILE=/etc/devbox-kvm/key.pem \
 LDAP_URL=ldaps://directory.example.com LDAP_BASE_DN=dc=example,dc=com \
 LDAP_USER_DOMAIN=example.com LDAP_USERNAME_ATTRIBUTE=sAMAccountName \
 LDAP_USER_FILTER='(userPrincipalName=%s)' \
 LDAP_REQUIRED_GROUP='CN=Desktop Users,OU=Groups,DC=example,DC=com' \
 ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
-./gokvm serve
+./devbox-kvm serve
 ```
 
 For desktop starts, also set `VM_CGROUP_ROOT` to the prepared private subtree
@@ -463,7 +463,7 @@ no generated-auth-file fallback. Old `auth.json` and
 Exactly one of `LDAP_URL` and `AUTH_FILE` is required. All gateway settings are
 read from environment variables; explicit flags remain available as overrides.
 See the [configuration reference](configuration.md) for every variable, default,
-and corresponding flag, or run `./gokvm serve -help`.
+and corresponding flag, or run `./devbox-kvm serve -help`.
 
 CPU, RAM, encoder, and RDP profile settings apply when a VM process starts; they
 are gateway-wide settings, not per-image sizing. Restart running VMs after
@@ -555,7 +555,7 @@ cgroup controls.
 For an explicit local-auth development setup:
 
 ```bash
-./gokvm auth-user -user developer -out auth.json
+./devbox-kvm auth-user -user developer -out auth.json
 ```
 
 This creates a new bcrypt account file and a private
@@ -588,7 +588,7 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 The `images` directory is created automatically and starts empty for a new
 state directory without `BASE_IMAGE`. The Compose stack binds the host directory
 selected by `GATEWAY_STORAGE_PATH` (default `/srv/devbox-storage`) to
-`/var/lib/gokvm`. Templates therefore live at `/srv/devbox-storage/images` on the
+`/var/lib/devbox-kvm`. Templates therefore live at `/srv/devbox-storage/images` on the
 host by default, and VM disks at `/srv/devbox-storage/vms/<id>/disk.img`.
 This mount holds all gateway state, not just QCOW2 files. See the
 [Docker storage setup](docker.md) for directory preparation and ownership.
@@ -643,9 +643,9 @@ for interactive desktop access:
 
 ```bash
 cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
-./gokvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
+./devbox-kvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
 # Read seed.iso.credentials.json for the generated guest login.
-./gokvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+./devbox-kvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
   -m 4G -c 2 -net user
 ```
@@ -660,7 +660,7 @@ keyboard is `us`, and `-instance-id` defaults to a generated identity.
 To supply your own documents instead of the generated account configuration:
 
 ```bash
-./gokvm seed -user-data ./user-data -meta-data ./meta-data \
+./devbox-kvm seed -user-data ./user-data -meta-data ./meta-data \
   -network-config ./network-config -out seed.iso
 ```
 

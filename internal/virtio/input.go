@@ -643,7 +643,7 @@ func (d *InputDevice) evBitmap(subsel uint8) [128]byte {
 // NewInputKeyboard creates a keyboard using borrowed guest memory. It ignores
 // pointer events and leaves worker startup and shutdown to the caller.
 func NewInputKeyboard(irq uint8, inject func() error, mem []byte) *InputDevice {
-	return newInputDevice("gokvm keyboard", inputKindKeyboard, irq, InputKeyboardMMIOBase, inject, mem)
+	return newInputDevice("devbox-kvm keyboard", inputKindKeyboard, irq, InputKeyboardMMIOBase, inject, mem)
 }
 
 // NewInputTablet creates an absolute pointer with buttons and wheel scrolling
@@ -651,7 +651,7 @@ func NewInputKeyboard(irq uint8, inject func() error, mem []byte) *InputDevice {
 // and shutdown to the caller. Use PointerEventInBounds for current display sizes;
 // PointerEvent assumes a 1024x768 framebuffer.
 func NewInputTablet(irq uint8, inject func() error, mem []byte) *InputDevice {
-	return newInputDevice("gokvm tablet", inputKindTablet, irq, InputPointerMMIOBase, inject, mem)
+	return newInputDevice("devbox-kvm tablet", inputKindTablet, irq, InputPointerMMIOBase, inject, mem)
 }
 
 func newInputDevice(

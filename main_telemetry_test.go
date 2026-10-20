@@ -15,7 +15,7 @@ func TestInvalidTelemetryDoesNotPreventBoot(t *testing.T) {
 	cancel()
 	// An invalid optional telemetry descriptor must not replace the ordinary
 	// boot result or cause an attempt to initialize the VM after cancellation.
-	args := []string{"gokvm", "boot", "-telemetry-fd", "2147483647"}
+	args := []string{"devbox-kvm", "boot", "-telemetry-fd", "2147483647"}
 	if err := run(ctx, args); !errors.Is(err, context.Canceled) {
 		t.Fatalf("telemetry initialization prevented normal boot handling: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestCancelledBootJoinsTelemetryAndClosesDescriptor(t *testing.T) {
 	cancel()
 	// The raw child descriptor is owned only by run; no second os.File can
 	// accidentally close an unrelated descriptor after the number is reused.
-	args := []string{"gokvm", "boot", "-telemetry-fd", strconv.Itoa(pair[1])}
+	args := []string{"devbox-kvm", "boot", "-telemetry-fd", strconv.Itoa(pair[1])}
 	if err := run(ctx, args); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled boot returned %v", err)
 	}

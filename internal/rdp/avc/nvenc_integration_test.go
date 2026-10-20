@@ -20,8 +20,8 @@ import (
 //
 //nolint:paralleltest // GPU tests share limited hardware encoder sessions.
 func TestNVENCHardware(t *testing.T) {
-	if os.Getenv("GOKVM_TEST_NVENC") != "1" {
-		t.Skip("set GOKVM_TEST_NVENC=1 to test the NVIDIA GPU")
+	if os.Getenv("DEVBOX_KVM_TEST_NVENC") != "1" {
+		t.Skip("set DEVBOX_KVM_TEST_NVENC=1 to test the NVIDIA GPU")
 	}
 	for _, dimensions := range [][2]int{{1280, 720}, {642, 362}} {
 		t.Run(fmt.Sprintf("%dx%d", dimensions[0], dimensions[1]), func(t *testing.T) {

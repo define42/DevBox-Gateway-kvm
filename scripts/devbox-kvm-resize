@@ -8,23 +8,23 @@ case "${1:-}" in
     '') ;;
     --once) once=1 ;;
     -h|--help)
-        printf '%s\n' 'Usage: gokvm-resize [--once]' \
+        printf '%s\n' 'Usage: devbox-kvm-resize [--once]' \
             'Apply the preferred mode of a single connected Virtual-* X11 output.' \
             'Without --once, check for changes once per second.'
         exit 0
         ;;
-    *) printf '%s\n' 'Usage: gokvm-resize [--once]' >&2; exit 2 ;;
+    *) printf '%s\n' 'Usage: devbox-kvm-resize [--once]' >&2; exit 2 ;;
 esac
 if [ "$#" -gt 1 ]; then
-    printf '%s\n' 'Usage: gokvm-resize [--once]' >&2
+    printf '%s\n' 'Usage: devbox-kvm-resize [--once]' >&2
     exit 2
 fi
 if [ -z "${DISPLAY:-}" ]; then
-    printf '%s\n' 'gokvm-resize: run this inside the guest X11 session (DISPLAY is unset).' >&2
+    printf '%s\n' 'devbox-kvm-resize: run this inside the guest X11 session (DISPLAY is unset).' >&2
     exit 1
 fi
 if ! command -v xrandr >/dev/null 2>&1; then
-    printf '%s\n' 'gokvm-resize: xrandr is required.' >&2
+    printf '%s\n' 'devbox-kvm-resize: xrandr is required.' >&2
     exit 1
 fi
 

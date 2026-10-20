@@ -156,13 +156,13 @@ prevent the VM from starting.
 
 The default runtime image has no shell or curl. Use **host** tools instead; do not
 publish a debug port or install tools into the running container. The following
-assumes the default `/var/lib/gokvm` state mount. Adapt the mount destination if
+assumes the default `/var/lib/devbox-kvm` state mount. Adapt the mount destination if
 your deployment overrides it. Use your desktop ID from `/perf`.
 
 ```sh
 perf_container=$(docker compose -f compose.yaml -f compose.nvidia.yaml ps -q gateway)
 perf_state=$(docker inspect "$perf_container" --format \
-  '{{range .Mounts}}{{if eq .Destination "/var/lib/gokvm"}}{{.Source}}{{end}}{{end}}')
+  '{{range .Mounts}}{{if eq .Destination "/var/lib/devbox-kvm"}}{{.Source}}{{end}}{{end}}')
 perf_vm='YOUR_VM_ID'
 test -n "$perf_state" && sudo find "$perf_state/vms/$perf_vm" \
   -mindepth 2 -maxdepth 2 -type s -name cpu.sock -printf '%T+ %P\n'
@@ -194,9 +194,9 @@ Copy the exact deployed executable and inspect the profile with Go installed on
 the host:
 
 ```sh
-docker cp "$perf_container:/usr/local/bin/gokvm" ./gokvm-profile-bin
-go tool pprof -top ./gokvm-profile-bin ./vm-cpu.pprof
-go tool pprof -top -cum ./gokvm-profile-bin ./vm-cpu.pprof
+docker cp "$perf_container:/usr/local/bin/devbox-kvm" ./devbox-kvm-profile-bin
+go tool pprof -top ./devbox-kvm-profile-bin ./vm-cpu.pprof
+go tool pprof -top -cum ./devbox-kvm-profile-bin ./vm-cpu.pprof
 ```
 
 Go's [runtime profiler](https://pkg.go.dev/runtime/pprof#StartCPUProfile) samples

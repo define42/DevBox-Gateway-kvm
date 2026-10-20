@@ -115,7 +115,7 @@ type Settings struct {
 func NewSettings() *Settings {
 	s := &Settings{m: make(map[string]*Setting)}
 
-	s.SetString(DATA_ROOT_DIR, "Private persistent VM state directory", ".gokvm-gateway")
+	s.SetString(DATA_ROOT_DIR, "Private persistent VM state directory", ".devbox-kvm-gateway")
 	s.SetString(BASE_IMAGE, "Optional immutable raw or uncompressed qcow2 default image", "")
 	s.SetString(VM_BINARY, "VM worker executable; empty uses the current executable", "")
 	s.SetString(UEFI_CODE, "OVMF CODE firmware", "/usr/share/OVMF/OVMF_CODE_4M.fd")

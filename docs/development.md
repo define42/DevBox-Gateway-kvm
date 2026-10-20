@@ -11,10 +11,10 @@ Development targets x86-64 Linux with Go 1.26.0 or newer, as declared in
 needs no C compiler or native codec libraries:
 
 ```bash
-CGO_ENABLED=0 go build -o gokvm .
-./gokvm serve -help
-./gokvm boot -help
-./gokvm seed -help
+CGO_ENABLED=0 go build -o devbox-kvm .
+./devbox-kvm serve -help
+./devbox-kvm boot -help
+./devbox-kvm seed -help
 ```
 
 Booting guests also requires hardware virtualization and read/write access to
@@ -28,16 +28,16 @@ the relevant guide and CLI help when changing flags, defaults, guest requirement
 or the web workflow. Describe which checks ran and which hardware-dependent
 checks were skipped. Avoid using live gateway disks as test fixtures.
 
-[`make gokvm`](../Makefile) runs code generation before building. `make generate`
+[`make devbox-kvm`](../Makefile) runs code generation before building. `make generate`
 installs `stringer` if needed and runs `go generate ./...`; generated KVM enum
 strings are committed. `make golangci` runs generation and the linter version
 pinned in the Makefile, using [`.golangci.yaml`](../.golangci.yaml).
 
 ## Code layout and API boundary
 
-The application entry point remains at the repository root. `go build -o gokvm .`
-builds the CLI with its existing executable name; there is no separate
-`cmd/gokvm` module.
+The application entry point is at the repository root. `go build -o devbox-kvm .`
+builds the CLI; there is no separate
+`cmd/devbox-kvm` module.
 
 | Location | Responsibility |
 | --- | --- |
@@ -62,7 +62,7 @@ were moved under `internal/` without compatibility packages. The public `kvm`,
 [codec guide](../pkg/h264/README.md) for its API and the
 [porting notes](../pkg/h264/PORTING.md) for its implementation history.
 
-The gateway starts a separate gokvm process for each running desktop. Each worker
+The gateway starts a separate devbox-kvm process for each running desktop. Each worker
 opens KVM and its own disk, firmware variables, and seed, then adopts the private
 RDP Unix listener created by the gateway. RDP uses TLS, captures the VM's console
 framebuffer, and sends input to emulated guest devices;
@@ -137,7 +137,7 @@ make test-qcow2
 
 This builds a tiny EFI application, places it at `EFI/BOOT/BOOTX64.EFI` in a
 temporary 64 MiB FAT32 disk, and converts the disk to QCOW2 with `qemu-img`.
-The native gokvm KVM runtime boots OVMF with an isolated writable VARS copy.
+The native devbox-kvm KVM runtime boots OVMF with an isolated writable VARS copy.
 The test requires the application to report a serial success marker and request
 a successful firmware shutdown. QEMU is used only for image conversion, not to
 run the guest. No Linux kernel, initrd, downloaded desktop image, or live gateway
@@ -155,14 +155,14 @@ make test-qcow2 OVMF_CODE=/path/to/OVMF_CODE.fd OVMF_VARS=/path/to/OVMF_VARS.fd
 For a direct Go invocation, use the corresponding test environment variables:
 
 ```bash
-GOKVM_REQUIRE_UEFI_TEST=1 \
-GOKVM_TEST_OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
-GOKVM_TEST_OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd \
+DEVBOX_KVM_REQUIRE_UEFI_TEST=1 \
+DEVBOX_KVM_TEST_OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
+DEVBOX_KVM_TEST_OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd \
   go test -tags=integration ./internal/vmm \
   -run '^TestUEFIQCOW2Boot$' -count=1 -timeout 3m -v
 ```
 
-`GOKVM_REQUIRE_UEFI_TEST=1` makes missing tools, firmware, or KVM access a test
+`DEVBOX_KVM_REQUIRE_UEFI_TEST=1` makes missing tools, firmware, or KVM access a test
 failure instead of a skip. `make test-qcow2` sets it automatically, including
 when called by `make test` and CI.
 
@@ -248,7 +248,7 @@ make ldap-stop
 The first target starts the bundled directory with Docker Compose and verifies
 authentication and role membership over LDAPS. It requires Docker Compose and
 OpenSSL. See the [LDAP guide](../testldap/README.md) for its public demo accounts,
-certificate setup, and `GOKVM_TEST_LDAP_URL` / `GOKVM_TEST_LDAP_CA` overrides.
+certificate setup, and `DEVBOX_KVM_TEST_LDAP_URL` / `DEVBOX_KVM_TEST_LDAP_CA` overrides.
 
 ### Hardware H.264
 
@@ -265,7 +265,7 @@ With an NVIDIA H.264 NVENC-capable GPU, a working driver, and the `ffmpeg` decod
 installed, opt into actual hardware encoding:
 
 ```bash
-GOKVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
+DEVBOX_KVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
   ./internal/rdp/avc -run '^TestNVENCHardware' -count=1 -timeout 2m -v
 ```
 
@@ -296,7 +296,7 @@ a C compiler/binutils, mtools, `qemu-img`, `timeout`, `truncate`, and Python 3.
 It builds an EFI test application and boots isolated raw and QCOW2 disks.
 Artifacts are retained on failure. Set `UEFI_KEEP_ARTIFACTS=1` to retain successful
 runs, `UEFI_CPUS` to vary vCPU count, `UEFI_TIMEOUT` to change the per-boot timeout,
-or `GOKVM_BINARY` to use an existing binary. `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`
+or `DEVBOX_KVM_BINARY` to use an existing binary. `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`
 select nonstandard GNU-EFI installations. The script tests firmware/platform
 behavior; it does not establish compatibility with every guest OS.
 
@@ -306,8 +306,8 @@ Set these variables to any nonempty value for device traces:
 
 | Variable | Output |
 | --- | --- |
-| `GOKVM_TRACE_IO` | Guest port I/O exits |
-| `GOKVM_TRACE_MMIO` | Unhandled guest MMIO accesses |
+| `DEVBOX_KVM_TRACE_IO` | Guest port I/O exits |
+| `DEVBOX_KVM_TRACE_MMIO` | Unhandled guest MMIO accesses |
 
 Use these traces for direct developer boots. Managed workers discard standard
 output and error; use gateway telemetry and diagnostics for those desktops.

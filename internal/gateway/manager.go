@@ -46,7 +46,7 @@ type ManagerConfig struct {
 }
 
 // Manager persists each VM's disk, firmware variables, seed and TLS identity.
-// Each running guest is an isolated gokvm child process. The manager exclusively
+// Each running guest is an isolated devbox-kvm child process. The manager exclusively
 // owns its state directory until Close has finished all tracked cleanup.
 type Manager struct {
 	config       ManagerConfig
@@ -220,7 +220,7 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 	if c.BaseImage != "" {
 		image, err := disk.OpenReadOnly(c.BaseImage)
 		if err != nil {
-			return fmt.Errorf("base image must be supported by gokvm (convert compressed qcow2 first): %w", err)
+			return fmt.Errorf("base image must be supported by devbox-kvm (convert compressed qcow2 first): %w", err)
 		}
 		if err := validateAndCloseDiskImage(image, c.MaxDiskBytes); err != nil {
 			return fmt.Errorf("configured base image: %w", err)
@@ -627,7 +627,7 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 }
 
 func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
-	address := "@gokvm-rdp-" + rand.Text()
+	address := "@devbox-kvm-rdp-" + rand.Text()
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: address, Net: "unix"})
 	if err != nil {
 		return nil, fmt.Errorf("create private RDP listener: %w", err)

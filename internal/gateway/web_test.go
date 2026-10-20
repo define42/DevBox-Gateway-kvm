@@ -305,7 +305,7 @@ func TestLoginHashesPasswordAndIssuesSecureSession(t *testing.T) {
 	page := webRequest(s, http.MethodGet, "/login", "", nil)
 	var challenge *http.Cookie
 	for _, c := range page.Result().Cookies() {
-		if c.Name == loginCookie {
+		if c.Name == "__Host-devbox-kvm-login" {
 			challenge = c
 		}
 	}
@@ -334,7 +334,7 @@ func TestLoginHashesPasswordAndIssuesSecureSession(t *testing.T) {
 	}
 	var cookie *http.Cookie
 	for _, c := range w.Result().Cookies() {
-		if c.Name == sessionCookie {
+		if c.Name == "__Host-devbox-kvm" {
 			cookie = c
 		}
 	}

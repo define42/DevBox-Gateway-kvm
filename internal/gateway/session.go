@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	sessionCookie = "__Host-gokvm"
-	loginCookie   = "__Host-gokvm-login"
+	sessionCookie = "__Host-devbox-kvm"
+	loginCookie   = "__Host-devbox-kvm-login"
 	connectWindow = 2 * time.Minute
 )
 

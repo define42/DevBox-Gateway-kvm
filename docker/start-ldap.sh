@@ -52,6 +52,6 @@ public_temporary=
 
 # Preserve local account/configuration changes across container restarts.
 if [ ! -e "$directory/config.cfg" ]; then
-    cp /usr/local/share/gokvm-ldap/config.cfg "$directory/config.cfg"
+    cp /usr/local/share/devbox-kvm-ldap/config.cfg "$directory/config.cfg"
 fi
 exec /app/glauth -c "$directory/config.cfg" "$@"

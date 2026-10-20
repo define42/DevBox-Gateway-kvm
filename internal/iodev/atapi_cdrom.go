@@ -409,7 +409,7 @@ func (c *ATAPICDROM) identifyPacket() []byte {
 	putWord(93, 0x4041) // Master-only device; no slave shares this channel.
 
 	copyATAString(data[23*2:27*2], "1.0")
-	copyATAString(data[27*2:47*2], "gokvm ATAPI CD-ROM")
+	copyATAString(data[27*2:47*2], "devbox-kvm ATAPI CD-ROM")
 
 	return data
 }
@@ -421,7 +421,7 @@ func (c *ATAPICDROM) inquiry() []byte {
 	data[2] = 0x05 // SPC-3.
 	data[3] = 0x02 // Response data format.
 	data[4] = 31
-	copyPadded(data[8:16], "GOKVM")
+	copyPadded(data[8:16], "DEVBOX")
 	copyPadded(data[16:32], "VIRTUAL CD-ROM")
 	copyPadded(data[32:36], "1.0")
 
@@ -546,7 +546,7 @@ func (c *ATAPICDROM) interrupt() {
 }
 
 func (c *ATAPICDROM) tracef(format string, args ...interface{}) {
-	if os.Getenv("GOKVM_TRACE_ATAPI") == "" {
+	if os.Getenv("DEVBOX_KVM_TRACE_ATAPI") == "" {
 		return
 	}
 

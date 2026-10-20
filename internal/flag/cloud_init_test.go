@@ -11,7 +11,7 @@ import (
 func TestCloudInitDefaultsEmpty(t *testing.T) {
 	t.Parallel()
 
-	args, _, err := flag.ParseArgs([]string{"gokvm", "boot"})
+	args, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestCloudInitPreservesBootOptions(t *testing.T) {
 			t.Parallel()
 
 			cli := append([]string{
-				"gokvm", "boot", "-d", "guest.qcow2", "-m", "2G", "-c", "2",
+				"devbox-kvm", "boot", "-d", "guest.qcow2", "-m", "2G", "-c", "2",
 				"-net", "user", "-rdp-fd", "3", "-rdp-wait",
 			}, tc.args...)
 			want, _, err := flag.ParseArgs(cli)
@@ -71,7 +71,7 @@ func TestCloudInitRequiresPrimaryDisk(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			cli := append([]string{"gokvm", "boot", "-cloud-init", "seed.iso"}, tc.args...)
+			cli := append([]string{"devbox-kvm", "boot", "-cloud-init", "seed.iso"}, tc.args...)
 			if _, _, err := flag.ParseArgs(cli); !errors.Is(err, flag.ErrCloudInitDisk) {
 				t.Fatalf("got %v, want ErrCloudInitDisk", err)
 			}

@@ -12,7 +12,7 @@ func TestInvalidProfilingDoesNotPreventBoot(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	args := []string{"gokvm", "boot", "-profile-socket", "relative.sock"}
+	args := []string{"devbox-kvm", "boot", "-profile-socket", "relative.sock"}
 	if err := run(ctx, args); !errors.Is(err, context.Canceled) {
 		t.Fatalf("optional profiling prevented normal boot handling: %v", err)
 	}
@@ -23,7 +23,7 @@ func TestCancelledBootClosesProfiling(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cpu.sock")
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	args := []string{"gokvm", "boot", "-profile-socket", path}
+	args := []string{"devbox-kvm", "boot", "-profile-socket", path}
 	if err := run(ctx, args); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled boot returned %v", err)
 	}

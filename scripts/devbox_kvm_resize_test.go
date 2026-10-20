@@ -68,7 +68,7 @@ else
     printf '%s\n' "$*" >>"$RESIZE_FIXTURE_DIR/applied"
 fi
 `, 0o700)
-			cmd := exec.Command("sh", "gokvm-resize", "--once")
+			cmd := exec.Command("sh", "devbox-kvm-resize", "--once")
 			cmd.Env = append(os.Environ(), "DISPLAY=:999", "RESIZE_FIXTURE_DIR="+taskDir,
 				"PATH="+taskDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 			if output, err := cmd.CombinedOutput(); err != nil {
@@ -87,7 +87,7 @@ fi
 
 func TestGuestResizeRequiresX11Session(t *testing.T) {
 	t.Parallel()
-	cmd := exec.Command("sh", "gokvm-resize", "--once")
+	cmd := exec.Command("sh", "devbox-kvm-resize", "--once")
 	cmd.Env = append(os.Environ(), "DISPLAY=")
 	output, err := cmd.CombinedOutput()
 	if err == nil || !strings.Contains(string(output), "DISPLAY is unset") {

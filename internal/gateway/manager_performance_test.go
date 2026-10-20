@@ -375,7 +375,7 @@ func TestManagerPerformanceInheritedSocketLifecycle(t *testing.T) {
 	t.Parallel()
 	config := managerTestConfig(t, "graceful")
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
-	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 GOKVM_PERFORMANCE_HELPER=1 exec " + quote(os.Args[0]) +
+	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 DEVBOX_KVM_PERFORMANCE_HELPER=1 exec " + quote(os.Args[0]) +
 		" -test.run='^TestPerformanceHelperProcess$' -- \"$@\"\n"
 	//nolint:gosec // Private executable test fixture.
 	if err := os.WriteFile(config.Binary, []byte(script), 0o700); err != nil {
@@ -440,7 +440,7 @@ func TestManagerPerformanceInheritedSocketLifecycle(t *testing.T) {
 }
 
 func TestPerformanceHelperProcess(t *testing.T) { //nolint:paralleltest // Standalone signal-driven helper process.
-	if os.Getenv("GOKVM_PERFORMANCE_HELPER") == "" {
+	if os.Getenv("DEVBOX_KVM_PERFORMANCE_HELPER") == "" {
 		return
 	}
 	args := make(map[string]string)

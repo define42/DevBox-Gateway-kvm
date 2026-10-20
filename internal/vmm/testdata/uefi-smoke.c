@@ -9,7 +9,7 @@ static void serial_write(unsigned short port, unsigned char value)
 
 EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *system)
 {
-    const char marker[] = "GOKVM_QCOW2_UEFI_BOOT_OK\r\n";
+    const char marker[] = "DEVBOX_KVM_QCOW2_UEFI_BOOT_OK\r\n";
     (void)image;
 
     /* COM1, 115200 baud, 8N1; bypass firmware console redirection. */

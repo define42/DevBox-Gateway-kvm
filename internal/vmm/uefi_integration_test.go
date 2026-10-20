@@ -34,8 +34,8 @@ func TestUEFIQCOW2Boot(t *testing.T) {
 			uefiPrerequisiteUnavailablef(t, "install gnu-efi (%s): %v", path, err)
 		}
 	}
-	code := uefiTestFirmware(t, "GOKVM_TEST_OVMF_CODE", "/usr/share/OVMF/OVMF_CODE_4M.fd")
-	varsTemplate := uefiTestFirmware(t, "GOKVM_TEST_OVMF_VARS", "/usr/share/OVMF/OVMF_VARS_4M.fd")
+	code := uefiTestFirmware(t, "DEVBOX_KVM_TEST_OVMF_CODE", "/usr/share/OVMF/OVMF_CODE_4M.fd")
+	varsTemplate := uefiTestFirmware(t, "DEVBOX_KVM_TEST_OVMF_VARS", "/usr/share/OVMF/OVMF_VARS_4M.fd")
 	kvm, err := os.OpenFile("/dev/kvm", os.O_RDWR, 0)
 	if err != nil {
 		uefiPrerequisiteUnavailablef(t, "KVM unavailable: %v", err)
@@ -80,7 +80,7 @@ func TestUEFIQCOW2Boot(t *testing.T) {
 	if err := v.BootContext(ctx); err != nil {
 		t.Fatalf("QCOW2 UEFI boot/shutdown failed: %v\nserial:\n%s", err, serial.String())
 	}
-	if !bytes.Contains(serial.Bytes(), []byte("GOKVM_QCOW2_UEFI_BOOT_OK\r\n")) {
+	if !bytes.Contains(serial.Bytes(), []byte("DEVBOX_KVM_QCOW2_UEFI_BOOT_OK\r\n")) {
 		t.Fatalf("firmware stopped without executing the QCOW2 boot program; serial:\n%s", serial.String())
 	}
 	t.Log("OVMF loaded the QCOW2 EFI boot program and completed firmware shutdown")
@@ -88,7 +88,7 @@ func TestUEFIQCOW2Boot(t *testing.T) {
 
 func uefiPrerequisiteUnavailablef(t *testing.T, format string, args ...any) {
 	t.Helper()
-	if os.Getenv("GOKVM_REQUIRE_UEFI_TEST") == "1" {
+	if os.Getenv("DEVBOX_KVM_REQUIRE_UEFI_TEST") == "1" {
 		t.Fatalf(format, args...)
 	}
 	t.Skipf(format, args...)

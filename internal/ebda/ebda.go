@@ -180,7 +180,7 @@ func newMPCTable(nCPUs int) (*mpcTable, error) {
 	m.length = uint16(mpcTableHeaderSize + nCPUs*mpcCPUEntrySize)
 	m.spec = 4
 	m.lapic = apicAddr(0)
-	m.OEMId = [8]byte{0x47, 0x4F, 0x4B, 0x56, 0x4D, 0x00, 0x00, 0x00} // "GOKVM   "
+	copy(m.OEMId[:], "DEVBOXVM")
 	m.entryCount = uint16(nCPUs)
 
 	var err error

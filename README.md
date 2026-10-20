@@ -1,20 +1,20 @@
-# DevBox-Gateway-kvm
+# devbox-kvm
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/define42/DevBox-Gateway-kvm)](go.mod) [![License](https://img.shields.io/github/license/define42/DevBox-Gateway-kvm)](LICENSE) [![CI](https://github.com/define42/DevBox-Gateway-kvm/actions/workflows/ci.yml/badge.svg)](https://github.com/define42/DevBox-Gateway-kvm/actions/workflows/ci.yml) [![Coverage](https://coveralls.io/repos/github/define42/DevBox-Gateway-kvm/badge.svg?branch=main)](https://coveralls.io/github/define42/DevBox-Gateway-kvm?branch=main)
 
-**DevBox-Gateway-kvm is a self-hosted Linux desktop gateway with a virtual
+**devbox-kvm is a self-hosted Linux desktop gateway with a virtual
 machine runtime written in Go.** Users sign in through LDAP, create persistent
 desktops from shared disk images, and connect through downloaded RDP files.
 Administrators manage the image catalog and desktops across accounts.
 
 It brings the DevBox Gateway workflow into one application: the web dashboard,
 authentication, cloud-init provisioning, VM lifecycle, and RDP routing. Each
-desktop runs in its own `gokvm` process using Linux KVM directly.
+desktop runs in its own `devbox-kvm` process using Linux KVM directly.
 
-The project is named **DevBox-Gateway-kvm** and uses the Go module path
-`github.com/define42/DevBox-Gateway-kvm`. The executable remains `gokvm`; existing
-command names, runtime `GOKVM_*` environment variables, helper scripts, and
-`.gokvm-gateway/` state paths remain available. Gateway settings use the
+The repository is named **DevBox-Gateway-kvm** and uses the Go module path
+`github.com/define42/DevBox-Gateway-kvm`. The executable is `devbox-kvm`, runtime
+and test environment variables use the `DEVBOX_KVM_*` prefix, and native gateway
+state defaults to `.devbox-kvm-gateway/`. Gateway settings use the
 [environment configuration reference](docs/configuration.md), following
 DevBox-Gateway's centralized `config.go` design.
 
@@ -47,7 +47,7 @@ The local setup below needs:
   `/usr/share/OVMF/OVMF_CODE_4M.fd` and `/usr/share/OVMF/OVMF_VARS_4M.fd`.
 - **Docker with the Compose plugin and OpenSSL** for the bundled development LDAP
   directory. An external LDAP directory can be used instead.
-- **`qemu-img`** from `qemu-utils` for image conversion. Guest execution uses gokvm.
+- **`qemu-img`** from `qemu-utils` for image conversion. Guest execution uses devbox-kvm.
 - **A C compiler, `pkg-config`, and FFmpeg development libraries** for the
   NVENC-enabled build used by `make gateway`. NVIDIA hardware is optional:
   automatic encoding falls back to software.
@@ -108,7 +108,7 @@ image can be uploaded through **Admin**.
 make gateway
 ```
 
-This starts the bundled LDAP directory, builds gokvm, and serves the gateway on
+This starts the bundled LDAP directory, builds devbox-kvm, and serves the gateway on
 **https://localhost:8443**. A new state directory has an empty image catalog.
 For this local setup, accept the generated self-signed certificate in your
 browser and RDP client.
@@ -261,7 +261,7 @@ password. The gateway removes the password before forwarding to the VM console.
 The backend is a private Unix socket that verifies the gateway's process
 identity; managed VMs expose no direct RDP TCP port.
 
-Each VM's RDP server is part of gokvm. The guest uses its normal graphical login
+Each VM's RDP server is part of devbox-kvm. The guest uses its normal graphical login
 and desktop session; the generated cloud-init configuration disables guest XRDP.
 The console can show firmware, boot output directed to the display, and the
 running desktop. Managed boot begins before you connect, so early screens may
@@ -292,7 +292,7 @@ Linux/PVH kernel boot with an optional initrd. See
 
 The local example binds to loopback. Remote access requires an explicit public
 address, ACME or a trusted TLS certificate/key pair, and your LDAP directory settings.
-Keep `.gokvm-gateway/` private and back it up with the service stopped. The state
+Keep `.devbox-kvm-gateway/` private and back it up with the service stopped. The state
 contains guest password hashes and private TLS keys.
 
 This is currently a **single-host application**. VM processes run under the
@@ -310,13 +310,13 @@ and Sauron integrations have not been migrated.
 
 | Command | Purpose |
 | --- | --- |
-| `gokvm serve` | Run the web gateway and manage desktop VMs. |
-| `gokvm boot` | Run one guest directly for development with a serial console. |
-| `gokvm seed` | Create a NoCloud seed ISO for a cloud-init-enabled guest. |
-| `gokvm probe` | Inspect host KVM capabilities and CPUID information. |
-| `gokvm auth-user` | Create a local authentication file for explicit loopback development setups. |
+| `devbox-kvm serve` | Run the web gateway and manage desktop VMs. |
+| `devbox-kvm boot` | Run one guest directly for development with a serial console. |
+| `devbox-kvm seed` | Create a NoCloud seed ISO for a cloud-init-enabled guest. |
+| `devbox-kvm probe` | Inspect host KVM capabilities and CPUID information. |
+| `devbox-kvm auth-user` | Create a local authentication file for explicit loopback development setups. |
 
-Run `./gokvm serve -help`, `./gokvm boot -help`, or `./gokvm seed -help` for the
+Run `./devbox-kvm serve -help`, `./devbox-kvm boot -help`, or `./devbox-kvm seed -help` for the
 current flags. `serve` reads configuration from environment variables; explicit
 flags override them. LDAP is the authentication path used by `make gateway`.
 
@@ -333,6 +333,9 @@ flags override them. LDAP is the authentication path used by `make gateway`.
 - [Documentation index for tools](llms.txt): entry points for repository and
   operational documentation.
 
+Dated benchmark reports and their evidence retain the application names and
+paths recorded at the measured revision; use the current guides for setup.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow and focused
@@ -341,7 +344,7 @@ checks.
 Build the application from the repository root:
 
 ```bash
-CGO_ENABLED=0 go build -o gokvm .
+CGO_ENABLED=0 go build -o devbox-kvm .
 ```
 
 This includes software H.264 encoding. Each push to `main` publishes its tested

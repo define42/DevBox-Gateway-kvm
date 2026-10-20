@@ -7,5 +7,5 @@ with DevBox-Gateway-kvm's authenticated forms and supported VM actions.
 
 The upstream MIT license is in `LICENSE-DevBox-Gateway`. Each vendored library
 includes its own license. All styles, scripts and icon fonts are served locally;
-no CDN or frontend build step is required. `gokvm.css` contains the small layout
+no CDN or frontend build step is required. `devbox-kvm.css` contains the small layout
 and accessibility adaptations for the native dashboard.

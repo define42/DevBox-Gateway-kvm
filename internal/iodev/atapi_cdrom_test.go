@@ -27,6 +27,13 @@ func TestATAPICDROMIdentifyPacket(t *testing.T) {
 	if got := binary.LittleEndian.Uint16(data[93*2:]); got != 0x4041 {
 		t.Fatalf("identify word93 = %#x, want 0x4041", got)
 	}
+	model := append([]byte{}, data[27*2:47*2]...)
+	for offset := 0; offset < len(model); offset += 2 {
+		model[offset], model[offset+1] = model[offset+1], model[offset]
+	}
+	if got := string(bytes.TrimRight(model, " ")); got != "devbox-kvm ATAPI CD-ROM" {
+		t.Errorf("identify model = %q, want devbox-kvm ATAPI CD-ROM", got)
+	}
 
 	readATAPI(t, dev, ataRegStatus, status[:])
 	if status[0]&ataStatusDRQ != 0 {
