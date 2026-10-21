@@ -5,7 +5,9 @@ file and a guest virtio block device, backed by raw and QCOW2 images. The guest
 uses one vCPU, 256 MiB RAM, an externally supplied kernel, and a minimal initramfs
 built by the harness. Serial exists only in this benchmark runner; it does not
 change product serial settings. No network, desktop, filesystem, or guest shell
-is needed.
+is needed. The runner requires an explicit `-disk-format raw|qcow2`; the driver
+passes the format for each disposable disk. Raw writable disk support is limited to
+this benchmark harness and low-level test APIs; production VM boot disks use QCOW2.
 
 The driver creates a **new** result directory and disposable disks beneath it.
 Choose a directory on the same host filesystem as the real VM disks. It never

@@ -35,7 +35,7 @@ func BenchmarkBlkReadConcurrency(b *testing.B) {
 				if err := os.WriteFile(path, make([]byte, requests*blockSize), 0o600); err != nil {
 					b.Fatal(err)
 				}
-				backing, err := disk.Open(path)
+				backing, err := disk.OpenRaw(path)
 				if err != nil {
 					b.Fatal(err)
 				}

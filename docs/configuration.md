@@ -49,7 +49,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | Environment variable | Default | Flag override | Purpose |
 | --- | --- | --- | --- |
 | `DATA_ROOT_DIR` | `.devbox-kvm-gateway` | `-state` | Private persistent state directory. |
-| `BASE_IMAGE` | Empty | `-image` | Optional immutable raw or supported uncompressed QCOW2 default template. Omit to use administrator uploads. |
+| `BASE_IMAGE` | Empty | `-image` | Optional immutable standalone uncompressed QCOW2 default template. Omit to use administrator uploads. |
 | `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
 | `VM_GPU_3D` | `false` | `-gpu-3d` | Enable guest OpenGL via virglrenderer; requires a `virgl` build and host EGL. `false` retains the 2D device without initializing a renderer. Applies when each VM starts. |
 | `VM_NETWORK_POLICY` | `internet` | `-vm-network-policy` | Managed IPv4 TCP/UDP access: `internet` permits public destinations, while `allowlist` permits only explicit CIDRs. Visible host interface subnets, private and special ranges require an exception. DHCP/DNS remain available; see [networking](runtime.md#networking) for routed/NAT LAN limits. |
@@ -144,6 +144,14 @@ preallocate, grow, or shrink an image. See
 for import and existing-VM behavior. H04 remains an operator-managed residual
 shared-storage-exhaustion risk; see
 [storage capacity responsibility](storage-isolation.md).
+
+All VM boot disks and configured base images must be standalone QCOW2. Disk
+opens always use the QCOW2 decoder; raw data and invalid headers are rejected.
+Each managed VM saves its virtual capacity in private metadata at creation.
+The gateway and worker require that capacity on every start, including
+guest-requested resets. A changed capacity is rejected even below
+`VM_DISK_MAX_SIZE`; missing or invalid saved capacity is also rejected.
+Cloud-init seed ISOs are attached separately as read-only raw media.
 
 ## Listener and TLS
 

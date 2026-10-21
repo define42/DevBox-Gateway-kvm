@@ -19,15 +19,15 @@ func TestMultipleDiskInitialBARs(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	for index, name := range []string{"boot.raw", "seed.iso", "install.iso"} {
-		path := filepath.Join(t.TempDir(), name)
-		if err := os.WriteFile(path, make([]byte, (index+1)*virtio.SectorSize), 0o600); err != nil {
-			t.Fatal(err)
-		}
+	for index, name := range []string{"boot.qcow2", "seed.iso", "install.iso"} {
 		var err error
 		if index == 0 {
-			err = m.AddDisk(path)
+			err = m.AddDisk(writeMachineQCOW2(t, virtio.SectorSize))
 		} else {
+			path := filepath.Join(t.TempDir(), name)
+			if err := os.WriteFile(path, make([]byte, (index+1)*virtio.SectorSize), 0o600); err != nil {
+				t.Fatal(err)
+			}
 			err = m.AddReadOnlyDisk(path)
 		}
 		if err != nil {

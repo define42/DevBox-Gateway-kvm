@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -30,7 +31,7 @@ import (
 const defaultMaxCreations = 2
 
 // ManagerConfig supplies operator-controlled resources for managed UEFI guests.
-// BaseImage is optional; when set, it must be a standalone raw or uncompressed qcow2 image.
+// BaseImage is optional; when set, it must be a standalone uncompressed QCOW2 image.
 // StartTimeout bounds readiness checks. StopTimeout is the guest's graceful
 // shutdown allowance; it does not include all escalation and host-cleanup waits.
 type ManagerConfig struct {
@@ -351,6 +352,9 @@ func (m *Manager) load() error {
 		if record.ID != entry.Name() || !validOwner(record.Owner) || !validVMName(record.Name) || record.CreatedAt.IsZero() {
 			return fmt.Errorf("invalid saved VM metadata: %w", ErrInvalid)
 		}
+		if record.DiskSizeBytes <= 0 {
+			return fmt.Errorf("invalid saved VM disk capacity: %w", ErrInvalid)
+		}
 		if record.ImageID == "" {
 			record.ImageID, record.ImageName = DefaultImageID, m.images[DefaultImageID].Name
 		}
@@ -485,9 +489,16 @@ func (m *Manager) CreateWithProgress(
 		return VM{}, err
 	}
 	defer imageFile.Close()
+	// Every boot disk is QCOW2. Save its trusted capacity before the guest can
+	// write to the clone, and require that capacity on every subsequent open.
+	size, err := validateOpenDisk(imageFile, m.config.MaxDiskBytes)
+	if err != nil {
+		return VM{}, fmt.Errorf("selected VM image: %w", err)
+	}
 	v := newManagedVM(VM{
 		ImageID: image.ID, ImageName: image.Name,
-		ID: strings.ToLower(rand.Text()), Name: name, Owner: owner,
+		DiskSizeBytes: size,
+		ID:            strings.ToLower(rand.Text()), Name: name, Owner: owner,
 		State: "creating", CreatedAt: time.Now().UTC(),
 	})
 	if err := v.lock(ctx); err != nil {
@@ -597,7 +608,7 @@ func (m *Manager) Start(ctx context.Context, owner, id string) error {
 	if v.run != nil || v.record.State != "stopped" {
 		return ErrConflict
 	}
-	if _, err := m.validatePrivateDisk(filepath.Join(m.directory(v.record.ID), "disk.img")); err != nil {
+	if err := m.validateManagedDisk(filepath.Join(m.directory(v.record.ID), "disk.img"), v.record); err != nil {
 		return fmt.Errorf("validate VM disk before start: %w", err)
 	}
 	m.mu.Lock()
@@ -677,7 +688,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 			return nil, err
 		}
 	}
-	if _, err := m.validatePrivateDisk(filepath.Join(dir, "disk.img")); err != nil {
+	if err := m.validateManagedDisk(filepath.Join(dir, "disk.img"), v.record); err != nil {
 		return nil, fmt.Errorf("validate VM disk before worker exec: %w", err)
 	}
 	cert, err := readPrivateFile(filepath.Join(dir, "rdp.crt"), 64<<10)
@@ -686,7 +697,9 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 	}
 	args := []string{
 		"worker", "boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
-		"-d", filepath.Join(dir, "disk.img"), "-cloud-init", filepath.Join(dir, "seed.iso"),
+		"-d", filepath.Join(dir, "disk.img"),
+		"-disk-size-bytes", strconv.FormatInt(v.record.DiskSizeBytes, 10),
+		"-cloud-init", filepath.Join(dir, "seed.iso"),
 		"-c", fmt.Sprint(m.config.CPUs), "-m", fmt.Sprintf("%dM", m.config.MemoryMiB), "-net", "user-isolated",
 		"-net-policy", m.config.NetworkPolicy, "-net-allow-cidrs", m.config.NetworkAllowCIDRs,
 		"-rdp-fd", "3",

@@ -280,6 +280,29 @@ func (m *Machine) AddDisk(diskPath string) error {
 	return nil
 }
 
+// AddDiskWithSize attaches a QCOW2 primary disk with its fixed capacity.
+func (m *Machine) AddDiskWithSize(diskPath string, size int64) error {
+	v, err := virtio.NewBlkWithSize(diskPath, size, virtioBlkIRQ, m, m.mem)
+	if err != nil {
+		return err
+	}
+	m.addBlockDevice(v)
+
+	return nil
+}
+
+// AddRawDisk attaches a raw image for low-level benchmark comparisons.
+// Runtime primary disks must use AddDisk or AddDiskWithSize.
+func (m *Machine) AddRawDisk(diskPath string) error {
+	v, err := virtio.NewRawBlk(diskPath, virtioBlkIRQ, m, m.mem)
+	if err != nil {
+		return err
+	}
+	m.addBlockDevice(v)
+
+	return nil
+}
+
 func (m *Machine) AddReadOnlyDisk(diskPath string) error {
 	v, err := virtio.NewReadOnlyBlk(diskPath, virtioBlkIRQ, m, m.mem)
 	if err != nil {

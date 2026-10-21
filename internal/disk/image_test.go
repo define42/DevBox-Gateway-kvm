@@ -18,7 +18,7 @@ func TestOpenRawImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	img, err := Open(path)
+	img, err := OpenRaw(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestRawImageWriteBounds(t *testing.T) {
 	if err := os.WriteFile(path, original, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	img, err := Open(path)
+	img, err := OpenRaw(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestQCOW2WriteReadReopenAndQEMUCheck(t *testing.T) {
 
 	qcow, ok := img.(*qcow2Image)
 	if !ok {
-		t.Fatal("Open did not detect qcow2 image")
+		t.Fatal("Open did not return a qcow2 image")
 	}
 
 	clusterSize := int64(qcow.clusterSize)
@@ -318,5 +318,76 @@ func assertBytesAt(t *testing.T, got []byte, want []byte, off int64) {
 
 	if !bytes.Equal(got[off:off+int64(len(want))], want) {
 		t.Fatalf("bytes at %d: got %x, want %x", off, got[off:off+int64(len(want))], want)
+	}
+}
+
+func TestQCOW2OpenersRejectRaw(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		open func(string) (Image, error)
+	}{
+		{name: "writable", open: Open},
+		{name: "read_only", open: OpenReadOnly},
+		{name: "pinned_capacity", open: func(path string) (Image, error) { return OpenQCOW2WithSize(path, 4096) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			path := filepath.Join(t.TempDir(), "raw-data.qcow2")
+			if err := os.WriteFile(path, bytes.Repeat([]byte{0x5a}, 4096), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			image, err := tc.open(path)
+			if image != nil {
+				_ = image.Close()
+			}
+			if err == nil {
+				t.Fatal("QCOW2 opener accepted raw data")
+			}
+		})
+	}
+}
+
+func TestRawOpenersIgnoreQCOW2Header(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		open     func(string) (Image, error)
+		readOnly bool
+	}{
+		{name: "writable", open: OpenRaw},
+		{name: "read_only", open: OpenRawReadOnly, readOnly: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			path := createEmptyCacheTestQCOW2(t)
+			want, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			image, err := tc.open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer image.Close()
+			if image.Size() != int64(len(want)) {
+				t.Fatalf("Size = %d, want %d", image.Size(), len(want))
+			}
+			got := make([]byte, len(want))
+			if _, err := image.ReadAt(got, 0); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Fatal("raw opener interpreted QCOW2 contents")
+			}
+			if tc.readOnly {
+				if _, err := image.WriteAt([]byte{0}, 0); err == nil {
+					t.Fatal("read-only raw image accepted a write")
+				}
+				if err := image.Sync(); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
 	}
 }

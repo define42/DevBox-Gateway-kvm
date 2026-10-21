@@ -40,8 +40,8 @@ func TestCloudInitRejectedBeforeKVM(t *testing.T) {
 		want error
 	}{
 		{name: "missing boot disk", conf: Config{CloudInit: "seed.iso"}, want: errCloudInitDisk},
-		{name: "missing seed", conf: Config{CloudInit: invalidSeed + ".missing", Disk: "disk.raw"}, want: os.ErrNotExist},
-		{name: "invalid seed", conf: Config{CloudInit: invalidSeed, Disk: "disk.raw"}},
+		{name: "missing seed", conf: Config{CloudInit: invalidSeed + ".missing", Disk: "disk.qcow2"}, want: os.ErrNotExist},
+		{name: "invalid seed", conf: Config{CloudInit: invalidSeed, Disk: "disk.qcow2"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -66,10 +66,7 @@ func TestCloudInitBootModes(t *testing.T) {
 	t.Parallel()
 
 	seed := writeCloudInitSeed(t)
-	disk := filepath.Join(t.TempDir(), "boot.raw")
-	if err := os.WriteFile(disk, make([]byte, 512), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	disk := writeQCOW2Disk(t, 4096)
 	for _, tc := range []struct {
 		name string
 		conf Config
@@ -95,7 +92,7 @@ func TestCloudInitCannotBeWritableBootDisk(t *testing.T) {
 	t.Parallel()
 
 	seed := writeCloudInitSeed(t)
-	alias := filepath.Join(t.TempDir(), "boot.raw")
+	alias := filepath.Join(t.TempDir(), "boot.qcow2")
 	if err := os.Link(seed, alias); err != nil {
 		t.Fatal(err)
 	}

@@ -120,7 +120,7 @@ func NewSettings() *Settings {
 	s := &Settings{m: make(map[string]*Setting)}
 
 	s.SetString(DATA_ROOT_DIR, "Private persistent VM state directory", ".devbox-kvm-gateway")
-	s.SetString(BASE_IMAGE, "Optional immutable raw or uncompressed qcow2 default image", "")
+	s.SetString(BASE_IMAGE, "Optional immutable standalone uncompressed QCOW2 default image", "")
 	s.SetString(VM_BINARY, "VM worker executable; empty uses the current executable", "")
 	s.SetBool(VM_GPU_3D, "Enable guest OpenGL through virglrenderer (requires a virgl build and host EGL)", false)
 	s.SetString(VM_NETWORK_POLICY,

@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -142,15 +142,16 @@ func diskLimitForm(csrf string) url.Values {
 
 func growDiskForHTTPTest(t *testing.T, path string) {
 	t.Helper()
-	if err := os.Truncate(path, 8192); err != nil {
-		t.Fatal(err)
-	}
+	var capacity [8]byte
+	binary.BigEndian.PutUint64(capacity[:], 8192)
+	writeDiskHeaderBytes(t, path, capacity[:], 24)
 }
 
 func oversizedManagerVM(t *testing.T, fixture diskLimitHTTPFixture) VM {
 	t.Helper()
 	vm := createManagerVM(t, fixture.manager, "alice", "desktop")
-	growDiskForHTTPTest(t, filepath.Join(fixture.manager.directory(vm.ID), "disk.img"))
+	// A lower operator limit blocks this previously admitted disk.
+	fixture.manager.config.MaxDiskBytes = vm.DiskSizeBytes - 1
 
 	return vm
 }
@@ -193,5 +194,25 @@ func decodeCreationEvents(t *testing.T, input io.Reader) []creationEvent {
 			t.Fatal(err)
 		}
 		events = append(events, event)
+	}
+}
+
+func TestChangedDiskHTTPRequests(t *testing.T) {
+	t.Parallel()
+
+	for _, prefix := range []string{"/vms/", "/admin/vms/"} {
+		t.Run(prefix, func(t *testing.T) {
+			t.Parallel()
+			fixture := newDiskLimitHTTPFixture(t)
+			vm := createManagerVM(t, fixture.manager, "alice", "desktop")
+			growDiskForHTTPTest(t, filepath.Join(fixture.manager.directory(vm.ID), "disk.img"))
+			result := webRequest(fixture.server, http.MethodPost, prefix+vm.ID+"/start",
+				fixture.raw, diskLimitForm(fixture.csrf))
+			if result.Code != http.StatusConflict ||
+				!strings.Contains(result.Body.String(), "expected format and capacity") ||
+				strings.Contains(result.Body.String(), fixture.manager.config.DataDir) {
+				t.Fatalf("changed disk response = %d, %s", result.Code, result.Body.String())
+			}
+		})
 	}
 }

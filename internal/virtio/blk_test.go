@@ -37,7 +37,7 @@ func (c *countingInjector) InjectVirtioGPUIRQ() error {
 func TestBlkGetDeviceHeader(t *testing.T) {
 	t.Parallel()
 
-	v, err := virtio.NewBlk("/dev/zero", 9, &mockInjector{}, []byte{})
+	v, err := virtio.NewRawBlk("/dev/zero", 9, &mockInjector{}, []byte{})
 	if err != nil {
 		t.Fatalf("err: %v\n", err)
 	}
@@ -65,7 +65,7 @@ func TestBlkGetDeviceHeader(t *testing.T) {
 func TestBlkMMIOSize(t *testing.T) {
 	t.Parallel()
 
-	v, err := virtio.NewBlk("/dev/zero", 9, &mockInjector{}, []byte{})
+	v, err := virtio.NewRawBlk("/dev/zero", 9, &mockInjector{}, []byte{})
 	if err != nil {
 		t.Fatalf("err: %v\n", err)
 	}
@@ -98,7 +98,7 @@ func TestBlkDeviceConfigCapacity(t *testing.T) {
 
 	f.Close()
 
-	v, err := virtio.NewBlk(f.Name(), 10, &mockInjector{}, make([]byte, 0x1000))
+	v, err := virtio.NewRawBlk(f.Name(), 10, &mockInjector{}, make([]byte, 0x1000))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +197,7 @@ func TestIO(t *testing.T) {
 	rawPath, expected := blockReadFixture(t)
 	mem := make([]byte, 0x1000000)
 
-	v, err := virtio.NewBlk(
+	v, err := virtio.NewRawBlk(
 		rawPath, 10, &mockInjector{}, mem,
 	)
 	if err != nil {
@@ -340,7 +340,7 @@ func TestBlkIOStatusByte(t *testing.T) {
 
 	mem := make([]byte, 0x100000)
 
-	v, err := virtio.NewBlk(f.Name(), 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk(f.Name(), 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +407,7 @@ func TestBlkClose(t *testing.T) {
 
 	mem := make([]byte, 0x10000)
 
-	v, err := virtio.NewBlk(f.Name(), 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk(f.Name(), 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -435,7 +435,7 @@ func TestBlkIOThreadExitsOnClose(t *testing.T) {
 
 	mem := make([]byte, 0x10000)
 
-	v, err := virtio.NewBlk(f.Name(), 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk(f.Name(), 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,7 +471,7 @@ func TestBlkNotifyKick(t *testing.T) {
 
 	mem := make([]byte, 0x10000)
 
-	v, err := virtio.NewBlk("/dev/zero", 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk("/dev/zero", 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,7 +508,7 @@ func TestBlkNotifyAfterClose(t *testing.T) {
 
 	mem := make([]byte, 0x10000)
 
-	v, err := virtio.NewBlk(f.Name(), 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk(f.Name(), 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +534,7 @@ func TestBlkConcurrentCloseAndNotify(t *testing.T) {
 
 	mem := make([]byte, 0x10000)
 
-	v, err := virtio.NewBlk(f.Name(), 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk(f.Name(), 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -588,7 +588,7 @@ func TestBlkIOThreadReInjectsIRQ(t *testing.T) {
 	mem := make([]byte, 0x100000)
 	inj := &countingInjector{}
 
-	v, err := virtio.NewBlk(f.Name(), 10, inj, mem)
+	v, err := virtio.NewRawBlk(f.Name(), 10, inj, mem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -647,7 +647,7 @@ func TestBlkIONilQueue(t *testing.T) {
 
 	mem := make([]byte, 0x10000)
 
-	v, err := virtio.NewBlk("/dev/zero", 10, &mockInjector{}, mem)
+	v, err := virtio.NewRawBlk("/dev/zero", 10, &mockInjector{}, mem)
 	if err != nil {
 		t.Fatal(err)
 	}

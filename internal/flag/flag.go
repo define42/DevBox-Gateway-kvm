@@ -61,6 +61,7 @@ type BootArgs struct {
 	NetworkPolicy     string
 	NetworkAllowCIDRs string
 	Disk              string
+	DiskSizeBytes     int64
 	CloudInit         string
 	GPU3D             bool
 	RDPProfile        string
@@ -105,7 +106,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.NetworkAllowCIDRs, "net-allow-cidrs", settings.Get(config.VM_NETWORK_ALLOW_CIDRS),
 		"user-isolated allowed IPv4 CIDRs, comma-separated; host alias requires 127.0.0.1/32 ["+
 			config.VM_NETWORK_ALLOW_CIDRS+"]")
-	bootCmd.StringVar(&c.Disk, "d", "", "path of disk file (for /dev/vda)")
+	bootCmd.StringVar(&c.Disk, "d", "", "path of QCOW2 disk file (for /dev/vda)")
+	bootCmd.Int64Var(&c.DiskSizeBytes, "disk-size-bytes", 0,
+		"fixed primary disk capacity in bytes; standalone resolves once if omitted")
 	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
 		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
 	bootCmd.BoolVar(&c.GPU3D, "gpu-3d", settings.Bool(config.VM_GPU_3D),
@@ -145,6 +148,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	var err error
 
 	if err = bootCmd.Parse(args); err != nil {
+		return nil, err
+	}
+	if err := validateDiskOptions(c); err != nil {
 		return nil, err
 	}
 	if c.NCPUs < 1 || c.NCPUs > ebda.MaxVCPUs {

@@ -27,6 +27,8 @@ type VM struct {
 	CreatedAt time.Time `json:"createdAt"`
 	ImageID   string    `json:"imageId,omitempty"`
 	ImageName string    `json:"imageName,omitempty"`
+	// QCOW2 capacity is fixed at creation, outside guest-writable storage.
+	DiskSizeBytes int64 `json:"diskSizeBytes"`
 }
 
 // Endpoint identifies a gateway-only private RDP server and the certificate that authenticates it.

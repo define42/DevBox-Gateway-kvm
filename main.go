@@ -58,6 +58,11 @@ func run(ctx context.Context, args []string) error {
 	if bootArgs == nil {
 		return probeHost()
 	}
+	if managedWorker {
+		if err := validateWorkerBoot(bootArgs); err != nil {
+			return err
+		}
+	}
 
 	var h264Encoder, rdpProfile string
 	var h264QP *int
@@ -81,6 +86,7 @@ func run(ctx context.Context, args []string) error {
 		NetworkPolicy:     bootArgs.NetworkPolicy,
 		NetworkAllowCIDRs: bootArgs.NetworkAllowCIDRs,
 		Disk:              bootArgs.Disk,
+		DiskSizeBytes:     bootArgs.DiskSizeBytes,
 		CloudInit:         bootArgs.CloudInit,
 		GPU3D:             bootArgs.GPU3D,
 		RDPProfile:        rdpProfile,
@@ -151,11 +157,23 @@ func probeHost() error {
 // runBoot recreates the complete VM on a firmware-requested reset. Closing the
 // previous instance first flushes disks/VARS and releases their exclusive locks.
 func runBoot(ctx context.Context, conf vmm.Config) error {
+	return runBootWithGuest(ctx, conf, bootGuest)
+}
+
+func runBootWithGuest(ctx context.Context, conf vmm.Config, boot func(context.Context, vmm.Config) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// Resolve the QCOW2 capacity once. Every recreated VMM must validate
+	// against this value instead of accepting a different capacity on reset.
+	if err := conf.ResolveDiskSize(); err != nil {
+		return err
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		err := bootGuest(ctx, conf)
+		err := boot(ctx, conf)
 		if conf.UEFI == "" || !isGuestReset(err) {
 			return err
 		}

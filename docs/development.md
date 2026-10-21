@@ -293,7 +293,7 @@ OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd tools/test-uefi.sh
 
 This needs matching plain non-SMM OVMF firmware, KVM, GNU-EFI development files,
 a C compiler/binutils, mtools, `qemu-img`, `timeout`, `truncate`, and Python 3.
-It builds an EFI test application and boots isolated raw and QCOW2 disks.
+It builds an EFI test application and boots an isolated QCOW2 disk.
 Artifacts are retained on failure. Set `UEFI_KEEP_ARTIFACTS=1` to retain successful
 runs, `UEFI_CPUS` to vary vCPU count, `UEFI_TIMEOUT` to change the per-boot timeout,
 or `DEVBOX_KVM_BINARY` to use an existing binary. `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`

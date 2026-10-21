@@ -29,7 +29,7 @@ func BenchmarkBlkWriteBatch(b *testing.B) {
 			if err := os.WriteFile(path, make([]byte, requests*blockSize), 0o600); err != nil {
 				b.Fatal(err)
 			}
-			backing, err := disk.Open(path)
+			backing, err := disk.OpenRaw(path)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -77,7 +77,7 @@ func BenchmarkBlkWriteFlushGroup(b *testing.B) {
 			if err := os.WriteFile(path, make([]byte, groupSize*blockSize), 0o600); err != nil {
 				b.Fatal(err)
 			}
-			backing, err := disk.Open(path)
+			backing, err := disk.OpenRaw(path)
 			if err != nil {
 				b.Fatal(err)
 			}

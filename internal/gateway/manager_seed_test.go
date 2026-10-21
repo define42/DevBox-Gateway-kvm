@@ -271,8 +271,8 @@ func TestManagerPreparePublishesPrivateCompleteState(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct{ path, want string }{
-		{manager.config.BaseImage, "immutable base"},
-		{filepath.Join(dir, "disk.img"), "immutable base"},
+		{manager.config.BaseImage, string(catalogQCOW2("immutable base"))},
+		{filepath.Join(dir, "disk.img"), string(catalogQCOW2("immutable base"))},
 		{manager.config.VarsTemplate, "firmware variables"},
 		{filepath.Join(dir, "vars.fd"), "firmware variables"},
 	} {
@@ -286,8 +286,9 @@ func TestManagerPreparePublishesPrivateCompleteState(t *testing.T) {
 		t.Fatal(err)
 	}
 	var saved VM
-	if err := json.Unmarshal(data, &saved); err != nil || saved.ID != record.ID || saved.Owner != record.Owner {
-		t.Fatal("published VM metadata does not identify its owner and stable VM ID")
+	if err := json.Unmarshal(data, &saved); err != nil || saved.ID != record.ID || saved.Owner != record.Owner ||
+		saved.DiskSizeBytes != record.DiskSizeBytes {
+		t.Fatal("published VM metadata does not preserve identity and disk specification")
 	}
 	if _, err := os.Stat(filepath.Join(filepath.Dir(dir), ".creating-"+record.ID)); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("completed preparation left a staging directory")
@@ -343,7 +344,7 @@ func seedHelperManager(t *testing.T) (*Manager, VM) {
 	}
 	base := filepath.Join(root, "base.img")
 	variables := filepath.Join(root, "template.fd")
-	if err := os.WriteFile(base, []byte("immutable base"), 0o600); err != nil {
+	if err := os.WriteFile(base, catalogQCOW2("immutable base"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(variables, []byte("firmware variables"), 0o600); err != nil {
@@ -351,5 +352,8 @@ func seedHelperManager(t *testing.T) (*Manager, VM) {
 	}
 
 	return &Manager{config: ManagerConfig{DataDir: root, BaseImage: base, VarsTemplate: variables, Keyboard: "us"}},
-		VM{ID: "abcdefghijklmnopqrstuvwx23", Owner: "alice", Name: "desktop", State: "creating"}
+		VM{
+			ID: "abcdefghijklmnopqrstuvwx23", Owner: "alice", Name: "desktop", State: "creating",
+			DiskSizeBytes: 2 << 20,
+		}
 }

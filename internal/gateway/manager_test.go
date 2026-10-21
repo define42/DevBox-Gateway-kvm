@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,26 +27,32 @@ import (
 func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 	t.Helper()
 	dir := t.TempDir()
-	binary := filepath.Join(dir, "helper")
+	binaryPath := filepath.Join(dir, "helper")
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
 	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 DEVBOX_KVM_MANAGER_HELPER=" + quote(behavior) +
 		" exec " + quote(os.Args[0]) +
 		" -test.run='^TestManagerHelperProcess$' -- \"$@\"\n"
 	//nolint:gosec // The private test helper must be executable by its owner.
-	if err := os.WriteFile(binary, []byte(script), 0o700); err != nil {
+	if err := os.WriteFile(binaryPath, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	config := ManagerConfig{
-		DataDir: filepath.Join(dir, "state"), Binary: binary,
-		BaseImage: filepath.Join(dir, "base.raw"), Firmware: filepath.Join(dir, "code.fd"),
+		DataDir: filepath.Join(dir, "state"), Binary: binaryPath,
+		BaseImage: filepath.Join(dir, "base.qcow2"), Firmware: filepath.Join(dir, "code.fd"),
 		VarsTemplate: filepath.Join(dir, "vars.fd"), StartTimeout: 3 * time.Second,
 		StopTimeout: 100 * time.Millisecond, MaxVMsPerUser: 2, MaxRunning: 1,
 		MemoryOverheadMiB: 256,
 	}
-	for _, path := range []string{config.BaseImage, config.Firmware, config.VarsTemplate} {
+	for _, path := range []string{config.Firmware, config.VarsTemplate} {
 		if err := os.WriteFile(path, make([]byte, 4096), 0o600); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	base := catalogQCOW2("manager test base")
+	binary.BigEndian.PutUint64(base[24:32], 4096)
+	if err := os.WriteFile(config.BaseImage, base, 0o600); err != nil {
+		t.Fatal(err)
 	}
 
 	return config
@@ -657,6 +664,11 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 	if err := os.WriteFile(filepath.Join(dir, "helper.net-policy"),
 		[]byte(args["-net-policy"]+"\n"+args["-net-allow-cidrs"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper network policy:", err)
+		os.Exit(2)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "helper.disk-policy"),
+		[]byte(args["-disk-size-bytes"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper disk policy:", err)
 		os.Exit(2)
 	}
 	if args["-net"] != "user-isolated" {

@@ -13,6 +13,7 @@ import (
 var (
 	errWorkerArguments = errors.New("worker requires boot arguments")
 	errWorkerResources = errors.New("managed worker requires UEFI, disk, inherited RDP and userspace networking")
+	errWorkerDiskSize  = errors.New("managed worker requires an explicit positive disk capacity")
 )
 
 // runWorker confines the process before any guest bytes are processed. Re-exec
@@ -29,8 +30,8 @@ func runWorker(args []string) error {
 	if err != nil {
 		return err
 	}
-	if boot == nil || boot.RDPFD == 0 || boot.UEFI == "" || boot.Disk == "" || boot.TapIfName != "" {
-		return errWorkerResources
+	if err := validateWorkerBoot(boot); err != nil {
+		return err
 	}
 	policy := workersandbox.Policy{
 		ReadOnly:  []string{boot.UEFI, boot.CloudInit, boot.RDPCert, boot.RDPKey},
@@ -44,6 +45,17 @@ func runWorker(args []string) error {
 	workerArgs := append([]string{executable, "worker-boot"}, args[1:]...)
 	if err := workersandbox.Exec(executable, workerArgs, workersandbox.Environment(os.Environ()), policy); err != nil {
 		return fmt.Errorf("confine managed worker: %w", err)
+	}
+
+	return nil
+}
+
+func validateWorkerBoot(boot *flag.BootArgs) error {
+	if boot == nil || boot.RDPFD == 0 || boot.UEFI == "" || boot.Disk == "" || boot.TapIfName != "" {
+		return errWorkerResources
+	}
+	if boot.DiskSizeBytes <= 0 {
+		return errWorkerDiskSize
 	}
 
 	return nil

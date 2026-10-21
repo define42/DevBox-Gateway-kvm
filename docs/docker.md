@@ -423,8 +423,8 @@ state. It must be private and owned by the host identity mapped to container UID
 10001 (`0700` for directories, normally `0600` for files). Only one gateway may
 use it at a time. Back it up with the gateway stopped.
 
-For an optional preconfigured default image, mount an immutable standalone raw
-or supported uncompressed QCOW2 file read-only and set its container path in
+For an optional preconfigured default image, mount an immutable standalone
+supported uncompressed QCOW2 file read-only and set its container path in
 `BASE_IMAGE`. Such a template is protected from removal through the UI. By default,
 the Compose stack starts with an empty catalog and uses administrator uploads.
 

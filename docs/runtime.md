@@ -46,7 +46,8 @@ file. `boot -help` is the complete CLI reference.
 | `-p parameters` | Built-in kernel command line | Replace direct-boot arguments; unavailable with `-uefi`. |
 | `-c count` | `1` | Guest vCPUs, from 1 to 64. |
 | `-m size` | `1G` | Guest RAM; `K`, `M`, and `G` are binary units. Unitless values mean GiB. |
-| `-d path` | Unset | Existing writable raw or supported qcow2 disk, normally `/dev/vda`. |
+| `-d path` | Unset | Existing writable standalone QCOW2 disk, normally `/dev/vda`. |
+| `-disk-size-bytes count` | Inspect once | Exact expected virtual capacity in bytes; managed workers require a positive value. |
 | `-cloud-init path` | Unset | Validated local CIDATA seed, attached read-only after the primary disk; requires `-d`. |
 | `-net user\|user-isolated\|none` | `none` | Legacy unrestricted networking, destination-policy-controlled networking, or no network; mutually exclusive with `-t`. |
 | `-t name` | Unset | Host TAP interface. |
@@ -80,7 +81,7 @@ Standalone `boot` does not perform gateway admission checks.
 ## UEFI disk boot
 
 `-uefi` starts x86-64 OVMF firmware and executes the EFI bootloader installed on
-a raw or supported qcow2 disk. The disk's bootloader loads its own kernel and
+a supported standalone QCOW2 disk. The disk's bootloader loads its own kernel and
 initrd. Use a matching pair of **plain, non-SMM OVMF CODE and VARS images** from
 the host's OVMF package. Create a writable VARS copy for each VM before its first
 run. For the Debian/Ubuntu 4 MiB layout:
@@ -181,8 +182,9 @@ to handle it. SIGINT/SIGTERM, including Ctrl+C, stop
 the VM and close its disks and VARS store; they do not perform an orderly guest
 OS shutdown. The serial shortcut **Ctrl-a, then x** is available for standalone
 serial-console boots.
-A guest-requested reset closes and recreates the VM using the same disk and VARS;
-reconnect the RDP client afterward.
+A guest-requested reset closes and recreates the VM using the same disk and VARS.
+The primary disk always uses QCOW2 and retains its resolved capacity across resets; a
+capacity change is rejected. Reconnect the RDP client afterward.
 
 Large EFI applications can hit OVMF's virtio-blk limit of 1 GiB per read, returning
 `EFI_BAD_BUFFER_SIZE`; firmware may show this as `Not Found`. Use a smaller EFI
@@ -216,9 +218,15 @@ kernel/initrd files.
 
 ## Storage and cloud-init
 
-`-d` attaches writable raw or qcow2 storage; its format is detected from its
-contents. The primary disk appears as `/dev/vda`. Attaching a disk does not select
-a disk bootloader: use `-uefi`, or provide a direct kernel and any required initrd.
+`-d` accepts only standalone QCOW2 storage. Every open uses the QCOW2 decoder;
+raw data and invalid headers are rejected without format autodetection or
+fallback. Standalone boots resolve virtual capacity before the first boot and
+retain it across guest resets. `-disk-size-bytes` can require an exact capacity;
+the gateway always supplies the value saved in private VM metadata at creation.
+Cloud-init seed ISOs use a separate, explicitly raw, read-only attachment.
+
+The primary disk appears as `/dev/vda`. Attaching a disk does not select a disk
+bootloader: use `-uefi`, or provide a direct kernel and any required initrd.
 
 ```bash
 ./devbox-kvm boot -k /path/to/bzImage -i /path/to/initrd -d ./disk.qcow2
@@ -707,7 +715,7 @@ OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd tools/test-uefi.sh
 
 [tools/test-uefi.sh](../tools/test-uefi.sh) requires KVM, GNU-EFI development
 files (`gnu-efi`), a C compiler/binutils, mtools, `qemu-img`, and Python 3. It
-builds an EFI fixture and boots isolated raw/qcow2 disks with a serial console;
+builds an EFI fixture and boots an isolated QCOW2 disk with a serial console;
 source firmware is untouched. Failures retain logs, disks, and firmware variables.
 Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to change CPU
 count, or `DEVBOX_KVM_BINARY=/path/to/devbox-kvm` for an existing binary. Alternate GNU-EFI

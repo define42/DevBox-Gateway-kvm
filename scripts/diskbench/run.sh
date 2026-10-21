@@ -98,7 +98,8 @@ PY
         > "$result_dir/$label.initrd"
     echo "Running $label" >&2
     "$result_dir/runner" -kernel "$kernel" -initrd "$result_dir/$label.initrd" \
-        -disk "$scratch_dir/$label.$format" -serial-log "$result_dir/$label.serial.log" \
+        -disk "$scratch_dir/$label.$format" -disk-format "$format" \
+        -serial-log "$result_dir/$label.serial.log" \
         -timeout "${TIMEOUT:-10m}" > "$result_dir/$label.jsonl"
     cat -- "$result_dir/$label.jsonl" >> "$result_dir/results.jsonl"
 done

@@ -75,20 +75,19 @@ mmd -i "$uefi_test_dir/disk.raw" ::/EFI ::/EFI/BOOT
 mcopy -i "$uefi_test_dir/disk.raw" "$uefi_test_dir/BOOTX64.EFI" ::/EFI/BOOT/BOOTX64.EFI
 qemu-img convert -f raw -O qcow2 "$uefi_test_dir/disk.raw" "$uefi_test_dir/disk.qcow2"
 
-for uefi_format in raw qcow2; do
-    cp -- "$OVMF_VARS" "$uefi_test_dir/$uefi_format.vars.fd"
-    uefi_log="$uefi_test_dir/$uefi_format.log"
-    echo "Testing UEFI $uefi_format boot, persistent reset and shutdown..."
-    if ! timeout --signal=TERM --kill-after=5s "${UEFI_TIMEOUT:-90s}" \
-        "$uefi_binary" boot -uefi "$OVMF_CODE" \
-        -uefi-vars "$uefi_test_dir/$uefi_format.vars.fd" \
-        -d "$uefi_test_dir/disk.$uefi_format" -c "${UEFI_CPUS:-2}" -m 256M \
-        </dev/null >"$uefi_log" 2>&1; then
-        cat -- "$uefi_log" >&2
-        echo "UEFI $uefi_format test did not shut down successfully." >&2
-        exit 1
-    fi
-    python3 - "$uefi_log" <<'PY'
+cp -- "$OVMF_VARS" "$uefi_test_dir/qcow2.vars.fd"
+uefi_log="$uefi_test_dir/qcow2.log"
+echo "Testing UEFI QCOW2 boot, persistent reset and shutdown..."
+if ! timeout --signal=TERM --kill-after=5s "${UEFI_TIMEOUT:-90s}" \
+    "$uefi_binary" boot -uefi "$OVMF_CODE" \
+    -uefi-vars "$uefi_test_dir/qcow2.vars.fd" \
+    -d "$uefi_test_dir/disk.qcow2" -c "${UEFI_CPUS:-2}" -m 256M \
+    </dev/null >"$uefi_log" 2>&1; then
+    cat -- "$uefi_log" >&2
+    echo "UEFI QCOW2 test did not shut down successfully." >&2
+    exit 1
+fi
+python3 - "$uefi_log" <<'PY'
 from pathlib import Path
 import sys
 
@@ -108,4 +107,3 @@ for marker, count in expected.items():
         raise SystemExit(f"{marker}: found {actual}, expected {count}\n{log}")
 print("PASS: firmware disk boot, saved variables, reboot, shutdown")
 PY
-done

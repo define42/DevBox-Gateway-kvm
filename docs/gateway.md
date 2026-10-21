@@ -338,7 +338,7 @@ format, not whether the installed guest can boot or provision successfully.
 - Every template and managed VM disk has a default maximum virtual capacity of
   `500GB`, controlled by `VM_DISK_MAX_SIZE` (`-vm-disk-max-size`).
 - Administrator QCOW2 imports retain an independent 1 TiB virtual-capacity
-  ceiling even when `VM_DISK_MAX_SIZE` is raised. A native configured raw
+  ceiling even when `VM_DISK_MAX_SIZE` is raised. A configured QCOW2
   `BASE_IMAGE` may be larger when the policy is raised.
 - The upload file and the normalized file each have a default limit of 20 GiB;
   this is separate from virtual capacity.

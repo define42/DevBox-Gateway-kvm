@@ -10,12 +10,13 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 )
 
 func TestOpenDiskVirtualSizeLimit(t *testing.T) {
 	t.Parallel()
 
-	raw := bytes.Repeat([]byte{0x5a}, 4096)
 	qcow2 := catalogQCOW2("virtual size fixture")
 	tests := []struct {
 		name     string
@@ -24,11 +25,6 @@ func TestOpenDiskVirtualSizeLimit(t *testing.T) {
 		wantSize int64
 		wantErr  error
 	}{
-		{name: "raw at boundary", data: raw, limit: int64(len(raw)), wantSize: int64(len(raw))},
-		{
-			name: "raw over boundary", data: raw, limit: int64(len(raw) - 1),
-			wantSize: int64(len(raw)), wantErr: ErrDiskTooLarge,
-		},
 		{name: "QCOW2 at boundary", data: qcow2, limit: 2 << 20, wantSize: 2 << 20},
 		{
 			name: "QCOW2 over boundary", data: qcow2, limit: (2 << 20) - 1,
@@ -192,8 +188,12 @@ func TestManagerCreationChecksPinnedAndClonedDisk(t *testing.T) {
 			_, err = manager.CreateWithProgress(
 				t.Context(), "alice", "oversized", managerTestPasswordHash(), image.ID, report,
 			)
-			if !errors.Is(err, ErrDiskTooLarge) {
-				t.Fatalf("creation error = %v, want ErrDiskTooLarge", err)
+			wantErr := ErrDiskTooLarge
+			if test.mutateClone {
+				wantErr = disk.ErrSpecMismatch
+			}
+			if !errors.Is(err, wantErr) {
+				t.Fatalf("creation error = %v, want %v", err, wantErr)
 			}
 			assertRejectedCreationClean(t, manager)
 		})

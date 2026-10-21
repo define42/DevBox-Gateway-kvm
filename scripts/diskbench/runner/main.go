@@ -64,11 +64,15 @@ func run() (runErr error) {
 	kernel := flag.String("kernel", "bzImage", "guest Linux bzImage")
 	initrd := flag.String("initrd", "", "benchmark initrd")
 	disk := flag.String("disk", "", "disposable raw or qcow2 disk")
+	diskFormat := flag.String("disk-format", "", "required disk format: raw or qcow2")
 	serialLog := flag.String("serial-log", "", "complete guest serial log")
 	timeout := flag.Duration("timeout", 5*time.Minute, "boot and workload deadline")
 	flag.Parse()
 	if *initrd == "" || *disk == "" || *serialLog == "" {
 		return errors.New("initrd, disk, and serial-log are required")
+	}
+	if *diskFormat != "raw" && *diskFormat != "qcow2" {
+		return errors.New("disk-format must be raw or qcow2")
 	}
 	kern, err := os.Open(*kernel)
 	if err != nil {
@@ -90,7 +94,12 @@ func run() (runErr error) {
 	}
 	// Close stops and joins the vCPU and device workers before closing the disk.
 	defer func() { runErr = errors.Join(runErr, m.Close()) }()
-	if err := m.AddDisk(*disk); err != nil {
+	if *diskFormat == "raw" {
+		err = m.AddRawDisk(*disk)
+	} else {
+		err = m.AddDisk(*disk)
+	}
+	if err != nil {
 		return err
 	}
 	const params = "console=ttyS0 earlyprintk=serial noapic noacpi nortc nowatchdog " +

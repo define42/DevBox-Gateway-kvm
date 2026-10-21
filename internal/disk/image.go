@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"os"
@@ -29,32 +28,47 @@ type rawImage struct {
 	readOnly bool
 }
 
+// Open opens a writable QCOW2 image. Raw data and invalid QCOW2 headers are rejected.
 func Open(path string) (Image, error) {
-	return open(path, os.O_RDWR, false)
+	return open(path, os.O_RDWR)
 }
 
+// OpenReadOnly opens a read-only QCOW2 image without falling back to raw storage.
 func OpenReadOnly(path string) (Image, error) {
-	return open(path, os.O_RDONLY, true)
+	return open(path, os.O_RDONLY)
 }
 
-func open(path string, flag int, readOnly bool) (Image, error) {
-	file, err := os.OpenFile(path, flag, 0o644)
+func open(path string, flag int) (Image, error) {
+	file, err := os.OpenFile(path, flag, 0)
 	if err != nil {
 		return nil, err
 	}
-
-	var magic [4]byte
-	n, err := file.ReadAt(magic[:], 0)
-	if err != nil && !errors.Is(err, io.EOF) {
+	if _, err := InspectQCOW2(file); err != nil {
 		_ = file.Close()
 
 		return nil, err
 	}
 
-	if n == len(magic) && bytes.Equal(magic[:], []byte(qcow2Magic)) {
-		return openQCOW2(file)
-	}
+	return openQCOW2(file)
+}
 
+// OpenRaw opens writable raw storage without interpreting any header bytes.
+// Production VM boot disks use Open or OpenQCOW2WithSize instead.
+func OpenRaw(path string) (Image, error) {
+	return openRaw(path, os.O_RDWR, false)
+}
+
+// OpenRawReadOnly opens raw read-only media, including cloud-init seed ISOs,
+// without interpreting any header bytes.
+func OpenRawReadOnly(path string) (Image, error) {
+	return openRaw(path, os.O_RDONLY, true)
+}
+
+func openRaw(path string, flag int, readOnly bool) (Image, error) {
+	file, err := os.OpenFile(path, flag, 0)
+	if err != nil {
+		return nil, err
+	}
 	info, err := file.Stat()
 	if err != nil {
 		_ = file.Close()

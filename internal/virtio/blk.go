@@ -474,8 +474,29 @@ func NewBlk(path string, irq uint8, irqInjector IRQInjector, mem []byte) (*Blk, 
 	return newBlk(image, false, irq, irqInjector, mem), nil
 }
 
+// NewBlkWithSize opens a QCOW2 disk with the admitted virtual capacity.
+func NewBlkWithSize(path string, expected int64, irq uint8, irqInjector IRQInjector, mem []byte) (*Blk, error) {
+	image, err := disk.OpenQCOW2WithSize(path, expected)
+	if err != nil {
+		return nil, err
+	}
+
+	return newBlk(image, false, irq, irqInjector, mem), nil
+}
+
+// NewRawBlk opens a raw disk for low-level tests and benchmark harnesses.
+func NewRawBlk(path string, irq uint8, irqInjector IRQInjector, mem []byte) (*Blk, error) {
+	image, err := disk.OpenRaw(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return newBlk(image, false, irq, irqInjector, mem), nil
+}
+
+// NewReadOnlyBlk opens a raw read-only disk, such as a configuration seed ISO.
 func NewReadOnlyBlk(path string, irq uint8, irqInjector IRQInjector, mem []byte) (*Blk, error) {
-	image, err := disk.OpenReadOnly(path)
+	image, err := disk.OpenRawReadOnly(path)
 	if err != nil {
 		return nil, err
 	}

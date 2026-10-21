@@ -346,6 +346,9 @@ func backendError(err error) (int, string) {
 	case errors.Is(err, ErrDiskTooLarge):
 		return http.StatusConflict, "The virtual disk exceeds the maximum size allowed per VM. " +
 			"Choose a smaller base image or contact your administrator."
+	case errors.Is(err, ErrDiskChanged):
+		return http.StatusConflict, "The virtual disk no longer matches its expected format and capacity. " +
+			"Contact your administrator."
 	case errors.Is(err, ErrMemoryCapacity):
 		return http.StatusConflict, "Not enough host memory to start this desktop. " +
 			"Stop another desktop or contact your administrator."

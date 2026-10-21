@@ -43,7 +43,7 @@ var errRDPListenerConfig = errors.New("RDP requires an inherited Unix listener a
 
 // Config selects a VM's local boot files, devices and host resources.
 // Direct boot uses Kernel, optional Initrd and Params; UEFI boot instead uses
-// UEFI, UEFIVars and Disk. CloudInit is an optional read-only NoCloud seed ISO,
+// UEFI, UEFIVars and a QCOW2 Disk. CloudInit is an optional read-only NoCloud seed ISO,
 // not a boot source. Init validates the supported combinations.
 type Config struct {
 	Debug             bool
@@ -59,6 +59,7 @@ type Config struct {
 	NetworkPolicy     string
 	NetworkAllowCIDRs string
 	Disk              string
+	DiskSizeBytes     int64 // Fixed QCOW2 capacity; zero resolves once for standalone boot.
 	CloudInit         string
 	GPU3D             bool // Enable guest OpenGL through the optional virglrenderer backend.
 	RDPProfile        string
@@ -166,6 +167,10 @@ func (v *VMM) Init() (initErr error) {
 		return err
 	}
 
+	if err := v.ResolveDiskSize(); err != nil {
+		return err
+	}
+
 	m, err := machine.New(v.Dev, v.NCPUs, v.MemSize)
 	if err != nil {
 		return err
@@ -190,7 +195,7 @@ func (v *VMM) Init() (initErr error) {
 	}
 
 	if len(v.Disk) > 0 {
-		if err := m.AddDisk(v.Disk); err != nil {
+		if err := m.AddDiskWithSize(v.Disk, v.DiskSizeBytes); err != nil {
 			return err
 		}
 	}
