@@ -105,6 +105,8 @@ func WelsDequantIHadamard2x2Dc(pDct []int16, kuiMF uint16) {
 }
 
 func WelsDequant4x4_c(pRes []int16, kpMF []uint16) {
+	_ = pRes[15]
+	_ = kpMF[7]
 	for i := 0; i < 8; i++ {
 		pRes[i] = int16(int32(pRes[i]) * int32(kpMF[i]))
 		pRes[i+8] = int16(int32(pRes[i+8]) * int32(kpMF[i]))
@@ -112,6 +114,8 @@ func WelsDequant4x4_c(pRes []int16, kpMF []uint16) {
 }
 
 func WelsDequantFour4x4_c(pRes []int16, kpMF []uint16) {
+	_ = pRes[63]
+	_ = kpMF[7]
 	for i := 0; i < 8; i++ {
 		kiMF := int32(kpMF[i])
 		pRes[i] = int16(int32(pRes[i]) * kiMF)
@@ -220,4 +224,11 @@ func WelsInitReconstructionFuncs(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) 
 	pFuncList.pfIDctT4 = WelsIDctT4Rec_c
 	pFuncList.pfIDctFourT4 = WelsIDctFourT4Rec_c
 	pFuncList.pfIDctI16x16Dc = WelsIDctRecI16x16Dc_c
+	if uiCpuFlag&common.WELS_CPU_SSE2 != 0 {
+		pFuncList.pfDequantization4x4 = WelsDequant4x4_sse2
+		pFuncList.pfDequantizationFour4x4 = WelsDequantFour4x4_sse2
+		pFuncList.pfIDctT4 = WelsIDctT4Rec_sse2
+		pFuncList.pfIDctFourT4 = WelsIDctFourT4Rec_sse2
+		pFuncList.pfIDctI16x16Dc = WelsIDctRecI16x16Dc_sse2
+	}
 }

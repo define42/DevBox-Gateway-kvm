@@ -50,3 +50,44 @@ func BenchmarkVAACalcSad(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkVAACalcSadMasked compares the same source pair with and without a
+// valid damage hint: a 64x32 change in an otherwise identical 1080p source.
+func BenchmarkVAACalcSadMasked(b *testing.B) {
+	const width, height, stride = 1920, 1088, 1984
+	const offset = stride*32 + 32
+	cur, ref := make([]byte, offset+stride*height), make([]byte, offset+stride*height)
+	rng := rand.New(rand.NewSource(42))
+	rng.Read(cur)
+	copy(ref, cur)
+	mask := make([]bool, width/16*height/16)
+	for i := range mask {
+		mask[i] = true
+	}
+	for y := 32; y < 34; y++ {
+		for x := 40; x < 44; x++ {
+			mask[y*(width/16)+x] = false
+			for row := range 16 {
+				for col := range 16 {
+					cur[offset+(y*16+row)*stride+x*16+col] ^= 0x5a
+				}
+			}
+		}
+	}
+	for _, test := range []struct {
+		name string
+		mask []bool
+	}{
+		{name: "Full"}, {name: "Sparse64x32", mask: mask},
+	} {
+		b.Run(test.name, func(b *testing.B) {
+			sad := make([][4]int32, len(mask))
+			var frameSad int32
+			b.ReportAllocs()
+			for b.Loop() {
+				vaaCalcSadMasked(VAACalcSad_sse2, cur, offset, ref, offset, width, height, stride, &frameSad, sad, test.mask)
+			}
+			vaaBenchmarkSink = frameSad + sad[len(sad)-1][3]
+		})
+	}
+}

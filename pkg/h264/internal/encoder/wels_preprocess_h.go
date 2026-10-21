@@ -108,6 +108,9 @@ type iCWelsPreProcessVirtual interface {
 // holds a *CWelsPreProcess whose pVirt is the derived object
 // (*CWelsPreProcessVideo or *CWelsPreProcessScreen).
 type CWelsPreProcess struct {
+	vaaUnchanged vaaUnchangedFrameState
+	sourceCopy   sourceCopyState
+
 	// Go-only: the most-derived object, for virtual dispatch.
 	pVirt iCWelsPreProcessVirtual
 

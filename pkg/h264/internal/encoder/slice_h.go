@@ -115,6 +115,10 @@ type PSliceHeaderExt = *SSliceHeaderExt
 
 // SSlice holds one slice (mainly for multiple threads imp.).
 type SSlice struct {
+	// Each active slice owns its scratch. Clear it at slice boundaries so
+	// mode decisions and rollback state never retain frame-specific references.
+	sMdScratch   SWelsMD
+	sDssScratch  SDynamicSlicingStack
 	sMbCacheInfo SMbCache // MBCache is introduced within slice dependency
 	// C SBitStringAux*: the writer this slice writes to: &sSliceBs.sBsWrite
 	// (independent slice buffers) or &sWelsEncCtx.pOut.sBsWrite.

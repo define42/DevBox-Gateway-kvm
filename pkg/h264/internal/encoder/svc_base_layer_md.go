@@ -202,6 +202,11 @@ func PredIntra4x4Mode(pIntraPredMode []int8, iIdx4 int32) int32 {
 }
 
 func WelsMdIntraInit(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache, iSliceFirstMbXY int32) {
+	initIntraPicturePointers(pEncCtx, pCurMb, pMbCache, iSliceFirstMbXY)
+	initIntraNeighborCache(pCurMb, pMbCache, int32(pEncCtx.pCurDqLayer.iMbWidth))
+}
+
+func initIntraPicturePointers(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache, iSliceFirstMbXY int32) {
 	pCurLayer := pEncCtx.pCurDqLayer
 
 	kiMbX := int32(pCurMb.iMbX)
@@ -252,34 +257,35 @@ func WelsMdIntraInit(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache, iSli
 		pPicData.iCsMbOff[1] += common.MB_WIDTH_CHROMA
 		pPicData.iCsMbOff[2] += common.MB_WIDTH_CHROMA
 	}
+}
 
+func initIntraNeighborCache(pCurMb *SMB, pMbCache *SMbCache, mbWidth int32) {
 	//step 2. initial pWelsMd
 	pCurMb.uiCbp = 0
 
 	//step 4: locating scaled_tcoeff
 
 	//step 1. load neighbor cache
-	FillNeighborCacheIntra(pMbCache, pCurMb, int32(pCurLayer.iMbWidth))
+	FillNeighborCacheIntra(pMbCache, pCurMb, mbWidth)
 	pMbCache.pMemPredLuma = pMbCache.pMemPredMb         // in WelsMdI16x16() will be changed, so re-init here!
 	pMbCache.pMemPredChroma = pMbCache.pMemPredMb[256:] // Init with default, maybe change in WelsMdI16x16 and svc_md_i16x16_sad
 }
 
 func WelsMdInterInit(pEncCtx *sWelsEncCtx, pSlice *SSlice, pCurMb *SMB, iSliceFirstMbXY int32) {
+	initInterPicturePointers(pEncCtx, pSlice, pCurMb, iSliceFirstMbXY)
+	initInterNeighborCache(pEncCtx, pSlice, pCurMb)
+}
+
+func initInterPicturePointers(pEncCtx *sWelsEncCtx, pSlice *SSlice, pCurMb *SMB, iSliceFirstMbXY int32) {
 	pCurLayer := pEncCtx.pCurDqLayer
 	pMbCache := &pSlice.sMbCacheInfo
 	kiMbX := int32(pCurMb.iMbX)
 	kiMbY := int32(pCurMb.iMbY)
 	kiMbXY := pCurMb.iMbXY
-	kiMbWidth := int32(pCurLayer.iMbWidth)
-	kiMbHeight := int32(pCurLayer.iMbHeight)
 	pPicData := &pMbCache.SPicData
 
 	pMbCache.pEncSad = pCurLayer.pDecPic.pMbSkipSad
 	pMbCache.iEncSadOff = int(kiMbXY)
-
-	//step 1. load neighbor cache
-	pEncCtx.pFuncList.pfFillInterNeighborCache(pMbCache, pCurMb, kiMbWidth,
-		pEncCtx.pVaa.pVaaBackgroundMbFlag, int(kiMbXY)) //BGD spatial pFunc
 
 	//step 3: initial cost
 
@@ -302,6 +308,14 @@ func WelsMdInterInit(pEncCtx *sWelsEncCtx, pSlice *SSlice, pCurMb *SMB, iSliceFi
 
 	pMbCache.uiRefMbType = pCurLayer.pRefPic.uiRefMbType[kiMbXY]
 	pMbCache.bCollocatedPredFlag = false
+}
+
+func initInterNeighborCache(pEncCtx *sWelsEncCtx, pSlice *SSlice, pCurMb *SMB) {
+	pCurLayer := pEncCtx.pCurDqLayer
+	kiMbWidth, kiMbHeight := int32(pCurLayer.iMbWidth), int32(pCurLayer.iMbHeight)
+	kiMbX, kiMbY, kiMbXY := int32(pCurMb.iMbX), int32(pCurMb.iMbY), pCurMb.iMbXY
+	pEncCtx.pFuncList.pfFillInterNeighborCache(&pSlice.sMbCacheInfo, pCurMb, kiMbWidth,
+		pEncCtx.pVaa.pVaaBackgroundMbFlag, int(kiMbXY))
 
 	//comment: sometimes, mode decision process may skip the md_p16x16 and md_pskip function,
 	pCurMb.sP16x16Mv = SMVUnitXY{}
@@ -1371,9 +1385,7 @@ func WelsMdPSkipEnc(pEncCtx *sWelsEncCtx, pWelsMd *SWelsMD, pCurMb *SMB, pMbCach
 		return decideSkip()
 	}
 
-	WelsDctMb(pMbCache.pCoeffLevel, pEncMb, iEncMbOff, iEncStride, pDstLuma, iDstLumaOff, pEncCtx.pFuncList.pfDctFourT4)
-
-	if WelsTryPYskip(pEncCtx, pCurMb, pMbCache) {
+	if welsTryPYskipPixels(pEncCtx, pCurMb, pMbCache) {
 		iEncStride = pEncCtx.pCurDqLayer.iEncStride[1]
 		pEncMb, iEncMbOff = pMbCache.SPicData.pEncMb[1], pMbCache.SPicData.iEncMbOff[1]
 		pEncBlockOffset = pStrideEncBlockOffset[16:]

@@ -1,0 +1,15 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+         │ /tmp/h264-round2-20261021/motion-before.txt │ /tmp/h264-round2-20261021/motion-after.txt │
+         │                   sec/op                    │       sec/op         vs base               │
+Encode-4                                   16.55m ± 5%           13.90m ± 4%  -16.03% (p=0.002 n=6)
+
+         │ /tmp/h264-round2-20261021/motion-before.txt │ /tmp/h264-round2-20261021/motion-after.txt │
+         │                    B/op                     │        B/op          vs base               │
+Encode-4                                 87.253Ki ± 0%          5.322Ki ± 0%  -93.90% (p=0.002 n=6)
+
+         │ /tmp/h264-round2-20261021/motion-before.txt │ /tmp/h264-round2-20261021/motion-after.txt │
+         │                  allocs/op                  │      allocs/op       vs base               │
+Encode-4                                   12.000 ± 0%            8.000 ± 0%  -33.33% (p=0.002 n=6)

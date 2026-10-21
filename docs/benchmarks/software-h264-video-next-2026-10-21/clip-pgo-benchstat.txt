@@ -1,0 +1,42 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                     sec/op                      │          sec/op            vs base         │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                       66.48m ± 2%                 65.46m ± 2%  ~ (p=0.093 n=6)
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                   bytes/frame                   │       bytes/frame        vs base           │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                      99.42Ki ± 0%              99.42Ki ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                convert_ns/frame                 │     convert_ns/frame       vs base         │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                       1.859M ± 6%                 1.834M ± 3%  ~ (p=0.699 n=6)
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                  cpu_ns/frame                   │       cpu_ns/frame         vs base         │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                       66.61M ± 3%                 65.66M ± 2%  ~ (p=0.132 n=6)
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                 encode_ns/frame                 │      encode_ns/frame       vs base         │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                       64.59M ± 2%                 63.59M ± 2%  ~ (p=0.093 n=6)
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                  p95_ns/frame                   │       p95_ns/frame         vs base         │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                       73.24M ± 5%                 72.51M ± 5%  ~ (p=0.132 n=6)
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                     slices                      │         slices           vs base           │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                        1.000 ± 0%                1.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                      B/op                       │           B/op             vs base         │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                      103.0Ki ± 0%                103.0Ki ± 0%  ~ (p=0.303 n=6)
+
+                                                │ /tmp/h264-video-next-20261021/clip-standard.txt │ /tmp/h264-video-next-20261021/clip-pgo.txt │
+                                                │                    allocs/op                    │        allocs/op         vs base           │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                        8.000 ± 0%                8.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal

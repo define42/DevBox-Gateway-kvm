@@ -1,0 +1,39 @@
+Software H.264 follow-up review, 2026-10-21
+Baseline=current completed two-pass implementation. Production files match /tmp/h264-fullscreen-20261021/candidate.
+Host: Intel Core i7-7700HQ, Linux amd64, Go1.27.3, GOMAXPROCS=4, QP20, 1080p.
+Profile runs include untimed benchmark setup/warmup; samples are process CPU, not elapsed frame time.
+standard binary SHA256 bfb8419f821195018099eba06ec96b74ce9d8f6999e6eec1de3858d13dc75d5a
+/tmp/h264-fullscreen-20261021/after.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)	
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+pgo binary SHA256 28d0d9f9f413f66e6e46dca24ba638890f6ee8c072e4ca33611a7921c6900130
+/tmp/h264-video-next-20261021/pgo.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)	
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+PGO training profile: clip-1.cpu.pprof. Timing is without CPU profiling. The clip comparison repeats training content; the Dense control is not training content.

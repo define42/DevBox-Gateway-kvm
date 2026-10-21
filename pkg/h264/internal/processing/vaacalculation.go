@@ -24,6 +24,8 @@ func (c *CVAACalculation) InitVaaFuncs(sVaaFuncs *SVaaFuncs, iCpuFlag int32) {
 }
 
 func (c *CVAACalculation) Process(iType int32, pSrcPixMap *SPixMap, pRefPixMap *SPixMap) EResult {
+	unchanged := c.m_sCalcParam.UnchangedMacroblocks
+	c.m_sCalcParam.UnchangedMacroblocks = nil // Never retain caller-owned damage hints.
 	pCurData := pSrcPixMap.PPixel[0]
 	iCurOff := pSrcPixMap.IPixelOff[0]
 	pRefData := pRefPixMap.PPixel[0]
@@ -58,8 +60,8 @@ func (c *CVAACalculation) Process(iType int32, pSrcPixMap *SPixMap, pRefPixMap *
 				c.m_sVaaFuncs.pfVAACalcSadVar(pCurData, iCurOff, pRefData, iRefOff, iPicWidth, iPicHeight, iPicStride, &pResult.IFrameSad,
 					pResult.PSad8x8, pResult.PSum16x16, pResult.PSumOfSquare16x16)
 			} else {
-				c.m_sVaaFuncs.pfVAACalcSad(pCurData, iCurOff, pRefData, iRefOff, iPicWidth, iPicHeight, iPicStride, &pResult.IFrameSad,
-					pResult.PSad8x8)
+				vaaCalcSadMasked(c.m_sVaaFuncs.pfVAACalcSad, pCurData, iCurOff, pRefData, iRefOff,
+					iPicWidth, iPicHeight, iPicStride, &pResult.IFrameSad, pResult.PSad8x8, unchanged)
 			}
 		}
 	}

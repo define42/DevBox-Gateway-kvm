@@ -1,0 +1,174 @@
+Total: 20.98s
+ROUTINE ======================== github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.CavlcParamCal_c in /tmp/h264-fullscreen-20261021/candidate/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+     460ms      460ms (flat, cum)  2.19% of Total
+         .          .     54:func CavlcParamCal_c(pCoffLevel []int16, pRun []uint8, pLevel []int16, pTotalCoeff *int32, iLastIndex int32) int32 {
+         .          .     55:	iTotalZeros := int32(0)
+         .          .     56:	iTotalCoeffs := int32(0)
+         .          .     57:
+     150ms      150ms     58:	for iLastIndex >= 0 && pCoffLevel[iLastIndex] == 0 {
+         .          .     59:		iLastIndex--
+         .          .     60:	}
+         .          .     61:
+      10ms       10ms     62:	for iLastIndex >= 0 {
+         .          .     63:		iCountZero := int32(0)
+      10ms       10ms     64:		pLevel[iTotalCoeffs] = pCoffLevel[iLastIndex]
+      10ms       10ms     65:		iLastIndex--
+         .          .     66:
+      90ms       90ms     67:		for iLastIndex >= 0 && pCoffLevel[iLastIndex] == 0 {
+      40ms       40ms     68:			iCountZero++
+      30ms       30ms     69:			iLastIndex--
+         .          .     70:		}
+      50ms       50ms     71:		iTotalZeros += iCountZero
+      60ms       60ms     72:		pRun[iTotalCoeffs] = uint8(iCountZero)
+         .          .     73:		iTotalCoeffs++
+         .          .     74:	}
+      10ms       10ms     75:	*pTotalCoeff = iTotalCoeffs
+         .          .     76:	return iTotalZeros
+         .          .     77:}
+         .          .     78:
+         .          .     79:func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
+         .          .     80:	var iLevel [16]int16
+ROUTINE ======================== github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WriteBlockResidualCavlc in /tmp/h264-fullscreen-20261021/candidate/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+     1.05s      1.96s (flat, cum)  9.34% of Total
+      40ms       40ms     79:func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
+      80ms       80ms     80:	var iLevel [16]int16
+         .          .     81:	var uiRun [16]uint8
+         .          .     82:
+         .          .     83:	iTotalCoeffs := int32(0)
+         .          .     84:	iTrailingOnes := int32(0)
+         .          .     85:	iTotalZeros, iZerosLeft := int32(0), int32(0)
+         .          .     86:	uiSign := uint32(0)
+         .          .     87:	var iLevelCode, iLevelPrefix, iLevelSuffix, uiSuffixLength, iLevelSuffixSize int32
+         .          .     88:	var iValue, iThreshold, iZeroLeft int32
+         .          .     89:	var n int32
+         .          .     90:	var i int32
+         .          .     91:
+     210ms      260ms     92:	bs := cavlcBsInit(pBs)
+         .          .     93:
+         .          .     94:	/*Step 1: calculate iLevel and iRun and total */
+         .          .     95:
+      30ms       30ms     96:	if iCalRunLevelFlag != 0 {
+         .          .     97:		iCount := int32(0)
+         .          .     98:		// No alternate CAVLC kernel exists in the Go port. The direct call keeps
+         .          .     99:		// these per-block run and level buffers on the stack.
+         .      460ms    100:		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+      40ms       40ms    101:		if iTotalCoeffs > 3 {
+         .          .    102:			iCount = 3
+         .          .    103:		} else {
+         .          .    104:			iCount = iTotalCoeffs
+         .          .    105:		}
+         .          .    106:		for i = 0; i < iCount; i++ {
+      20ms       40ms    107:			if common.WELS_ABS(int32(iLevel[i])) == 1 {
+      10ms       10ms    108:				iTrailingOnes++
+         .          .    109:				uiSign <<= 1
+         .          .    110:				if iLevel[i] < 0 {
+         .          .    111:					uiSign |= 1
+         .          .    112:				}
+         .          .    113:			} else {
+         .          .    114:				break
+         .          .    115:			}
+         .          .    116:		}
+         .          .    117:	}
+         .          .    118:	/*Step 3: coeff token */
+     120ms      120ms    119:	upCoeffToken := &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[iNC]][iTotalCoeffs][iTrailingOnes]
+      10ms       10ms    120:	iValue = int32(upCoeffToken[0])
+      40ms       40ms    121:	n = int32(upCoeffToken[1])
+         .          .    122:
+      10ms       10ms    123:	if iTotalCoeffs == 0 {
+         .       60ms    124:		bs.write(n, iValue)
+         .          .    125:
+         .       10ms    126:		bs.uninit(pBs)
+         .          .    127:		return ENC_RETURN_SUCCESS
+         .          .    128:	}
+         .          .    129:
+         .          .    130:	/* Step 4: */
+         .          .    131:	/*  trailing */
+         .          .    132:	n += iTrailingOnes
+         .          .    133:	iValue = int32(uint32(iValue<<uint(iTrailingOnes)) + uiSign)
+         .      110ms    134:	bs.write(n, iValue)
+         .          .    135:
+         .          .    136:	/*  levels */
+      20ms       20ms    137:	if iTotalCoeffs > 10 && iTrailingOnes < 3 {
+         .          .    138:		uiSuffixLength = 1
+         .          .    139:	} else {
+         .          .    140:		uiSuffixLength = 0
+         .          .    141:	}
+         .          .    142:
+      40ms       40ms    143:	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
+      30ms       30ms    144:		iVal := int32(iLevel[i])
+         .          .    145:
+      10ms       10ms    146:		iLevelCode = (iVal - 1) * (1 << 1)
+      20ms       20ms    147:		uiSign = uint32(iLevelCode >> 31)
+         .          .    148:		iLevelCode = int32((uint32(iLevelCode) ^ uiSign) + (uiSign << 1))
+         .          .    149:		if i == iTrailingOnes && iTrailingOnes < 3 {
+         .          .    150:			iLevelCode -= 1 << 1
+         .          .    151:		}
+         .          .    152:
+      10ms       10ms    153:		iLevelPrefix = iLevelCode >> uint(uiSuffixLength)
+         .          .    154:		iLevelSuffixSize = uiSuffixLength
+      10ms       10ms    155:		iLevelSuffix = iLevelCode - (iLevelPrefix << uint(uiSuffixLength))
+         .          .    156:
+         .          .    157:		if iLevelPrefix >= 14 && iLevelPrefix < 30 && uiSuffixLength == 0 {
+         .          .    158:			iLevelPrefix = 14
+         .          .    159:			iLevelSuffix = iLevelCode - iLevelPrefix
+         .          .    160:			iLevelSuffixSize = 4
+         .          .    161:		} else if iLevelPrefix >= 15 {
+         .          .    162:			iLevelPrefix = 15
+         .          .    163:			iLevelSuffix = iLevelCode - (iLevelPrefix << uint(uiSuffixLength))
+         .          .    164:			//for baseline profile,overflow when the length of iLevelSuffix is larger than 11.
+         .          .    165:			if (iLevelSuffix >> 11) != 0 {
+         .          .    166:				return ENC_RETURN_VLCOVERFLOWFOUND
+         .          .    167:			}
+         .          .    168:			if uiSuffixLength == 0 {
+         .          .    169:				iLevelSuffix -= 15
+         .          .    170:			}
+         .          .    171:			iLevelSuffixSize = 12
+         .          .    172:		}
+         .          .    173:
+         .          .    174:		n = iLevelPrefix + 1 + iLevelSuffixSize
+         .          .    175:		iValue = (1 << uint(iLevelSuffixSize)) | iLevelSuffix
+         .       30ms    176:		bs.write(n, iValue)
+         .          .    177:
+         .          .    178:		if uiSuffixLength == 0 {
+         .          .    179:			uiSuffixLength++
+         .          .    180:		}
+      10ms       10ms    181:		iThreshold = 3 << uint(uiSuffixLength-1)
+         .          .    182:		if (iVal > iThreshold || iVal < -iThreshold) && uiSuffixLength < 6 {
+         .          .    183:			uiSuffixLength++
+         .          .    184:		}
+         .          .    185:	}
+         .          .    186:
+         .          .    187:	/* Step 5: total zeros */
+         .          .    188:
+      30ms       30ms    189:	if iTotalCoeffs < iEndIdx+1 {
+         .          .    190:		if int32(CHROMA_DC) != iResidualProperty {
+      30ms       30ms    191:			upTotalZeros := &g_kuiVlcTotalZeros[iTotalCoeffs][iTotalZeros]
+      10ms       10ms    192:			n = int32(upTotalZeros[1])
+      20ms       20ms    193:			iValue = int32(upTotalZeros[0])
+      10ms      130ms    194:			bs.write(n, iValue)
+         .          .    195:		} else {
+         .          .    196:			upTotalZeros := &g_kuiVlcTotalZerosChromaDc[iTotalCoeffs][iTotalZeros]
+         .          .    197:			n = int32(upTotalZeros[1])
+         .          .    198:			iValue = int32(upTotalZeros[0])
+         .          .    199:			bs.write(n, iValue)
+         .          .    200:		}
+         .          .    201:	}
+         .          .    202:
+         .          .    203:	/* Step 6: pRun before */
+         .          .    204:	iZerosLeft = iTotalZeros
+      30ms       30ms    205:	for i = 0; i+1 < iTotalCoeffs && iZerosLeft > 0; i++ {
+      30ms       30ms    206:		uirun := uiRun[i]
+         .          .    207:		iZeroLeft = int32(g_kuiZeroLeftMap[iZerosLeft])
+      80ms       80ms    208:		n = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][1])
+      10ms       10ms    209:		iValue = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][0])
+         .       20ms    210:		bs.write(n, iValue)
+         .          .    211:		iZerosLeft -= int32(uirun)
+         .          .    212:	}
+         .          .    213:
+      30ms       60ms    214:	bs.uninit(pBs)
+      10ms       10ms    215:	return ENC_RETURN_SUCCESS
+         .          .    216:}
+         .          .    217:
+         .          .    218:func StashMBStatusCavlc(pDss *SDynamicSlicingStack, pSlice *SSlice, iMbSkipRun int32) {
+         .          .    219:	pBs := pSlice.pSliceBsa
+         .          .    220:	pDss.pBsStackBufPtr = pBs.PCurBuf

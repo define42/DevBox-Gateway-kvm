@@ -1,0 +1,196 @@
+#include "textflag.h"
+
+// Slice arguments retain all buffers across the assembly call.
+TEXT ·idctT4RecSSE2(SB), NOSPLIT, $0-88
+	MOVQ rec_base+0(FP), BX
+	MOVQ recStride+24(FP), CX
+	MOVQ pred_base+32(FP), DX
+	MOVQ predStride+56(FP), SI
+	MOVQ coeff_base+64(FP), AX
+	JMP idctT4RecKernel<>(SB)
+
+TEXT ·idctFourT4RecSSE2(SB), NOSPLIT, $0-88
+	MOVQ rec_base+0(FP), R9
+	MOVQ recStride+24(FP), CX
+	MOVQ pred_base+32(FP), R10
+	MOVQ predStride+56(FP), SI
+	MOVQ coeff_base+64(FP), R8
+	MOVQ R9, BX
+	MOVQ R10, DX
+	MOVQ R8, AX
+	CALL idctT4RecKernel<>(SB)
+	LEAQ 4(R9), BX
+	LEAQ 4(R10), DX
+	LEAQ 32(R8), AX
+	CALL idctT4RecKernel<>(SB)
+	LEAQ (R9)(CX*4), BX
+	LEAQ (R10)(SI*4), DX
+	LEAQ 64(R8), AX
+	CALL idctT4RecKernel<>(SB)
+	LEAQ 4(R9)(CX*4), BX
+	LEAQ 4(R10)(SI*4), DX
+	LEAQ 96(R8), AX
+	CALL idctT4RecKernel<>(SB)
+	RET
+
+// Private ABI: AX coefficients, BX output, CX output stride, DX prediction,
+// SI prediction stride. R8-R10 survive the call. Each XMM low half holds four
+// signed words. Horizontal arithmetic wraps exactly like Go's int16 cast.
+TEXT idctT4RecKernel<>(SB), NOSPLIT|NOFRAME, $0-0
+	MOVQ (AX), X0
+	MOVQ 8(AX), X1
+	MOVQ 16(AX), X2
+	MOVQ 24(AX), X3
+	PUNPCKLWL X1, X0
+	PUNPCKLWL X3, X2
+	MOVOU X0, X1
+	PUNPCKLLQ X2, X0
+	PUNPCKHLQ X2, X1
+	MOVOU X1, X2
+	MOVOU X1, X3
+	PSRLDQ $8, X3
+	MOVOU X0, X1
+	PSRLDQ $8, X1
+	MOVOU X0, X4
+	PADDW X2, X4
+	PSUBW X2, X0
+	MOVOU X3, X5
+	PSRAW $1, X5
+	PADDW X1, X5
+	PSRAW $1, X1
+	PSUBW X3, X1
+	MOVOU X0, X2
+	PSUBW X1, X2
+	PADDW X0, X1
+	MOVOU X4, X3
+	PSUBW X5, X3
+	MOVOU X4, X0
+	PADDW X5, X0
+	PUNPCKLWL X1, X0
+	PUNPCKLWL X3, X2
+	MOVOU X0, X1
+	PUNPCKLLQ X2, X0
+	PUNPCKHLQ X2, X1
+	MOVOU X1, X2
+	MOVOU X1, X3
+	PSRLDQ $8, X3
+	MOVOU X0, X1
+	PSRLDQ $8, X1
+	MOVOU X0, X4
+	PSRAW $15, X4
+	PUNPCKLWL X4, X0
+	MOVOU X1, X4
+	PSRAW $15, X4
+	PUNPCKLWL X4, X1
+	MOVOU X2, X4
+	PSRAW $15, X4
+	PUNPCKLWL X4, X2
+	MOVOU X3, X4
+	PSRAW $15, X4
+	PUNPCKLWL X4, X3
+	MOVOU X0, X4
+	PADDL X2, X4
+	PSUBL X2, X0
+	MOVOU X3, X5
+	PSRAL $1, X5
+	PADDL X1, X5
+	PSRAL $1, X1
+	PSUBL X3, X1
+	MOVOU X0, X2
+	PSUBL X1, X2
+	PADDL X0, X1
+	MOVOU X4, X3
+	PSUBL X5, X3
+	MOVOU X4, X0
+	PADDL X5, X0
+	MOVL $32, R11
+	MOVL R11, X7
+	PSHUFL $0, X7, X7
+	PXOR X6, X6
+	PADDL X7, X0
+	PSRAL $6, X0
+	MOVL (DX), X4
+	PUNPCKLBW X6, X4
+	PUNPCKLWL X6, X4
+	PADDL X4, X0
+	PACKSSLW X0, X0
+	PACKUSWB X0, X0
+	MOVL X0, (BX)
+	ADDQ CX, BX
+	ADDQ SI, DX
+	PADDL X7, X1
+	PSRAL $6, X1
+	MOVL (DX), X4
+	PUNPCKLBW X6, X4
+	PUNPCKLWL X6, X4
+	PADDL X4, X1
+	PACKSSLW X1, X1
+	PACKUSWB X1, X1
+	MOVL X1, (BX)
+	ADDQ CX, BX
+	ADDQ SI, DX
+	PADDL X7, X2
+	PSRAL $6, X2
+	MOVL (DX), X4
+	PUNPCKLBW X6, X4
+	PUNPCKLWL X6, X4
+	PADDL X4, X2
+	PACKSSLW X2, X2
+	PACKUSWB X2, X2
+	MOVL X2, (BX)
+	ADDQ CX, BX
+	ADDQ SI, DX
+	PADDL X7, X3
+	PSRAL $6, X3
+	MOVL (DX), X4
+	PUNPCKLBW X6, X4
+	PUNPCKLWL X6, X4
+	PADDL X4, X3
+	PACKSSLW X3, X3
+	PACKUSWB X3, X3
+	MOVL X3, (BX)
+	RET
+
+// Four DC coefficients govern each band of four 16-pixel rows. Widen before
+// adding 32 so coefficients near int16 limits round exactly as the scalar.
+TEXT ·idctI16x16DcRecSSE2(SB), NOSPLIT, $0-88
+	MOVQ rec_base+0(FP), BX
+	MOVQ recStride+24(FP), CX
+	MOVQ pred_base+32(FP), DX
+	MOVQ predStride+56(FP), SI
+	MOVQ coeff_base+64(FP), AX
+	PXOR X6, X6
+	MOVL $32, R9
+	MOVL R9, X7
+	PSHUFL $0, X7, X7
+	MOVQ $4, R8
+idct_dc_band:
+	MOVQ (AX), X0
+	MOVOU X0, X1
+	PSRAW $15, X1
+	PUNPCKLWL X1, X0
+	PADDL X7, X0
+	PSRAL $6, X0
+	PACKSSLW X0, X0
+	PSHUFLW $0xfa, X0, X1
+	PSHUFLW $0x50, X0, X0
+	PUNPCKLWL X0, X0
+	PUNPCKLWL X1, X1
+	MOVQ $4, R9
+idct_dc_row:
+	MOVOU (DX), X2
+	MOVOU X2, X3
+	PUNPCKLBW X6, X2
+	PUNPCKHBW X6, X3
+	PADDW X0, X2
+	PADDW X1, X3
+	PACKUSWB X3, X2
+	MOVOU X2, (BX)
+	ADDQ CX, BX
+	ADDQ SI, DX
+	DECQ R9
+	JNZ idct_dc_row
+	ADDQ $8, AX
+	DECQ R8
+	JNZ idct_dc_band
+	RET

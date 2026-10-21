@@ -414,6 +414,14 @@ type SQuarRefineParams struct {
 
 func MeRefineQuarPixel(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *SMeRefinePointer,
 	kiWidth int32, kiHeight int32, pParams *SQuarRefineParams, iStrideEnc int32) {
+	if meRefineQuarPixelFused(pFunc, pMe, pMeRefine, kiWidth, kiHeight, pParams, iStrideEnc) {
+		return
+	}
+	meRefineQuarPixelUnfused(pFunc, pMe, pMeRefine, kiWidth, kiHeight, pParams, iStrideEnc)
+}
+
+func meRefineQuarPixelUnfused(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *SMeRefinePointer,
+	kiWidth int32, kiHeight int32, pParams *SQuarRefineParams, iStrideEnc int32) {
 	pSampleAvg := pFunc.sMcFuncs.PfSampleAveraging
 	var iCurCost int32
 	pEncMb := pMe.pEncMb

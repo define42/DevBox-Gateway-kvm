@@ -1,0 +1,62 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                     │ desktop-before.txt │          desktop-after.txt          │
+                                     │       sec/op       │    sec/op     vs base               │
+SlicedDesktop/1080p/Scroll/1Slices-4         14.67m ± 11%   12.29m ± 21%  -16.22% (p=0.015 n=6)
+SlicedDesktop/1080p/Scroll/4Slices-4         7.956m ± 27%   6.887m ± 10%  -13.43% (p=0.004 n=6)
+SlicedDesktop/1080p/Widget/1Slices-4         1.641m ± 42%   1.566m ± 15%        ~ (p=1.000 n=6)
+SlicedDesktop/1080p/Widget/4Slices-4         1.254m ± 69%   1.037m ± 26%        ~ (p=0.180 n=6)
+geomean                                      3.936m         3.424m        -13.00%
+
+                                     │ desktop-before.txt │          desktop-after.txt           │
+                                     │    bytes/frame     │ bytes/frame   vs base                │
+SlicedDesktop/1080p/Scroll/1Slices-4         3.607Ki ± 0%   3.607Ki ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Scroll/4Slices-4         5.996Ki ± 0%   5.996Ki ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Widget/1Slices-4           107.2 ± 0%     107.2 ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Widget/4Slices-4           155.3 ± 0%     155.3 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                        783.9          783.9       +0.00%
+¹ all samples are equal
+
+                                     │ desktop-before.txt │           desktop-after.txt            │
+                                     │  convert_ns/frame  │ convert_ns/frame  vs base              │
+SlicedDesktop/1080p/Scroll/1Slices-4       1.535M ±   10%       1.554M ± 36%       ~ (p=0.937 n=6)
+SlicedDesktop/1080p/Scroll/4Slices-4       1.535M ±   40%       1.505M ± 12%       ~ (p=0.394 n=6)
+SlicedDesktop/1080p/Widget/1Slices-4       6.513k ±   20%       6.977k ± 22%       ~ (p=0.589 n=6)
+SlicedDesktop/1080p/Widget/4Slices-4       7.461k ± 1132%       6.206k ± 45%       ~ (p=0.485 n=6)
+geomean                                    103.4k               100.3k        -3.02%
+
+                                     │ desktop-before.txt │           desktop-after.txt            │
+                                     │  encode_ns/frame   │ encode_ns/frame  vs base               │
+SlicedDesktop/1080p/Scroll/1Slices-4         13.04M ± 11%      10.73M ± 19%  -17.69% (p=0.015 n=6)
+SlicedDesktop/1080p/Scroll/4Slices-4         6.417M ± 24%      5.372M ±  9%  -16.28% (p=0.002 n=6)
+SlicedDesktop/1080p/Widget/1Slices-4         1.634M ± 42%      1.558M ± 15%        ~ (p=1.000 n=6)
+SlicedDesktop/1080p/Widget/4Slices-4         1.245M ± 70%      1.030M ± 26%        ~ (p=0.180 n=6)
+geomean                                      3.612M            3.102M        -14.12%
+
+                                     │ desktop-before.txt │         desktop-after.txt          │
+                                     │       slices       │   slices    vs base                │
+SlicedDesktop/1080p/Scroll/1Slices-4           1.000 ± 0%   1.000 ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Scroll/4Slices-4           4.000 ± 0%   4.000 ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Widget/1Slices-4           1.000 ± 0%   1.000 ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Widget/4Slices-4           4.000 ± 0%   4.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                        2.000        2.000       +0.00%
+¹ all samples are equal
+
+                                     │ desktop-before.txt │         desktop-after.txt          │
+                                     │        B/op        │     B/op      vs base              │
+SlicedDesktop/1080p/Scroll/1Slices-4         4.978Ki ± 0%   4.978Ki ± 0%       ~ (p=1.000 n=6)
+SlicedDesktop/1080p/Scroll/4Slices-4         8.465Ki ± 2%   8.448Ki ± 5%       ~ (p=0.859 n=6)
+SlicedDesktop/1080p/Widget/1Slices-4         1.399Ki ± 0%   1.399Ki ± 0%       ~ (p=1.000 n=6)
+SlicedDesktop/1080p/Widget/4Slices-4         1.887Ki ± 5%   1.903Ki ± 8%       ~ (p=0.732 n=6)
+geomean                                      3.248Ki        3.253Ki       +0.17%
+
+                                     │ desktop-before.txt │         desktop-after.txt          │
+                                     │     allocs/op      │ allocs/op   vs base                │
+SlicedDesktop/1080p/Scroll/1Slices-4           8.000 ± 0%   8.000 ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Scroll/4Slices-4           19.00 ± 5%   19.00 ± 5%       ~ (p=1.000 n=6)
+SlicedDesktop/1080p/Widget/1Slices-4           8.000 ± 0%   8.000 ± 0%       ~ (p=1.000 n=6) ¹
+SlicedDesktop/1080p/Widget/4Slices-4           19.00 ± 0%   19.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                        12.33        12.33       +0.00%
+¹ all samples are equal

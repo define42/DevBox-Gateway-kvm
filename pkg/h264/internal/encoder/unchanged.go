@@ -18,6 +18,14 @@ type unchangedFrameState struct {
 	qp          int32
 	width       int32
 	height      int32
+
+	// Picture generations describe completed reconstruction writes, independently
+	// of frame numbers/POC, which the reference manager overwrites when recycling.
+	generation       uint64
+	pictures         [2]reconstructedPictureVersion
+	source           reconstructedPictureVersion
+	reuseDestination *SPicture
+	finalZeroSkips   []bool // owned proof from final coded MVs, not the search heuristic
 }
 
 func unchangedConfiguration(param *SWelsSvcCodingParam) bool {
@@ -38,6 +46,7 @@ func unchangedConfiguration(param *SWelsSvcCodingParam) bool {
 
 func (s *unchangedFrameState) begin(ctx *sWelsEncCtx, source *api.SSourcePicture) {
 	s.macroblocks = nil
+	s.reuseDestination = nil
 	if source == nil || !unchangedConfiguration(ctx.pSvcParam) {
 		return
 	}
@@ -53,6 +62,7 @@ func (s *unchangedFrameState) begin(ctx *sWelsEncCtx, source *api.SSourcePicture
 		s.qp == param.SSpatialLayers[0].IDLayerQp
 	if validPrevious && int64(len(source.UnchangedMacroblocks)) == count {
 		s.macroblocks = source.UnchangedMacroblocks
+		s.reuseDestination = s.reusableSource()
 	}
 }
 
@@ -62,28 +72,33 @@ func (s *unchangedFrameState) finish(
 	output *api.SFrameBSInfo,
 	success bool,
 ) {
-	*s = unchangedFrameState{}
+	s.macroblocks = nil
+	s.reuseDestination = nil
 	if !success || source == nil || output == nil || !unchangedConfiguration(ctx.pSvcParam) {
+		*s = unchangedFrameState{}
 		return
 	}
 	encodedPicture := output.IFrameSizeInBytes > 0 &&
 		(output.EFrameType == api.VideoFrameTypeP || output.EFrameType == api.VideoFrameTypeIDR)
 	if !encodedPicture || ctx.iEncoderError != ENC_RETURN_SUCCESS || ctx.pCurDqLayer == nil {
+		*s = unchangedFrameState{}
 		return
 	}
 	// ctx.pDecPic already points at the NEXT free buffer after UpdateRefList;
 	// the layer retains the reconstructed picture that was just published.
 	reference := ctx.pCurDqLayer.pDecPic
 	if reference == nil || !reference.bUsedAsRef || reference.bIsLongRef {
+		*s = unchangedFrameState{}
 		return
 	}
+	s.finishReconstruction(ctx, reference, output.EFrameType)
 	s.reference = reference
 	s.frameNum, s.poc = reference.iFrameNum, reference.iFramePoc
 	s.qp = ctx.pSvcParam.SSpatialLayers[0].IDLayerQp
 	s.width, s.height = source.IPicWidth, source.IPicHeight
 }
 
-func tryUnchangedMacroblock(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, mb *SMB) bool {
+func unchangedMacroblockEligible(ctx *sWelsEncCtx, mb *SMB) bool {
 	state := &ctx.unchanged
 	index := int(mb.iMbXY)
 	if index < 0 || index >= len(state.macroblocks) || !state.macroblocks[index] {
@@ -97,52 +112,88 @@ func tryUnchangedMacroblock(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, mb *SM
 	if !validReference || layer.iLoopFilterDisableIdc != 1 || int32(mb.uiLumaQp) != state.qp {
 		return false
 	}
-	// Reuse only a previously accepted zero-motion skip. With unchanged input,
-	// a fixed quantizer, and no deblocking, its reconstructed block is unchanged.
-	// First P frames after IDR still take the full path.
+	// Preserve the existing hint policy: previous P_SKIP and a zero motion-search
+	// vector. sMvList is heuristic metadata, not necessarily the final coded MV.
+	// Copy elision separately requires final-zero-MV proof. First P frames after
+	// IDR still take the full path.
 	previousSkip := reference.iPictureType == common.P_SLICE &&
 		reference.uiRefMbType[index] == common.MB_TYPE_SKIP && reference.sMvList[index] == (SMVUnitXY{})
 	if !previousSkip {
 		return false
 	}
-	cache := &slice.sMbCacheInfo
+	return true
+}
+
+// The early path only proves the zero-predictor cases that need A and B. Any
+// other case uses the full neighbor cache and median predictor below.
+func tryUnchangedMacroblockEarly(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, mb *SMB) bool {
+	if !unchangedMacroblockEligible(ctx, mb) || !unchangedSkipPredictorIsZero(mb, int32(ctx.pCurDqLayer.iMbWidth)) {
+		return false
+	}
+	encodeUnchangedMacroblock(ctx, md, slice, mb)
+	return true
+}
+
+func unchangedSkipPredictorIsZero(mb *SMB, width int32) bool {
+	available := uint32(mb.uiNeighborAvail)
+	if available&LEFT_MB_POS == 0 || available&TOP_MB_POS == 0 {
+		return true
+	}
+	left := mb.Add(-1)
+	if common.IS_SVC_INTER(left.uiMbType) && left.pRefIndex[1] == 0 && left.sMv[3] == (SMVUnitXY{}) {
+		return true
+	}
+	top := mb.Add(-width)
+	return common.IS_SVC_INTER(top.uiMbType) && top.pRefIndex[2] == 0 && top.sMv[12] == (SMVUnitXY{})
+}
+
+func tryUnchangedMacroblock(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, mb *SMB) bool {
+	if !unchangedMacroblockEligible(ctx, mb) {
+		return false
+	}
 	var predicted SMVUnitXY
-	PredSkipMv(cache, &predicted)
+	PredSkipMv(&slice.sMbCacheInfo, &predicted)
 	if predicted != (SMVUnitXY{}) {
 		return false
 	}
+	encodeUnchangedMacroblock(ctx, md, slice, mb)
+	return true
+}
+
+func encodeUnchangedMacroblock(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, mb *SMB) {
+	layer := ctx.pCurDqLayer
+	reference := layer.pRefPic
+	index := int(mb.iMbXY)
+	cache := &slice.sMbCacheInfo
 
 	// Copy reconstructed reference samples, never source pixels. The decoder
 	// infers this same zero-motion prediction from P_SKIP. Copying directly to
 	// reconstruction avoids motion-compensation scratch and a second copy.
-	// Keep row widths literal so these tiny copies compile to inline loads and
-	// stores instead of invoking the general-purpose memmove for every row.
-	data := &cache.SPicData
-	source, target := data.iRefMbOff[0], data.iCsMbOff[0]
-	for range 16 {
-		copy(data.pCsMb[0][target:target+16], data.pRefMb[0][source:source+16])
-		source += int(reference.iLineSize[0])
-		target += int(layer.iCsStride[0])
-	}
-	for plane := 1; plane < 3; plane++ {
-		source, target := data.iRefMbOff[plane], data.iCsMbOff[plane]
-		for range 8 {
-			copy(data.pCsMb[plane][target:target+8], data.pRefMb[plane][source:source+8])
-			source += int(reference.iLineSize[plane])
-			target += int(layer.iCsStride[plane])
+	// When the recycled destination still contains the source generation used
+	// by the previous skip, its samples are already identical. Otherwise copy
+	// with validated, exact-width strided loads.
+	state := &ctx.unchanged
+	resident := state.reuseDestination != nil && layer.pDecPic == state.reuseDestination &&
+		index < len(state.finalZeroSkips) && state.finalZeroSkips[index]
+	if !resident {
+		data := &cache.SPicData
+		copyReconstructed16x16(data.pCsMb[0], data.iCsMbOff[0], layer.iCsStride[0],
+			data.pRefMb[0], data.iRefMbOff[0], reference.iLineSize[0])
+		for plane := 1; plane < 3; plane++ {
+			copyReconstructed8x8(data.pCsMb[plane], data.iCsMbOff[plane], layer.iCsStride[plane],
+				data.pRefMb[plane], data.iRefMbOff[plane], reference.iLineSize[plane])
 		}
 	}
+
 	mb.uiMbType, mb.uiCbp = common.MB_TYPE_SKIP, 0
 	setRefIndexZero(mb)
-	ctx.pFuncList.pfUpdateMbMv(mb.sMv, predicted)
-	mb.sP16x16Mv = predicted
-	layer.pDecPic.sMvList[index] = predicted
+	ctx.pFuncList.pfUpdateMbMv(mb.sMv, SMVUnitXY{})
+	mb.sP16x16Mv = SMVUnitXY{}
+	layer.pDecPic.sMvList[index] = SMVUnitXY{}
 	clear(mb.pNonZeroCount[:24])
 	// Init leaves this MB's previous luma decision cost intact. Preserve that
 	// heuristic metadata; reconstruction correctness does not depend on its value.
 	md.iCostLuma = *mb.pSadCost
 	md.iCostSkipMb = reference.pMbSkipSad[index]
 	WelsMdInterUpdatePskip(layer, slice, mb, cache)
-
-	return true
 }

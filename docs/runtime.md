@@ -64,7 +64,7 @@ automatically.
 The inherited `-rdp-fd` and `-telemetry-fd` descriptors and the worker's RDP
 tuning flags are internal gateway interfaces, not standalone access modes.
 Configure managed desktop graphics with the gateway's `H264_ENCODER`, `H264_QP`,
-and `RDP_PROFILE` settings instead. No unsafe public-RDP override is provided.
+`H264_SLICES`, and `RDP_PROFILE` settings instead. No unsafe public-RDP override is provided.
 
 Guests larger than 3.25 GiB use separate low and high RAM regions, reserving PCI
 address space below 4 GiB. The requested `-m` value is RAM; the device address
@@ -651,11 +651,14 @@ time waiting for a free acknowledgement slot after the pacing deadline. Zero
 `ack_wait` does not rule out reduced frame rate from adaptive pacing or guest
 rendering. Reported frame rate includes idle time in the reporting window.
 
-The gateway's default software encoder uses one slice/worker. The codec can
-schedule fixed slices on at most four workers and may use fewer for small
-pictures. More slices can reduce encoding time while adding headers and reducing
-compression; NVENC does not use software slices. Slice-count tuning is an
-internal worker option, not an exposed gateway setting.
+The gateway's default software encoder uses one slice/worker. Set `H264_SLICES`
+(or `serve -h264-slices`) to `1`, `2`, or `4` to request software parallelism.
+The worker CPU budget and small pictures can reduce the count. More slices can
+reduce encoding latency while using more CPU concurrently and increasing output
+size, so compare concurrent desktop workloads before raising the default.
+NVENC ignores this setting; automatic software fallback uses it. Restart the
+gateway and start new VM processes to apply changes. See the
+[configuration guide](configuration.md#storage-and-desktops) for the CPU cap.
 
 Changed H.264 frames can be sent at up to 60 fps; bitmap output is capped at
 30 fps. Dirty rectangles reduce pixel conversion/copying, bitmap updates use

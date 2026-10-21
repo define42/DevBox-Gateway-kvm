@@ -1,0 +1,15 @@
+Go: go version go1.27.3 linux/amd64
+Host: Intel Core i7-7700HQ, Linux amd64; GOMAXPROCS=4; software H264 QP20; no PGO
+HEAD: 9261ed14829c744bec4981dc54ada9e32ee15e93
+Pre-existing Git index SHA256 (unchanged): 245ac4f9dfb2e0e85c6205e1a8b601e8562204b1b1c9c3e4ddd840ebe8294e40
+before production manifest SHA256: ac1aa4d64066f243ed3500523dc655a962c604383717368a4acb4dbb6ef5d5e9
+after production manifest SHA256: f59a70d05c9fd5ee6ead79dceeff133fcc06ce4b3065284999920d1184348d10
+before.test SHA256: 04a36cbbc3be194a7851e6ee5ba6428f2e041c571364e4eb2583dbdc02adc4f9
+after.test SHA256: 59ac2764c8d799876dcdeea87dc817a5ffcb8eb6fce8b5f1ed3d2d94d9757047
+before-encoder.test SHA256: dfb8bb2ec5b56465b1728822cc393e9b730b41d97984d37759cc6b43d2e4c85b
+after-encoder.test SHA256: 40073626e5e1c455818c4a4fdf67bbe9676041dd3bad162a4b1f28786415be2d
+clip1080p.rgba SHA256: cdeafdba15b4620ba18fbfe8152429c04e6fb4ec3bba6dd716a27b9babad0123
+Build: go test -c -o BINARY ./internal/rdp/avc (isolated before/after trees, same harness)
+Encoder build: go test -c -o BINARY ./pkg/h264/internal/encoder
+Pinned lint: golangci-lint2.12.2, GOTOOLCHAIN=go1.26.9
+Candidate production manifests match workspace exactly.

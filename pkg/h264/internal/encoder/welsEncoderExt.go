@@ -268,11 +268,26 @@ func (p *CWelsH264SVCEncoder) Uninitialize() int32 {
 func (p *CWelsH264SVCEncoder) EncodeFrame(kpSrcPic *api.SSourcePicture, pBsInfo *api.SFrameBSInfo) (result int32) {
 	if ctx := p.m_pEncContext; ctx != nil {
 		ctx.unchanged.begin(ctx, kpSrcPic)
+		vpp := ctx.pVpp
+		if vpp != nil {
+			vpp.vaaUnchanged.begin(ctx, kpSrcPic)
+		}
 		defer func() {
 			if p.m_pEncContext == ctx {
 				ctx.unchanged.finish(ctx, kpSrcPic, pBsInfo, result == int32(api.CmResultSuccess))
+				if vpp != nil && ctx.pVpp == vpp {
+					vpp.vaaUnchanged.finish(ctx, pBsInfo, result == int32(api.CmResultSuccess))
+					vpp.sourceCopy.finish(vpp, pBsInfo)
+				} else if vpp != nil {
+					vpp.vaaUnchanged = vaaUnchangedFrameState{}
+					vpp.sourceCopy.invalidate()
+				}
 			} else {
 				ctx.unchanged = unchangedFrameState{}
+				if vpp != nil {
+					vpp.vaaUnchanged = vaaUnchangedFrameState{}
+					vpp.sourceCopy.invalidate()
+				}
 			}
 		}()
 	}

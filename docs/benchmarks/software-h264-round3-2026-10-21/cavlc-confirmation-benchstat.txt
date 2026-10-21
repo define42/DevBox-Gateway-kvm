@@ -1,0 +1,31 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                          │ confirm-original.txt │         confirm-current.txt         │        confirm-candidate.txt        │
+                          │        sec/op        │    sec/op     vs base               │    sec/op     vs base               │
+CavlcIsolation/Sparse-4             112.9n ± 20%   113.0n ± 11%        ~ (p=0.905 n=6)   105.7n ± 19%        ~ (p=0.240 n=6)
+CavlcIsolation/Dense-4              289.9n ± 20%   286.9n ± 13%        ~ (p=0.937 n=6)   235.1n ± 13%  -18.91% (p=0.009 n=6)
+CavlcIsolation/Moderate-4           248.2n ± 23%   264.9n ± 16%        ~ (p=0.394 n=6)   195.8n ± 16%  -21.11% (p=0.004 n=6)
+CavlcIsolation/Mixed-4              300.8n ± 13%   340.2n ± 11%  +13.08% (p=0.041 n=6)   283.3n ± 19%        ~ (p=0.394 n=6)
+geomean                             222.3n         232.5n         +4.55%                 192.7n        -13.35%
+
+                          │ confirm-original.txt │        confirm-current.txt         │       confirm-candidate.txt        │
+                          │         B/op         │    B/op     vs base                │    B/op     vs base                │
+CavlcIsolation/Sparse-4             0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcIsolation/Dense-4              0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcIsolation/Moderate-4           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcIsolation/Mixed-4              0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                        ²               +0.00%               ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                          │ confirm-original.txt │        confirm-current.txt         │       confirm-candidate.txt        │
+                          │      allocs/op       │ allocs/op   vs base                │ allocs/op   vs base                │
+CavlcIsolation/Sparse-4             0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcIsolation/Dense-4              0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcIsolation/Moderate-4           0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcIsolation/Mixed-4              0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                        ²               +0.00%               ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

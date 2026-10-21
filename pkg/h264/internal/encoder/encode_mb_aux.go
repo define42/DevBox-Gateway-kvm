@@ -223,6 +223,8 @@ func WelsDctFourT4_c(pDct []int16, pPixel1 []uint8, iPixel1Off int, iStride1 int
  * Scan and Score functions
  ****************************************************************************/
 func WelsScan4x4DcAc_c(pLevel []int16, pDct []int16) {
+	_ = pLevel[15]
+	_ = pDct[15]
 	pLevel[0] = pDct[0]
 	pLevel[1] = pDct[1]
 	pLevel[2] = pDct[4]
@@ -242,6 +244,8 @@ func WelsScan4x4DcAc_c(pLevel []int16, pDct []int16) {
 }
 
 func WelsScan4x4Ac_c(pLevel []int16, pDct []int16) {
+	_ = pLevel[15]
+	_ = pDct[15]
 	pLevel[0] = pDct[1]
 	pLevel[1] = pDct[4]
 	pLevel[2] = pDct[8]
@@ -268,6 +272,7 @@ func WelsScan4x4Dc(pLevel []int16, pDct []int16) {
 var kiTRunTable = [16]int32{3, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 func WelsCalculateSingleCtr4x4_c(pDct []int16) int32 {
+	_ = pDct[15]
 	iSingleCtr := int32(0)
 	iIdx := 15
 	var iRun int
@@ -289,6 +294,7 @@ func WelsCalculateSingleCtr4x4_c(pDct []int16) int32 {
 }
 
 func WelsGetNoneZeroCount_c(pLevel []int16) int32 {
+	_ = pLevel[15]
 	iCnt := int32(0)
 	for iIdx := 0; iIdx < 16; iIdx++ {
 		if pLevel[iIdx] == 0 {
@@ -318,7 +324,7 @@ func WelsInitEncodingFuncs(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) {
 	pFuncList.pfScan4x4Ac = WelsScan4x4Ac_c
 	pFuncList.pfCalculateSingleCtr4x4 = WelsCalculateSingleCtr4x4_c
 
-	pFuncList.pfGetNoneZeroCount = WelsGetNoneZeroCount_c
+	pFuncList.pfGetNoneZeroCount = coefficientNonzeroCount
 
 	pFuncList.pfQuantization4x4 = WelsQuant4x4_c
 	pFuncList.pfQuantizationDc4x4 = WelsQuant4x4Dc_c

@@ -4,6 +4,7 @@ package encoder
 
 import (
 	"math"
+	"math/bits"
 
 	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
 )
@@ -39,21 +40,22 @@ func WelsEncRecI16x16Y(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) {
 
 	WelsHadamardT4Dc_c(aDctT4Dc[:], pRes)
 	WelsQuant4x4Dc_sse2(aDctT4Dc[:], int16(int32(pFF[0])<<1), pMF[0]>>1)
-	WelsScan4x4DcAc_c(pMbCache.pDct.iLumaI16x16Dc[:], aDctT4Dc[:])
-	uiCountI16x16Dc = uint32(pFuncList.pfGetNoneZeroCount(pMbCache.pDct.iLumaI16x16Dc[:]))
+	dcMask := coefficientScanMask(pMbCache.pDct.iLumaI16x16Dc[:], aDctT4Dc[:], false)
+	uiCountI16x16Dc = uint32(bits.OnesCount16(dcMask))
+	var masks [16]uint16
 
 	for i := 0; i < 4; i++ {
 		r := pRes[i*64:]
 		b := pBlock[i*64:]
 		pFuncList.pfQuantizationFour4x4(r, pFF, pMF)
-		pFuncList.pfScan4x4Ac(b, r)
-		pFuncList.pfScan4x4Ac(b[16:], r[16:])
-		pFuncList.pfScan4x4Ac(b[32:], r[32:])
-		pFuncList.pfScan4x4Ac(b[48:], r[48:])
+		masks[i*4] = coefficientScanMask(b, r, true)
+		masks[i*4+1] = coefficientScanMask(b[16:], r[16:], true)
+		masks[i*4+2] = coefficientScanMask(b[32:], r[32:], true)
+		masks[i*4+3] = coefficientScanMask(b[48:], r[48:], true)
 	}
 
 	for i := 0; i < 16; i++ {
-		uiNoneZeroCount = uint32(pFuncList.pfGetNoneZeroCount(pBlock[i*16:]))
+		uiNoneZeroCount = uint32(bits.OnesCount16(masks[i]))
 		pCurMb.pNonZeroCount[kpNoneZeroCountIdx[i]] = int8(uiNoneZeroCount)
 		uiNoneZeroCountMbAc += uiNoneZeroCount
 	}
@@ -96,7 +98,9 @@ func WelsEncRecI16x16Y(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) {
 		pFuncList.pfIDctFourT4(pPred, iPredOff+int(kiRecStride)*8, kiRecStride, pBestPred, 128, 16, pRes[128:])
 		pFuncList.pfIDctFourT4(pPred, iPredOff+int(kiRecStride)*8+8, kiRecStride, pBestPred, 136, 16, pRes[192:])
 	} else if uiCountI16x16Dc > 0 {
-		WelsIDctRecI16x16Dc_c(pPred, iPredOff, kiRecStride, pBestPred, 0, 16, aDctT4Dc[:])
+		// A direct call keeps the local DC coefficients on the stack. The amd64
+		// wrapper uses baseline SSE2; other architectures keep the scalar path.
+		WelsIDctRecI16x16Dc_sse2(pPred, iPredOff, kiRecStride, pBestPred, 0, 16, aDctT4Dc[:])
 	} else {
 		pFuncList.pfCopy16x16Aligned(pPred, iPredOff, kiRecStride, pBestPred, 0, 16)
 	}
@@ -133,9 +137,9 @@ func WelsEncRecI4x4Y(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache, uiI4
 
 	pFuncList.pfDctT4(pResI4x4, pEncMb, iEncMbOff+int(pStrideEncBlockOffset[uiI4x4Idx]), iEncStride, pBestPred, 0, 4)
 	pFuncList.pfQuantization4x4(pResI4x4, pFF, pMF)
-	pFuncList.pfScan4x4(pBlock, pResI4x4)
+	mask := coefficientScanMask(pBlock, pResI4x4, false)
 
-	iNoneZeroCount = pFuncList.pfGetNoneZeroCount(pBlock)
+	iNoneZeroCount = int32(bits.OnesCount16(mask))
 	pCurMb.pNonZeroCount[uiOffset] = int8(iNoneZeroCount)
 
 	iPredI4x4Off := iPredOff + int(pStrideDecBlockOffset[uiI4x4Idx])
@@ -150,9 +154,6 @@ func WelsEncRecI4x4Y(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache, uiI4
 
 func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache) {
 	pfSetMemZeroSize64 := pFuncList.pfSetMemZeroSize64
-	pfScan4x4 := pFuncList.pfScan4x4
-	pfCalculateSingleCtr4x4 := pFuncList.pfCalculateSingleCtr4x4
-	pfGetNoneZeroCount := pFuncList.pfGetNoneZeroCount
 	pfDequantizationFour4x4 := pFuncList.pfDequantizationFour4x4
 	pRes := pMbCache.pCoeffLevel
 	iSingleCtrMb := int32(0)
@@ -162,6 +163,7 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
 	pMF := g_kiQuantMF[uiQp][:]
 	pFF := g_kiQuantInterFF[uiQp][:]
 	var aMax [16]int16
+	var masks [16]uint16
 	iNoneZeroCount := int32(0)
 
 	iResOff := 0
@@ -173,11 +175,12 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
 			if aMax[(i<<2)+j] == 0 {
 				clear(pBlock[iBlockOff : iBlockOff+16])
 			} else {
-				pfScan4x4(pBlock[iBlockOff:], pRes[iResOff:])
+				mask := coefficientScanMask(pBlock[iBlockOff:], pRes[iResOff:], false)
+				masks[(i<<2)+j] = mask
 				if aMax[(i<<2)+j] > 1 {
 					iSingleCtr8x8[i] += 9
 				} else if iSingleCtr8x8[i] < 6 {
-					iSingleCtr8x8[i] += pfCalculateSingleCtr4x4(pBlock[iBlockOff:])
+					iSingleCtr8x8[i] += coefficientScoreMask(mask)
 				}
 			}
 			iResOff += 16
@@ -197,7 +200,7 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
 		for i := 0; i < 4; i++ {
 			if iSingleCtr8x8[i] >= 4 {
 				for j := 0; j < 4; j++ {
-					iNoneZeroCount = pfGetNoneZeroCount(pBlock[iBlockOff:])
+					iNoneZeroCount = int32(bits.OnesCount16(masks[(i<<2)+j]))
 					pCurMb.pNonZeroCount[kpNoneZeroCountIdx[0]] = int8(iNoneZeroCount)
 					kpNoneZeroCountIdx = kpNoneZeroCountIdx[1:]
 					iBlockOff += 16
@@ -216,9 +219,6 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
 
 func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, pRes []int16, iUV int32) {
 	pfSetMemZeroSize64 := pFuncList.pfSetMemZeroSize64
-	pfScan4x4Ac := pFuncList.pfScan4x4Ac
-	pfCalculateSingleCtr4x4 := pFuncList.pfCalculateSingleCtr4x4
-	pfGetNoneZeroCount := pFuncList.pfGetNoneZeroCount
 	pfDequantizationFour4x4 := pFuncList.pfDequantizationFour4x4
 	kiInterFlag := int32(0)
 	if !common.IS_INTRA(pCurMb.uiMbType) {
@@ -231,6 +231,7 @@ func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, 
 	iChromaDc := pMbCache.pDct.iChromaDc[iUV-1][:] //
 	pBlock := pMbCache.pDct.iChromaBlock[((iUV-1)<<2)*16:]
 	var aDct2x2, aMax [4]int16
+	var masks [4]uint16
 	iSingleCtr8x8 := int32(0)
 	pMF := g_kiQuantMF[kiQp][:]
 	iIntraFlag := int32(0)
@@ -249,12 +250,13 @@ func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, 
 		if aMax[j] == 0 {
 			clear(pBlock[iBlockOff : iBlockOff+16])
 		} else {
-			pfScan4x4Ac(pBlock[iBlockOff:], pRes[iResOff:])
+			mask := coefficientScanMask(pBlock[iBlockOff:], pRes[iResOff:], true)
+			masks[j] = mask
 			if kiInterFlag != 0 {
 				if aMax[j] > 1 {
 					iSingleCtr8x8 += 9
 				} else if iSingleCtr8x8 < 7 {
-					iSingleCtr8x8 += pfCalculateSingleCtr4x4(pBlock[iBlockOff:])
+					iSingleCtr8x8 += coefficientScoreMask(mask)
 				}
 			} else {
 				iSingleCtr8x8 = math.MaxInt32
@@ -275,7 +277,7 @@ func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, 
 		kpNoneZeroCountIdx := common.G_kuiMbCountScan4Idx[uiSubMbIdx:]
 		iBlockOff -= 64
 		for i := 0; i < 4; i++ {
-			uiNoneZeroCount = uint8(pfGetNoneZeroCount(pBlock[iBlockOff:]))
+			uiNoneZeroCount = uint8(bits.OnesCount16(masks[i]))
 			pCurMb.pNonZeroCount[kpNoneZeroCountIdx[i]] = int8(uiNoneZeroCount)
 			iBlockOff += 16
 		}
@@ -307,33 +309,56 @@ func WelsRecPskip(pCurLayer *SDqLayer, pFuncList *SWelsFuncPtrList, pCurMb *SMB,
 	clear(pCurMb.pNonZeroCount[:24])
 }
 
+// WelsTryPYskip tests already-transformed luma coefficients.
 func WelsTryPYskip(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) bool {
-	iSingleCtrMb := int32(0)
-	pRes := pMbCache.pCoeffLevel
-	kuiQp := pCurMb.uiLumaQp
+	var score int32
+	qp := pCurMb.uiLumaQp
+	for group := 0; group < 4; group++ {
+		offset := group * 64
+		if !welsTryPYskipGroup(pMbCache.pCoeffLevel[offset:], pMbCache.pDct.iLumaBlock[offset:],
+			g_kiQuantInterFF[qp][:], g_kiQuantMF[qp][:], &score) {
+			return false
+		}
+	}
+	return true
+}
 
-	pBlock := pMbCache.pDct.iLumaBlock[:]
-	var aMax [4]int16 // uint16_t aMax[4] in C, passed as (int16_t*)
-	pMF := g_kiQuantMF[kuiQp][:]
-	pFF := g_kiQuantInterFF[kuiQp][:]
+// Transform and test one 8x8 group at a time. A rejected skip attempt never
+// consumes the remaining scratch coefficients; ordinary inter encoding
+// recomputes its transforms from the winning prediction.
+func welsTryPYskipPixels(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) bool {
+	var score int32
+	qp := pCurMb.uiLumaQp
+	stride := pEncCtx.pCurDqLayer.iEncStride[0]
+	source := pMbCache.SPicData.pEncMb[0]
+	sourceOffset := pMbCache.SPicData.iEncMbOff[0]
+	for group := 0; group < 4; group++ {
+		x, y := (group&1)*8, (group>>1)*8
+		offset := group * 64
+		pEncCtx.pFuncList.pfDctFourT4(pMbCache.pCoeffLevel[offset:], source,
+			sourceOffset+y*int(stride)+x, stride, pMbCache.pSkipMb, y*16+x, 16)
+		if !welsTryPYskipGroup(pMbCache.pCoeffLevel[offset:], pMbCache.pDct.iLumaBlock[offset:],
+			g_kiQuantInterFF[qp][:], g_kiQuantMF[qp][:], &score) {
+			return false
+		}
+	}
+	return true
+}
 
-	iResOff := 0
-	iBlockOff := 0
-	for i := 0; i < 4; i++ {
-		WelsQuantFour4x4Max_sse2(pRes[iResOff:], pFF, pMF, aMax[:])
-
-		for j := 0; j < 4; j++ {
-			if uint16(aMax[j]) > 1 {
-				return false // iSingleCtrMb += 9, can't be P_SKIP
-			} else if uint16(aMax[j]) == 1 {
-				pEncCtx.pFuncList.pfScan4x4(pBlock[iBlockOff:], pRes[iResOff:]) //
-				iSingleCtrMb += pEncCtx.pFuncList.pfCalculateSingleCtr4x4(pBlock[iBlockOff:])
-			}
-			if iSingleCtrMb >= 6 {
-				return false //from JVT-O079
-			}
-			iResOff += 16
-			iBlockOff += 16
+func welsTryPYskipGroup(residual, levels, rounding, multiplier []int16, score *int32) bool {
+	var maximum [4]int16
+	WelsQuantFour4x4Max_sse2(residual, rounding, multiplier, maximum[:])
+	for block, value := range maximum {
+		if uint16(value) > 1 {
+			return false
+		}
+		if value == 1 {
+			offset := block * 16
+			mask := coefficientScanMask(levels[offset:], residual[offset:], false)
+			*score += coefficientScoreMask(mask)
+		}
+		if *score >= 6 {
+			return false
 		}
 	}
 	return true

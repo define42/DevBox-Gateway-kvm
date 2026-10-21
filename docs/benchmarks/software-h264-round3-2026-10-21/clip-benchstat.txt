@@ -1,0 +1,78 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                │ clip-before.txt │           clip-after.txt            │
+                                                │     sec/op      │    sec/op     vs base               │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4      71.04m ± 11%   51.07m ± 10%  -28.10% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4       71.05m ± 14%   51.94m ± 14%  -26.90% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4      29.13m ± 21%   21.53m ±  9%  -26.10% (p=0.004 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4       29.12m ± 12%   21.57m ±  4%  -25.93% (p=0.002 n=6)
+geomean                                              45.49m         33.32m        -26.76%
+
+                                                │ clip-before.txt │            clip-after.txt            │
+                                                │   bytes/frame   │ bytes/frame   vs base                │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4      99.42Ki ± 0%   99.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4       99.42Ki ± 0%   99.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4      99.63Ki ± 0%   99.63Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4       99.63Ki ± 0%   99.63Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                              99.52Ki        99.52Ki       +0.00%
+¹ all samples are equal
+
+                                                │ clip-before.txt  │             clip-after.txt             │
+                                                │ convert_ns/frame │ convert_ns/frame  vs base              │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4       1.857M ± 16%       1.877M ± 13%       ~ (p=0.699 n=6)
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4        1.935M ± 19%       1.821M ±  6%       ~ (p=0.180 n=6)
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4       2.061M ± 19%       1.848M ± 15%       ~ (p=0.394 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4        1.955M ± 16%       1.906M ±  6%       ~ (p=0.818 n=6)
+geomean                                               1.951M             1.862M        -4.52%
+
+                                                │ clip-before.txt │           clip-after.txt            │
+                                                │  cpu_ns/frame   │ cpu_ns/frame  vs base               │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4      71.22M ± 10%   51.18M ± 10%  -28.13% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4       71.18M ± 14%   52.02M ± 13%  -26.92% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4      85.60M ± 18%   63.50M ±  8%  -25.82% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4       86.86M ± 13%   63.37M ±  6%  -27.04% (p=0.002 n=6)
+geomean                                              78.35M         57.21M        -26.98%
+
+                                                │ clip-before.txt │             clip-after.txt             │
+                                                │ encode_ns/frame │ encode_ns/frame  vs base               │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4      69.18M ± 10%      49.20M ± 10%  -28.88% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4       69.03M ± 14%      50.12M ± 14%  -27.40% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4      27.03M ± 21%      19.74M ±  9%  -26.97% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4       27.12M ± 12%      19.72M ±  4%  -27.28% (p=0.002 n=6)
+geomean                                              43.25M            31.30M        -27.64%
+
+                                                │ clip-before.txt │           clip-after.txt            │
+                                                │  p95_ns/frame   │ p95_ns/frame  vs base               │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4      86.85M ± 17%   57.67M ± 35%  -33.61% (p=0.009 n=6)
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4       81.63M ± 29%   63.38M ± 24%  -22.35% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4      35.50M ± 57%   24.75M ±  9%  -30.27% (p=0.002 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4       32.93M ± 17%   24.39M ±  5%  -25.95% (p=0.002 n=6)
+geomean                                              53.66M         38.54M        -28.17%
+
+                                                │ clip-before.txt │           clip-after.txt           │
+                                                │     slices      │   slices    vs base                │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4        1.000 ± 0%   1.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4         1.000 ± 0%   1.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4        4.000 ± 0%   4.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4         4.000 ± 0%   4.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                2.000        2.000       +0.00%
+¹ all samples are equal
+
+                                                │ clip-before.txt │           clip-after.txt           │
+                                                │      B/op       │     B/op      vs base              │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4      103.0Ki ± 0%   103.0Ki ± 0%       ~ (p=1.000 n=6)
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4       103.0Ki ± 0%   103.0Ki ± 0%       ~ (p=1.000 n=6)
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4      103.3Ki ± 0%   103.4Ki ± 0%       ~ (p=0.180 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4       103.2Ki ± 0%   103.1Ki ± 0%       ~ (p=0.784 n=6)
+geomean                                              103.1Ki        103.1Ki       +0.01%
+
+                                                │ clip-before.txt │           clip-after.txt           │
+                                                │    allocs/op    │ allocs/op   vs base                │
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4        8.000 ± 0%   8.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/1Slices/NilDamage-4         8.000 ± 0%   8.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4        19.00 ± 0%   19.00 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4         19.00 ± 0%   19.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                12.33        12.33       +0.00%
+¹ all samples are equal

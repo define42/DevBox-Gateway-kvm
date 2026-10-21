@@ -2,14 +2,13 @@
 
 package encoder
 
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+
 //go:noescape
 func satd4x4(src []byte, srcStride int, ref []byte, refStride int) int
 
 //go:noescape
 func satd8x8(src []byte, srcStride int, ref []byte, refStride int) int
-
-//go:noescape
-func satd8x8AVX2(src []byte, srcStride int, ref []byte, refStride int) int
 
 func sampleSIMDBlockSlice(buf []byte, off int, stride int32, width, height int) []byte {
 	if stride < 0 {
@@ -43,8 +42,49 @@ func WelsSampleSatd8x8_sse41(a []uint8, aOff int, aStride int32, ref []uint8, re
 	return int32(satd8x8(aBlock, int(aStride), refBlock, int(refStride)))
 }
 
+//go:noescape
+func satdBlockAVX2(src []byte, srcStride int, ref []byte, refStride int, width, height int) int
+
+//go:noescape
+func satdAvgBlockAVX2(src []byte, srcStride int, a []byte, aStride int, b []byte, bStride int, width, height int) int
+
+func sampleSatdBlockAVX2(a []byte, aOff int, aStride int32, ref []byte, refOff int, refStride int32, width, height int) int32 {
+	checkSampleSIMDBlock(a, aOff, aStride, width, height)
+	checkSampleSIMDBlock(ref, refOff, refStride, width, height)
+	return int32(satdBlockAVX2(a[aOff:], int(aStride), ref[refOff:], int(refStride), width, height))
+}
+
 func WelsSampleSatd8x8_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
-	aBlock := sampleSIMDBlockSlice(a, aOff, aStride, 8, 8)
-	refBlock := sampleSIMDBlockSlice(ref, refOff, refStride, 8, 8)
-	return int32(satd8x8AVX2(aBlock, int(aStride), refBlock, int(refStride)))
+	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 8, 8)
+}
+
+func WelsSampleSatd16x8_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
+	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 16, 8)
+}
+
+func WelsSampleSatd8x16_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
+	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 8, 16)
+}
+
+func WelsSampleSatd16x16_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
+	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 16, 16)
+}
+
+func sampleAvgSatdAVX2(enc []byte, encOff int, encStride int32,
+	a []byte, aOff int, aStride int32, b []byte, bOff int, bStride int32,
+	width, height int32) int32 {
+	if (width != 8 && width != 16) || height <= 0 || height > 16 || height%4 != 0 {
+		panic("h264: invalid averaged SATD dimensions")
+	}
+	checkSampleSIMDBlock(enc, encOff, encStride, int(width), int(height))
+	checkSampleSIMDBlock(a, aOff, aStride, int(width), int(height))
+	checkSampleSIMDBlock(b, bOff, bStride, int(width), int(height))
+	return int32(satdAvgBlockAVX2(enc[encOff:], int(encStride), a[aOff:], int(aStride), b[bOff:], int(bStride), int(width), int(height)))
+}
+
+func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
+	s.pfSampleAvgSatd = nil
+	if flags&common.WELS_CPU_AVX2 != 0 {
+		s.pfSampleAvgSatd = sampleAvgSatdAVX2
+	}
 }

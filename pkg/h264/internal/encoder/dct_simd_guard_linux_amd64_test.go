@@ -1,0 +1,52 @@
+//go:build linux && amd64
+
+package encoder
+
+import (
+	"fmt"
+	"runtime/debug"
+	"slices"
+	"testing"
+)
+
+func TestForwardDCTExactBufferGuards(t *testing.T) {
+	for _, size := range []int{4, 8} {
+		for _, stride := range []int{size, 19} {
+			for guarded := 1; guarded <= 2; guarded++ {
+				t.Run(fmt.Sprintf("size%d_stride%d_input%d", size, stride, guarded), func(t *testing.T) {
+					old := debug.SetPanicOnFault(true)
+					defer debug.SetPanicOnFault(old)
+					defer func() {
+						if r := recover(); r != nil {
+							t.Errorf("forward DCT faulted with valid exact input: %v", r)
+						}
+					}()
+					span := (size-1)*stride + size
+					p1, p2 := make([]byte, span+16), make([]byte, span+16)
+					if guarded == 1 {
+						p1 = idctGuardedBuffer(t, span)
+					} else {
+						p2 = idctGuardedBuffer(t, span)
+					}
+					for i := range p1 {
+						p1[i] = byte(i*17 + 29)
+					}
+					for i := range p2 {
+						p2[i] = byte(i*11 + 3)
+					}
+					actual, want := make([]int16, size*size), make([]int16, size*size)
+					if size == 4 {
+						WelsDctT4_c(want, p1, 0, int32(stride), p2, 0, int32(stride))
+						WelsDctT4_sse2(actual, p1, 0, int32(stride), p2, 0, int32(stride))
+					} else {
+						WelsDctFourT4_c(want, p1, 0, int32(stride), p2, 0, int32(stride))
+						WelsDctFourT4_sse2(actual, p1, 0, int32(stride), p2, 0, int32(stride))
+					}
+					if !slices.Equal(actual, want) {
+						t.Fatalf("scalar parity mismatch")
+					}
+				})
+			}
+		}
+	}
+}

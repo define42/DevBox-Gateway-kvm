@@ -1,0 +1,15 @@
+Full-screen software H264 review, 2026-10-21
+Comparison: preserved first-pass baseline against completed second-pass working tree.
+Go1.27.3 Linux amd64, GOMAXPROCS=4, QP20, 1920x1080, configured clock30FPS, no pacing.
+Clip: five frames of local OpenH264 res/Cisco_Absolute_Power_1280x720_30fps.yuv, bilinearly scaled to1080p by FFmpeg before measurement.
+Dense: eight generated pseudorandom RGB texture frames with coherent fractional-pixel motion. Stress fixture, not natural video.
+Cisco_Absolute_Power_1280x720_30fps.yuv SHA256 f4af2b190c33b961b8013002cad2f219b385118c131c01ec07385e594b1073a6
+clip1080p.rgba SHA256 cdeafdba15b4620ba18fbfe8152429c04e6fb4ec3bba6dd716a27b9babad0123
+before.test SHA256 5a1ede2d19072090308fbc973692dd8cd119a52b3626df86fd7abe92a2374c84
+after.test SHA256 702c5addbb651e3bf69322edaa316cb96538297a4aa5e4f95e6ccb75f556a378
+ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers
+Local OpenH264 fixture checkout commit: 4c8c5cdc0299407af14751a4c37449ff3d367745
+
+Final timed harness disables per-frame trace logging in both variants.
+before timed binary SHA256 316700a5f5b0ee166940edc2332ddfcffdbc0b2812e5c08ec9a5f50a549d19f0
+after timed binary SHA256 bfb8419f821195018099eba06ec96b74ce9d8f6999e6eec1de3858d13dc75d5a

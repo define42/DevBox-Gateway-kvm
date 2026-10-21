@@ -1,0 +1,73 @@
+Software H.264 second optimization pass; 2026-10-21
+Before: preserved staged first optimization pass on HEAD 9261ed14829c744bec4981dc54ada9e32ee15e93.
+After: working tree second-pass changes, including final-motion reconstruction proof.
+GOMAXPROCS=4; test.cpu=4; six serial alternating pairs; normal host services remained active.
+model name	: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Initial staged patch SHA256: bcf83ddf5c447c549018a7caed37e6016f59bcbc7d53d4971833a337f70cdf94
+before binary SHA256: 2877c7964a87fc7a5c1ae0974e25f22c3d2c5dfbb1c13c75e9d64760de64b0f6
+/tmp/h264-round2-20261021/before.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+after binary SHA256: 4dd4f9b24ddfda9e4cf4835912080ae823be162339cda39078ee48aeb4d205ae
+/tmp/h264-round2-20261021/after.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+Startup measurements add the identical first-frame benchmark fixture to both trees.
+before-startup binary SHA256: a2b22b473874219b952f5899280e7b4fb2e78936232e0267cf79c1d7d8575b3a
+/tmp/h264-round2-20261021/before-startup.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+after-startup binary SHA256: a46af884cc56feea28da51a6fcb3b7bfdd56027d682253798825c1107922dec2
+/tmp/h264-round2-20261021/after-startup.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1

@@ -1,0 +1,60 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                 │ dense-before.txt │           dense-after.txt           │
+                                                 │      sec/op      │    sec/op     vs base               │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       175.3m ± 17%   138.7m ± 16%  -20.87% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       66.88m ± 40%   49.30m ± 22%  -26.29% (p=0.004 n=6)
+geomean                                                108.3m         82.70m        -23.63%
+
+                                                 │ dense-before.txt │           dense-after.txt            │
+                                                 │   bytes/frame    │ bytes/frame   vs base                │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       1.574Mi ± 0%   1.574Mi ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       1.587Mi ± 0%   1.587Mi ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                1.580Mi        1.580Mi       +0.00%
+¹ all samples are equal
+
+                                                 │ dense-before.txt │            dense-after.txt             │
+                                                 │ convert_ns/frame │ convert_ns/frame  vs base              │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       2.222M ± 22%       2.263M ± 19%       ~ (p=0.818 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       2.538M ± 74%       2.247M ± 28%       ~ (p=0.589 n=6)
+geomean                                                2.375M             2.255M        -5.03%
+
+                                                 │ dense-before.txt │           dense-after.txt           │
+                                                 │   cpu_ns/frame   │ cpu_ns/frame  vs base               │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       175.4M ± 15%   139.3M ± 16%  -20.57% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       204.0M ±  9%   159.5M ± 14%  -21.79% (p=0.002 n=6)
+geomean                                                189.2M         149.1M        -21.19%
+
+                                                 │ dense-before.txt │            dense-after.txt             │
+                                                 │ encode_ns/frame  │ encode_ns/frame  vs base               │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       173.1M ± 17%      136.4M ± 16%  -21.23% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       64.34M ± 39%      47.17M ± 22%  -26.69% (p=0.004 n=6)
+geomean                                                105.5M            80.20M        -24.01%
+
+                                                 │ dense-before.txt │           dense-after.txt            │
+                                                 │   p95_ns/frame   │ p95_ns/frame   vs base               │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       192.6M ± 30%   150.6M ±  20%  -21.84% (p=0.004 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       75.10M ± 61%   53.04M ± 110%  -29.37% (p=0.041 n=6)
+geomean                                                120.3M         89.37M         -25.70%
+
+                                                 │ dense-before.txt │          dense-after.txt           │
+                                                 │      slices      │   slices    vs base                │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4         1.000 ± 0%   1.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4         4.000 ± 0%   4.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                  2.000        2.000       +0.00%
+¹ all samples are equal
+
+                                                 │ dense-before.txt │          dense-after.txt           │
+                                                 │       B/op       │     B/op      vs base              │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4       1.579Mi ± 0%   1.579Mi ± 0%       ~ (p=0.545 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4       1.591Mi ± 0%   1.591Mi ± 0%       ~ (p=0.589 n=6)
+geomean                                                1.585Mi        1.585Mi       +0.00%
+
+                                                 │ dense-before.txt │          dense-after.txt           │
+                                                 │    allocs/op     │ allocs/op   vs base                │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4         11.00 ± 0%   11.00 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4         22.00 ± 5%   22.00 ± 5%       ~ (p=1.000 n=6)
+geomean                                                  15.56        15.56       +0.00%
+¹ all samples are equal

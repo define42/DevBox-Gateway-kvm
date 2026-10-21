@@ -1,0 +1,31 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                              │ satd-before.txt │           satd-after.txt            │
+                              │     sec/op      │    sec/op     vs base               │
+SampleSatdBlocks/8x8/avx2-4         37.60n ± 1%   38.49n ±  4%        ~ (p=0.394 n=6)
+SampleSatdBlocks/16x8/avx2-4        77.78n ± 3%   39.51n ± 12%  -49.20% (p=0.002 n=6)
+SampleSatdBlocks/8x16/avx2-4        78.49n ± 3%   63.05n ±  5%  -19.66% (p=0.002 n=6)
+SampleSatdBlocks/16x16/avx2-4      158.95n ± 9%   60.62n ±  2%  -61.87% (p=0.002 n=6)
+geomean                             77.72n        49.10n        -36.82%
+
+                              │ satd-before.txt │           satd-after.txt           │
+                              │      B/op       │    B/op     vs base                │
+SampleSatdBlocks/8x8/avx2-4        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/avx2-4       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/avx2-4       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/avx2-4      0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                       ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                              │ satd-before.txt │           satd-after.txt           │
+                              │    allocs/op    │ allocs/op   vs base                │
+SampleSatdBlocks/8x8/avx2-4        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/avx2-4       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/avx2-4       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/avx2-4      0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                       ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

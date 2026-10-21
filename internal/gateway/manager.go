@@ -37,6 +37,7 @@ const defaultMaxCreations = 2
 type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	H264QP                                             *int // Nil selects QP 20; explicit 0 is valid.
+	H264Slices                                         int  // Software slices: 1, 2, or 4; zero defaults to 1.
 	Encoder, Keyboard                                  string
 	GPU3D                                              bool   // Enable virgl guest OpenGL when each worker starts.
 	RDPProfile                                         string // office (30 FPS) by default; smooth selects 60 FPS.
@@ -242,12 +243,9 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 }
 
 func normalizeManagerLimits(c *ManagerConfig) error {
-	qp, err := avc.ResolveQP(c.H264QP)
-	if err != nil {
-		return fmt.Errorf("H264_QP: %s: %w", err.Error(), ErrInvalid)
+	if err := normalizeH264Config(c); err != nil {
+		return err
 	}
-	// Own the resolved value so caller mutations cannot change future launches.
-	c.H264QP = &qp
 	if err := normalizeWorkerMemoryConfig(c); err != nil {
 		return err
 	}
@@ -301,6 +299,24 @@ func normalizeManagerLimits(c *ManagerConfig) error {
 	}
 	if c.StartTimeout <= 0 || c.StopTimeout <= 0 {
 		return fmt.Errorf("invalid VM timeout: %w", ErrInvalid)
+	}
+
+	return nil
+}
+
+func normalizeH264Config(c *ManagerConfig) error {
+	qp, err := avc.ResolveQP(c.H264QP)
+	if err != nil {
+		return fmt.Errorf("H264_QP: %s: %w", err.Error(), ErrInvalid)
+	}
+	// Own the resolved value so caller mutations cannot change future launches.
+	c.H264QP = &qp
+	switch c.H264Slices {
+	case 0:
+		c.H264Slices = 1
+	case 1, 2, 4:
+	default:
+		return fmt.Errorf("H264_SLICES must be 1, 2, or 4: %w", ErrInvalid)
 	}
 
 	return nil
@@ -709,6 +725,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
 		"-rdp-h264-qp", fmt.Sprint(*m.config.H264QP),
+		"-rdp-h264-threads", strconv.Itoa(m.config.H264Slices),
 		"-rdp-profile", m.config.RDPProfile,
 		// Explicit false prevents the worker from inheriting a conflicting VM_GPU_3D.
 		fmt.Sprintf("-gpu-3d=%t", m.config.GPU3D),

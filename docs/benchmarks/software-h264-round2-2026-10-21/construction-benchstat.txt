@@ -1,0 +1,21 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                            │ /tmp/h264-round2-20261021/construction-before.txt │ /tmp/h264-round2-20261021/construction-after.txt │
+                                            │                      sec/op                       │           sec/op            vs base              │
+SoftwareEncoderConstruction/1080p/1Slices-4                                        7.229m ± 15%                 7.310m ±  9%       ~ (p=1.000 n=6)
+SoftwareEncoderConstruction/1080p/4Slices-4                                        9.670m ± 11%                 9.982m ± 11%       ~ (p=0.394 n=6)
+geomean                                                                            8.361m                       8.542m        +2.17%
+
+                                            │ /tmp/h264-round2-20261021/construction-before.txt │ /tmp/h264-round2-20261021/construction-after.txt │
+                                            │                       B/op                        │            B/op             vs base              │
+SoftwareEncoderConstruction/1080p/1Slices-4                                        35.23Mi ± 0%                 35.26Mi ± 0%  +0.08% (p=0.002 n=6)
+SoftwareEncoderConstruction/1080p/4Slices-4                                        65.19Mi ± 0%                 65.25Mi ± 0%  +0.09% (p=0.002 n=6)
+geomean                                                                            47.92Mi                      47.96Mi       +0.08%
+
+                                            │ /tmp/h264-round2-20261021/construction-before.txt │ /tmp/h264-round2-20261021/construction-after.txt │
+                                            │                     allocs/op                     │         allocs/op           vs base              │
+SoftwareEncoderConstruction/1080p/1Slices-4                                          143.0 ± 2%                   143.0 ± 1%       ~ (p=0.775 n=6)
+SoftwareEncoderConstruction/1080p/4Slices-4                                          201.0 ± 0%                   201.0 ± 0%       ~ (p=0.688 n=6)
+geomean                                                                              169.5                        169.5       +0.00%

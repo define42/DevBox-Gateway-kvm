@@ -339,7 +339,7 @@ func McChroma_c(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDstO
 }
 
 // InitMcFunc fills pMcFuncs with scalar implementations and replaces the hot
-// luma kernels when the current CPU supports their instruction set.
+// motion kernels when the current CPU supports their instruction set.
 func InitMcFunc(pMcFuncs *SMcFunc, uiCpuFlag uint32) {
 	pMcFuncs.PfLumaHalfpelHor = McHorVer20_c
 	pMcFuncs.PfLumaHalfpelVer = McHorVer02_c
@@ -354,5 +354,6 @@ func InitMcFunc(pMcFuncs *SMcFunc, uiCpuFlag uint32) {
 		pMcFuncs.PfLumaHalfpelCen = McHorVer22_sse2
 		pMcFuncs.PfSampleAveraging = PixelAvg_sse2
 		pMcFuncs.PMcLumaFunc = McLuma_sse2
+		pMcFuncs.PMcChromaFunc = McChroma_sse2
 	}
 }

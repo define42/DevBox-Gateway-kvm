@@ -84,8 +84,8 @@ func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iE
 	iTrailingOnes := int32(0)
 	iTotalZeros, iZerosLeft := int32(0), int32(0)
 	uiSign := uint32(0)
-	var iLevelCode, iLevelPrefix, iLevelSuffix, uiSuffixLength, iLevelSuffixSize int32
-	var iValue, iThreshold, iZeroLeft int32
+	var uiSuffixLength int32
+	var iValue, iZeroLeft int32
 	var n int32
 	var i int32
 
@@ -95,8 +95,8 @@ func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iE
 
 	if iCalRunLevelFlag != 0 {
 		iCount := int32(0)
-		// No alternate CAVLC kernel exists in the Go port. The direct call keeps
-		// these per-block run and level buffers on the stack.
+		// The direct call keeps these per-block run and level buffers on the
+		// stack. Scalar extraction is faster than mask enumeration here.
 		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
 		if iTotalCoeffs > 3 {
 			iCount = 3
@@ -140,48 +140,27 @@ func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iE
 		uiSuffixLength = 0
 	}
 
+	// The first non-trailing level has a distinct code adjustment. Keeping
+	// both forms in the small table also supplies the next suffix length.
+	adjustment := 0
+	if iTrailingOnes < 3 {
+		adjustment = 1
+	}
 	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
-		iVal := int32(iLevel[i])
-
-		iLevelCode = (iVal - 1) * (1 << 1)
-		uiSign = uint32(iLevelCode >> 31)
-		iLevelCode = int32((uint32(iLevelCode) ^ uiSign) + (uiSign << 1))
-		if i == iTrailingOnes && iTrailingOnes < 3 {
-			iLevelCode -= 1 << 1
-		}
-
-		iLevelPrefix = iLevelCode >> uint(uiSuffixLength)
-		iLevelSuffixSize = uiSuffixLength
-		iLevelSuffix = iLevelCode - (iLevelPrefix << uint(uiSuffixLength))
-
-		if iLevelPrefix >= 14 && iLevelPrefix < 30 && uiSuffixLength == 0 {
-			iLevelPrefix = 14
-			iLevelSuffix = iLevelCode - iLevelPrefix
-			iLevelSuffixSize = 4
-		} else if iLevelPrefix >= 15 {
-			iLevelPrefix = 15
-			iLevelSuffix = iLevelCode - (iLevelPrefix << uint(uiSuffixLength))
-			//for baseline profile,overflow when the length of iLevelSuffix is larger than 11.
-			if (iLevelSuffix >> 11) != 0 {
+		value := int32(iLevel[i])
+		var symbol cavlcLevelSymbol
+		if index := uint32(value + cavlcLevelLimit); index < 2*cavlcLevelLimit {
+			symbol = cavlcLevelTable[adjustment][uiSuffixLength][index]
+		} else {
+			var ok bool
+			symbol, ok = cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
+			if !ok {
 				return ENC_RETURN_VLCOVERFLOWFOUND
 			}
-			if uiSuffixLength == 0 {
-				iLevelSuffix -= 15
-			}
-			iLevelSuffixSize = 12
 		}
-
-		n = iLevelPrefix + 1 + iLevelSuffixSize
-		iValue = (1 << uint(iLevelSuffixSize)) | iLevelSuffix
-		bs.write(n, iValue)
-
-		if uiSuffixLength == 0 {
-			uiSuffixLength++
-		}
-		iThreshold = 3 << uint(uiSuffixLength-1)
-		if (iVal > iThreshold || iVal < -iThreshold) && uiSuffixLength < 6 {
-			uiSuffixLength++
-		}
+		bs.write(int32(symbol.length), int32(symbol.code))
+		uiSuffixLength = int32(symbol.nextSuffix)
+		adjustment = 0
 	}
 
 	/* Step 5: total zeros */

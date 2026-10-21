@@ -200,6 +200,11 @@ type Encoder struct {
 	e      api.ISVCEncoder
 	width  int
 	height int
+
+	// Encoding is synchronous. Reuse metadata without retaining borrowed input
+	// planes or codec-owned output buffers after the call returns.
+	source api.SSourcePicture
+	info   api.SFrameBSInfo
 }
 
 // DefaultEncoderParams returns the encoder's default extended parameters
@@ -255,7 +260,12 @@ func (e *Encoder) Encode(f *Frame) ([]byte, api.EVideoFrameType, error) {
 	if f.Width != e.width || f.Height != e.height {
 		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: frame is %dx%d, encoder expects %dx%d", f.Width, f.Height, e.width, e.height)
 	}
-	pic := api.SSourcePicture{
+	defer func() {
+		e.source = api.SSourcePicture{}
+		e.info = api.SFrameBSInfo{}
+	}()
+	pic := &e.source
+	*pic = api.SSourcePicture{
 		IColorFormat: int32(api.VideoFormatI420),
 		IPicWidth:    int32(f.Width),
 		IPicHeight:   int32(f.Height),
@@ -264,11 +274,11 @@ func (e *Encoder) Encode(f *Frame) ([]byte, api.EVideoFrameType, error) {
 	pic.IStride[0], pic.IStride[1], pic.IStride[2] = int32(f.Width), int32(f.Width/2), int32(f.Width/2)
 	pic.PData[0], pic.PData[1], pic.PData[2] = f.Y, f.U, f.V
 	pic.UnchangedMacroblocks = f.UnchangedMacroblocks
-	var info api.SFrameBSInfo
-	if rv := e.e.EncodeFrame(&pic, &info); rv != 0 {
+	info := &e.info
+	if rv := e.e.EncodeFrame(pic, info); rv != 0 {
 		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: EncodeFrame failed (%d)", rv)
 	}
-	return collectBitstream(&info), info.EFrameType, nil
+	return collectBitstream(info), info.EFrameType, nil
 }
 
 // ForceIntraFrame requests an IDR picture for the next encoded frame.

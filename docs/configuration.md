@@ -58,6 +58,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
 | `H264_ENCODER` | `auto` | `-encoder` | `auto`, `nvenc`, or `software`. |
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
+| `H264_SLICES` | `1` | `-h264-slices` | Requested software H.264 slices: `1`, `2`, or `4`. The worker CPU budget and picture size can reduce the count. NVENC ignores it; software fallback uses it. Applies when a managed VM starts. |
 | `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` (30 FPS) or `smooth` (60 FPS); bitmap fallback stays at 30 FPS. Applies when a managed VM starts. |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
@@ -87,6 +88,15 @@ subsampling, so it does not promise lossless RGB. QP controls compression, not a
 guaranteed Mbps limit. Set `H264_QP=28` in Compose's `.env`, or run
 `H264_QP=28 make nvidia`. Recreate/restart the gateway and start new VM processes
 to apply the change; reconnecting RDP does not apply it.
+
+Set `H264_SLICES=2` (or `serve -h264-slices=2`) to try parallel software encoding.
+The default remains `1`. More slices can lower frame encoding latency while
+using more CPU concurrently and producing larger frames; compare concurrent
+desktops before choosing `4`. The cap subtracts the configured guest CPUs and
+one additional CPU from the worker's Go execution budget, allowing at least one
+slice. For example, a budget of four with two guest CPUs permits only one slice.
+This is a per-worker cap, not a CPU reservation across VMs.
+Restart the gateway and start new VM processes to apply a change.
 
 Managed desktops enable virtio-snd playback over RDP automatically; there is no
 separate gateway audio setting. Guests need the `snd_virtio` driver and an audio

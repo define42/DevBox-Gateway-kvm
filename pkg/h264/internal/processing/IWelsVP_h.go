@@ -184,11 +184,14 @@ type SVAACalcResult struct {
 }
 
 type SVAACalcParam struct {
-	ICalcVar    int32
-	ICalcBgd    int32
-	ICalcSsd    int32
-	IReserved   int32
-	PCalcResult *SVAACalcResult
+	// Borrowed for one Process call; true means current and reference source
+	// samples are equal in this macroblock. Used only for SAD-only analysis.
+	UnchangedMacroblocks []bool
+	ICalcVar             int32
+	ICalcBgd             int32
+	ICalcSsd             int32
+	IReserved            int32
+	PCalcResult          *SVAACalcResult
 }
 
 type SBGDInterface struct {

@@ -1,0 +1,41 @@
+package encoder
+
+import "math/bits"
+
+// Use the same nonzero mask as coefficient processing, then enumerate in
+// reverse scan order. Short chroma/DC blocks never require a 16-value load.
+func cavlcParamCalMasked(coefficients []int16, runs []uint8, levels []int16, total *int32, end int32) int32 {
+	if end < 0 || end > 15 {
+		return CavlcParamCal_c(coefficients, runs, levels, total, end)
+	}
+	_ = coefficients[end]
+	var mask uint16
+	if len(coefficients) >= 16 {
+		mask = coefficientNonzeroMask16(coefficients)
+		mask &= uint16((uint32(1) << uint(end+1)) - 1)
+	} else {
+		for i, value := range coefficients[:end+1] {
+			if value != 0 {
+				mask |= 1 << i
+			}
+		}
+	}
+	count := bits.OnesCount16(mask)
+	*total = int32(count)
+	if count == 0 {
+		return 0
+	}
+	last := bits.Len16(mask) - 1
+	zeros := int32(last + 1 - count)
+	_ = levels[count-1]
+	_ = runs[count-1]
+	for i := 0; mask != 0; i++ {
+		levels[i] = coefficients[last]
+		mask &^= 1 << last
+		next := bits.Len16(mask) - 1
+		runs[i] = uint8(last - next - 1)
+		last = next
+	}
+	return zeros
+}
+

@@ -402,7 +402,24 @@ func OutputPMbWithoutConstructCsRsNoCopy(pCtx *sWelsEncCtx, pDq *SDqLayer, pSlic
 		kiDecStrideChroma := pDq.pDecPic.iLineSize[1]
 		pfIdctFour4x4 := pCtx.pFuncList.pfIDctFourT4
 
-		WelsIDctT4RecOnMb(pDecY, iDecYOff, kiDecStrideLuma, pDecY, iDecYOff, kiDecStrideLuma, pScaledTcoeff, pfIdctFour4x4)
+		// Ordinary inter CBP bits identify residual-free 8x8 luma groups.
+		// Their prediction is already in the reconstruction buffer. Keep the
+		// original path for other modes, including inter-layer prediction.
+		switch pMb.uiMbType {
+		case common.MB_TYPE_16x16, common.MB_TYPE_16x8, common.MB_TYPE_8x16,
+			common.MB_TYPE_8x8, common.MB_TYPE_8x8_REF0:
+			for group := 0; group < 4; group++ {
+				if pMb.uiCbp&(1<<group) != 0 {
+					off := iDecYOff + (group&1)*8 + (group>>1)*8*int(kiDecStrideLuma)
+					pfIdctFour4x4(pDecY, off, kiDecStrideLuma, pDecY, off, kiDecStrideLuma, pScaledTcoeff[group*64:])
+				}
+			}
+			if pMb.uiCbp>>4 == 0 {
+				return
+			}
+		default:
+			WelsIDctT4RecOnMb(pDecY, iDecYOff, kiDecStrideLuma, pDecY, iDecYOff, kiDecStrideLuma, pScaledTcoeff, pfIdctFour4x4)
+		}
 		pfIdctFour4x4(pDecU, iDecUOff, kiDecStrideChroma, pDecU, iDecUOff, kiDecStrideChroma, pScaledTcoeff[256:])
 		pfIdctFour4x4(pDecV, iDecVOff, kiDecStrideChroma, pDecV, iDecVOff, kiDecStrideChroma, pScaledTcoeff[320:])
 	}
@@ -578,7 +595,9 @@ func WelsPSliceMdEnc(pEncCtx *sWelsEncCtx, pSlice *SSlice, kbIsHighestDlayerFlag
 	kpShExt := &pSlice.sSliceHeaderExt
 	kpSh := &kpShExt.sSliceHeader
 	kiSliceFirstMbXY := kpSh.iFirstMbInSlice
-	var sMd SWelsMD
+	sMd := &pSlice.sMdScratch
+	*sMd = SWelsMD{}
+	defer func() { *sMd = SWelsMD{} }()
 
 	sMd.uiRef = kpSh.uiRefIndex
 	sMd.bMdUsingSad = (pEncCtx.pSvcParam.IComplexityMode == api.LOW_COMPLEXITY)
@@ -587,7 +606,7 @@ func WelsPSliceMdEnc(pEncCtx *sWelsEncCtx, pSlice *SSlice, kbIsHighestDlayerFlag
 	}
 
 	//pMb loop
-	return WelsMdInterMbLoop(pEncCtx, pSlice, &sMd, kiSliceFirstMbXY, pfInterMd)
+	return WelsMdInterMbLoop(pEncCtx, pSlice, sMd, kiSliceFirstMbXY, pfInterMd)
 }
 
 func WelsPSliceMdEncDynamic(pEncCtx *sWelsEncCtx, pSlice *SSlice, kbIsHighestDlayerFlag bool, pfInterMd PInterMdFunc) int32 {
@@ -1567,7 +1586,9 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 	pMvdCostTable, iMvdCostTableOff := pEncCtx.pMvdCostTable, int(pEncCtx.iMvdCostTableSize)
 	kuiChromaQpIndexOffset := pCurLayer.sLayerInfo.pPpsP.uiChromaQpIndexOffset
 	iEncReturn := int32(ENC_RETURN_SUCCESS)
-	var sDss SDynamicSlicingStack
+	sDss := &pSlice.sDssScratch
+	*sDss = SDynamicSlicingStack{}
+	defer func() { *sDss = SDynamicSlicingStack{} }()
 	if pEncCtx.pSvcParam.IEntropyCodingModeFlag != 0 {
 		WelsInitSliceCabac(pEncCtx, pSlice)
 		sDss.pRestoreBuffer = nil
@@ -1577,7 +1598,7 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 	pSlice.iMbSkipRun = 0
 	for {
 		if pEncCtx.pSvcParam.IEntropyCodingModeFlag == 0 {
-			pEncCtx.pFuncList.pfStashMBStatus(&sDss, pSlice, pSlice.iMbSkipRun)
+			pEncCtx.pFuncList.pfStashMBStatus(sDss, pSlice, pSlice.iMbSkipRun)
 		}
 		//point to current pMb
 		iCurMbIdx = iNextMbIdx
@@ -1587,12 +1608,19 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 		pEncCtx.pFuncList.pfRc.pfWelsRcMbInit(pEncCtx, pCurMb, pSlice)
 
 		//step (2). save some vale for future use, initial pWelsMd
-		WelsMdIntraInit(pEncCtx, pCurMb, pMbCache, kiSliceFirstMbXY)
-		WelsMdInterInit(pEncCtx, pSlice, pCurMb, kiSliceFirstMbXY)
+		initIntraPicturePointers(pEncCtx, pCurMb, pMbCache, kiSliceFirstMbXY)
+		initInterPicturePointers(pEncCtx, pSlice, pCurMb, kiSliceFirstMbXY)
+		earlySkip := tryUnchangedMacroblockEarly(pEncCtx, pMd, pSlice, pCurMb)
+		if !earlySkip {
+			initIntraNeighborCache(pCurMb, pMbCache, int32(pCurLayer.iMbWidth))
+			initInterNeighborCache(pEncCtx, pSlice, pCurMb)
+		}
 
 		for { // TRY_REENCODING:
-			WelsInitInterMDStruc(pCurMb, pMvdCostTable, iMvdCostTableOff, kiMvdInterTableStride, pMd)
-			pfInterMd(pEncCtx, pMd, pSlice, pCurMb, pMbCache)
+			if !earlySkip {
+				WelsInitInterMDStruc(pCurMb, pMvdCostTable, iMvdCostTableOff, kiMvdInterTableStride, pMd)
+				pfInterMd(pEncCtx, pMd, pSlice, pCurMb, pMbCache)
+			}
 			//mb_qp
 
 			//step (4): save from the MD process from future use
@@ -1609,8 +1637,13 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 			iEncReturn = pEncCtx.pFuncList.pfWelsSpatialWriteMbSyn(pEncCtx, pSlice, pCurMb)
 			if pEncCtx.pSvcParam.IEntropyCodingModeFlag == 0 {
 				if iEncReturn == ENC_RETURN_VLCOVERFLOWFOUND && (pCurMb.uiLumaQp < 50) {
-					pSlice.iMbSkipRun = pEncCtx.pFuncList.pfStashPopMBStatus(&sDss, pSlice)
+					pSlice.iMbSkipRun = pEncCtx.pFuncList.pfStashPopMBStatus(sDss, pSlice)
 					UpdateQpForOverflow(pCurMb, kuiChromaQpIndexOffset)
+					if earlySkip {
+						earlySkip = false
+						initIntraNeighborCache(pCurMb, pMbCache, int32(pCurLayer.iMbWidth))
+						initInterNeighborCache(pEncCtx, pSlice, pCurMb)
+					}
 					continue // goto TRY_REENCODING
 				}
 			}

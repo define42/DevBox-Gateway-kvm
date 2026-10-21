@@ -1,0 +1,24 @@
+All commands completed successfully.
+
+Final complete affected packages:
+  go test ./pkg/h264/... ./internal/rdp/...
+
+Broad race check before the final scalar-extractor/direct-load simplification:
+  go test -race ./pkg/h264/... ./internal/rdp/avc ./internal/rdp/damage
+Final changed-path race check:
+  go test -race ./pkg/h264/internal/encoder ./internal/rdp/avc -run 'Test(Cavlc|ForwardDCT|LazySkip|EncoderOptimizationBitstreamParity|EncoderDamageFFmpegCompatibility|FFmpegCompatibility)' -count=1
+
+Final fallbacks and portability:
+  GODEBUG=cpu.avx2=off,cpu.ssse3=off go test ./pkg/h264/internal/encoder ./internal/rdp/avc
+  CGO_ENABLED=0 GOARCH=386 go test ./pkg/h264/internal/encoder ./internal/rdp/avc
+  CGO_ENABLED=0 GOARCH=arm64 go test -c -o encoder-arm64.test ./pkg/h264/internal/encoder
+  CGO_ENABLED=0 go test ./pkg/h264/internal/encoder ./internal/rdp/avc
+
+Final lint (0 issues):
+  GOTOOLCHAIN=go1.26.9 PATH=/snap/go/current/bin:$PATH ./golangci-lint run ./pkg/h264/... ./internal/rdp/avc/... ./internal/rdp/damage/...
+
+Final full-screen parity:
+  H264_VIDEO_RGBA=clip1080p.rgba GOMAXPROCS=4 ./after.test -test.run=TestFullscreenVideoStreamDigest -test.v -test.count=1
+  Compared all eight VIDEO_DIGEST hashes and byte counts to the preserved baseline.
+
+No expected stream digests were changed. The pre-existing Git index is byte-for-byte unchanged.

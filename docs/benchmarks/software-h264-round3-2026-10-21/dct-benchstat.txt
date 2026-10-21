@@ -1,0 +1,25 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                     │ dct-before.txt │           dct-after.txt            │
+                     │     sec/op     │   sec/op     vs base               │
+WelsDctT4/sse2-4          20.82n ± 8%   19.05n ± 3%   -8.46% (p=0.002 n=6)
+WelsDctFourT4/sse2-4      54.01n ± 8%   36.47n ± 3%  -32.49% (p=0.002 n=6)
+geomean                   33.53n        26.36n       -21.39%
+
+                     │ dct-before.txt │           dct-after.txt            │
+                     │      B/op      │    B/op     vs base                │
+WelsDctT4/sse2-4         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctFourT4/sse2-4     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                             ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                     │ dct-before.txt │           dct-after.txt            │
+                     │   allocs/op    │ allocs/op   vs base                │
+WelsDctT4/sse2-4         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctFourT4/sse2-4     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                             ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

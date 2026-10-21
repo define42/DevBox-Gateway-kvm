@@ -1,0 +1,245 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsDequantFour4x4_c(SB) /tmp/h264-fullscreen-20261021/candidate/pkg/h264/internal/encoder/decode_mb_aux.go
+  decode_mb_aux.go:114	0x5ce040		55			PUSHQ BP			
+  decode_mb_aux.go:114	0x5ce041		4889e5			MOVQ SP, BP			
+  decode_mb_aux.go:114	0x5ce044		4889442410		MOVQ AX, 0x10(SP)		
+  decode_mb_aux.go:114	0x5ce049		48897c2428		MOVQ DI, 0x28(SP)		
+  decode_mb_aux.go:115	0x5ce04e		31c9			XORL CX, CX			
+  decode_mb_aux.go:115	0x5ce050		eb18			JMP 0x5ce06a			
+  decode_mb_aux.go:124	0x5ce052		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:124	0x5ce056		4d8d4070		LEAQ 0x70(R8), R8		
+  decode_mb_aux.go:124	0x5ce05a		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:124	0x5ce05e		410fafd0		IMULL R8, DX			
+  decode_mb_aux.go:124	0x5ce062		6689544870		MOVW DX, 0x70(AX)(CX*2)		
+  decode_mb_aux.go:115	0x5ce067		48ffc1			INCQ CX				
+  decode_mb_aux.go:115	0x5ce06a		4883f908		CMPQ CX, $0x8			
+  decode_mb_aux.go:115	0x5ce06e		0f8dfd000000		JGE 0x5ce171			
+  decode_mb_aux.go:116	0x5ce074		4839ce			CMPQ SI, CX			
+  decode_mb_aux.go:116	0x5ce077		0f8621010000		JBE 0x5ce19e			
+  decode_mb_aux.go:116	0x5ce07d		0fb7144f		MOVZX 0(DI)(CX*2), DX		
+  decode_mb_aux.go:117	0x5ce081		4839cb			CMPQ BX, CX			
+  decode_mb_aux.go:117	0x5ce084		0f860f010000		JBE 0x5ce199			
+  decode_mb_aux.go:117	0x5ce08a		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:117	0x5ce08e		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:117	0x5ce092		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:117	0x5ce096		6644890448		MOVW R8, 0(AX)(CX*2)		
+  decode_mb_aux.go:118	0x5ce09b		4c8d4108		LEAQ 0x8(CX), R8		
+  decode_mb_aux.go:118	0x5ce09f		90			NOPL				
+  decode_mb_aux.go:118	0x5ce0a0		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:118	0x5ce0a3		0f86eb000000		JBE 0x5ce194			
+  decode_mb_aux.go:118	0x5ce0a9		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:118	0x5ce0ad		4d8d4010		LEAQ 0x10(R8), R8		
+  decode_mb_aux.go:118	0x5ce0b1		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:118	0x5ce0b5		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:118	0x5ce0b9		664489444810		MOVW R8, 0x10(AX)(CX*2)		
+  decode_mb_aux.go:119	0x5ce0bf		4c8d4110		LEAQ 0x10(CX), R8		
+  decode_mb_aux.go:119	0x5ce0c3		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:119	0x5ce0c6		0f86c3000000		JBE 0x5ce18f			
+  decode_mb_aux.go:119	0x5ce0cc		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:119	0x5ce0d0		4d8d4020		LEAQ 0x20(R8), R8		
+  decode_mb_aux.go:119	0x5ce0d4		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:119	0x5ce0d8		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:119	0x5ce0dc		664489444820		MOVW R8, 0x20(AX)(CX*2)		
+  decode_mb_aux.go:120	0x5ce0e2		4c8d4118		LEAQ 0x18(CX), R8		
+  decode_mb_aux.go:120	0x5ce0e6		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:120	0x5ce0e9		0f869b000000		JBE 0x5ce18a			
+  decode_mb_aux.go:120	0x5ce0ef		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:120	0x5ce0f3		4d8d4030		LEAQ 0x30(R8), R8		
+  decode_mb_aux.go:120	0x5ce0f7		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:120	0x5ce0fb		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:120	0x5ce0ff		664489444830		MOVW R8, 0x30(AX)(CX*2)		
+  decode_mb_aux.go:121	0x5ce105		4c8d4120		LEAQ 0x20(CX), R8		
+  decode_mb_aux.go:121	0x5ce109		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:121	0x5ce10c		7677			JBE 0x5ce185			
+  decode_mb_aux.go:121	0x5ce10e		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:121	0x5ce112		4d8d4040		LEAQ 0x40(R8), R8		
+  decode_mb_aux.go:121	0x5ce116		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:121	0x5ce11a		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:121	0x5ce11e		664489444840		MOVW R8, 0x40(AX)(CX*2)		
+  decode_mb_aux.go:122	0x5ce124		4c8d4128		LEAQ 0x28(CX), R8		
+  decode_mb_aux.go:122	0x5ce128		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:122	0x5ce12b		7650			JBE 0x5ce17d			
+  decode_mb_aux.go:122	0x5ce12d		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:122	0x5ce131		4d8d4050		LEAQ 0x50(R8), R8		
+  decode_mb_aux.go:122	0x5ce135		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:122	0x5ce139		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:122	0x5ce13d		664489444850		MOVW R8, 0x50(AX)(CX*2)		
+  decode_mb_aux.go:123	0x5ce143		4c8d4130		LEAQ 0x30(CX), R8		
+  decode_mb_aux.go:123	0x5ce147		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:123	0x5ce14a		762c			JBE 0x5ce178			
+  decode_mb_aux.go:123	0x5ce14c		4c8d0448		LEAQ 0(AX)(CX*2), R8		
+  decode_mb_aux.go:123	0x5ce150		4d8d4060		LEAQ 0x60(R8), R8		
+  decode_mb_aux.go:123	0x5ce154		4d0fbf00		MOVSX 0(R8), R8			
+  decode_mb_aux.go:123	0x5ce158		440fafc2		IMULL DX, R8			
+  decode_mb_aux.go:123	0x5ce15c		664489444860		MOVW R8, 0x60(AX)(CX*2)		
+  decode_mb_aux.go:124	0x5ce162		4c8d4138		LEAQ 0x38(CX), R8		
+  decode_mb_aux.go:124	0x5ce166		4c39c3			CMPQ BX, R8			
+  decode_mb_aux.go:124	0x5ce169		0f87e3feffff		JA 0x5ce052			
+  decode_mb_aux.go:124	0x5ce16f		eb02			JMP 0x5ce173			
+  decode_mb_aux.go:126	0x5ce171		5d			POPQ BP				
+  decode_mb_aux.go:126	0x5ce172		c3			RET				
+  decode_mb_aux.go:124	0x5ce173		e8c8f1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:123	0x5ce178		e8c3f1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:122	0x5ce17d		0f1f00			NOPL 0(AX)			
+  decode_mb_aux.go:122	0x5ce180		e8bbf1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:121	0x5ce185		e8b6f1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:120	0x5ce18a		e8b1f1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:119	0x5ce18f		e8acf1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:118	0x5ce194		e8a7f1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:117	0x5ce199		e8a2f1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:116	0x5ce19e		6690			NOPW				
+  decode_mb_aux.go:116	0x5ce1a0		e89bf1ebff		CALL runtime.panicBounds(SB)	
+  decode_mb_aux.go:116	0x5ce1a5		90			NOPL				
+
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsScan4x4DcAc_c(SB) /tmp/h264-fullscreen-20261021/candidate/pkg/h264/internal/encoder/encode_mb_aux.go
+  encode_mb_aux.go:225	0x5d0100		55			PUSHQ BP			
+  encode_mb_aux.go:225	0x5d0101		4889e5			MOVQ SP, BP			
+  encode_mb_aux.go:225	0x5d0104		4889442410		MOVQ AX, 0x10(SP)		
+  encode_mb_aux.go:225	0x5d0109		48897c2428		MOVQ DI, 0x28(SP)		
+  encode_mb_aux.go:226	0x5d010e		4885f6			TESTQ SI, SI			
+  encode_mb_aux.go:226	0x5d0111		0f8602020000		JBE 0x5d0319			
+  encode_mb_aux.go:226	0x5d0117		660f1f840000000000	NOPW 0(AX)(AX*1)		
+  encode_mb_aux.go:226	0x5d0120		4885db			TESTQ BX, BX			
+  encode_mb_aux.go:226	0x5d0123		0f86eb010000		JBE 0x5d0314			
+  encode_mb_aux.go:226	0x5d0129		0fb70f			MOVZX 0(DI), CX			
+  encode_mb_aux.go:226	0x5d012c		668908			MOVW CX, 0(AX)			
+  encode_mb_aux.go:227	0x5d012f		4883fe01		CMPQ SI, $0x1			
+  encode_mb_aux.go:227	0x5d0133		0f86d6010000		JBE 0x5d030f			
+  encode_mb_aux.go:227	0x5d0139		0f1f8000000000		NOPL 0(AX)			
+  encode_mb_aux.go:227	0x5d0140		4883fb01		CMPQ BX, $0x1			
+  encode_mb_aux.go:227	0x5d0144		0f86c0010000		JBE 0x5d030a			
+  encode_mb_aux.go:227	0x5d014a		0fb74f02		MOVZX 0x2(DI), CX		
+  encode_mb_aux.go:227	0x5d014e		66894802		MOVW CX, 0x2(AX)		
+  encode_mb_aux.go:228	0x5d0152		4883fe04		CMPQ SI, $0x4			
+  encode_mb_aux.go:228	0x5d0156		0f86a9010000		JBE 0x5d0305			
+  encode_mb_aux.go:228	0x5d015c		0f1f4000		NOPL 0(AX)			
+  encode_mb_aux.go:228	0x5d0160		4883fb02		CMPQ BX, $0x2			
+  encode_mb_aux.go:228	0x5d0164		0f8694010000		JBE 0x5d02fe			
+  encode_mb_aux.go:228	0x5d016a		0fb74f08		MOVZX 0x8(DI), CX		
+  encode_mb_aux.go:228	0x5d016e		66894804		MOVW CX, 0x4(AX)		
+  encode_mb_aux.go:229	0x5d0172		4883fe08		CMPQ SI, $0x8			
+  encode_mb_aux.go:229	0x5d0176		0f867d010000		JBE 0x5d02f9			
+  encode_mb_aux.go:229	0x5d017c		0f1f4000		NOPL 0(AX)			
+  encode_mb_aux.go:229	0x5d0180		4883fb03		CMPQ BX, $0x3			
+  encode_mb_aux.go:229	0x5d0184		0f866a010000		JBE 0x5d02f4			
+  encode_mb_aux.go:229	0x5d018a		0fb74f10		MOVZX 0x10(DI), CX		
+  encode_mb_aux.go:229	0x5d018e		66894806		MOVW CX, 0x6(AX)		
+  encode_mb_aux.go:230	0x5d0192		4883fb04		CMPQ BX, $0x4			
+  encode_mb_aux.go:230	0x5d0196		0f8653010000		JBE 0x5d02ef			
+  encode_mb_aux.go:230	0x5d019c		0fb74f0a		MOVZX 0xa(DI), CX		
+  encode_mb_aux.go:230	0x5d01a0		66894808		MOVW CX, 0x8(AX)		
+  encode_mb_aux.go:231	0x5d01a4		4883fb05		CMPQ BX, $0x5			
+  encode_mb_aux.go:231	0x5d01a8		0f863c010000		JBE 0x5d02ea			
+  encode_mb_aux.go:231	0x5d01ae		0fb74f04		MOVZX 0x4(DI), CX		
+  encode_mb_aux.go:231	0x5d01b2		6689480a		MOVW CX, 0xa(AX)		
+  encode_mb_aux.go:231	0x5d01b6		660f1f840000000000	NOPW 0(AX)(AX*1)		
+  encode_mb_aux.go:231	0x5d01bf		90			NOPL				
+  encode_mb_aux.go:232	0x5d01c0		4883fb06		CMPQ BX, $0x6			
+  encode_mb_aux.go:232	0x5d01c4		0f861b010000		JBE 0x5d02e5			
+  encode_mb_aux.go:232	0x5d01ca		0fb74f06		MOVZX 0x6(DI), CX		
+  encode_mb_aux.go:232	0x5d01ce		6689480c		MOVW CX, 0xc(AX)		
+  encode_mb_aux.go:233	0x5d01d2		4883fb07		CMPQ BX, $0x7			
+  encode_mb_aux.go:233	0x5d01d6		0f8602010000		JBE 0x5d02de			
+  encode_mb_aux.go:233	0x5d01dc		0fb74f0c		MOVZX 0xc(DI), CX		
+  encode_mb_aux.go:233	0x5d01e0		6689480e		MOVW CX, 0xe(AX)		
+  encode_mb_aux.go:234	0x5d01e4		4883fe09		CMPQ SI, $0x9			
+  encode_mb_aux.go:234	0x5d01e8		0f86eb000000		JBE 0x5d02d9			
+  encode_mb_aux.go:234	0x5d01ee		4883fb08		CMPQ BX, $0x8			
+  encode_mb_aux.go:234	0x5d01f2		0f86dc000000		JBE 0x5d02d4			
+  encode_mb_aux.go:234	0x5d01f8		0fb74f12		MOVZX 0x12(DI), CX		
+  encode_mb_aux.go:234	0x5d01fc		66894810		MOVW CX, 0x10(AX)		
+  encode_mb_aux.go:235	0x5d0200		4883fe0c		CMPQ SI, $0xc			
+  encode_mb_aux.go:235	0x5d0204		0f86c5000000		JBE 0x5d02cf			
+  encode_mb_aux.go:235	0x5d020a		4883fb09		CMPQ BX, $0x9			
+  encode_mb_aux.go:235	0x5d020e		0f86b6000000		JBE 0x5d02ca			
+  encode_mb_aux.go:235	0x5d0214		0fb74f18		MOVZX 0x18(DI), CX		
+  encode_mb_aux.go:235	0x5d0218		66894812		MOVW CX, 0x12(AX)		
+  encode_mb_aux.go:235	0x5d021c		0f1f4000		NOPL 0(AX)			
+  encode_mb_aux.go:236	0x5d0220		4883fe0d		CMPQ SI, $0xd			
+  encode_mb_aux.go:236	0x5d0224		0f869b000000		JBE 0x5d02c5			
+  encode_mb_aux.go:236	0x5d022a		4883fb0a		CMPQ BX, $0xa			
+  encode_mb_aux.go:236	0x5d022e		0f868a000000		JBE 0x5d02be			
+  encode_mb_aux.go:236	0x5d0234		0fb74f1a		MOVZX 0x1a(DI), CX		
+  encode_mb_aux.go:236	0x5d0238		66894814		MOVW CX, 0x14(AX)		
+  encode_mb_aux.go:236	0x5d023c		0f1f4000		NOPL 0(AX)			
+  encode_mb_aux.go:237	0x5d0240		4883fb0b		CMPQ BX, $0xb			
+  encode_mb_aux.go:237	0x5d0244		7673			JBE 0x5d02b9			
+  encode_mb_aux.go:237	0x5d0246		0fb74f14		MOVZX 0x14(DI), CX		
+  encode_mb_aux.go:237	0x5d024a		66894816		MOVW CX, 0x16(AX)		
+  encode_mb_aux.go:238	0x5d024e		4883fb0c		CMPQ BX, $0xc			
+  encode_mb_aux.go:238	0x5d0252		7660			JBE 0x5d02b4			
+  encode_mb_aux.go:238	0x5d0254		0fb74f0e		MOVZX 0xe(DI), CX		
+  encode_mb_aux.go:238	0x5d0258		66894818		MOVW CX, 0x18(AX)		
+  encode_mb_aux.go:238	0x5d025c		0f1f4000		NOPL 0(AX)			
+  encode_mb_aux.go:239	0x5d0260		4883fb0d		CMPQ BX, $0xd			
+  encode_mb_aux.go:239	0x5d0264		7649			JBE 0x5d02af			
+  encode_mb_aux.go:239	0x5d0266		0fb74f16		MOVZX 0x16(DI), CX		
+  encode_mb_aux.go:239	0x5d026a		6689481a		MOVW CX, 0x1a(AX)		
+  encode_mb_aux.go:240	0x5d026e		4883fe0e		CMPQ SI, $0xe			
+  encode_mb_aux.go:240	0x5d0272		7636			JBE 0x5d02aa			
+  encode_mb_aux.go:240	0x5d0274		4883fb0e		CMPQ BX, $0xe			
+  encode_mb_aux.go:240	0x5d0278		762b			JBE 0x5d02a5			
+  encode_mb_aux.go:240	0x5d027a		0fb74f1c		MOVZX 0x1c(DI), CX		
+  encode_mb_aux.go:240	0x5d027e		6689481c		MOVW CX, 0x1c(AX)		
+  encode_mb_aux.go:241	0x5d0282		4883fe0f		CMPQ SI, $0xf			
+  encode_mb_aux.go:241	0x5d0286		7615			JBE 0x5d029d			
+  encode_mb_aux.go:241	0x5d0288		4883fb0f		CMPQ BX, $0xf			
+  encode_mb_aux.go:241	0x5d028c		760a			JBE 0x5d0298			
+  encode_mb_aux.go:241	0x5d028e		0fb74f1e		MOVZX 0x1e(DI), CX		
+  encode_mb_aux.go:241	0x5d0292		6689481e		MOVW CX, 0x1e(AX)		
+  encode_mb_aux.go:242	0x5d0296		5d			POPQ BP				
+  encode_mb_aux.go:242	0x5d0297		c3			RET				
+  encode_mb_aux.go:241	0x5d0298		e8a3d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:241	0x5d029d		0f1f00			NOPL 0(AX)			
+  encode_mb_aux.go:241	0x5d02a0		e89bd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:240	0x5d02a5		e896d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:240	0x5d02aa		e891d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:239	0x5d02af		e88cd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:238	0x5d02b4		e887d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:237	0x5d02b9		e882d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:236	0x5d02be		6690			NOPW				
+  encode_mb_aux.go:236	0x5d02c0		e87bd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:236	0x5d02c5		e876d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:235	0x5d02ca		e871d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:235	0x5d02cf		e86cd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:234	0x5d02d4		e867d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:234	0x5d02d9		e862d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:233	0x5d02de		6690			NOPW				
+  encode_mb_aux.go:233	0x5d02e0		e85bd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:232	0x5d02e5		e856d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:231	0x5d02ea		e851d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:230	0x5d02ef		e84cd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:229	0x5d02f4		e847d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:229	0x5d02f9		e842d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:228	0x5d02fe		6690			NOPW				
+  encode_mb_aux.go:228	0x5d0300		e83bd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:228	0x5d0305		e836d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:227	0x5d030a		e831d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:227	0x5d030f		e82cd0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:226	0x5d0314		e827d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:226	0x5d0319		e822d0ebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:226	0x5d031e		90			NOPL				
+
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsGetNoneZeroCount_c(SB) /tmp/h264-fullscreen-20261021/candidate/pkg/h264/internal/encoder/encode_mb_aux.go
+  encode_mb_aux.go:291	0x5d05c0		55			PUSHQ BP			
+  encode_mb_aux.go:291	0x5d05c1		4889e5			MOVQ SP, BP			
+  encode_mb_aux.go:291	0x5d05c4		4889442410		MOVQ AX, 0x10(SP)		
+  encode_mb_aux.go:293	0x5d05c9		31c9			XORL CX, CX			
+  encode_mb_aux.go:293	0x5d05cb		31d2			XORL DX, DX			
+  encode_mb_aux.go:293	0x5d05cd		eb14			JMP 0x5d05e3			
+  encode_mb_aux.go:294	0x5d05cf		0fb73450		MOVZX 0(AX)(DX*2), SI		
+  encode_mb_aux.go:294	0x5d05d3		6685f6			TESTW SI, SI			
+  encode_mb_aux.go:294	0x5d05d6		400f94c6		SETE SI				
+  encode_mb_aux.go:294	0x5d05da		400fb6f6		MOVZX SI, SI			
+  encode_mb_aux.go:294	0x5d05de		01f1			ADDL SI, CX			
+  encode_mb_aux.go:293	0x5d05e0		48ffc2			INCQ DX				
+  encode_mb_aux.go:293	0x5d05e3		4883fa10		CMPQ DX, $0x10			
+  encode_mb_aux.go:293	0x5d05e7		7d07			JGE 0x5d05f0			
+  encode_mb_aux.go:294	0x5d05e9		4839d3			CMPQ BX, DX			
+  encode_mb_aux.go:294	0x5d05ec		77e1			JA 0x5d05cf			
+  encode_mb_aux.go:294	0x5d05ee		eb07			JMP 0x5d05f7			
+  encode_mb_aux.go:298	0x5d05f0		8d41f0			LEAL -0x10(CX), AX		
+  encode_mb_aux.go:298	0x5d05f3		f7d8			NEGL AX				
+  encode_mb_aux.go:298	0x5d05f5		5d			POPQ BP				
+  encode_mb_aux.go:298	0x5d05f6		c3			RET				
+  encode_mb_aux.go:294	0x5d05f7		e844cdebff		CALL runtime.panicBounds(SB)	
+  encode_mb_aux.go:294	0x5d05fc		90			NOPL				

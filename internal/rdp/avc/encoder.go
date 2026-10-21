@@ -287,6 +287,8 @@ func scaleI420Region(dst []byte, width, height int, img *image.RGBA, region imag
 		if changed, ok := scaleI420RegionNative(dst, width, height, img, region); ok {
 			return changed
 		}
+	} else if changed, ok := scaleI420RegionScaled(dst, width, height, img, region); ok {
+		return changed
 	}
 
 	return scaleI420RegionScalar(dst, width, height, img, region)

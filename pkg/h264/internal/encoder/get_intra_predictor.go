@@ -577,4 +577,5 @@ func WelsInitIntraPredFuncs(pFuncList *SWelsFuncPtrList, kuiCpuFlag uint32) {
 	pFuncList.pfGetChromaPred[common.C_PRED_DC_L] = WelsIChromaPredDcLeft_c
 	pFuncList.pfGetChromaPred[common.C_PRED_DC_T] = WelsIChromaPredDcTop_c
 	pFuncList.pfGetChromaPred[common.C_PRED_DC_128] = WelsIChromaPredDcNA_c
+	initIntraPredSIMD(pFuncList, kuiCpuFlag)
 }

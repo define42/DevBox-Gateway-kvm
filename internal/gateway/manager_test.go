@@ -635,6 +635,7 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 		}
 		args["-gpu-3d"] = strconv.FormatBool(boot.GPU3D)
 		args["-rdp-h264-qp"] = strconv.Itoa(boot.RDPH264QP)
+		args["-rdp-h264-threads"] = strconv.Itoa(boot.RDPH264Threads)
 
 		break
 	}
@@ -645,6 +646,11 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-h264-qp"), []byte(args["-rdp-h264-qp"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper QP:", err)
+		os.Exit(2)
+	}
+	slicesPath := filepath.Join(dir, "helper.rdp-h264-threads")
+	if err := os.WriteFile(slicesPath, []byte(args["-rdp-h264-threads"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper slices:", err)
 		os.Exit(2)
 	}
 	signals := make(chan os.Signal, 4)
@@ -841,6 +847,79 @@ func TestManagerRejectsInvalidH264QP(t *testing.T) {
 			}
 			if _, err := os.Stat(config.DataDir); !errors.Is(err, os.ErrNotExist) {
 				t.Fatal("invalid QP caused state-directory creation")
+			}
+		})
+	}
+}
+
+func TestManagerH264SlicesWorkerConfiguration(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		slices int
+		want   int
+	}{
+		{name: "default", want: 1},
+		{name: "one", slices: 1, want: 1},
+		{name: "two", slices: 2, want: 2},
+		{name: "four", slices: 4, want: 4},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config := managerTestConfig(t, "graceful")
+			config.H264Slices = test.slices
+			m, err := NewManager(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := m.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			m.cgroups = testCgroupFactory{}
+			m.readResident = func(int) (uint64, error) { return 0, nil }
+			m.readMemory = func() (hostMemory, error) {
+				return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
+			}
+			vm := createManagerVM(t, m, "alice", "desktop")
+			if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
+				t.Fatal(err)
+			}
+			slices, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.rdp-h264-threads"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(slices) != strconv.Itoa(test.want) {
+				t.Fatalf("child slices = %q, want %d", slices, test.want)
+			}
+		})
+	}
+}
+
+func TestManagerRejectsInvalidH264Slices(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		slices int
+	}{
+		{name: "negative", slices: -1},
+		{name: "unsupported count", slices: 3},
+		{name: "above maximum", slices: 8},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			config := managerTestConfig(t, "graceful")
+			config.H264Slices = test.slices
+			m, err := NewManager(config)
+			if m != nil {
+				_ = m.Close()
+			}
+			if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "H264_SLICES") {
+				t.Fatalf("invalid slices accepted: %v", err)
+			}
+			if _, err := os.Stat(config.DataDir); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("invalid slices caused state-directory creation")
 			}
 		})
 	}

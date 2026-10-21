@@ -16,8 +16,8 @@ func NewCDownsampling(iCpuFlag int32) *CDownsampling {
 	d.m_eMethod = METHOD_DOWNSAMPLE
 	d.m_pfDownsample = SDownsampleFuncs{}
 	d.InitDownsampleFuncs(&d.m_pfDownsample, d.m_iCPUFlag)
-	d.m_pSampleBuffer = [2][3][]uint8{}
-	d.m_bNoSampleBuffer = d.AllocateSampleBuffer()
+	// Most single-layer encoders never downsample internally. Allocate the
+	// intermediate pictures only when an actual downsampling call needs them.
 	return d
 }
 
@@ -110,6 +110,9 @@ func (d *CDownsampling) Process(iType int32, pSrcPixMap *SPixMap, pDstPixMap *SP
 				pSrcPix[2], pSrcOff[2], pSrcPixMap.IStride[2], iSrcWidthUV, iSrcHeightUV)
 		}
 	} else {
+		if d.m_pSampleBuffer[0][0] == nil {
+			d.AllocateSampleBuffer()
+		}
 
 		iIdx := 0
 		iHalfSrcWidth := iSrcWidthY >> 1

@@ -1,0 +1,31 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                      │ conversion-before.txt │        conversion-after.txt        │
+                      │        sec/op         │   sec/op     vs base               │
+I420/Native1024x768-4             615.4µ ± 3%   623.1µ ± 2%        ~ (p=0.310 n=6)
+I420/Scaled800x600-4              2.969m ± 4%   1.530m ± 2%  -48.48% (p=0.002 n=6)
+geomean                           1.352m        976.3µ       -27.78%
+
+                      │ conversion-before.txt │         conversion-after.txt         │
+                      │          B/s          │      B/s       vs base               │
+I420/Native1024x768-4            4.761Gi ± 3%    4.703Gi ± 2%        ~ (p=0.310 n=6)
+I420/Scaled800x600-4            1010.4Mi ± 4%   1961.1Mi ± 2%  +94.09% (p=0.002 n=6)
+geomean                          2.167Gi         3.001Gi       +38.46%
+
+                      │ conversion-before.txt │        conversion-after.txt        │
+                      │         B/op          │    B/op     vs base                │
+I420/Native1024x768-4            0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I420/Scaled800x600-4             0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                     ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                      │ conversion-before.txt │        conversion-after.txt        │
+                      │       allocs/op       │ allocs/op   vs base                │
+I420/Native1024x768-4            0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I420/Scaled800x600-4             0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                     ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

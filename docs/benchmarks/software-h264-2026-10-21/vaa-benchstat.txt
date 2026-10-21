@@ -1,0 +1,31 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                            │ vaa-before.txt │           vaa-after.txt            │
+                            │     sec/op     │   sec/op     vs base               │
+VAACalcSad/320x192/SSE2-4       14.009µ ± 3%   4.041µ ± 5%  -71.16% (p=0.002 n=6)
+VAACalcSad/1920x1088/SSE2-4      768.0µ ± 4%   314.0µ ± 6%  -59.11% (p=0.002 n=6)
+geomean                          103.7µ        35.62µ       -65.66%
+
+                            │ vaa-before.txt │             vaa-after.txt             │
+                            │      B/s       │      B/s       vs base                │
+VAACalcSad/320x192/SSE2-4       4.085Gi ± 3%   14.161Gi ± 5%  +246.71% (p=0.002 n=6)
+VAACalcSad/1920x1088/SSE2-4     2.533Gi ± 4%    6.195Gi ± 7%  +144.57% (p=0.002 n=6)
+geomean                         3.217Gi         9.367Gi       +191.20%
+
+                            │ vaa-before.txt │           vaa-after.txt            │
+                            │      B/op      │    B/op     vs base                │
+VAACalcSad/320x192/SSE2-4       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAACalcSad/1920x1088/SSE2-4     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                    ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                            │ vaa-before.txt │           vaa-after.txt            │
+                            │   allocs/op    │ allocs/op   vs base                │
+VAACalcSad/320x192/SSE2-4       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAACalcSad/1920x1088/SSE2-4     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                    ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

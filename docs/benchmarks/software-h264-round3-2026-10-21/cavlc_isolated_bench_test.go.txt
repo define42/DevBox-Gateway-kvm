@@ -1,0 +1,45 @@
+package encoder
+
+import (
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"testing"
+)
+
+func BenchmarkCavlcIsolation(b *testing.B) {
+	var functions SWelsFuncPtrList
+	InitCoeffFunc(&functions, 0, 0)
+	for _, pattern := range []string{"Sparse", "Dense", "Moderate", "Mixed"} {
+		var corpus [64][16]int16
+		for block := range corpus {
+			for i := range corpus[block] {
+				if pattern != "Sparse" || i%5 == 0 {
+					corpus[block][i] = int16(i%9 - 4)
+					if pattern == "Moderate" {
+						corpus[block][i] = []int16{-63, -32, -16, -8, 8, 16, 32, 63}[(i*3+block)%8]
+					}
+					if pattern == "Mixed" {
+						corpus[block][i] = []int16{0, 1, -1, 2, -2, 4, -8, 16, -32, 63, -64, 65, -128, 256, -1024, 0}[(i*3+block)%16]
+					}
+				}
+			}
+		}
+		for _, writer := range []struct {
+			name string
+			fn   func(*SWelsFuncPtrList, []int16, int32, int32, int32, int8, *common.SBitStringAux) int32
+		}{
+			{"Original", writeBlockResidualCavlcReference}, {"Current", cavlcCurrentWriter}, {"Candidate", WriteBlockResidualCavlc},
+		} {
+			b.Run(pattern+"/"+writer.name, func(b *testing.B) {
+				var buffer [512]byte
+				var state common.SBitStringAux
+				index := 0
+				b.ReportAllocs()
+				for b.Loop() {
+					common.InitBits(&state, buffer[:], 0, int32(len(buffer)))
+					writer.fn(&functions, corpus[index&63][:], 15, 1, int32(LUMA_4x4), 3, &state)
+					index++
+				}
+			})
+		}
+	}
+}

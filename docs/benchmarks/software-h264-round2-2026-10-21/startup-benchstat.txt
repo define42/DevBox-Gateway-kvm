@@ -1,0 +1,21 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                       │ /tmp/h264-round2-20261021/startup-before.txt │ /tmp/h264-round2-20261021/startup-after.txt │
+                                       │                    sec/op                    │        sec/op          vs base              │
+SoftwareEncoderStartup/1080p/1Slices-4                                   40.72m ±  5%             38.80m ± 5%  -4.73% (p=0.009 n=6)
+SoftwareEncoderStartup/1080p/4Slices-4                                   24.75m ± 14%             24.63m ± 4%       ~ (p=0.699 n=6)
+geomean                                                                  31.75m                   30.91m       -2.63%
+
+                                       │ /tmp/h264-round2-20261021/startup-before.txt │ /tmp/h264-round2-20261021/startup-after.txt │
+                                       │                     B/op                     │         B/op          vs base               │
+SoftwareEncoderStartup/1080p/1Slices-4                                   41.24Mi ± 0%           35.28Mi ± 0%  -14.45% (p=0.002 n=6)
+SoftwareEncoderStartup/1080p/4Slices-4                                   71.23Mi ± 0%           65.30Mi ± 0%   -8.33% (p=0.002 n=6)
+geomean                                                                  54.20Mi                48.00Mi       -11.44%
+
+                                       │ /tmp/h264-round2-20261021/startup-before.txt │ /tmp/h264-round2-20261021/startup-after.txt │
+                                       │                  allocs/op                   │       allocs/op        vs base              │
+SoftwareEncoderStartup/1080p/1Slices-4                                     184.0 ± 1%              178.0 ± 1%  -3.26% (p=0.002 n=6)
+SoftwareEncoderStartup/1080p/4Slices-4                                     264.0 ± 0%              256.0 ± 0%  -3.03% (p=0.002 n=6)
+geomean                                                                    220.4                   213.5       -3.15%

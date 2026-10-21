@@ -18,6 +18,7 @@ func TestVAACalcSadSSE2MatchesC(t *testing.T) {
 		curOff, refOff        int
 		pattern               string
 	}{
+		{name: "partial dimensions", width: 35, height: 33, stride: 51, curOff: 3, refOff: 7, pattern: "random"},
 		{name: "single/random/aligned", width: 16, height: 16, stride: 16, pattern: "random"},
 		{name: "wide/random/unaligned", width: 32, height: 16, stride: 37, curOff: 1, refOff: 5, pattern: "random"},
 		{name: "rows/equal/unaligned", width: 48, height: 32, stride: 65, curOff: 15, refOff: 7, pattern: "equal"},
@@ -130,5 +131,33 @@ func TestVpFrameWorkUsesDetectedVAAFeatures(t *testing.T) {
 	}
 	if got := reflect.ValueOf(strategy.m_sVaaFuncs.pfVAACalcSad).Pointer(); got != reflect.ValueOf(want).Pointer() {
 		t.Fatalf("VAA SAD dispatch = %#x, want %#x", got, reflect.ValueOf(want).Pointer())
+	}
+}
+
+func TestVAACalcSadSSE2RejectsShortSpans(t *testing.T) {
+	for _, test := range []struct {
+		name                   string
+		curOff, refOff         int
+		stride                 int32
+		curLen, refLen, outLen int
+	}{
+		{name: "short current", stride: 16, curLen: 255, refLen: 256, outLen: 1},
+		{name: "short reference", stride: 16, curLen: 256, refLen: 255, outLen: 1},
+		{name: "negative current offset", curOff: -1, stride: 16, curLen: 256, refLen: 256, outLen: 1},
+		{name: "negative reference offset", refOff: -1, stride: 16, curLen: 256, refLen: 256, outLen: 1},
+		{name: "negative stride", stride: -16, curLen: 256, refLen: 256, outLen: 1},
+		{name: "short output", stride: 16, curLen: 256, refLen: 256},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatal("invalid span reached assembly")
+				}
+			}()
+			cur, ref := make([]byte, 512), make([]byte, 512)
+			out := make([][4]int32, 2)
+			var frame int32
+			VAACalcSad_sse2(cur[:test.curLen], test.curOff, ref[:test.refLen], test.refOff, 16, 16, test.stride, &frame, out[:test.outLen])
+		})
 	}
 }

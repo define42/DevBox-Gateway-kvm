@@ -69,7 +69,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/devbox-kvm",
 		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
-		"H264_ENCODER": "software", "H264_QP": "28", "RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
+		"H264_ENCODER": "software", "H264_QP": "28", "H264_SLICES": "4",
+		"RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
 		"VM_DISK_MAX_SIZE":       "750GiB",
@@ -98,7 +99,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
 			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
-			RDPProfile: "smooth", H264QP: &qp, NetworkPolicy: "internet",
+			RDPProfile: "smooth", H264QP: &qp, H264Slices: 4, NetworkPolicy: "internet",
 			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
 			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
@@ -364,6 +365,55 @@ func TestServeH264QPConfiguration(t *testing.T) {
 			}
 			if options.manager.H264QP == nil || *options.manager.H264QP != test.want {
 				t.Fatalf("QP = %v, want %d", options.manager.H264QP, test.want)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest // Verifies environment defaults and explicit flag precedence.
+func TestServeH264SlicesConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		env     string
+		args    []string
+		want    int
+		invalid bool
+	}{
+		{name: "default", want: 1},
+		{name: "one", env: "1", want: 1},
+		{name: "two", env: "2", want: 2},
+		{name: "four", env: "4", want: 4},
+		{name: "trimmed", env: " 2 ", want: 2},
+		{name: "malformed uses default", env: "invalid", want: 1},
+		{name: "flag overrides environment", env: "4", args: []string{"-h264-slices=2"}, want: 2},
+		{name: "flag overrides invalid environment", env: "3", args: []string{"-h264-slices=4"}, want: 4},
+		{name: "environment zero", env: "0", invalid: true},
+		{name: "environment negative", env: "-1", invalid: true},
+		{name: "environment unsupported count", env: "3", invalid: true},
+		{name: "environment above maximum", env: "8", invalid: true},
+		{name: "flag zero", args: []string{"-h264-slices=0"}, invalid: true},
+		{name: "flag unsupported count", args: []string{"-h264-slices=3"}, invalid: true},
+		{name: "flag above maximum", args: []string{"-h264-slices=16"}, invalid: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			clearServeEnvironment(t)
+			if test.env != "" {
+				t.Setenv(config.H264_SLICES, test.env)
+			}
+			options, err := readServeOptions(append([]string{"-auth-file=local.json"}, test.args...), io.Discard)
+			if test.invalid {
+				if !errors.Is(err, errCommandUsage) || !strings.Contains(err.Error(), "H264_SLICES") ||
+					!strings.Contains(err.Error(), "1, 2, or 4") {
+					t.Fatalf("invalid slices error = %v, want named setting and choices", err)
+				}
+
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if options.manager.H264Slices != test.want {
+				t.Fatalf("slices = %d, want %d", options.manager.H264Slices, test.want)
 			}
 		})
 	}

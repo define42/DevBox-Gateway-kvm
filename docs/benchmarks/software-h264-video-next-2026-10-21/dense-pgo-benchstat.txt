@@ -1,0 +1,42 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                      sec/op                      │        sec/op          vs base              │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                        142.5m ± 2%             148.9m ± 4%  +4.54% (p=0.004 n=6)
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                   bytes/frame                    │       bytes/frame         vs base           │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                       1.574Mi ± 0%               1.574Mi ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                 convert_ns/frame                 │      convert_ns/frame       vs base         │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                        1.828M ± 5%                 1.873M ± 11%  ~ (p=0.818 n=6)
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                   cpu_ns/frame                   │     cpu_ns/frame       vs base              │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                        142.9M ± 2%             149.3M ± 4%  +4.49% (p=0.004 n=6)
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                 encode_ns/frame                  │    encode_ns/frame     vs base              │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                        140.6M ± 2%             147.2M ± 4%  +4.67% (p=0.004 n=6)
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                   p95_ns/frame                   │        p95_ns/frame         vs base         │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                        149.7M ± 7%                 157.2M ± 15%  ~ (p=0.132 n=6)
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                      slices                      │          slices           vs base           │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                         1.000 ± 0%                 1.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                       B/op                       │            B/op             vs base         │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                       1.579Mi ± 0%                 1.579Mi ± 0%  ~ (p=0.468 n=6)
+
+                                                 │ /tmp/h264-video-next-20261021/dense-standard.txt │ /tmp/h264-video-next-20261021/dense-pgo.txt │
+                                                 │                    allocs/op                     │        allocs/op          vs base           │
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                         11.00 ± 0%                 11.00 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal

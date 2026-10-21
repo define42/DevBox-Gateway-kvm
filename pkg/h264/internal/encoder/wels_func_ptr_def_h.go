@@ -146,9 +146,10 @@ const MAX_BLOCK_TYPE = BLOCK_SIZE_ALL
 
 // SSampleDealingFunc is the SAD / SATD function table.
 type SSampleDealingFunc struct {
-	pfSampleSad  [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
-	pfSampleSatd [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
-	pfSample4Sad [MAX_BLOCK_TYPE]PSample4SadCostFunc
+	pfSampleSad     [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
+	pfSampleSatd    [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
+	pfSample4Sad    [MAX_BLOCK_TYPE]PSample4SadCostFunc
+	pfSampleAvgSatd sampleAvgSatdFunc
 
 	pfIntra4x4Combined3Satd   PIntraPred4x4Combined3Func
 	pfIntra16x16Combined3Satd PIntraPred16x16Combined3Func

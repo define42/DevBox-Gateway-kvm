@@ -255,3 +255,43 @@ func VAACalcSadBgd_c(pCurData []uint8, iCurOff int, pRefData []uint8, iRefOff in
 		tmp_cur += int(step)
 	}
 }
+
+// vaaCalcSadMasked calculates changed runs within each macroblock row. A valid
+// hint certifies source equality, so the skipped SADs are exactly zero. The
+// supplied kernel keeps the CPU dispatch and the portable scalar fallback.
+func vaaCalcSadMasked(calc VAACalcSadFunc, cur []byte, curOff int, ref []byte, refOff int,
+	width, height, stride int32, frameSad *int32, sad [][4]int32, unchanged []bool) {
+	count := int64(width>>4) * int64(height>>4)
+	if width <= 0 || height <= 0 || width&15 != 0 || height&15 != 0 ||
+		int64(len(unchanged)) != count {
+		calc(cur, curOff, ref, refOff, width, height, stride, frameSad, sad)
+		return
+	}
+	mbWidth := int(width >> 4)
+	if count > int64(len(sad)) {
+		panic("h264: VAA output span out of range")
+	}
+	clear(sad[:int(count)])
+	*frameSad = 0
+	var total int32
+	for y := 0; y < int(height>>4); y++ {
+		row := y * mbWidth
+		for x := 0; x < mbWidth; {
+			if unchanged[row+x] {
+				x++
+				continue
+			}
+			start := x
+			for x < mbWidth && !unchanged[row+x] {
+				x++
+			}
+			off := y*16*int(stride) + start*16
+			// Reuse the caller-owned result as kernel scratch; passing a local
+			// result through the dispatched function would allocate per run.
+			calc(cur, curOff+off, ref, refOff+off, int32(x-start)*16, 16, stride,
+				frameSad, sad[row+start:row+x])
+			total += *frameSad
+		}
+	}
+	*frameSad = total
+}

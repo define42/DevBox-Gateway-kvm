@@ -112,6 +112,7 @@ func (p *CWelsPreProcess) WelsPreprocessCreate() int32 {
 }
 
 func (p *CWelsPreProcess) WelsPreprocessDestroy() int32 {
+	p.sourceCopy.invalidate()
 	processing.WelsDestroyVpInterface(p.m_pInterfaceVp, processing.WELSVP_INTERFACE_VERION)
 	p.m_pInterfaceVp = nil
 
@@ -119,6 +120,7 @@ func (p *CWelsPreProcess) WelsPreprocessDestroy() int32 {
 }
 
 func (p *CWelsPreProcess) WelsPreprocessReset(pCtx *sWelsEncCtx, iWidth int32, iHeight int32) int32 {
+	p.sourceCopy.invalidate()
 	iRet := int32(-1)
 	pSvcParam := pCtx.pSvcParam
 	//init source width and height
@@ -270,6 +272,9 @@ func (p *CWelsPreProcess) AnalyzeSpatialPic(pCtx *sWelsEncCtx, kiDidx int32) int
 	}
 
 	pCurPic := p.m_pSpatialPic[kiDidx][iCurTemporalIdx]
+	if kiDidx == 0 && p.vaaUnchanged.enabled {
+		p.vaaUnchanged.current = pCurPic
+	}
 	bCalculateVar := (pSvcParam.IRCMode >= api.RC_BITRATE_MODE && pCtx.eSliceType == common.I_SLICE)
 
 	if pSvcParam.IUsageType == api.SCREEN_CONTENT_REAL_TIME {
@@ -699,9 +704,18 @@ func (p *CWelsPreProcess) VaaCalculation(pVaaInfo *SVAAFrameInfo, pCurPicture *S
 		calc_param.ICalcBgd = rcBool2Int(bCalculateBGD)
 		calc_param.ICalcSsd = rcBool2Int(bCalculateSQDiff)
 		calc_param.PCalcResult = &pVaaInfo.sVaaCalcInfo
+		if !bCalculateVar && !bCalculateBGD && !bCalculateSQDiff {
+			calc_param.UnchangedMacroblocks = p.vaaUnchanged.maskFor(p.m_pEncCtx, pCurPicture, pRefPicture)
+		}
 
 		p.m_pInterfaceVp.Set(iMethodIdx, &calc_param)
 		p.m_pInterfaceVp.Process(iMethodIdx, &sCurPixMap, &sRefPixMap)
+		if calc_param.UnchangedMacroblocks != nil {
+			// Framework validation may reject the maps before the strategy can
+			// consume its borrowed hint. Release it on that path as well.
+			calc_param.UnchangedMacroblocks = nil
+			p.m_pInterfaceVp.Set(iMethodIdx, &calc_param)
+		}
 	}
 }
 
@@ -1480,9 +1494,11 @@ func (p *CWelsPreProcess) WelsMoveMemoryWrapper(pSvcParam *SWelsSvcCodingParam, 
 		return ENC_RETURN_INVALIDINPUT
 	} else {
 		//i420_to_i420_c
-		WelsMoveMemory_c(pDstY, iDstYOff, pDstU, iDstUOff, pDstV, iDstVOff, kiDstStrideY, kiDstStrideU,
-			kiDstStrideV, pSrcY, iSrcYOff, pSrcU, iSrcUOff, pSrcV, iSrcVOff, kiSrcStrideY,
-			kiSrcStrideU, kiSrcStrideV, iSrcWidth, iSrcHeight)
+		if !p.tryCopySource(pSvcParam, pDstPic, kpSrc, kiTargetWidth, kiTargetHeight) {
+			WelsMoveMemory_c(pDstY, iDstYOff, pDstU, iDstUOff, pDstV, iDstVOff, kiDstStrideY, kiDstStrideU,
+				kiDstStrideV, pSrcY, iSrcYOff, pSrcU, iSrcUOff, pSrcV, iSrcVOff, kiSrcStrideY,
+				kiSrcStrideU, kiSrcStrideV, iSrcWidth, iSrcHeight)
+		}
 
 		//in VP Process
 		if kiTargetWidth > iSrcWidth || kiTargetHeight > iSrcHeight {

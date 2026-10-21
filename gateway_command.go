@@ -105,6 +105,11 @@ func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
 	if _, err := avc.ResolveQP(options.manager.H264QP); err != nil {
 		return serveOptions{}, fmt.Errorf("H264_QP (-h264-qp): %s: %w", err.Error(), errCommandUsage)
 	}
+	switch options.manager.H264Slices {
+	case 1, 2, 4:
+	default:
+		return serveOptions{}, fmt.Errorf("H264_SLICES (-h264-slices) must be 1, 2, or 4: %w", errCommandUsage)
+	}
 	if (options.authFile == "") == (options.ldap.URL == "") {
 		return serveOptions{}, fmt.Errorf(
 			"choose either LDAP_URL (-ldap-url) or AUTH_FILE (-auth-file): %w", errCommandUsage,
@@ -148,6 +153,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	stringFlag(&options.manager.VarsTemplate, "uefi-vars-template", config.UEFI_VARS_TEMPLATE)
 	stringFlag(&options.manager.Encoder, "encoder", config.H264_ENCODER)
 	options.manager.H264QP = flags.Int("h264-qp", s.Int(config.H264_QP), description(config.H264_QP))
+	intFlag(&options.manager.H264Slices, "h264-slices", config.H264_SLICES)
 	stringFlag(&options.manager.RDPProfile, "rdp-profile", config.RDP_PROFILE)
 	boolFlag(&options.manager.VMProfiling, "vm-profiling", config.GATEWAY_VM_PROFILING)
 	stringFlag(&options.manager.Keyboard, "keyboard", config.VM_KEYBOARD)
