@@ -18,7 +18,7 @@ state defaults to `.devbox-kvm-gateway/`. Gateway settings use the
 [environment configuration reference](docs/configuration.md), following
 DevBox-Gateway's centralized `config.go` design.
 
-**This is experimental software. Do not use it in production.**
+**Ready for production use at test scale.**
 
 ```mermaid
 flowchart LR
