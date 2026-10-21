@@ -345,15 +345,12 @@ func (m *Manager) load() error {
 		if err != nil {
 			return fmt.Errorf("read VM metadata: %w", err)
 		}
-		var record VM
-		if err := json.Unmarshal(data, &record); err != nil {
-			return fmt.Errorf("decode VM metadata: %w", err)
+		record, legacyCapacity, err := decodeSavedVM(data)
+		if err != nil {
+			return fmt.Errorf("decode VM %q metadata: %w", entry.Name(), err)
 		}
 		if record.ID != entry.Name() || !validOwner(record.Owner) || !validVMName(record.Name) || record.CreatedAt.IsZero() {
 			return fmt.Errorf("invalid saved VM metadata: %w", ErrInvalid)
-		}
-		if record.DiskSizeBytes <= 0 {
-			return fmt.Errorf("invalid saved VM disk capacity: %w", ErrInvalid)
 		}
 		if record.ImageID == "" {
 			record.ImageID, record.ImageName = DefaultImageID, m.images[DefaultImageID].Name
@@ -373,6 +370,12 @@ func (m *Manager) load() error {
 			return fmt.Errorf("remove legacy VM console log: %w", err)
 		}
 		record.State, record.Error = "stopped", ""
+		if legacyCapacity {
+			if err := m.migrateSavedDiskCapacity(&record); err != nil {
+				return fmt.Errorf("migrate VM %q disk capacity: %w", record.ID, err)
+			}
+			log.Printf("gateway migrated saved VM disk capacity: vm=%q bytes=%d", record.ID, record.DiskSizeBytes)
+		}
 		m.vms[record.ID] = newManagedVM(record)
 	}
 

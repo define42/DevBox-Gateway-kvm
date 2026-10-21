@@ -66,6 +66,27 @@ func ValidateQCOW2Size(file *os.File, expected int64) error {
 	return nil
 }
 
+// ValidateQCOW2 checks a caller-owned QCOW2 file against its pinned positive
+// capacity and the complete writable metadata layout. It never writes to or
+// closes file. The caller must keep the file unchanged during validation.
+func ValidateQCOW2(file *os.File, expected int64) error {
+	if err := ValidateQCOW2Size(file, expected); err != nil {
+		return err
+	}
+	image := &qcow2Image{
+		file:    file,
+		l2Cache: make(map[uint64][]uint64),
+	}
+	if err := image.open(); err != nil {
+		return fmt.Errorf("disk: validate qcow2 layout: %w", err)
+	}
+	if image.Size() != expected {
+		return fmt.Errorf("%w: qcow2 capacity changed while validating", ErrSpecMismatch)
+	}
+
+	return nil
+}
+
 // OpenQCOW2WithSize opens writable QCOW2 storage with a pinned capacity. The
 // opened descriptor is validated and then retained by the returned Image.
 func OpenQCOW2WithSize(path string, expected int64) (Image, error) {

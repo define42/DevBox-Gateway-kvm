@@ -91,6 +91,19 @@ host directory is preserved. For other host/runtime arrangements, provide the
 [required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts)
 yourself; the supplied helper rejects unsupported configurations.
 
+After completing the host setup, start or rebuild the gateway with software
+rendering and encoding using:
+
+```bash
+make docker
+```
+
+This runs `docker/configure.sh` and starts the gateway and LDAP with only
+`compose.yaml` and `compose.cgroup.yaml`. It forces `VM_GPU_3D=false` and
+`H264_ENCODER=software`, overriding saved GPU settings and excluding the NVIDIA
+and virgl overlays. Other `.env` settings are retained, and host Go is not
+required.
+
 Persist the Compose file selection in `.env` so subsequent commands, including
 `make gateway-docker`, retain the delegation:
 

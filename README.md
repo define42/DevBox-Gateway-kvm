@@ -202,6 +202,12 @@ requires a dedicated delegated cgroup v2 subtree, a scoped container mount, and
 Do not replace scoped delegation with a privileged container or a writable mount
 of the host's entire cgroup hierarchy.
 
+After that host setup, use `make docker` to rebuild and start the gateway and
+LDAP with software rendering and encoding. It selects the base and cgroup
+Compose files and forces `VM_GPU_3D=false` and `H264_ENCODER=software`, overriding
+saved GPU settings without enabling the NVIDIA or virgl overlays. Host Go is
+not required.
+
 Open **https://localhost:8443**, accept the local self-signed certificate, and
 sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload
 a QCOW2 desktop image; users can then select it in **Create DevBox**. The catalog

@@ -1,9 +1,11 @@
 package gateway
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 )
@@ -108,4 +110,52 @@ func (m *Manager) validateManagedDisk(path string, record VM) (validateErr error
 	defer func() { validateErr = errors.Join(validateErr, file.Close()) }()
 
 	return validatePinnedDiskSize(file, record.DiskSizeBytes, m.config.MaxDiskBytes)
+}
+
+// decodeSavedVM distinguishes pre-capacity records from explicitly invalid
+// values. RawMessage also preserves null and encoding/json's case matching.
+func decodeSavedVM(data []byte) (VM, bool, error) {
+	var saved struct {
+		VM
+		Capacity json.RawMessage `json:"diskSizeBytes"`
+	}
+	if err := json.Unmarshal(data, &saved); err != nil {
+		return VM{}, false, err
+	}
+	if len(saved.Capacity) == 0 {
+		return saved.VM, true, nil
+	}
+	if err := json.Unmarshal(saved.Capacity, &saved.DiskSizeBytes); err != nil {
+		return VM{}, false, err
+	}
+	if saved.DiskSizeBytes <= 0 {
+		return VM{}, false, fmt.Errorf("invalid saved VM disk capacity: %w", ErrInvalid)
+	}
+
+	return saved.VM, false, nil
+}
+
+// migrateSavedDiskCapacity pins legacy records to their trusted source template.
+// Never infer the expected capacity from a disk that has already run a guest.
+// Existing positive pins bypass migration and remain independent of templates.
+func (m *Manager) migrateSavedDiskCapacity(record *VM) error {
+	image, exists := m.images[record.ImageID]
+	if !exists {
+		return fmt.Errorf("saved capacity is missing and source image %q is unavailable; "+
+			"restore the original template or trusted VM metadata: %w", record.ImageID, ErrInvalid)
+	}
+	if err := validateDiskSize(image.VirtualSizeBytes, m.config.MaxDiskBytes); err != nil {
+		return err
+	}
+	file, err := openPrivateFile(filepath.Join(m.directory(record.ID), "disk.img"), os.O_RDONLY)
+	if err != nil {
+		return err
+	}
+	validationErr := disk.ValidateQCOW2(file, image.VirtualSizeBytes)
+	if err := errors.Join(validationErr, file.Close()); err != nil {
+		return fmt.Errorf("legacy disk does not match its source template: %w: %w", ErrDiskChanged, err)
+	}
+	record.DiskSizeBytes = image.VirtualSizeBytes
+
+	return m.save(*record)
 }

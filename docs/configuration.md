@@ -150,7 +150,12 @@ opens always use the QCOW2 decoder; raw data and invalid headers are rejected.
 Each managed VM saves its virtual capacity in private metadata at creation.
 The gateway and worker require that capacity on every start, including
 guest-requested resets. A changed capacity is rejected even below
-`VM_DISK_MAX_SIZE`; missing or invalid saved capacity is also rejected.
+`VM_DISK_MAX_SIZE`. On upgrade, older records that lack the capacity field are
+migrated using their original source template's trusted capacity, after the VM
+disk passes full QCOW2 validation against it. The value is saved atomically;
+subsequent starts no longer need the template. A missing source template,
+invalid disk, or explicit zero, negative, or null capacity is rejected. Restore
+the original template or trusted VM metadata if migration cannot find the source.
 Cloud-init seed ISOs are attached separately as read-only raw media.
 
 ## Listener and TLS

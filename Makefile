@@ -26,7 +26,7 @@ OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
 OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
 
 # Docker builds use their own Go toolchain.
-ifneq ($(filter-out gateway-docker nvidia,$(or $(MAKECMDGOALS),default)),)
+ifneq ($(filter-out gateway-docker docker nvidia,$(or $(MAKECMDGOALS),default)),)
 export GOPATH := $(shell $(GO) env GOPATH)
 export PATH := $(GOPATH)/bin:$(PATH)
 endif
@@ -154,6 +154,13 @@ gateway-ldap-test: ldap
 gateway-docker:
 	./docker/configure.sh
 	docker compose up --build -d gateway
+
+# Software rendering and encoding with the required VM memory delegation.
+.PHONY: docker
+docker:
+	./docker/configure.sh
+	VM_GPU_3D=false H264_ENCODER=software \
+		docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
 
 # NVIDIA rendering and encoding with the required VM memory delegation.
 .PHONY: nvidia

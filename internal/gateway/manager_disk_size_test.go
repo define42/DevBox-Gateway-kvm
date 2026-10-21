@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"testing"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
@@ -123,9 +124,11 @@ func TestManagerRejectsInvalidSavedDiskCapacity(t *testing.T) {
 
 	for _, test := range []struct {
 		name  string
+		key   string
 		value any
 	}{
-		{name: "missing"},
+		{name: "null"},
+		{name: "case-insensitive zero", key: "DISKSIZEBYTES", value: 0},
 		{name: "zero", value: 0},
 		{name: "negative", value: -1},
 	} {
@@ -145,11 +148,12 @@ func TestManagerRejectsInvalidSavedDiskCapacity(t *testing.T) {
 			if err := json.Unmarshal(data, &record); err != nil {
 				t.Fatal(err)
 			}
-			if test.value == nil {
-				delete(record, "diskSizeBytes")
-			} else {
-				record["diskSizeBytes"] = test.value
+			key := test.key
+			if key == "" {
+				key = "diskSizeBytes"
 			}
+			delete(record, "diskSizeBytes")
+			record[key] = test.value
 			data, err = json.Marshal(record)
 			if err != nil {
 				t.Fatal(err)
@@ -195,4 +199,181 @@ func writeDiskHeaderBytes(t *testing.T, path string, data []byte, offset int64) 
 	if err := errors.Join(writeErr, file.Close()); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestManagerMigratesLegacyDiskCapacity(t *testing.T) {
+	t.Parallel()
+	for _, source := range []string{"default", "catalog"} {
+		t.Run(source, func(t *testing.T) {
+			t.Parallel()
+			manager := newTestManager(t, "graceful")
+			vm := createQCOW2CapacityVM(t, manager, source)
+			if err := manager.Close(); err != nil {
+				t.Fatal(err)
+			}
+			metadata := removeSavedDiskCapacity(t, manager, vm)
+			path := filepath.Join(manager.directory(vm.ID), "disk.img")
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reopened, err := NewManager(manager.config)
+			if err != nil {
+				t.Fatalf("load legacy VM: %v", err)
+			}
+			t.Cleanup(func() { _ = reopened.Close() })
+			loaded, err := reopened.GetAny(t.Context(), vm.ID)
+			if err != nil || loaded.DiskSizeBytes != vm.DiskSizeBytes {
+				t.Fatalf("migrated VM capacity = %d, %v; want %d", loaded.DiskSizeBytes, err, vm.DiskSizeBytes)
+			}
+			saved, err := os.ReadFile(metadata)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var persisted VM
+			if err := json.Unmarshal(saved, &persisted); err != nil {
+				t.Fatal(err)
+			}
+			if persisted.DiskSizeBytes != vm.DiskSizeBytes || persisted.ID != vm.ID || persisted.Owner != vm.Owner {
+				t.Fatalf("migration was not persisted correctly: %+v", persisted)
+			}
+			after, err := os.ReadFile(path)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatalf("migration changed disk contents: %v", err)
+			}
+			// Once persisted, the capacity must survive removal of the template.
+			if source == "catalog" {
+				if err := reopened.DeleteImage(t.Context(), vm.ImageID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := reopened.Close(); err != nil {
+				t.Fatal(err)
+			}
+			config := manager.config
+			config.BaseImage = ""
+			again, err := NewManager(config)
+			if err != nil {
+				t.Fatalf("reload migrated VM without source template: %v", err)
+			}
+			defer again.Close()
+			// The migrated capacity must still reject later disk-header changes.
+			var changed [8]byte
+			binary.BigEndian.PutUint64(changed[:], uint64(vm.DiskSizeBytes+512))
+			writeDiskHeaderBytes(t, path, changed[:], 24)
+			if err := again.Start(t.Context(), vm.Owner, vm.ID); !errors.Is(err, ErrDiskChanged) {
+				t.Fatalf("migrated VM lost pinned capacity: %v", err)
+			}
+		})
+	}
+}
+
+func TestManagerRejectsUnsafeLegacyDiskCapacity(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		want error
+	}{
+		{name: "missing template", want: ErrInvalid},
+		{name: "changed capacity", want: ErrDiskChanged},
+		{name: "raw disk", want: ErrDiskChanged},
+		{name: "malformed layout", want: ErrDiskChanged},
+		{name: "disk symlink", want: syscall.ELOOP},
+		{name: "public disk", want: ErrInvalid},
+		{name: "metadata write", want: os.ErrPermission},
+		{name: "missing disk", want: os.ErrNotExist},
+		{name: "size limit", want: ErrDiskTooLarge},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			manager := newTestManager(t, "graceful")
+			vm := createQCOW2CapacityVM(t, manager, "catalog")
+			if test.name == "missing template" {
+				if err := manager.DeleteImage(t.Context(), vm.ImageID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := manager.Close(); err != nil {
+				t.Fatal(err)
+			}
+			metadata := removeSavedDiskCapacity(t, manager, vm)
+			before, err := os.ReadFile(metadata)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(manager.directory(vm.ID), "disk.img")
+			config := manager.config
+			switch test.name {
+			case "changed capacity":
+				var changed [8]byte
+				binary.BigEndian.PutUint64(changed[:], uint64(vm.DiskSizeBytes+512))
+				writeDiskHeaderBytes(t, path, changed[:], 24)
+			case "raw disk":
+				if err := os.WriteFile(path, make([]byte, 4096), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			case "malformed layout":
+				var offset [8]byte
+				binary.BigEndian.PutUint64(offset[:], 1<<30)
+				writeDiskHeaderBytes(t, path, offset[:], 40)
+			case "disk symlink":
+				if err := os.Remove(path); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(config.BaseImage, path); err != nil {
+					t.Fatal(err)
+				}
+			case "public disk":
+				if err := os.Chmod(path, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			case "metadata write":
+				dir := manager.directory(vm.ID)
+				if err := os.Chmod(dir, 0o500); err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = os.Chmod(dir, 0o700) })
+			case "missing disk":
+				if err := os.Remove(path); err != nil {
+					t.Fatal(err)
+				}
+			case "size limit":
+				config.MaxDiskBytes = vm.DiskSizeBytes - 1
+			}
+			reopened, err := NewManager(config)
+			if reopened != nil {
+				_ = reopened.Close()
+			}
+			if !errors.Is(err, test.want) {
+				t.Fatalf("legacy migration error = %v, want %v", err, test.want)
+			}
+			after, err := os.ReadFile(metadata)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatalf("failed migration changed saved metadata: %v", err)
+			}
+		})
+	}
+}
+
+func removeSavedDiskCapacity(t *testing.T, manager *Manager, vm VM) string {
+	t.Helper()
+	path := filepath.Join(manager.directory(vm.ID), "vm.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record map[string]json.RawMessage
+	if err := json.Unmarshal(data, &record); err != nil {
+		t.Fatal(err)
+	}
+	delete(record, "diskSizeBytes")
+	data, err = json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	return path
 }
