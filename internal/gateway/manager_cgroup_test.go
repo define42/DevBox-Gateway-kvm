@@ -25,6 +25,7 @@ func TestPrepareVMLaunchCgroup(t *testing.T) {
 		"memory.max":       "805306368",
 		"memory.swap.max":  "0",
 		"memory.oom.group": "1",
+		"pids.max":         "512",
 	} {
 		if got := child.files[name]; got != want {
 			t.Errorf("%s = %q, want %q", name, got, want)
@@ -125,6 +126,12 @@ func TestPrepareVMLaunchCgroupRejectsUnsafeOrUnavailableHierarchy(t *testing.T) 
 		{name: "memory not delegated", setup: func(s *fakeVMCgroupSystem) {
 			s.root.files["cgroup.subtree_control"] = "cpu pids"
 		}},
+		{name: "pids unavailable", setup: func(s *fakeVMCgroupSystem) {
+			s.root.files["cgroup.controllers"] = "cpu memory pidsish"
+		}},
+		{name: "pids not delegated", setup: func(s *fakeVMCgroupSystem) {
+			s.root.files["cgroup.subtree_control"] = "cpu memory"
+		}},
 		{name: "gateway in delegated root", setup: func(s *fakeVMCgroupSystem) {
 			s.root.files["cgroup.procs"] = "42\n"
 		}},
@@ -142,6 +149,15 @@ func TestPrepareVMLaunchCgroupRejectsUnsafeOrUnavailableHierarchy(t *testing.T) 
 		}},
 		{name: "memory max unavailable", setup: func(s *fakeVMCgroupSystem) {
 			s.mutateChild = func(child *fakeVMCgroupNode) { delete(child.files, "memory.max") }
+		}},
+		{name: "pids max unavailable", setup: func(s *fakeVMCgroupSystem) {
+			s.mutateChild = func(child *fakeVMCgroupNode) { delete(child.files, "pids.max") }
+		}},
+		{name: "pids write denied", setup: func(s *fakeVMCgroupSystem) {
+			s.writeErrors["pids.max"] = os.ErrPermission
+		}},
+		{name: "pids readback mismatch", setup: func(s *fakeVMCgroupSystem) {
+			s.writeValues["pids.max"] = "max"
 		}},
 		{name: "swap write denied", setup: func(s *fakeVMCgroupSystem) {
 			s.writeErrors["memory.swap.max"] = os.ErrPermission
@@ -443,6 +459,7 @@ func (s *fakeVMCgroupSystem) newChildNode() *fakeVMCgroupNode {
 		"memory.max":         "max\n",
 		"memory.swap.max":    "max\n",
 		"memory.oom.group":   "0\n",
+		"pids.max":           "max\n",
 		"cgroup.controllers": "",
 	})
 }

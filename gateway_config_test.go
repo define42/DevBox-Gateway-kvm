@@ -98,7 +98,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
 			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
-			RDPProfile: "smooth", H264QP: &qp,
+			RDPProfile: "smooth", H264QP: &qp, NetworkPolicy: "internet",
 			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
 			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
@@ -366,5 +366,46 @@ func TestServeH264QPConfiguration(t *testing.T) {
 				t.Fatalf("QP = %v, want %d", options.manager.H264QP, test.want)
 			}
 		})
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeNetworkDestinationPolicy(t *testing.T) {
+	clearServeEnvironment(t)
+	options, err := readServeOptions([]string{"-auth-file=local.json"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options.manager.NetworkPolicy != "internet" || options.manager.NetworkAllowCIDRs != "" {
+		t.Fatal("managed default permits unexpected network destinations")
+	}
+	t.Setenv(config.VM_NETWORK_POLICY, "allowlist")
+	t.Setenv(config.VM_NETWORK_ALLOW_CIDRS, "10.20.0.0/16")
+	options, err = readServeOptions([]string{"-auth-file=local.json"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options.manager.NetworkPolicy != "allowlist" || options.manager.NetworkAllowCIDRs != "10.20.0.0/16" {
+		t.Fatal("network policy environment was ignored")
+	}
+	options, err = readServeOptions([]string{
+		"-auth-file=local.json", "-vm-network-policy=internet", "-vm-network-allow-cidrs=192.168.2.10/32",
+	}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options.manager.NetworkPolicy != "internet" || options.manager.NetworkAllowCIDRs != "192.168.2.10/32" {
+		t.Fatal("network policy flags did not override environment")
+	}
+	for _, args := range [][]string{
+		{"-vm-network-policy=unrestricted"},
+		{"-vm-network-allow-cidrs=::1/128"},
+		{"-vm-network-allow-cidrs=0.0.0.0/0"},
+		{"-vm-network-allow-cidrs=10.0.0.1/24"},
+	} {
+		_, err := readServeOptions(append([]string{"-auth-file=local.json"}, args...), io.Discard)
+		if !errors.Is(err, errCommandUsage) {
+			t.Fatalf("invalid policy accepted: %v; %v", args, err)
+		}
 	}
 }

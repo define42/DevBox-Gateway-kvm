@@ -20,14 +20,15 @@ import (
 const (
 	maxCgroupControlBytes = 4096
 	maxCgroupNameAttempts = 4
+	maxVMTasks            = 512
 	cgroupCleanupTimeout  = 2 * time.Second
 	cgroupCleanupPoll     = 10 * time.Millisecond
 )
 
 // ErrCgroupUnavailable reports that a worker cannot be launched with its
-// required kernel-enforced memory isolation.
+// required kernel-enforced memory and process limits.
 var (
-	ErrCgroupUnavailable  = errors.New("VM memory isolation is unavailable")
+	ErrCgroupUnavailable  = errors.New("VM resource isolation is unavailable")
 	errInvalidCgroupState = errors.New("invalid or unsafe cgroup state")
 	errCgroupPathChanged  = errors.New("cgroup child path changed")
 )
@@ -448,15 +449,17 @@ func validateCgroupRoot(directory vmCgroupDirectory, effectiveUID uint32) error 
 	if err != nil {
 		return fmt.Errorf("read cgroup.controllers: %w", err)
 	}
-	if !hasCgroupToken(controllers, "memory") {
-		return fmt.Errorf("%w: memory controller is unavailable", errInvalidCgroupState)
-	}
 	subtree, err := directory.ReadFile("cgroup.subtree_control")
 	if err != nil {
 		return fmt.Errorf("read cgroup.subtree_control: %w", err)
 	}
-	if !hasCgroupToken(subtree, "memory") {
-		return fmt.Errorf("%w: memory controller is not delegated", errInvalidCgroupState)
+	for _, controller := range []string{"memory", "pids"} {
+		if !hasCgroupToken(controllers, controller) {
+			return fmt.Errorf("%w: %s controller is unavailable", errInvalidCgroupState, controller)
+		}
+		if !hasCgroupToken(subtree, controller) {
+			return fmt.Errorf("%w: %s controller is not delegated", errInvalidCgroupState, controller)
+		}
 	}
 	processes, err := directory.ReadFile("cgroup.procs")
 	if err != nil {
@@ -552,6 +555,7 @@ func configureVMCgroup(directory vmCgroupDirectory, memoryMax uint64) error {
 		{name: "memory.max", value: strconv.FormatUint(memoryMax, 10)},
 		{name: "memory.swap.max", value: "0"},
 		{name: "memory.oom.group", value: "1"},
+		{name: "pids.max", value: strconv.Itoa(maxVMTasks)},
 	}
 	for _, control := range controls {
 		if err := directory.WriteFile(control.name, control.value); err != nil {

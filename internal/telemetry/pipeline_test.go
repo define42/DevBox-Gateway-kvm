@@ -181,7 +181,7 @@ func TestPipelineSaturationBoundedPayloadAndDisabled(t *testing.T) {
 	}
 	data, err := json.Marshal(p)
 	if err != nil || len(data) > MaxMessageSize {
-		t.Fatalf("pipeline exceeds bounded datagram: bytes=%d err=%v", len(data), err)
+		t.Fatalf("pipeline exceeds bounded packet: bytes=%d err=%v", len(data), err)
 	}
 }
 

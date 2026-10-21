@@ -29,15 +29,15 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 )
 
-func testNetwork(t *testing.T, servers ...string) *Network {
-	t.Helper()
+func testNetwork(tb testing.TB, servers ...string) *Network {
+	tb.Helper()
 	n, err := newNetwork(servers)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		if err := n.Close(); err != nil {
-			t.Error(err)
+			tb.Error(err)
 		}
 	})
 
@@ -128,25 +128,25 @@ func receiveDHCP(t *testing.T, n *Network) *dhcpv4.DHCPv4 {
 	}
 }
 
-func guestStack(t *testing.T, n *Network) *stack.Stack {
-	t.Helper()
+func guestStack(tb testing.TB, n *Network) *stack.Stack {
+	tb.Helper()
 	link := channel.New(queueSize, MTU+header.EthernetMinimumSize, tcpip.LinkAddress("\x02\x00\x00\x00\x00\x0f"))
 	guest := stack.New(stack.Options{
 		NetworkProtocols:   []stack.NetworkProtocolFactory{ipv4.NewProtocol, arp.NewProtocol},
 		TransportProtocols: []stack.TransportProtocolFactory{tcp.NewProtocol, udp.NewProtocol},
 	})
 	if err := guest.CreateNIC(1, ethernet.New(link)); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	address := tcpip.ProtocolAddress{
 		Protocol:          ipv4.ProtocolNumber,
 		AddressWithPrefix: tcpip.AddressWithPrefix{Address: tcpip.AddrFrom4([4]byte{10, 0, 2, 15}), PrefixLen: 24},
 	}
 	if err := guest.AddProtocolAddress(1, address, stack.AddressProperties{}); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	guest.SetRouteTable([]tcpip.Route{{Destination: header.IPv4EmptySubnet, Gateway: gatewayAddress, NIC: 1}})
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancel(tb.Context())
 	var workers sync.WaitGroup
 	workers.Add(2)
 	go func() {
@@ -183,7 +183,7 @@ func guestStack(t *testing.T, n *Network) *stack.Stack {
 			}
 		}
 	}()
-	t.Cleanup(func() { cancel(); workers.Wait(); guest.Destroy(); link.Close() })
+	tb.Cleanup(func() { cancel(); workers.Wait(); guest.Destroy(); link.Close() })
 
 	return guest
 }

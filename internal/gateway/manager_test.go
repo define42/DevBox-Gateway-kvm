@@ -654,6 +654,11 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 		fmt.Fprintln(os.Stderr, "write helper audio:", err)
 		os.Exit(2)
 	}
+	if err := os.WriteFile(filepath.Join(dir, "helper.net-policy"),
+		[]byte(args["-net-policy"]+"\n"+args["-net-allow-cidrs"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper network policy:", err)
+		os.Exit(2)
+	}
 	if args["-net"] != "user-isolated" {
 		fmt.Fprintln(os.Stderr, "manager helper: expected isolated networking")
 		os.Exit(2)

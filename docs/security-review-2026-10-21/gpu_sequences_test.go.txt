@@ -1,0 +1,94 @@
+package virtio
+
+import (
+	"encoding/binary"
+	"math/rand/v2"
+	"testing"
+)
+
+// This bounded review experiment exercises public command parsing sequences;
+// the 3D mode checks the Go adapter only, using the existing renderer stub.
+func TestSecurityReviewGPUSequences(t *testing.T) {
+	for _, native := range []bool{false, true} {
+		name := "2D"
+		if native {
+			name = "3DStub"
+		}
+		t.Run(name, func(t *testing.T) {
+			mem := make([]byte, 1<<20)
+			var renderer gpuRenderer
+			if native {
+				renderer = &gpuRendererStub{}
+			}
+			g := newGPUWithRenderer(11, nil, mem, &gpuDamageSink{}, renderer)
+			defer g.Close()
+			seeds := [][]byte{
+				gpu3DTestRequest(gpuCmdGetDisplayInfo, 0),
+				gpu3DTestRequest(gpuCmdResourceCreate2D, 0, 1, gpuFormatB8G8R8X8, 64, 64),
+				gpu3DTestRequest(gpuCmdResourceAttachBacking, 0, 1, 1, 0, 0, 64*64*4, 0),
+				gpu3DTestRequest(gpuCmdTransferToHost2D, 0, 0, 0, 64, 64, 0, 0, 1, 0),
+				gpu3DTestRequest(gpuCmdSetScanout, 0, 0, 0, 64, 64, 0, 1),
+				gpu3DTestRequest(gpuCmdResourceFlush, 0, 0, 0, 64, 64, 1, 0),
+				gpu3DTestRequest(gpuCmdResourceDetachBacking, 0, 1, 0),
+				gpu3DTestRequest(gpuCmdResourceUnref, 0, 1, 0),
+				gpu3DTestRequest(gpuCmdContextCreate, 1, make([]uint32, 18)...),
+				gpu3DTestRequest(gpuCmdResourceCreate3D, 0, 2, 2, gpuFormatB8G8R8A8, 2, 64, 64, 1, 1, 0, 0, 0, 0),
+				gpu3DTestRequest(gpuCmdContextAttachResource, 1, 2, 0),
+				gpu3DTestRequest(gpuCmdContextDetachResource, 1, 2, 0),
+				gpu3DTestRequest(gpuCmdContextDestroy, 1),
+				gpu3DTestRequest(gpuCmdSubmit3D, 1, 4, 0, 0),
+				gpu3DTestRequest(gpuCmdTransferToHost3D, 1, 0, 0, 0, 64, 64, 1, 0, 0, 2, 0, 256, 16384),
+				gpu3DTestRequest(gpuCmdTransferFromHost3D, 1, 0, 0, 0, 64, 64, 1, 0, 0, 2, 0, 256, 16384),
+				gpu3DTestRequest(gpuCmdGetCapset, 0, 1, 1),
+				gpu3DTestRequest(gpuCmdGetCapsetInfo, 0, 0, 0),
+			}
+			rng := rand.New(rand.NewPCG(42, 2026))
+			edges := []uint32{0, 1, 2, 3, 63, 64, 65, 65535, ^uint32(0), 0x80000000}
+			accepted := 0
+			for i := 0; i < 50000; i++ {
+				if i%500 == 0 {
+					g.Reset()
+				}
+				req := append([]byte(nil), seeds[rng.IntN(len(seeds))]...)
+				if rng.IntN(3) != 0 {
+					for m := rng.IntN(4) + 1; m > 0; m-- {
+						word := 1 + rng.IntN(len(req)/4-1)
+						binary.LittleEndian.PutUint32(req[word*4:], edges[rng.IntN(len(edges))])
+					}
+				}
+				if rng.IntN(8) == 0 {
+					req = req[:rng.IntN(len(req)+1)]
+				}
+				resp := g.handleControl(req)
+				if len(resp) < gpuCtrlHdrLen {
+					t.Fatalf("short response at %d", i)
+				}
+				if binary.LittleEndian.Uint32(resp) < gpuRespErrUnspec {
+					accepted++
+				}
+				if i%7 == 0 {
+					cursor := gpu3DTestRequest(gpuCmdUpdateCursor, 0, 0, rng.Uint32(), rng.Uint32(), 0, 1, rng.Uint32()%66, rng.Uint32()%66, 0)
+					g.handleCursor(cursor)
+				}
+				var cpu, nativeBytes, backingBytes, backingEntries uint64
+				for _, res := range g.resources {
+					cpu += uint64(len(res.data))
+					nativeBytes += res.charge
+					if res.handle != 0 {
+						backingEntries += uint64(len(res.backing))
+						for _, entry := range res.backing {
+							backingBytes += uint64(entry.length)
+						}
+					}
+				}
+				if cpu != g.resourceBytes || nativeBytes != g.resource3DBytes || backingBytes != g.backing3DBytes || backingEntries != g.backing3DEntries {
+					t.Fatalf("accounting mismatch at iteration %d", i)
+				}
+				if !native && cpu > gpuResourceLimit || nativeBytes > gpu3DResourceLimit || backingBytes > gpu3DBackingLimit || backingEntries > gpuMax3DBacking {
+					t.Fatalf("budget exceeded at iteration %d", i)
+				}
+			}
+			t.Logf("mode=%s commands=50000 accepted=%d", name, accepted)
+		})
+	}
+}

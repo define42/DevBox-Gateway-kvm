@@ -52,6 +52,8 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `BASE_IMAGE` | Empty | `-image` | Optional immutable raw or supported uncompressed QCOW2 default template. Omit to use administrator uploads. |
 | `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
 | `VM_GPU_3D` | `false` | `-gpu-3d` | Enable guest OpenGL via virglrenderer; requires a `virgl` build and host EGL. `false` retains the 2D device without initializing a renderer. Applies when each VM starts. |
+| `VM_NETWORK_POLICY` | `internet` | `-vm-network-policy` | Managed IPv4 TCP/UDP access: `internet` permits public destinations, while `allowlist` permits only explicit CIDRs. Visible host interface subnets, private and special ranges require an exception. DHCP/DNS remain available; see [networking](runtime.md#networking) for routed/NAT LAN limits. |
+| `VM_NETWORK_ALLOW_CIDRS` | Empty | `-vm-network-allow-cidrs` | Up to 64 comma-separated canonical IPv4 CIDRs allowed in addition to the policy. No `/0` or IPv6. Applies to newly started workers; host alias access requires `127.0.0.1/32`. See [networking](runtime.md#networking). |
 | `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
 | `H264_ENCODER` | `auto` | `-encoder` | `auto`, `nvenc`, or `software`. |
@@ -107,17 +109,21 @@ default 30-second guest timeout.
 Every managed VM start requires `VM_CGROUP_ROOT`. Its directory must be a
 privately controlled, writable cgroup v2 domain subtree, reached without
 symlinks and owned by the gateway's effective UID, with no resident processes.
-The `memory` controller must appear in both `cgroup.controllers` and
+Both `memory` and `pids` controllers must appear in `cgroup.controllers` and
 `cgroup.subtree_control`; at gateway startup,
 the root's recursive `cgroup.events` state must report `populated 0`. Children
-created there must provide writable `cgroup.kill`. This requires Linux 5.14 or
-newer with cgroup v2 memory support and clone-time cgroup attachment available
-to the process.
+created there must provide writable `cgroup.kill`. These cgroup features require
+Linux 5.14 or newer with memory and pids support and clone-time cgroup attachment
+available to the process. Managed workers additionally require an unprivileged
+service account, Linux 6.12+ with Landlock ABI 6 enabled, and seccomp; see
+[worker confinement](worker-sandbox.md).
 
 For every launch, the gateway creates a child cgroup, sets and verifies
 `memory.max` to guest RAM plus `VM_MEMORY_OVERHEAD_MIB`, disables swap with
-`memory.swap.max=0`, enables group OOM handling with `memory.oom.group=1`, and
-attaches the worker at clone time. Cleanup checks the child's recursive
+`memory.swap.max=0`, enables group OOM handling with `memory.oom.group=1`, caps
+host tasks (including threads) with `pids.max=512`, and attaches the worker at
+clone time. The task ceiling is fixed and applies to the worker and descendants.
+Cleanup checks the child's recursive
 `populated` state, uses `cgroup.kill` when descendants remain, and releases the
 reservation only after verifying `populated 0` and removing the child. A
 cleanup failure blocks all later VM starts in that gateway process until the

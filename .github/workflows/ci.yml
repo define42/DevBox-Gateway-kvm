@@ -82,6 +82,14 @@ jobs:
           echo "=== Iteration $i/10 passed ==="
         done
 
+    - name: Test network overload recovery and worker confinement
+      env:
+        GOMAXPROCS: "4"
+      run: |
+        go test -race -tags=integration -count=1 -timeout=2m \
+          ./internal/usernet ./internal/workersandbox \
+          -run 'Test(NetworkMalformedFloodRecovery|NetworkConnectionSaturationRecovery|WorkerConfinement|ConfinedKVMLifecycle)$'
+
     - name: Upload coverage to Coveralls
       if: matrix.go-version == '1.26.x'
       env:

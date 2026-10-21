@@ -46,32 +46,34 @@ var errRDPListenerConfig = errors.New("RDP requires an inherited Unix listener a
 // UEFI, UEFIVars and Disk. CloudInit is an optional read-only NoCloud seed ISO,
 // not a boot source. Init validates the supported combinations.
 type Config struct {
-	Debug          bool
-	Dev            string
-	Kernel         string
-	Initrd         string
-	UEFI           string
-	UEFIVars       string
-	Params         string
-	ParamsSet      bool // Records an explicit Params value, including empty, for UEFI validation.
-	TapIfName      string
-	Network        string
-	Disk           string
-	CloudInit      string
-	GPU3D          bool // Enable guest OpenGL through the optional virglrenderer backend.
-	RDPProfile     string
-	RDPWait        bool
-	RDPCert        string
-	RDPKey         string
-	RDPH264        bool
-	RDPH264Encoder string
-	RDPH264QP      *int // Nil selects QP 20; 0..51 selects quality, with lower values using more bandwidth.
-	RDPH264Threads int
-	RDPStats       bool
-	Audio          string // Empty or "none" disables audio; "rdp" requires RDPListenerFile.
-	NCPUs          int
-	MemSize        int
-	TraceCount     int
+	Debug             bool
+	Dev               string
+	Kernel            string
+	Initrd            string
+	UEFI              string
+	UEFIVars          string
+	Params            string
+	ParamsSet         bool // Records an explicit Params value, including empty, for UEFI validation.
+	TapIfName         string
+	Network           string
+	NetworkPolicy     string
+	NetworkAllowCIDRs string
+	Disk              string
+	CloudInit         string
+	GPU3D             bool // Enable guest OpenGL through the optional virglrenderer backend.
+	RDPProfile        string
+	RDPWait           bool
+	RDPCert           string
+	RDPKey            string
+	RDPH264           bool
+	RDPH264Encoder    string
+	RDPH264QP         *int // Nil selects QP 20; 0..51 selects quality, with lower values using more bandwidth.
+	RDPH264Threads    int
+	RDPStats          bool
+	Audio             string // Empty or "none" disables audio; "rdp" requires RDPListenerFile.
+	NCPUs             int
+	MemSize           int
+	TraceCount        int
 	// RDPListenerFile is borrowed from the caller, which keeps it open across
 	// guest resets. Each display owns a duplicate; nil disables RDP.
 	RDPListenerFile *os.File
@@ -160,9 +162,8 @@ func (v *VMM) Init() (initErr error) {
 	if (v.Audio != "" && v.Audio != "none" && v.Audio != "rdp") || (v.Audio == "rdp" && v.RDPListenerFile == nil) {
 		return errAudioConfig
 	}
-	if (v.Network != "" && v.Network != "none" && v.Network != "user" && v.Network != "user-isolated") ||
-		(v.Network != "" && v.TapIfName != "") {
-		return errNetworkConfig
+	if err := v.validateNetwork(); err != nil {
+		return err
 	}
 
 	m, err := machine.New(v.Dev, v.NCPUs, v.MemSize)
@@ -221,7 +222,7 @@ func (v *VMM) initNetwork(m *machine.Machine) error {
 	if v.Network == "user" || v.Network == "user-isolated" {
 		var err error
 		if v.Network == "user-isolated" {
-			err = m.AddIsolatedUserNet()
+			err = m.AddIsolatedUserNetWithPolicy(v.NetworkPolicy, v.NetworkAllowCIDRs)
 		} else {
 			err = m.AddUserNet()
 		}
@@ -229,6 +230,9 @@ func (v *VMM) initNetwork(m *machine.Machine) error {
 			return err
 		}
 		log.Print("User-mode network: DHCP 10.0.2.15, gateway/DNS 10.0.2.2")
+		if v.Network == "user-isolated" {
+			log.Print("Managed network destination policy active; host/private access requires explicit CIDRs")
+		}
 	}
 
 	return nil

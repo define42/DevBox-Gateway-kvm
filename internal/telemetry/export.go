@@ -14,11 +14,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var ErrDescriptor = errors.New("telemetry requires a connected inherited Unix datagram descriptor >=3")
+var ErrDescriptor = errors.New("telemetry requires a connected inherited Unix seqpacket descriptor >=3")
 
 // Start takes ownership of fd (when >=3), including on initialization failure.
 // Its exporter sends immediately and every Interval, even without RDP traffic.
-// Datagram writes never block: a full/disconnected peer drops a snapshot, while
+// Packet writes never block: a full/disconnected peer drops a snapshot, while
 // the next heartbeat retains cumulative counters. Stop cancels, joins and closes.
 func Start(ctx context.Context, fd int) (*Collector, func(), error) {
 	if fd < 3 {
@@ -57,7 +57,7 @@ func validateDescriptor(fd int) error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrDescriptor, err)
 	}
-	if typeID != unix.SOCK_DGRAM {
+	if typeID != unix.SOCK_SEQPACKET {
 		return ErrDescriptor
 	}
 	peer, err := unix.Getpeername(fd)

@@ -1,0 +1,15 @@
+Baseline source: 79a82e3df12d5f067d9d6b05e2316c21c98ce6a9
+Recorded after baseline run; same host and toolchain as hardened/environment.txt
+GOMAXPROCS=4; benchmark count=10; benchtime=1s; stress phase=10s
+No KVM, TAP, external peers or process CPU/memory cgroup enforced by this harness.
+go version go1.27.2 linux/amd64
+Linux 7.0.0-38-generic x86_64 GNU/Linux
+9e40302bf9394ced83deba1603ebf88a31c5fedc0d5f40a3f0fbcfd912facb94  internal/usernet/dns.go
+dccdc4365c33f756432cd57d69cc9ba2da03ed45754430730979c36d3a8f7e08  internal/usernet/forward.go
+95c1c3cf16158b257c2b47ef642459a04b1fe837bc6d74c0606a2a7fa1ca04c8  internal/usernet/isolation_test.go
+31dc47445a339c0d478f17ebdf22015b685cf3915f88f75c6a3817e3ad1471a1  internal/usernet/network.go
+1330faa3d970ace57b6b65541ba54f88a40b38f262c4b2395c8f6d2849edc27d  internal/usernet/network_bench_test.go
+f2814b8295da022cfc8467da99cb86a3442f1b47d86abe5b64d85b88c9555ba3  internal/usernet/network_stress_test.go
+1dbe309910f2ed8d457fa02c3c0d8288423b8be1d5eb67a1e764f5ab7f8d4662  internal/usernet/network_test.go
+16beffe1908cfb1e5983e95c17022832ac1d629bca38570f99d9cfb80bc98bce  go.mod
+d470f8377b881c511f2a4d28d6dc1485fa615d111951e97fa413126ff5a4745b  go.sum

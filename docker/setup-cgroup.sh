@@ -33,12 +33,13 @@ install -m 0644 docker/systemd/devbox.slice /etc/systemd/system/devbox.slice
 install -m 0644 docker/systemd/devbox-vm-cgroup.service /etc/systemd/system/devbox-vm-cgroup.service
 install -m 0644 docker/systemd/devbox-cgroup.conf /etc/systemd/system/docker.service.d/devbox-cgroup.conf
 systemctl daemon-reload
-# Starting an already-active service is harmless; never restart live workers.
+# Starting an already-active service does not restart its existing workers.
 systemctl enable --now devbox-vm-cgroup.service
 workers=/sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers
 if [ ! -d "$workers" ] || [ "$(stat -c '%u:%a' "$workers")" != '10001:700' ] ||
-    ! grep -qw memory "$workers/cgroup.subtree_control"; then
-    echo 'Delegation is not ready; inspect systemctl status devbox-vm-cgroup.service.' >&2
+    ! grep -qw memory "$workers/cgroup.subtree_control" ||
+    ! grep -qw pids "$workers/cgroup.subtree_control"; then
+    echo 'Memory/pids delegation is not ready; inspect systemctl status devbox-vm-cgroup.service.' >&2
     exit 1
 fi
 printf 'Host delegation ready. Include compose.cgroup.yaml when starting the gateway.\n'

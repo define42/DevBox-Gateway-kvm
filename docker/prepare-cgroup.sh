@@ -20,9 +20,9 @@ if [ -d "$workers" ] && ! grep -qx 'populated 0' "$workers/cgroup.events"; then
     echo 'The VM subtree still contains processes; stop the gateway before preparing it.' >&2
     exit 1
 fi
-printf '+memory\n' > "$service/cgroup.subtree_control"
+printf '+memory +pids\n' > "$service/cgroup.subtree_control"
 mkdir -p -- "$workers"
-printf '+memory\n' > "$workers/cgroup.subtree_control"
+printf '+memory +pids\n' > "$workers/cgroup.subtree_control"
 chown 10001:10001 "$workers"
 chmod 0700 "$workers"
 if [ ! -e "$workers/cgroup.kill" ]; then

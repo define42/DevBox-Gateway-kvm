@@ -21,7 +21,7 @@ func TestResourceErrorsDoNotExposeHostPaths(t *testing.T) {
 		{name: "quota exhausted", cause: syscall.EDQUOT, status: http.StatusInsufficientStorage, text: "quota"},
 		{
 			name: "cgroup unavailable", cause: ErrCgroupUnavailable,
-			status: http.StatusServiceUnavailable, text: "memory limit",
+			status: http.StatusServiceUnavailable, text: "memory and process limits",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

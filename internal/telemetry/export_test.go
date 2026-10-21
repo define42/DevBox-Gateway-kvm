@@ -37,7 +37,7 @@ func TestExporterIdleHeartbeatAndDroppedSnapshot(t *testing.T) {
 		connection.Close()
 		time.Sleep(Interval)
 		synctest.Wait()
-		// Discard one datagram as if the receiver queue was full. Cumulative
+		// Discard one packet as if the receiver queue was full. Cumulative
 		// counters must survive independently of exporter delivery success.
 		<-packets
 		time.Sleep(Interval)
@@ -53,9 +53,9 @@ func TestExporterIdleHeartbeatAndDroppedSnapshot(t *testing.T) {
 	})
 }
 
-func TestExporterDatagramAndShutdown(t *testing.T) {
+func TestExporterPacketAndShutdown(t *testing.T) {
 	t.Parallel()
-	peer, child := datagramPair(t)
+	peer, child := seqpacketPair(t)
 	collector, stop, err := Start(t.Context(), child)
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +63,7 @@ func TestExporterDatagramAndShutdown(t *testing.T) {
 	defer stop()
 	ready := []unix.PollFd{{Fd: int32(peer), Events: unix.POLLIN}}
 	if count, err := unix.Poll(ready, 2000); err != nil || count != 1 {
-		t.Fatalf("initial datagram not available: count=%d err=%v", count, err)
+		t.Fatalf("initial packet not available: count=%d err=%v", count, err)
 	}
 	data := make([]byte, MaxMessageSize+1)
 	count, _, err := unix.Recvfrom(peer, data, unix.MSG_DONTWAIT)
@@ -84,7 +84,7 @@ func TestExporterDatagramAndShutdown(t *testing.T) {
 
 func TestExporterFullSocketDoesNotBlockShutdown(t *testing.T) {
 	t.Parallel()
-	_, child := datagramPair(t)
+	_, child := seqpacketPair(t)
 	if err := unix.SetsockoptInt(child, unix.SOL_SOCKET, unix.SO_SNDBUF, MaxMessageSize); err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestExporterFullSocketDoesNotBlockShutdown(t *testing.T) {
 		}
 	}
 	if !full {
-		t.Fatal("could not fill bounded datagram queue")
+		t.Fatal("could not fill bounded packet queue")
 	}
 	collector, stop, err := Start(t.Context(), child)
 	if err != nil {
@@ -129,7 +129,7 @@ func TestExporterFullSocketDoesNotBlockShutdown(t *testing.T) {
 
 func TestExporterDisconnectedSocket(t *testing.T) {
 	t.Parallel()
-	pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC, 0)
+	pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_SEQPACKET|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,15 +168,27 @@ func TestStartRejectsMalformedDescriptors(t *testing.T) {
 			t.Fatalf("stream descriptor accepted: %v", err)
 		}
 	})
-	t.Run("unconnected datagram", func(t *testing.T) {
+	t.Run("unconnected seqpacket", func(t *testing.T) {
 		t.Parallel()
-		fd, err := unix.Socket(unix.AF_UNIX, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC, 0)
+		fd, err := unix.Socket(unix.AF_UNIX, unix.SOCK_SEQPACKET|unix.SOCK_CLOEXEC, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
 		_, _, err = Start(t.Context(), fd)
 		if !errors.Is(err, ErrDescriptor) {
 			t.Fatalf("unconnected descriptor accepted: %v", err)
+		}
+	})
+	t.Run("connected datagram", func(t *testing.T) {
+		t.Parallel()
+		pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer unix.Close(pair[0])
+		_, _, err = Start(t.Context(), pair[1])
+		if !errors.Is(err, ErrDescriptor) {
+			t.Fatalf("redirectable datagram descriptor accepted: %v", err)
 		}
 	})
 	t.Run("regular descriptor", func(t *testing.T) {
@@ -220,9 +232,9 @@ func TestResidentBytes(t *testing.T) {
 	}
 }
 
-func datagramPair(t *testing.T) (int, int) {
+func seqpacketPair(t *testing.T) (int, int) {
 	t.Helper()
-	pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC, 0)
+	pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_SEQPACKET|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

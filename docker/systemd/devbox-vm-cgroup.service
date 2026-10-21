@@ -1,11 +1,11 @@
 [Unit]
-Description=Prepare the delegated DevBox VM memory cgroup
+Description=Prepare the delegated DevBox VM memory and process cgroup
 Before=docker.service
 
 [Service]
 Type=exec
 Slice=devbox.slice
-Delegate=memory
+Delegate=memory pids
 DelegateSubgroup=supervisor
 ExecStart=/usr/bin/sleep infinity
 ExecStartPost=/usr/local/libexec/devbox-prepare-cgroup

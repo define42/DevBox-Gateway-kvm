@@ -3,13 +3,13 @@ package usernet
 import (
 	"io"
 	"net"
+	"net/netip"
 	"strconv"
 	"sync"
 	"time"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
-	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
@@ -23,13 +23,10 @@ func (n *Network) destination(id stack.TransportEndpointID) (string, bool) {
 	if address == gatewayAddress {
 		address = tcpip.AddrFrom4([4]byte{127, 0, 0, 1})
 	}
-	ip := net.IP(address.AsSlice())
-	// Apply isolation after alias translation and before opening any host
-	// socket. IP.IsLoopback also recognizes IPv4-mapped loopback addresses.
-	if n.denyHostLoopback && ip.IsLoopback() {
-		return "", false
-	}
-	if address == header.IPv4Broadcast || ip.IsMulticast() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() {
+	ip, ok := netip.AddrFromSlice(address.AsSlice())
+	// Check the translated IP before opening either TCP or UDP host sockets.
+	// DNS responses never grant an exemption to this destination check.
+	if !ok || !n.policy.permits(ip) {
 		return "", false
 	}
 

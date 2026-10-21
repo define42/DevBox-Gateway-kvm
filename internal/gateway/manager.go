@@ -23,6 +23,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
+	"github.com/define42/DevBox-Gateway-kvm/internal/workersandbox"
 	"golang.org/x/sys/unix"
 )
 
@@ -43,6 +44,7 @@ type ManagerConfig struct {
 	MemoryBudgetMiB                                    int    // Zero selects an automatic host-memory budget.
 	MemoryOverheadMiB                                  int    // Host-side worker allowance above guest RAM.
 	CgroupRoot                                         string // Empty disables starts, not isolation.
+	NetworkPolicy, NetworkAllowCIDRs                   string // Internet default; explicit CIDRs permit LAN/host access.
 	MaxCreations                                       int    // Bounds provisioning I/O across all owners.
 	StartTimeout, StopTimeout                          time.Duration
 	MaxImageUploadBytes                                int64
@@ -196,6 +198,9 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		if err != nil {
 			return err
 		}
+	}
+	if err := normalizeManagerNetworkConfig(c); err != nil {
+		return err
 	}
 	if err := normalizeManagerLimits(c); err != nil {
 		return err
@@ -680,9 +685,10 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		return nil, err
 	}
 	args := []string{
-		"boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
+		"worker", "boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
 		"-d", filepath.Join(dir, "disk.img"), "-cloud-init", filepath.Join(dir, "seed.iso"),
 		"-c", fmt.Sprint(m.config.CPUs), "-m", fmt.Sprintf("%dM", m.config.MemoryMiB), "-net", "user-isolated",
+		"-net-policy", m.config.NetworkPolicy, "-net-allow-cidrs", m.config.NetworkAllowCIDRs,
 		"-rdp-fd", "3",
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
 		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
@@ -693,6 +699,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-audio", "rdp",
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
+	cmd.Env = workersandbox.Environment(os.Environ())
 	profiling := m.prepareProfiling(dir)
 	defer func() {
 		if profiling != nil {

@@ -54,7 +54,7 @@ func TestProcessPerformanceSamplingAndPayload(t *testing.T) {
 	}
 	second := first
 	second.Sequence, second.ElapsedSeconds, second.PayloadBytes = 4, 11, 1100
-	// A delayed/lost datagram must not make receipt time or the nominal five-second
+	// A delayed/lost packet must not make receipt time or the nominal five-second
 	// export period the denominator. The child's measured interval is ten seconds.
 	if !p.decode(performanceTestJSON(t, second), now.Add(20*time.Second)) {
 		t.Fatal("advancing sample rejected")
@@ -102,7 +102,7 @@ func TestProcessPerformanceDeltasAndReconnect(t *testing.T) {
 	}
 	second := first
 	cpu := 11.0
-	second.Sequence, second.ElapsedSeconds, second.CPUSeconds = 3, 6, &cpu // A lost datagram is harmless.
+	second.Sequence, second.ElapsedSeconds, second.CPUSeconds = 3, 6, &cpu // A lost packet is harmless.
 	second.FramesSent, second.PayloadBytes = 20, 300
 	second.EncodeNanos, second.EncodeCount = 50_000_000, 20
 	second.WriteNanos, second.WriteCount = 30_000_000, 20

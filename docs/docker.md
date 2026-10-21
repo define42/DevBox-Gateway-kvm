@@ -7,8 +7,10 @@ linking; NVENC also loads NVIDIA driver libraries supplied by the host. The runt
 or FFmpeg command-line tool.
 
 It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
-and working `/dev/kvm` access. If Linux itself runs in a VM, nested virtualization
-must be enabled.
+and working `/dev/kvm` access. Managed desktop starts require Linux 6.12+ with
+Landlock ABI 6 enabled, seccomp, and the delegated memory and pids controllers
+described below. See [worker confinement](worker-sandbox.md). If Linux itself
+runs in a VM, nested virtualization must be enabled.
 
 ## Guest OpenGL
 
@@ -452,8 +454,9 @@ Managed guest networking uses `user-isolated`; it needs neither a TUN device nor
 
 ## Required cgroup v2 delegation for VM starts
 
-The message “The host cannot enforce this desktop's memory limit” means that
-VM worker memory isolation is unavailable. Creating an ordinary directory or
+The message “The host cannot enforce this desktop's memory and process limits”
+means that VM worker resource isolation is unavailable. Creating an ordinary
+directory or
 setting `VM_CGROUP_ROOT` alone does not configure it. The base Compose file starts
 the management plane but intentionally refuses desktop starts until delegation
 is supplied.
@@ -466,13 +469,13 @@ sudo ./docker/setup-cgroup.sh
 docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
 ```
 
-The helper requires Linux 5.14 or newer with cgroup v2 memory support, systemd
-254 or newer, Docker's `systemd` cgroup driver, and no rootless mode or UID
+Managed workers require Linux 6.12+ with Landlock ABI 6 enabled and seccomp; see
+[worker confinement](worker-sandbox.md). The delegation helper alone requires Linux 5.14 or newer with cgroup v2 memory and pids support,
+systemd 254 or newer, Docker's `systemd` cgroup driver, and no rootless mode or UID
 remapping. It installs and enables `devbox-vm-cgroup.service` under `devbox.slice`,
 plus a Docker ordering drop-in so delegation is prepared before Docker on future
 boots. Docker is not restarted. Rerunning the installer leaves an already-active
-service and its workers running; stop desktops and the gateway before explicitly
-restarting the delegation service.
+service and its workers running.
 
 The service creates and delegates this host subtree to UID 10001:
 
@@ -499,16 +502,16 @@ sudo cat /sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers/cgroup.eve
 ```
 
 The service stays `active (running)` to preserve its delegated subtree. Subtree
-control must include `memory`, and events must report `populated 0` while all
-desktops are stopped. The gateway
+control must include both `memory` and `pids`, and events must report
+`populated 0` while all desktops are stopped. The gateway
 checks that the subtree has no live descendants at startup and validates the
 delegation again before every launch. It fails closed if the subtree is missing,
 incorrectly delegated, or still contains workers from an earlier run.
 
 For other deployment arrangements, provide a dedicated cgroup v2 domain subtree
 with ownership by the container's effective host UID, no group or other write
-permission, no live descendants at gateway startup, and `memory` enabled in both
-`cgroup.controllers` and `cgroup.subtree_control`. Children must support writable
+permission, no live descendants at gateway startup, and both `memory` and `pids`
+enabled in `cgroup.controllers` and `cgroup.subtree_control`. Children must support writable
 `cgroup.kill`. Mount only that delegated subtree writable at a private, clean
 absolute container path, and set `VM_CGROUP_ROOT` to that path. The runtime must
 permit `clone3` with cgroup attachment, including write access to the common
@@ -517,7 +520,9 @@ ancestor's `cgroup.procs` under the kernel's delegation rules. See the kernel's
 
 Each worker receives `memory.max` equal to `VM_MEMORY_MIB` plus
 `VM_MEMORY_OVERHEAD_MIB` (default 512 MiB, accepted range 64 to 16384 MiB),
-`memory.swap.max=0`, and `memory.oom.group=1`. It joins that cgroup during clone,
+`memory.swap.max=0`, `memory.oom.group=1`, and `pids.max=512`. The fixed task
+ceiling counts host processes and threads across the worker and its descendants.
+It joins that cgroup during clone,
 before it can run outside the limit. With the supplied overlay, workers are
 outside the Docker container's own cgroup, so a Docker container memory limit
 does **not** cap their aggregate usage. Configure `MemoryMax` on `devbox.slice`

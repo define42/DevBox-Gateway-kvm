@@ -22,6 +22,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
     stop_grace_period: 45s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     devices:
       - /dev/kvm:/dev/kvm
     group_add:
@@ -40,6 +44,8 @@ services:
       BASE_IMAGE: "${BASE_IMAGE-}"
       VM_BINARY: "${VM_BINARY-}"
       VM_GPU_3D: "${VM_GPU_3D-false}"
+      VM_NETWORK_POLICY: "${VM_NETWORK_POLICY-internet}"
+      VM_NETWORK_ALLOW_CIDRS: "${VM_NETWORK_ALLOW_CIDRS-}"
       UEFI_CODE: "${UEFI_CODE-/usr/share/OVMF/OVMF_CODE_4M.fd}"
       UEFI_VARS_TEMPLATE: "${UEFI_VARS_TEMPLATE-/usr/share/OVMF/OVMF_VARS_4M.fd}"
       H264_ENCODER: "${H264_ENCODER-${GATEWAY_ENCODER:-auto}}"

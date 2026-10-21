@@ -11,6 +11,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
+	"github.com/define42/DevBox-Gateway-kvm/internal/usernet"
 )
 
 var ErrorInvalidSubcommands = errors.New("expected 'boot', 'probe', 'serve', 'seed', or 'auth-user' subcommands")
@@ -46,39 +47,42 @@ var ErrCPUCount = fmt.Errorf("-c must be between 1 and %d", ebda.MaxVCPUs)
 var ErrCloudInitDisk = errors.New("-cloud-init requires a primary disk supplied with -d")
 
 type BootArgs struct {
-	Kernel         string
-	MemSize        int
-	NCPUs          int
-	Dev            string
-	Initrd         string
-	UEFI           string
-	UEFIVars       string
-	Params         string
-	ParamsSet      bool
-	TapIfName      string
-	Network        string
-	Disk           string
-	CloudInit      string
-	GPU3D          bool
-	RDPProfile     string
-	RDPFD          int
-	TelemetryFD    int
-	ProfileSocket  string
-	RDPWait        bool
-	RDPCert        string
-	RDPKey         string
-	RDPH264        bool
-	RDPH264Encoder string
-	RDPH264QP      int
-	RDPH264Threads int
-	RDPStats       bool
-	Audio          string
-	TraceCount     int
+	Kernel            string
+	MemSize           int
+	NCPUs             int
+	Dev               string
+	Initrd            string
+	UEFI              string
+	UEFIVars          string
+	Params            string
+	ParamsSet         bool
+	TapIfName         string
+	Network           string
+	NetworkPolicy     string
+	NetworkAllowCIDRs string
+	Disk              string
+	CloudInit         string
+	GPU3D             bool
+	RDPProfile        string
+	RDPFD             int
+	TelemetryFD       int
+	ProfileSocket     string
+	RDPWait           bool
+	RDPCert           string
+	RDPKey            string
+	RDPH264           bool
+	RDPH264Encoder    string
+	RDPH264QP         int
+	RDPH264Threads    int
+	RDPStats          bool
+	Audio             string
+	TraceCount        int
 }
 
 func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd := flag.NewFlagSet("boot subcommand", flag.ContinueOnError)
 	c := &BootArgs{}
+	settings := config.NewSettings()
 
 	bootCmd.StringVar(&c.Dev, "D", "/dev/kvm", "path of kvm device")
 	bootCmd.StringVar(&c.Kernel, "k", "./bzImage", "kernel image path")
@@ -95,11 +99,15 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.TapIfName, "t", "", `name of tap interface. `+
 		`If the string is an empty, no tap intarface is created. (default"")`)
 	bootCmd.StringVar(&c.Network, "net", "", "network backend: user (DHCP/DNS and outbound access), "+
-		"user-isolated (also denies host loopback), or none (default); mutually exclusive with -t")
+		"user-isolated (public IPv4 by default), or none (default); mutually exclusive with -t")
+	bootCmd.StringVar(&c.NetworkPolicy, "net-policy", settings.Get(config.VM_NETWORK_POLICY),
+		"user-isolated destination policy: internet or allowlist ["+config.VM_NETWORK_POLICY+"]")
+	bootCmd.StringVar(&c.NetworkAllowCIDRs, "net-allow-cidrs", settings.Get(config.VM_NETWORK_ALLOW_CIDRS),
+		"user-isolated allowed IPv4 CIDRs, comma-separated; host alias requires 127.0.0.1/32 ["+
+			config.VM_NETWORK_ALLOW_CIDRS+"]")
 	bootCmd.StringVar(&c.Disk, "d", "", "path of disk file (for /dev/vda)")
 	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
 		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
-	settings := config.NewSettings()
 	bootCmd.BoolVar(&c.GPU3D, "gpu-3d", settings.Bool(config.VM_GPU_3D),
 		settings.Description(config.VM_GPU_3D)+" ["+config.VM_GPU_3D+"]")
 	bootCmd.StringVar(&c.RDPProfile, "rdp-profile", rdp.ProfileSmooth,
@@ -107,7 +115,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
 		"gateway-internal inherited Unix listener descriptor (>=3); 0 disables RDP")
 	bootCmd.IntVar(&c.TelemetryFD, "telemetry-fd", 0,
-		"private inherited Unix datagram descriptor (>=3); 0 disables managed performance telemetry")
+		"private inherited Unix seqpacket descriptor (>=3); 0 disables managed performance telemetry")
 	bootCmd.StringVar(&c.ProfileSocket, "profile-socket", "",
 		"opt-in CPU profiling Unix socket in a private directory; empty disables profiling")
 	bootCmd.BoolVar(&c.RDPWait, "rdp-wait", false,
@@ -172,6 +180,13 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if (c.Network != "" && c.Network != "none" && c.Network != "user" && c.Network != "user-isolated") ||
 		(c.Network != "" && c.TapIfName != "") {
 		return nil, ErrNetwork
+	}
+	if err := usernet.ValidateDestinationPolicy(c.NetworkPolicy, c.NetworkAllowCIDRs); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrNetwork, err)
+	}
+	if c.Network != "user-isolated" && (c.NetworkAllowCIDRs != "" ||
+		(c.NetworkPolicy != "" && c.NetworkPolicy != "internet")) {
+		return nil, fmt.Errorf("%w: destination policy options require user-isolated", ErrNetwork)
 	}
 	if c.MemSize, err = ParseSize(*msize, "g"); err != nil {
 		return nil, err

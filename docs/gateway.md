@@ -495,17 +495,17 @@ must be a clean absolute path to a writable cgroup v2 domain subtree that:
 - is owned by the gateway's effective UID and is not group or other writable;
 - has no processes in `cgroup.procs`;
 - reports recursive `populated 0` in `cgroup.events` at gateway startup;
-- lists `memory` in both `cgroup.controllers` and
+- lists both `memory` and `pids` in `cgroup.controllers` and
   `cgroup.subtree_control`; and
 - provides writable `cgroup.kill` controls in gateway-created children.
 
 A configured root is validated during gateway startup. A recursive
 `populated 1` rejects startup instead of accepting live orphan processes from a
-previous run. VM launches require Linux 5.14 or newer with cgroup v2 memory,
-`cgroup.kill`, and clone-time cgroup attachment support. Even after the
+previous run. VM launches require Linux 6.12+ with Landlock ABI 6 enabled, seccomp, and cgroup v2 memory and
+pids controllers, `cgroup.kill`, and clone-time cgroup attachment support. Even after the
 filesystem checks pass, the kernel or container runtime policy may deny the
 required `clone3` cgroup attachment; that VM launch is refused rather than
-started without its limit.
+started without its limits.
 
 For containers, mount only the dedicated host-delegated subtree at that path;
 do not expose all of `/sys` or `/sys/fs/cgroup` read-write, add
@@ -514,8 +514,9 @@ the [scoped delegation requirements](docker.md#required-cgroup-v2-delegation-for
 
 For every launch, the gateway creates a private child cgroup and sets
 `memory.max` to `VM_MEMORY_MIB + VM_MEMORY_OVERHEAD_MIB`,
-`memory.swap.max=0`, and `memory.oom.group=1`. It verifies each value, then
-attaches the worker during clone so the process cannot run first and be moved
+`memory.swap.max=0`, `memory.oom.group=1`, and `pids.max=512`. The process limit
+counts host tasks, including threads, across the worker and its descendants.
+It verifies each value, then attaches the worker during clone so the process cannot run first and be moved
 into the cgroup later. Failure to prepare, configure, verify, or attach the
 cgroup leaves the desktop stopped. On exit, cleanup checks the recursive
 `populated` state, writes `cgroup.kill` if residual descendants remain, waits
@@ -621,10 +622,13 @@ Managed worker standard output and error are discarded rather than written to
 persistent per-VM logs, so guest-controlled output cannot fill the state disk.
 Use the performance panel and gateway diagnostics for host-side troubleshooting.
 
-Managed VMs use `-net user-isolated`. They retain IPv4 DHCP/DNS and outbound
-TCP/UDP, while host loopback destinations are denied. This restriction does not
-make the guest network an offline environment or isolate all reachable host/LAN
-services.
+Managed VMs use `-net user-isolated`. They retain IPv4 DHCP/DNS and default to
+public internet TCP/UDP destinations. Visible host interface subnets, loopback,
+private, shared, link-local and other special ranges require an explicit
+`VM_NETWORK_ALLOW_CIDRS` exception. `VM_NETWORK_POLICY=allowlist` permits only
+those exceptions. The DNS proxy alone may contact configured host resolvers
+without an exception. See the [destination policy](runtime.md#networking) for
+CIDR validation, host-alias translation and deployment boundaries.
 
 Desktop creation preserves sparse image holes when reflinks are unavailable.
 `MAX_CONCURRENT_CREATIONS` limits simultaneous provisioning across all accounts

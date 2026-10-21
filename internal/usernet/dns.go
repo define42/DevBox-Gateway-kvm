@@ -1,9 +1,7 @@
 package usernet
 
 import (
-	"context"
 	"net"
-	"time"
 
 	"github.com/miekg/dns"
 	"gvisor.dev/gvisor/pkg/tcpip"
@@ -17,9 +15,8 @@ func New() (*Network, error) {
 	return newDefaultNetwork(false)
 }
 
-// NewIsolated preserves DHCP, DNS and outbound access while denying forwarded
-// host loopback connections, including the virtual gateway's host-service alias.
-// The DNS service can still contact the operator-configured host resolver.
+// NewIsolated provides public IPv4 internet access while denying host, private
+// and special destinations. DNS can still contact the configured host resolver.
 func NewIsolated() (*Network, error) {
 	return newDefaultNetwork(true)
 }
@@ -45,54 +42,17 @@ func (n *Network) startDNS(servers []string) error {
 	if err != nil {
 		return err
 	}
-	n.services = append(n.services, conn)
 	listener, err := gonet.ListenTCP(n.stack, address, ipv4.ProtocolNumber)
 	if err != nil {
+		_ = conn.Close()
+
 		return err
 	}
-	n.services = append(n.services, listener)
-	handler := dns.HandlerFunc(func(w dns.ResponseWriter, request *dns.Msg) {
-		ctx, cancel := context.WithTimeout(n.ctx, 5*time.Second)
-		defer cancel()
-		client := dns.Client{Net: "udp", Timeout: 2 * time.Second}
-		for _, server := range servers {
-			reply, _, exchangeErr := client.ExchangeContext(ctx, request, server)
-			if exchangeErr != nil {
-				continue
-			}
-			if reply.Truncated {
-				client.Net = "tcp"
-				reply, _, exchangeErr = client.ExchangeContext(ctx, request, server)
-				client.Net = "udp"
-				if exchangeErr != nil {
-					continue
-				}
-			}
-			_ = w.WriteMsg(reply)
-
-			return
-		}
-		reply := new(dns.Msg)
-		reply.SetRcode(request, dns.RcodeServerFailure)
-		_ = w.WriteMsg(reply)
-	})
-	for _, server := range []*dns.Server{
-		{PacketConn: conn, Handler: handler},
-		{Listener: listener, Handler: handler},
-	} {
-		n.services = append(n.services, dnsService{server})
-		n.run(func() { _ = server.ActivateAndServe() })
-	}
+	service := newDNSService(n.ctx, conn, listener, servers)
+	n.services = append(n.services, service)
+	n.run(func() { service.serveUDP(n.ctx, n.run) })
+	n.run(func() { service.writeUDP(n.ctx) })
+	n.run(func() { _ = service.tcp.ActivateAndServe() })
 
 	return nil
-}
-
-// Closing the listening socket alone leaves accepted TCP DNS clients alive.
-type dnsService struct{ *dns.Server }
-
-func (s dnsService) Close() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	return s.ShutdownContext(ctx)
 }

@@ -23,7 +23,7 @@ func TestInvalidTelemetryDoesNotPreventBoot(t *testing.T) {
 
 func TestCancelledBootJoinsTelemetryAndClosesDescriptor(t *testing.T) {
 	t.Parallel()
-	pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC, 0)
+	pair, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_SEQPACKET|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestCancelledBootJoinsTelemetryAndClosesDescriptor(t *testing.T) {
 		t.Fatalf("cancelled boot returned %v", err)
 	}
 	err = unix.Send(pair[0], []byte("closed"), unix.MSG_DONTWAIT|unix.MSG_NOSIGNAL)
-	if !errors.Is(err, unix.ECONNREFUSED) {
+	if !errors.Is(err, unix.EPIPE) {
 		t.Fatalf("boot left telemetry socket open: %v", err)
 	}
 }

@@ -48,7 +48,7 @@ file. `boot -help` is the complete CLI reference.
 | `-m size` | `1G` | Guest RAM; `K`, `M`, and `G` are binary units. Unitless values mean GiB. |
 | `-d path` | Unset | Existing writable raw or supported qcow2 disk, normally `/dev/vda`. |
 | `-cloud-init path` | Unset | Validated local CIDATA seed, attached read-only after the primary disk; requires `-d`. |
-| `-net user\|user-isolated\|none` | `none` | Built-in networking, optional host loopback isolation, or no network; mutually exclusive with `-t`. |
+| `-net user\|user-isolated\|none` | `none` | Legacy unrestricted networking, destination-policy-controlled networking, or no network; mutually exclusive with `-t`. |
 | `-t name` | Unset | Host TAP interface. |
 | `-T count` | `0` | Instructions to skip between trace prints; zero disables tracing. |
 
@@ -292,9 +292,42 @@ address is `10.0.2.15/24`; gateway and DNS are `10.0.2.2`. DNS uses the host's
 configured resolvers.
 
 Guest TCP/UDP connections to `10.0.2.2` reach host loopback services, except the
-built-in DNS/DHCP ports. `-net user-isolated` denies this alias and other host
-loopback forwarding while keeping virtual DHCP/DNS and outbound IPv4 access.
-The gateway uses this isolated mode for managed VMs.
+built-in DNS/DHCP ports. The gateway uses `-net user-isolated` for managed VMs.
+Its default `internet` policy permits public IPv4 TCP/UDP destinations and
+rejects visible host interface subnets, including publicly numbered ones, as
+well as loopback, private, shared, link-local and other special-purpose ranges.
+It checks the destination IP before opening host sockets, including IPs returned
+by DNS. Built-in DHCP/DNS remain available; the
+DNS proxy alone may contact configured host resolvers without an exception.
+
+Each network instance permits at most 64 concurrent DNS queries/upstream
+exchanges, 16 accepted TCP DNS clients, and 64 queued UDP replies. DNS I/O and
+idle-client timeouts are two seconds, with a five-second total resolver budget.
+Excess UDP work is dropped before spawning query handlers; excess TCP clients
+are closed, and admitted TCP queries receive SERVFAIL when the query budget is
+full. Ordinary forwarded TCP/UDP connections retain their separate 256-flow
+limit.
+
+Use `VM_NETWORK_ALLOW_CIDRS=192.168.20.10/32,10.30.0.0/16` to permit selected
+IPv4 destinations. Select `VM_NETWORK_POLICY=allowlist` to disable general
+internet forwarding and allow only those CIDRs. Gateway flags are
+`-vm-network-policy` and `-vm-network-allow-cidrs`; standalone `boot -net
+user-isolated` uses `-net-policy` and `-net-allow-cidrs`. Changes apply when a VM
+worker starts. CIDRs must be canonical IPv4 networks, with at most 64 entries;
+`0.0.0.0/0`, hostnames, IPv6 and malformed values are rejected.
+
+The host-service alias is checked after translation: allowing `10.0.2.2/32`
+does not authorize host loopback. An explicit `127.0.0.1/32` permits it. An
+allowed range can also include host interface addresses or metadata services,
+so keep exceptions narrow. Multicast, unspecified and reserved class-E
+addresses cannot be enabled. Host interface subnets are rechecked for each new
+flow; failed interface discovery denies non-allowlisted forwarding. Discovery
+sees only interfaces in the worker's network namespace. Publicly numbered LANs
+behind another router, external host addresses and NAT aliases may therefore
+remain reachable under `internet`. Use `allowlist` with narrow destination CIDRs
+or host firewall rules when those destinations must also be excluded.
+The explicitly selected legacy `-net user` backend retains unrestricted
+unicast host/LAN access and cannot use destination-policy exceptions.
 
 IPv6, incoming port forwarding, and external ICMP/ping forwarding are not
 implemented. Check outbound access with a browser or `wget https://github.com`

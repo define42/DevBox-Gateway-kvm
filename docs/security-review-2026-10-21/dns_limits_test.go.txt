@@ -1,0 +1,70 @@
+package usernet
+
+import (
+	"fmt"
+	"github.com/miekg/dns"
+	"gvisor.dev/gvisor/pkg/tcpip"
+	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
+	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
+	"net"
+	"os"
+	"testing"
+	"time"
+)
+
+func TestSecurityReviewDNSBypassesConnectionBudget(t *testing.T) {
+	upstream, err := net.ListenPacket("udp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer upstream.Close()
+	seen := make(chan string, 400)
+	go func() {
+		data := make([]byte, 4096)
+		for {
+			_, peer, err := upstream.ReadFrom(data)
+			if err != nil {
+				return
+			}
+			seen <- peer.String()
+		}
+	}()
+	n := isolatedTestNetwork(t, upstream.LocalAddr().String())
+	guest := guestStack(t, n)
+	conn, err := gonet.DialUDP(guest, nil, &tcpip.FullAddress{NIC: 1, Addr: gatewayAddress, Port: 53}, ipv4.ProtocolNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	before, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	peers := make(map[string]bool)
+	start := time.Now()
+	for i := 0; i < 300; i++ {
+		query := new(dns.Msg)
+		query.SetQuestion(fmt.Sprintf("query-%d.invalid.", i), dns.TypeA)
+		data, err := query.Pack()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = conn.Write(data); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case peer := <-seen:
+			peers[peer] = true
+		case <-time.After(time.Second):
+			t.Fatalf("query %d did not reach local stub", i)
+		}
+	}
+	after, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("DNS requests=%d, distinct upstream sockets=%d, FD increase=%d, forwarding slots=%d/%d, duration=%s", 300, len(peers), len(after)-len(before), len(n.slots), cap(n.slots), time.Since(start))
+	if len(peers) <= maxConnections || len(after)-len(before) <= maxConnections {
+		t.Fatalf("did not exceed connection budget with live upstream sockets")
+	}
+}

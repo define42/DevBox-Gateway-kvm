@@ -39,6 +39,7 @@ The local setup below needs:
 
 - An **x86-64 Linux host** with hardware virtualization and read/write access to
   `/dev/kvm`. Nested virtualization must be available when the host is itself a VM.
+- **Linux 6.12+ with Landlock ABI 6 enabled and seccomp** for managed worker confinement.
 - A private, delegated **cgroup v2 subtree** configured as `VM_CGROUP_ROOT` to
   start managed VMs. The gateway does not create the delegation; see
   [VM isolation requirements](docs/gateway.md#serve-options).
@@ -115,8 +116,8 @@ browser and RDP client.
 
 With `VM_CGROUP_ROOT` unset, login, image uploads, and desktop creation work, but
 every VM start is refused. Before starting desktops, prepare the
-[required delegation](docs/gateway.md#serve-options) and supply its path when
-launching the gateway, for example:
+[required memory and pids delegation](docs/gateway.md#serve-options) and supply
+its path when launching the gateway, for example:
 
 ```bash
 VM_CGROUP_ROOT=/path/to/delegated-subtree make gateway
@@ -235,7 +236,7 @@ image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 | Graphics | Native RDP console with bitmap or H.264 AVC420 output, software encoding, and optional NVIDIA NVENC. |
 | Display and input | Virtio-gpu display with optional virgl OpenGL (`VM_GPU_3D=true`), keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
 | Audio | RDP playback enabled by default: 48 kHz stereo PCM16 with guest driver/audio-stack and client support; no microphone capture. |
-| Networking | Managed VMs use DHCP, DNS, and outbound networking through `user-isolated`, which blocks host loopback destinations. |
+| Networking | Managed VMs use bounded DHCP/DNS and IPv4 outbound networking; host/LAN access requires explicit allowed CIDRs. |
 | Persistence | VM disks, firmware settings, seeds, image catalog, and metadata survive gateway restarts. |
 
 The default limits are **3 desktops per user**, **4 running desktops globally**,
@@ -296,8 +297,10 @@ Keep `.devbox-kvm-gateway/` private and back it up with the service stopped. The
 contains guest password hashes and private TLS keys.
 
 This is currently a **single-host application**. VM processes run under the
-same host account; host users must be trusted. Managed guest networking blocks
-host loopback access but can still reach LAN/private destinations. The RDP
+same host account, with a separate Landlock filesystem/IPC domain and seccomp
+filter for each managed worker. Host users must still be trusted. Managed guest
+networking restricts private ranges and visible host interface subnets; see the
+[worker sandbox](docs/worker-sandbox.md) and [network policy](docs/runtime.md#networking). The RDP
 implementation uses TLS and does not support NLA, clipboard/drive redirection,
 or multiple monitors. Graphics default to 2D; optional [guest OpenGL](docs/runtime.md#guest-graphics)
 uses virglrenderer and can be disabled with `VM_GPU_3D=false`. Intel VA-API and

@@ -26,10 +26,10 @@ func TestIsolatedDestinationPolicy(t *testing.T) {
 		{address: "10.0.2.2", regular: true},
 		{address: "127.0.0.1", regular: true},
 		{address: "127.55.66.77", regular: true},
-		{address: "::1", regular: true},
-		{address: "::ffff:127.0.0.1", regular: true},
-		{address: "::ffff:127.9.8.7", regular: true},
-		{address: "192.168.1.7", regular: true, isolated: true},
+		{address: "::1"},
+		{address: "::ffff:127.0.0.1"},
+		{address: "::ffff:127.9.8.7"},
+		{address: "192.168.1.7", regular: true},
 		{address: "8.8.8.8", regular: true, isolated: true},
 		{address: "0.0.0.0"},
 		{address: "255.255.255.255"},
@@ -41,7 +41,14 @@ func TestIsolatedDestinationPolicy(t *testing.T) {
 			ip := netip.MustParseAddr(tc.address)
 			id := stack.TransportEndpointID{LocalAddress: tcpip.AddrFromSlice(ip.AsSlice()), LocalPort: 3389}
 			for _, isolated := range []bool{false, true} {
-				n := &Network{denyHostLoopback: isolated}
+				n := &Network{}
+				if isolated {
+					var err error
+					n.policy, err = parseDestinationPolicy("internet", "")
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
 				address, allowed := n.destination(id)
 				want := tc.regular
 				if isolated {

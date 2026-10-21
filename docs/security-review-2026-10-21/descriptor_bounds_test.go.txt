@@ -1,0 +1,67 @@
+package virtio
+
+import (
+	"encoding/binary"
+	"math/rand/v2"
+	"testing"
+	"time"
+	"unsafe"
+)
+
+// A deterministic adversarial smoke test, not evidence of fuzzing coverage.
+// Queue views alias guest RAM, including overlapping descriptor/avail/used
+// structures; payload addresses, lengths, flags and ring indices are hostile.
+func TestReviewGuestDescriptorBounds(t *testing.T) {
+	mem := make([]byte, 64<<10)
+	rng := rand.New(rand.NewPCG(1001, 2002))
+	net := NewNet(9, benchIRQInjector{}, benchNetBackend{}, mem)
+	defer net.Close()
+	blk := newBlk(&batchImage{data: make([]byte, 64<<10)}, false, 10, benchIRQInjector{}, mem)
+	defer blk.Close()
+	input := NewInputKeyboard(5, func() error { return nil }, mem)
+	defer input.Close()
+	sound := NewSound(11, func() error { return nil }, mem, nil)
+	defer sound.Close()
+	addresses := []uint64{0, 1, 16, 256, 512, 1024, 4096, 65535, 65536, 65537, ^uint64(0)}
+	lengths := []uint32{0, 1, 4, 8, 12, 16, 64, 512, 4096, 65536, ^uint32(0)}
+	for iteration := 0; iteration < 100000; iteration++ {
+		clear(mem)
+		for pos := 4096; pos < 8192; pos += 8 {
+			binary.LittleEndian.PutUint64(mem[pos:], rng.Uint64())
+		}
+		ao, uo := 512, 1024
+		if iteration%4 == 0 {
+			ao, uo = 0, 0
+		}
+		if iteration%4 == 1 {
+			ao, uo = 16, 32
+		}
+		q := &SplitQueue{
+			Desc:  (*[QueueSize]SplitDesc)(unsafe.Pointer(&mem[0])),
+			Avail: (*SplitAvail)(unsafe.Pointer(&mem[ao])),
+			Used:  (*SplitUsed)(unsafe.Pointer(&mem[uo])),
+			Size:  uint16(1 << rng.IntN(6)),
+		}
+		for i := range QueueSize {
+			q.Desc[i] = SplitDesc{Addr: addresses[rng.IntN(len(addresses))], Len: lengths[rng.IntN(len(lengths))], Flags: uint16(rng.IntN(8)), Next: uint16(rng.IntN(35))}
+		}
+		for i := range QueueSize {
+			q.Avail.Ring[i] = uint16(rng.IntN(35))
+		}
+		q.Avail.Idx = uint16(rng.IntN(35))
+		q.Used.Idx = uint16(rng.Uint32())
+		// Every implementation validates before retaining a memory view. None
+		// should panic even when completing a request rewrites the ring itself.
+		net.VirtQueue = [netNumQueues]*SplitQueue{q, q}
+		net.LastAvailIdx = [netNumQueues]uint16{}
+		_ = net.Tx()
+		_, _, _ = net.rxBuffers(q, q.Avail.Ring[0])
+		var pending blkPendingRequest
+		_ = blk.snapshotRequest(q, q.Size, q.Avail.Ring[0], &pending, iteration%2 == 0)
+		_, _ = input.writeEvent(q, q.Avail.Ring[0], inputEvent{typ: evKey, code: keyA, value: 1})
+		sound.resetLocked()
+		sound.queues = [soundNumQueues]*SplitQueue{q, q, q, q}
+		sound.process(time.Time{})
+	}
+	t.Log("100000 deterministic hostile queue cases completed")
+}

@@ -243,10 +243,15 @@ func (m *Machine) AddUserNet() error {
 	return nil
 }
 
-// AddIsolatedUserNet provides outbound networking without host-loopback access.
+// AddIsolatedUserNet provides public IPv4 access without host or LAN access.
 // Built-in guest DHCP/DNS remain available at the virtual gateway.
 func (m *Machine) AddIsolatedUserNet() error {
-	network, err := usernet.NewIsolated()
+	return m.AddIsolatedUserNetWithPolicy("internet", "")
+}
+
+// AddIsolatedUserNetWithPolicy applies operator-selected IPv4 destination CIDRs.
+func (m *Machine) AddIsolatedUserNetWithPolicy(policy, allowedCIDRs string) error {
+	network, err := usernet.NewIsolatedWithPolicy(policy, allowedCIDRs)
 	if err != nil {
 		return fmt.Errorf("isolated user-mode network: %w", err)
 	}

@@ -22,6 +22,8 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.BASE_IMAGE:                 "",
 		config.VM_BINARY:                  "",
 		config.VM_GPU_3D:                  "false",
+		config.VM_NETWORK_POLICY:          "internet",
+		config.VM_NETWORK_ALLOW_CIDRS:     "",
 		config.UEFI_CODE:                  "/usr/share/OVMF/OVMF_CODE_4M.fd",
 		config.UEFI_VARS_TEMPLATE:         "/usr/share/OVMF/OVMF_VARS_4M.fd",
 		config.H264_ENCODER:               "auto",

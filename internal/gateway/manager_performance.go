@@ -96,11 +96,12 @@ func (m *Manager) Performance(ctx context.Context, owner, id string) (VMPerforma
 	return result, nil
 }
 
-// A socketpair carries no path, PID, username, or caller-controlled VM identity.
+// A connected Unix seqpacket pair carries no path, PID, username, or caller-controlled VM identity.
+// Unlike datagrams, its worker endpoint cannot reconnect to another Unix service.
 // Close-on-exec prevents accidental inheritance by other workers; os/exec maps
 // only the explicit child end to descriptor 4. Failure disables telemetry only.
 func newPerformancePipe() (*net.UnixConn, *os.File, error) {
-	fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM|unix.SOCK_CLOEXEC|unix.SOCK_NONBLOCK, 0)
+	fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_SEQPACKET|unix.SOCK_CLOEXEC|unix.SOCK_NONBLOCK, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -112,7 +113,7 @@ func newPerformancePipe() (*net.UnixConn, *os.File, error) {
 
 		return nil, nil, err
 	}
-	// AF_UNIX datagram queue memory is charged to the sender; SO_RCVBUF alone
+	// AF_UNIX packet queue memory is charged to the sender; SO_RCVBUF alone
 	// does not bound it. The child exporter uses nonblocking sends and drops
 	// updates when this deliberately small queue is full.
 	if err := unix.SetsockoptInt(fds[1], unix.SOL_SOCKET, unix.SO_SNDBUF, 4*telemetry.MaxMessageSize); err != nil {
@@ -169,7 +170,7 @@ func (p *processPerformance) read() {
 		if n <= telemetry.MaxMessageSize && flags&unix.MSG_TRUNC == 0 {
 			p.decode(buffer[:n], time.Now())
 		}
-		// Bound decoding work even if a worker sends a continuous datagram flood.
+		// Bound decoding work even if a worker sends a continuous packet flood.
 		// Healthy five-second samples arrive after this pause has finished.
 		pace.Reset(100 * time.Millisecond)
 		select {

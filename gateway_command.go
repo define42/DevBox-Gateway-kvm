@@ -16,6 +16,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/gateway"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
+	"github.com/define42/DevBox-Gateway-kvm/internal/usernet"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virgl"
 )
 
@@ -96,6 +97,11 @@ func readServeOptions(args []string, output io.Writer) (serveOptions, error) {
 		)
 	}
 	options.manager.MaxDiskBytes = maxDiskBytes
+	if err := usernet.ValidateDestinationPolicy(
+		options.manager.NetworkPolicy, options.manager.NetworkAllowCIDRs,
+	); err != nil {
+		return serveOptions{}, fmt.Errorf("VM_NETWORK_POLICY/VM_NETWORK_ALLOW_CIDRS: %s: %w", err.Error(), errCommandUsage)
+	}
 	if _, err := avc.ResolveQP(options.manager.H264QP); err != nil {
 		return serveOptions{}, fmt.Errorf("H264_QP (-h264-qp): %s: %w", err.Error(), errCommandUsage)
 	}
@@ -136,6 +142,8 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	stringFlag(&options.manager.BaseImage, "image", config.BASE_IMAGE)
 	stringFlag(&options.manager.Binary, "vm-binary", config.VM_BINARY)
 	boolFlag(&options.manager.GPU3D, "gpu-3d", config.VM_GPU_3D)
+	stringFlag(&options.manager.NetworkPolicy, "vm-network-policy", config.VM_NETWORK_POLICY)
+	stringFlag(&options.manager.NetworkAllowCIDRs, "vm-network-allow-cidrs", config.VM_NETWORK_ALLOW_CIDRS)
 	stringFlag(&options.manager.Firmware, "uefi", config.UEFI_CODE)
 	stringFlag(&options.manager.VarsTemplate, "uefi-vars-template", config.UEFI_VARS_TEMPLATE)
 	stringFlag(&options.manager.Encoder, "encoder", config.H264_ENCODER)

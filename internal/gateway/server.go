@@ -338,7 +338,7 @@ func backendError(err error) (int, string) {
 	case errors.Is(err, ErrNotFound):
 		return http.StatusNotFound, "That desktop could not be found."
 	case errors.Is(err, ErrCgroupUnavailable):
-		return http.StatusServiceUnavailable, "The host cannot enforce this desktop's memory limit. " +
+		return http.StatusServiceUnavailable, "The host cannot enforce this desktop's memory and process limits. " +
 			"Ask your administrator to configure the delegated VM cgroup."
 	case errors.Is(err, syscall.ENOSPC), errors.Is(err, syscall.EDQUOT):
 		return http.StatusInsufficientStorage, "Host storage is full or its quota has been reached. " +

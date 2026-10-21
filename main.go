@@ -16,6 +16,7 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/profiling"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
+	"github.com/define42/DevBox-Gateway-kvm/internal/workersandbox"
 	"golang.org/x/sys/unix"
 )
 
@@ -29,8 +30,15 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) error {
+	managedWorker := false
 	if len(args) > 1 {
 		switch args[1] {
+		case "worker":
+			return runWorker(args[2:])
+		case "worker-boot":
+			managedWorker = true
+			args = append([]string(nil), args...)
+			args[1] = "boot"
 		case "serve":
 			return runServe(ctx, args[2:], os.Stderr)
 		case "seed":
@@ -61,31 +69,33 @@ func run(ctx context.Context, args []string) error {
 		h264QP = &bootArgs.RDPH264QP
 	}
 	c := &vmm.Config{
-		Dev:            bootArgs.Dev,
-		Kernel:         bootArgs.Kernel,
-		Initrd:         bootArgs.Initrd,
-		UEFI:           bootArgs.UEFI,
-		UEFIVars:       bootArgs.UEFIVars,
-		Params:         bootArgs.Params,
-		ParamsSet:      bootArgs.ParamsSet,
-		TapIfName:      bootArgs.TapIfName,
-		Network:        bootArgs.Network,
-		Disk:           bootArgs.Disk,
-		CloudInit:      bootArgs.CloudInit,
-		GPU3D:          bootArgs.GPU3D,
-		RDPProfile:     rdpProfile,
-		RDPWait:        bootArgs.RDPWait,
-		RDPCert:        bootArgs.RDPCert,
-		RDPKey:         bootArgs.RDPKey,
-		RDPH264:        bootArgs.RDPH264,
-		RDPH264Encoder: h264Encoder,
-		RDPH264QP:      h264QP,
-		RDPH264Threads: bootArgs.RDPH264Threads,
-		RDPStats:       bootArgs.RDPStats,
-		Audio:          bootArgs.Audio,
-		NCPUs:          bootArgs.NCPUs,
-		MemSize:        bootArgs.MemSize,
-		TraceCount:     bootArgs.TraceCount,
+		Dev:               bootArgs.Dev,
+		Kernel:            bootArgs.Kernel,
+		Initrd:            bootArgs.Initrd,
+		UEFI:              bootArgs.UEFI,
+		UEFIVars:          bootArgs.UEFIVars,
+		Params:            bootArgs.Params,
+		ParamsSet:         bootArgs.ParamsSet,
+		TapIfName:         bootArgs.TapIfName,
+		Network:           bootArgs.Network,
+		NetworkPolicy:     bootArgs.NetworkPolicy,
+		NetworkAllowCIDRs: bootArgs.NetworkAllowCIDRs,
+		Disk:              bootArgs.Disk,
+		CloudInit:         bootArgs.CloudInit,
+		GPU3D:             bootArgs.GPU3D,
+		RDPProfile:        rdpProfile,
+		RDPWait:           bootArgs.RDPWait,
+		RDPCert:           bootArgs.RDPCert,
+		RDPKey:            bootArgs.RDPKey,
+		RDPH264:           bootArgs.RDPH264,
+		RDPH264Encoder:    h264Encoder,
+		RDPH264QP:         h264QP,
+		RDPH264Threads:    bootArgs.RDPH264Threads,
+		RDPStats:          bootArgs.RDPStats,
+		Audio:             bootArgs.Audio,
+		NCPUs:             bootArgs.NCPUs,
+		MemSize:           bootArgs.MemSize,
+		TraceCount:        bootArgs.TraceCount,
 	}
 
 	if bootArgs.RDPFD != 0 {
@@ -118,6 +128,12 @@ func run(ctx context.Context, args []string) error {
 			log.Printf("VM CPU profiling disabled: %v", profileErr)
 		} else {
 			defer stop()
+		}
+	}
+
+	if managedWorker {
+		if err := workersandbox.LockRuntime(); err != nil {
+			return fmt.Errorf("confine managed worker syscalls: %w", err)
 		}
 	}
 

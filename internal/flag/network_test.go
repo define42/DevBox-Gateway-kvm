@@ -46,3 +46,38 @@ func TestNetworkOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestNetworkDestinationPolicyOptions(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		args  []string
+		valid bool
+	}{
+		{name: "default internet", args: []string{"-net=user-isolated"}, valid: true},
+		{
+			name: "only explicit destinations",
+			args: []string{"-net=user-isolated", "-net-policy=allowlist", "-net-allow-cidrs=10.20.0.0/16"}, valid: true,
+		},
+		{name: "unknown policy", args: []string{"-net=user-isolated", "-net-policy=unrestricted"}},
+		{name: "wrong backend", args: []string{"-net=user", "-net-policy=allowlist"}},
+		{name: "allowlist with no backend", args: []string{"-net-allow-cidrs=127.0.0.1/32"}},
+		{name: "IPv6", args: []string{"-net=user-isolated", "-net-allow-cidrs=::1/128"}},
+		{name: "invalid CIDR", args: []string{"-net=user-isolated", "-net-allow-cidrs=10.0.0.1/24"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			args, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
+			if tc.valid {
+				if err != nil {
+					t.Fatal(err)
+				}
+				if args.NetworkPolicy == "" {
+					t.Fatal("network policy default missing")
+				}
+			} else if !errors.Is(err, flag.ErrNetwork) {
+				t.Fatalf("invalid policy error = %v", err)
+			}
+		})
+	}
+}
