@@ -332,9 +332,13 @@ format, not whether the installed guest can boot or provision successfully.
   accepts `.qcow2`, `.img`, and `.raw` names, but raw-format uploads are rejected.
 - Backing files, encryption, internal snapshots, external data files, dirty or
   corrupt flags, and unsupported incompatible features are rejected.
-- Compressed images and some other unsupported layouts are checked and converted
-  with `qemu-img` when necessary. Install `qemu-utils` on the gateway host for
-  this import path. Images already supported by devbox-kvm need no conversion tool.
+- Compressed images, images whose refcount tables cannot cover their full virtual
+  capacity, and some other unsupported layouts are checked and converted with
+  `qemu-img` when necessary. Conversion preserves virtual capacity and guest data.
+  Install `qemu-utils` on the gateway host for this import path. Images already
+  supported by devbox-kvm need no conversion tool. Existing unsupported templates
+  or VM disks require offline conversion to a new file; they are not modified
+  automatically.
 - Every template and managed VM disk has a default maximum virtual capacity of
   `500GB`, controlled by `VM_DISK_MAX_SIZE` (`-vm-disk-max-size`).
 - Administrator QCOW2 imports retain an independent 1 TiB virtual-capacity

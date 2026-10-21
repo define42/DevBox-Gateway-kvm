@@ -253,7 +253,12 @@ clusters, external data files, persistent bitmaps, and extended L2 entries are
 unsupported. Images marked dirty or corrupt are rejected. Opening an image
 validates header fields, table bounds, mapped-cluster refcounts, and cluster
 ownership; overlapping metadata and guest data are rejected before any writes.
-L1 tables are limited to 32 MiB and refcount tables to 8 MiB.
+L1 tables are limited to 32 MiB and refcount tables to 8 MiB. Opening also checks
+that the existing refcount table can cover all remaining guest-data and metadata
+allocations through the disk's advertised capacity. The backend grows refcount
+blocks but does not expand the refcount table; images without enough coverage
+must be converted before use. This check does not reserve host storage or prevent
+host filesystem exhaustion.
 
 Failed metadata updates restore the previous mapping before reclaiming newly
 allocated clusters. If recovery also fails, the open image rejects further

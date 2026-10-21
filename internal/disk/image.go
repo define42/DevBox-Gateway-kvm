@@ -28,12 +28,14 @@ type rawImage struct {
 	readOnly bool
 }
 
-// Open opens a writable QCOW2 image. Raw data and invalid QCOW2 headers are rejected.
+// Open opens a writable QCOW2 image whose metadata can cover its full capacity.
+// Raw data and invalid or unsupported QCOW2 layouts are rejected.
 func Open(path string) (Image, error) {
 	return open(path, os.O_RDWR)
 }
 
-// OpenReadOnly opens a read-only QCOW2 image without falling back to raw storage.
+// OpenReadOnly opens a read-only QCOW2 image using the same layout and growth
+// validation as Open, so accepted templates can later be used as writable disks.
 func OpenReadOnly(path string) (Image, error) {
 	return open(path, os.O_RDONLY)
 }

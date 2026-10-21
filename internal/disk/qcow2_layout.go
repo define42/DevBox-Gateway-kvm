@@ -86,7 +86,11 @@ func (q *qcow2Image) validateLayout(h *qcow2Header) error {
 			}
 		}
 	}
-	for _, entry := range q.l1 {
+	guestClusters := (q.size + q.clusterSize - 1) / q.clusterSize
+	// Mapped data and L2 tables are overwritten in place: shared clusters are
+	// rejected below. Only missing mappings need room in the append allocator.
+	missing := guestClusters + (guestClusters+q.l2Entries-1)/q.l2Entries
+	for index, entry := range q.l1 {
 		if entry == 0 {
 			continue
 		}
@@ -101,9 +105,18 @@ func (q *qcow2Image) validateLayout(h *qcow2Header) error {
 		if err := q.validateDataMappings(owners, fileSize, l2); err != nil {
 			return err
 		}
+		first := uint64(index) * q.l2Entries
+		if first < guestClusters {
+			missing-- // This guest range already has an L2 table.
+			for _, mapping := range l2[:min(q.l2Entries, guestClusters-first)] {
+				if clusterOffset(mapping) != 0 {
+					missing-- // Includes preallocated zero clusters.
+				}
+			}
+		}
 	}
 
-	return nil
+	return q.validateGrowthCapacity(fileSize, missing)
 }
 
 func (q *qcow2Image) claimRefcountBlocks(owners qcow2ClusterOwners, fileSize uint64) error {

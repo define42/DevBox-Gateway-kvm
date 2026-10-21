@@ -69,6 +69,13 @@ jobs:
         GOFLAGS: "-buildvcs=false"
       run: make test
 
+    - name: Test image normalization and full disk capacity
+      env:
+        GOMAXPROCS: "4"
+      run: |
+        go test -tags=integration -count=1 -timeout=2m ./internal/gateway \
+          -run '^TestImageCatalog(NormalizesCompressedQCOW2|ImportedQCOW2SupportsFullCapacity)$'
+
     - name: Run stability tests (iterations 2-10)
       env:
         GOFLAGS: "-buildvcs=false"

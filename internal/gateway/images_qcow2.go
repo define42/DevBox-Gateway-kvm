@@ -111,7 +111,8 @@ func normalizeUploadedQCOW2(ctx context.Context, source, destination string, siz
 		if err := opened.Close(); err != nil {
 			return err
 		}
-		// Supported images are already standalone and do not need an external tool.
+		// Open also verifies room for full virtual-disk allocation, including
+		// future metadata. Only those layouts can bypass normalization.
 		return os.Rename(source, destination) //nolint:gosec // Fixed filenames in the same private import directory.
 	}
 	binary, err := exec.LookPath("qemu-img")
