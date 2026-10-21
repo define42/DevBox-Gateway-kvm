@@ -80,11 +80,7 @@ func (s *Server) streamCreation(
 func (s *Server) creationContext(
 	ctx context.Context, w http.ResponseWriter,
 ) (context.Context, context.CancelFunc, error) {
-	timeout := s.config.CreationTimeout
-	if timeout == 0 {
-		timeout = 30 * time.Minute
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.creationTimeout())
 	deadline, _ := ctx.Deadline()
 	if err := setCreationWriteDeadline(http.NewResponseController(w), deadline); err != nil {
 		cancel()
@@ -93,6 +89,14 @@ func (s *Server) creationContext(
 	}
 
 	return ctx, cancel, nil
+}
+
+func (s *Server) creationTimeout() time.Duration {
+	if s.config.CreationTimeout != 0 {
+		return s.config.CreationTimeout
+	}
+
+	return 30 * time.Minute
 }
 
 func setCreationWriteDeadline(controller *http.ResponseController, deadline time.Time) error {

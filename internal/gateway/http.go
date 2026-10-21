@@ -65,8 +65,12 @@ func (s *Server) routes() http.Handler {
 		s.mu.Unlock()
 		defer s.requests.Done()
 		timeout := 2 * time.Minute
-		if imageUploadRequest(r) {
+		switch {
+		case imageUploadRequest(r):
 			timeout = s.uploadTimeout()
+		case r.Method == http.MethodPost && r.URL.Path == "/vms":
+			// A child context in createVM cannot extend this parent deadline.
+			timeout = s.creationTimeout()
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()

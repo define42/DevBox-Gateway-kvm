@@ -233,24 +233,63 @@ func TestCreationProgressOutlivesOrdinaryHTTPWriteTimeout(t *testing.T) {
 
 func TestCreationDeadlineCancelsBackend(t *testing.T) {
 	t.Parallel()
-	synctest.Test(t, func(t *testing.T) {
-		s, base, raw, sess := webFixture(t)
-		s.config.CreationTimeout = time.Minute
-		var backendErr error
-		s.config.Backend = &progressTestBackend{webBackend: base, create: func(
-			ctx context.Context, _, _, _, _ string, _ func(CreateProgress),
-		) (VM, error) {
-			<-ctx.Done()
-			backendErr = ctx.Err()
+	for _, tc := range []struct {
+		name                   string
+		timeout, parentTimeout time.Duration
+		cancelAfter, want      time.Duration
+		wantErr                error
+	}{
+		{name: "default", want: 30 * time.Minute, wantErr: context.DeadlineExceeded},
+		{name: "shorter", timeout: time.Minute, want: time.Minute, wantErr: context.DeadlineExceeded},
+		{name: "longer", timeout: 10 * time.Minute, want: 10 * time.Minute, wantErr: context.DeadlineExceeded},
+		{
+			name: "earlier parent deadline", timeout: 10 * time.Minute, parentTimeout: 45 * time.Second,
+			want: 45 * time.Second, wantErr: context.DeadlineExceeded,
+		},
+		{
+			name: "request cancellation", timeout: 10 * time.Minute, cancelAfter: 30 * time.Second,
+			want: 30 * time.Second, wantErr: context.Canceled,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			synctest.Test(t, func(t *testing.T) {
+				s, base, raw, sess := webFixture(t)
+				s.config.CreationTimeout = tc.timeout
+				var backendErr error
+				s.config.Backend = &progressTestBackend{webBackend: base, create: func(
+					ctx context.Context, _, _, _, _ string, _ func(CreateProgress),
+				) (VM, error) {
+					<-ctx.Done()
+					backendErr = ctx.Err()
 
-			return VM{}, backendErr
-		}}
-		w := httptest.NewRecorder()
-		s.routes().ServeHTTP(w, creationRequest(t, raw, sess.csrf))
-		if !errors.Is(backendErr, context.DeadlineExceeded) || strings.Contains(w.Body.String(), "complete") {
-			t.Fatalf("creation lifetime not bounded: %v, %s", backendErr, w.Body.String())
-		}
-	})
+					return VM{}, backendErr
+				}}
+				r := creationRequest(t, raw, sess.csrf)
+				if tc.parentTimeout != 0 {
+					ctx, cancel := context.WithTimeout(r.Context(), tc.parentTimeout)
+					defer cancel()
+					r = r.WithContext(ctx)
+				}
+				if tc.cancelAfter != 0 {
+					ctx, cancel := context.WithCancel(r.Context())
+					defer cancel()
+					timer := time.AfterFunc(tc.cancelAfter, cancel)
+					defer timer.Stop()
+					r = r.WithContext(ctx)
+				}
+				started := time.Now()
+				w := httptest.NewRecorder()
+				s.routes().ServeHTTP(w, r)
+				if elapsed := time.Since(started); elapsed != tc.want {
+					t.Fatalf("creation canceled after %v, want %v", elapsed, tc.want)
+				}
+				if !errors.Is(backendErr, tc.wantErr) || strings.Contains(w.Body.String(), "complete") {
+					t.Fatalf("creation lifetime not bounded: %v, %s", backendErr, w.Body.String())
+				}
+			})
+		})
+	}
 }
 
 // Model net/http's non-revivable expired write deadline without wall-clock sleeps.
@@ -272,11 +311,12 @@ func TestCreationRestoresDeadlineBetweenProgressWrites(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
 		s, base, raw, sess := webFixture(t)
-		s.config.CreationTimeout = time.Minute
+		s.config.CreationTimeout = 10 * time.Minute
 		s.config.Backend = &progressTestBackend{webBackend: base, create: func(
 			ctx context.Context, _, _, _, _ string, report func(CreateProgress),
 		) (VM, error) {
-			time.Sleep(35 * time.Second)
+			// Simulate a queued creation followed by a slow copy without progress.
+			time.Sleep(3 * time.Minute)
 			report(CreateProgress{Phase: "finalizing"})
 
 			return VM{}, ctx.Err()
@@ -287,4 +327,72 @@ func TestCreationRestoresDeadlineBetweenProgressWrites(t *testing.T) {
 			t.Fatalf("healthy long creation expired between writes: %s", w.Body.String())
 		}
 	})
+}
+
+// Exercise the ordinary HTML form path as well as streamed provisioning.
+type formCreationTestBackend struct {
+	*adminTestBackend
+	create func(context.Context) (VM, error)
+}
+
+func (b *formCreationTestBackend) CreateWithImage(ctx context.Context, _, _, _, _ string) (VM, error) {
+	return b.create(ctx)
+}
+
+func TestCreationFormOutlivesOrdinaryRequestTimeout(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		s, base, raw, sess := webFixture(t)
+		s.config.CreationTimeout = 10 * time.Minute
+		called := false
+		s.config.Backend = &formCreationTestBackend{
+			adminTestBackend: &adminTestBackend{webBackend: base},
+			create: func(ctx context.Context) (VM, error) {
+				called = true
+				time.Sleep(3 * time.Minute)
+
+				return VM{}, ctx.Err()
+			},
+		}
+		r := creationRequest(t, raw, sess.csrf)
+		r.Header.Del("Accept")
+		w := &creationDeadlineWriter{ResponseRecorder: httptest.NewRecorder()}
+		s.routes().ServeHTTP(w, r)
+		if !called || w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/" {
+			t.Fatalf("long form creation failed: called=%t status=%d", called, w.Code)
+		}
+	})
+}
+
+func TestCreationTimeoutDoesNotExtendOtherRequests(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, method, path string
+	}{
+		{name: "inventory", method: http.MethodGet, path: "/"},
+		{name: "VM action", method: http.MethodPost, path: "/vms/mine/start"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			synctest.Test(t, func(t *testing.T) {
+				s, base, raw, sess := webFixture(t)
+				s.config.CreationTimeout = 10 * time.Minute
+				var backendErr error
+				s.config.Backend = &perfReportTestBackend{webBackend: base, list: func(
+					ctx context.Context, _ string,
+				) ([]VM, error) {
+					<-ctx.Done()
+					backendErr = ctx.Err()
+
+					return nil, backendErr
+				}}
+				started := time.Now()
+				webRequest(s, tc.method, tc.path, raw, url.Values{"csrf": {sess.csrf}})
+				if elapsed := time.Since(started); elapsed != 2*time.Minute ||
+					!errors.Is(backendErr, context.DeadlineExceeded) {
+					t.Fatalf("ordinary request ended after %v with %v", elapsed, backendErr)
+				}
+			})
+		})
+	}
 }
