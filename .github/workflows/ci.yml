@@ -71,10 +71,11 @@ jobs:
 
     - name: Test image normalization and full disk capacity
       env:
+        CGO_ENABLED: "0"
         GOMAXPROCS: "4"
       run: |
         go test -tags=integration -count=1 -timeout=2m ./internal/gateway \
-          -run '^TestImageCatalog(NormalizesCompressedQCOW2|ImportedQCOW2SupportsFullCapacity)$'
+          -run '^TestImageCatalog(NormalizesCompressedQCOW2|NormalizesQCOW2Layouts|ImportedQCOW2SupportsFullCapacity)$'
 
     - name: Run stability tests (iterations 2-10)
       env:

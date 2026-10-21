@@ -80,12 +80,14 @@ input, networking, and storage without booting a guest:
 CGO_ENABLED=0 go test -short ./internal/config ./internal/gateway ./internal/cloudinit
 CGO_ENABLED=0 go test -short ./internal/rdp/... \
   ./internal/virtio ./internal/vmm ./internal/flag
-CGO_ENABLED=0 go test ./internal/audio ./internal/usernet ./internal/disk ./scripts
+CGO_ENABLED=0 go test ./internal/audio ./internal/usernet ./internal/disk \
+  ./internal/qcow2import ./scripts
 ```
 
 Some tests bind local TCP listeners. Disk interoperability tests use `qemu-img`
 and `qemu-io` when installed; AVC interoperability tests use `ffmpeg`. Those checks
-skip when their external tool is unavailable. These are image/codec checks, not
+skip when their external tool is unavailable. Production QCOW2 imports and
+normalization do not require either QEMU tool. These are image/codec checks, not
 QEMU guest runs.
 
 For concurrency changes, run the relevant race checks with cgo enabled:
@@ -231,11 +233,14 @@ local LDAP service, and some need several GiB of free RAM.
 
 ### Image import
 
-The compressed QCOW2 import test needs `qemu-img`, but no KVM device:
+The optional QCOW2 interoperability tests use `qemu-img` to generate independent
+compressed and alternative-layout fixtures, then import them through the Go
+normalizer. They need no KVM device; ordinary import coverage does not require
+an external image tool:
 
 ```bash
 go test -tags integration ./internal/gateway \
-  -run '^TestImageCatalogNormalizesCompressedQCOW2$' -count=1 -v
+  -run '^TestImageCatalogNormalizes(CompressedQCOW2|QCOW2Layouts)$' -count=1 -v
 ```
 
 ### LDAP

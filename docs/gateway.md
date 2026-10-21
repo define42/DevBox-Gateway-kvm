@@ -12,7 +12,7 @@ for host requirements and the project overview.
 ## Local development setup
 
 The example uses matching OVMF CODE/VARS files, Docker with the Compose plugin,
-OpenSSL, and `qemu-img` from `qemu-utils` for image uploads that need conversion.
+and OpenSSL. Image imports use the built-in Go QCOW2 normalizer.
 No desktop image is required at startup. The `make gateway` target builds with
 cgo and the `nvenc` tag, so it also requires a C compiler, `pkg-config`, and
 FFmpeg development libraries
@@ -48,8 +48,8 @@ external-directory variables, and authentication tests.
 A new gateway starts with an empty image catalog in `.devbox-kvm-gateway/images`.
 Sign in as `administrator`, open **Admin → Base Images**, and upload a compatible
 QCOW2 desktop image. Users can then select it when creating a desktop. Templates
-and desktop disks persist across restarts. `qemu-img` performs image conversion
-only; devbox-kvm runs the VMs.
+and desktop disks persist across restarts. Compressed QCOW2 uploads are
+normalized without an external conversion tool.
 
 | Make variable | Default | Purpose |
 | --- | --- | --- |
@@ -71,8 +71,10 @@ make gateway GATEWAY_IMAGE=./.devbox-kvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to
 ```
 
 This prepares the destination once if absent, then reuses it. The original
-source and any existing developer working disks are preserved. Without
-`GATEWAY_IMAGE`, the gateway uses only its uploaded catalog.
+source and any existing developer working disks are preserved. This optional
+Make helper still uses `qemu-img` from `qemu-utils` to prepare the default image.
+Without `GATEWAY_IMAGE`, the gateway uses only its uploaded catalog and needs no
+external conversion tool.
 
 ### Build without NVENC
 
@@ -94,8 +96,8 @@ ADMIN_GROUP=devbox-admins LDAP_CA_FILE=./testldap/.tls/cert.pem \
 Open the same **https://localhost:8443** page and use the demo accounts above.
 Sign in as `administrator` to upload the first template if the catalog is empty.
 The default OVMF paths must exist; set `UEFI_CODE` and `UEFI_VARS_TEMPLATE` if
-needed. `qemu-img` is still needed to prepare compressed images and for catalog
-imports that require conversion. `H264_ENCODER=auto` also uses software encoding
+needed. Catalog imports, including compressed QCOW2 images, work in this
+cgo-free build. `H264_ENCODER=auto` also uses software encoding
 when the binary has no NVENC support. `make gateway` always rebuilds the NVENC
 target, so use the direct `serve` command to keep this build.
 As with `make gateway`, configure the [required VM cgroup delegation](#serve-options)
@@ -332,13 +334,14 @@ format, not whether the installed guest can boot or provision successfully.
   accepts `.qcow2`, `.img`, and `.raw` names, but raw-format uploads are rejected.
 - Backing files, encryption, internal snapshots, external data files, dirty or
   corrupt flags, and unsupported incompatible features are rejected.
-- Compressed images, images whose refcount tables cannot cover their full virtual
-  capacity, and some other unsupported layouts are checked and converted with
-  `qemu-img` when necessary. Conversion preserves virtual capacity and guest data.
-  Install `qemu-utils` on the gateway host for this import path. Images already
-  supported by devbox-kvm need no conversion tool. Existing unsupported templates
-  or VM disks require offline conversion to a new file; they are not modified
-  automatically.
+- Images using DEFLATE or Zstd compression, extended L2 entries, shared clusters,
+  or alternate refcount widths are normalized by the built-in Go importer. It
+  also rebuilds layouts whose refcount tables cannot cover their full virtual
+  capacity. Consistent bitmap metadata is discarded during normalization.
+  Conversion preserves virtual capacity and guest data, producing a standalone
+  uncompressed QCOW2 image supported by the VM disk backend. No external
+  conversion tool is required. Existing unsupported templates or VM disks are
+  not modified automatically; import the source as a new catalog template.
 - Every template and managed VM disk has a default maximum virtual capacity of
   `500GB`, controlled by `VM_DISK_MAX_SIZE` (`-vm-disk-max-size`).
 - Administrator QCOW2 imports retain an independent 1 TiB virtual-capacity
@@ -376,7 +379,7 @@ file and a longer overall request:
 IMAGE_UPLOAD_MAX_BYTES=42949672960 IMAGE_UPLOAD_TIMEOUT=1h make gateway
 ```
 
-Normalization by `qemu-img` has its own 30-minute cap, even when the overall
+Image normalization has its own 30-minute cap, even when the overall
 request timeout is longer. Session expiry can also end the operation. Reserve
 space for the upload, converted output, and guest clones; the per-file limit is
 not a total state-directory quota.

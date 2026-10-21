@@ -119,7 +119,7 @@ reassigned to an LDAP account.
 
 Image uploads default to 20 GiB and 30 minutes. Override them with
 `GATEWAY_ARGS="-image-upload-limit 42949672960 -image-upload-timeout 1h"`.
-The size limit also applies to normalized images. Install `qemu-utils` to import
-compressed QCOW2 images; `qemu-img` is used only for conversion, and devbox-kvm runs
-all VMs. See [the gateway documentation](../docs/gateway.md) for
-image requirements and storage behavior.
+The size limit also applies to normalized images. Compressed QCOW2 imports use
+the built-in Go normalizer and need no external conversion tool. See
+[the gateway documentation](../docs/gateway.md) for image requirements and
+storage behavior.

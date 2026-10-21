@@ -27,6 +27,9 @@
   pointer input.
 - Local boot supports UEFI disks and direct Linux/PVH kernel loading. Standalone
   RDP listeners, VNC/PNG display backends, and ISO/UKI boot are not supported.
+- Administrator image imports normalize standalone QCOW2 v2/v3 images in Go,
+  including DEFLATE/Zstd compression, without external conversion tools. The
+  writable VM backend still requires normalized standalone QCOW2 disks.
 - Packages under internal/ are application implementation details. Public Go
   packages include kvm, pkg/h264, and pkg/h264/api.
 

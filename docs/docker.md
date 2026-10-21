@@ -1,10 +1,11 @@
 # Docker
 
 The default Docker image starts from `scratch` and includes DevBox-Gateway-kvm,
-OVMF, `qemu-img`, CA certificates, and the shared libraries needed for NVENC,
-virglrenderer/Mesa OpenGL, and image conversion. The executable uses dynamic
-linking; NVENC also loads NVIDIA driver libraries supplied by the host. The runtime has no shell, package manager,
-or FFmpeg command-line tool.
+OVMF, CA certificates, and the shared libraries needed for NVENC and
+virglrenderer/Mesa OpenGL. QCOW2 image imports run entirely in Go.
+The executable uses dynamic linking; NVENC also loads NVIDIA driver libraries
+supplied by the host. The runtime has no shell, package manager, or FFmpeg
+command-line tool.
 
 It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
 and working `/dev/kvm` access. Managed desktop starts require Linux 6.12+ with
@@ -114,8 +115,8 @@ Open **https://localhost:8443** and accept the locally generated self-signed
 certificate in your browser and RDP client. Sign in as **`administrator`** with
 password **`dogood`**, open **Admin → Base Images**, and upload a compatible QCOW2
 desktop image. The image catalog starts empty; VM creation becomes available once
-an administrator has uploaded a template. Uploads that use compression are
-validated and converted by the included `qemu-img`.
+an administrator has uploaded a template. Uploads that use DEFLATE or Zstd
+compression are validated and normalized by the built-in Go importer.
 
 Then sign in as `johndoe` or `testuser` (also password **`dogood`**), select
 **Create DevBox**, and choose an uploaded image. See the

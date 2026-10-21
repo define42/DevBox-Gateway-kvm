@@ -48,17 +48,16 @@ The local setup below needs:
   `/usr/share/OVMF/OVMF_CODE_4M.fd` and `/usr/share/OVMF/OVMF_VARS_4M.fd`.
 - **Docker with the Compose plugin and OpenSSL** for the bundled development LDAP
   directory. An external LDAP directory can be used instead.
-- **`qemu-img`** from `qemu-utils` for image conversion. Guest execution uses devbox-kvm.
 - **A C compiler, `pkg-config`, and FFmpeg development libraries** for the
   NVENC-enabled build used by `make gateway`. NVIDIA hardware is optional:
   automatic encoding falls back to software.
 - Enough RAM for the configured desktops and disk space for templates and each
   VM's independent disk. A new desktop defaults to **2 vCPUs and 4 GiB RAM**.
 
-On Debian/Ubuntu, the firmware, image tools, and native build dependencies are:
+On Debian/Ubuntu, the firmware and native build dependencies are:
 
 ```bash
-sudo apt install ovmf qemu-utils openssl build-essential pkg-config \
+sudo apt install ovmf openssl build-essential pkg-config \
   libavcodec-dev libavutil-dev
 ```
 
@@ -89,19 +88,19 @@ through **Admin → Base Images**.
 The sample uses **Rocky Linux 9 with XFCE**. From
 [DevBox-Gateway v2.4.16](https://github.com/define42/DevBox-Gateway/releases/tag/v2.4.16),
 download both `rocky9-xfce-v2.4.16.img.part-*` files and
-`rocky9-xfce-v2.4.16.img.sha256` into this directory. Reassemble, verify, and
-convert to a QCOW2 file for upload:
+`rocky9-xfce-v2.4.16.img.sha256` into this directory. Reassemble and verify the
+disk before uploading it:
 
 ```bash
 cat rocky9-xfce-v2.4.16.img.part-* > rocky9-xfce-v2.4.16.img
-sha256sum --check rocky9-xfce-v2.4.16.img.sha256 && \
-  qemu-img convert -f qcow2 -O qcow2 \
-    rocky9-xfce-v2.4.16.img rocky9-xfce-v2.4.16.qcow2
+sha256sum --check rocky9-xfce-v2.4.16.img.sha256
 ```
 
-The release's `.img` is a QCOW2 disk despite its extension. If you already have
-`rocky9-xfce-v2.4.16.qcow2`, skip reconstruction and conversion. Another compatible
-image can be uploaded through **Admin**.
+The release's `.img` is a QCOW2 disk despite its extension and can be uploaded
+directly. The gateway validates and normalizes compressed QCOW2 images in Go;
+no external conversion tool is required. If you already have
+`rocky9-xfce-v2.4.16.qcow2`, skip reconstruction. Another compatible image can
+be uploaded through **Admin**.
 
 ### Start the gateway
 
@@ -215,7 +214,7 @@ contents. The administrator remains responsible for aggregate filesystem
 capacity, quotas, and free-space reserves; the per-disk virtual-size limit is
 not an aggregate storage quota.
 
-The `scratch`-based gateway image includes OVMF, `qemu-img`, and NVENC support
+The `scratch`-based gateway image includes OVMF and NVENC support
 with automatic software fallback. The [Docker guide](docs/docker.md) covers
 image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 `compose.nvidia.yaml` override for NVIDIA GPUs.
@@ -231,7 +230,7 @@ image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 | User controls | Create, start, request shutdown, remove a stopped VM, and download an RDP connection file. |
 | Creation progress | Live disk-copy progress followed by configuration and finalization; creation leaves the VM stopped. |
 | Administrator controls | View all owners' VMs, start/stop/delete them, and upload or remove shared QCOW2 images. |
-| Image catalog | Validated standalone QCOW2 uploads become available in Create DevBox; compressed images are normalized with `qemu-img`. |
+| Image catalog | Validated standalone QCOW2 uploads become available in Create DevBox; DEFLATE- and Zstd-compressed images are normalized in Go. |
 | Desktop access | Owner-only, short-lived RDP grants; administrators do not gain access to other users' consoles. |
 | Graphics | Native RDP console with bitmap or H.264 AVC420 output, software encoding, and optional NVIDIA NVENC. |
 | Display and input | Virtio-gpu display with optional virgl OpenGL (`VM_GPU_3D=true`), keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
@@ -381,5 +380,6 @@ contributing code, tests, bug reports, and documentation; see the
 
 DevBox-Gateway-kvm is licensed under the [MIT License](LICENSE). The bundled
 OpenH264 port is covered by the [BSD 2-Clause license](LICENSE-OpenH264). The repository also
-retains the [go.264 license notice](LICENSE-go.264), and the copied gateway UI and
-LDAP assets retain their upstream license notices.
+retains the [go.264 license notice](LICENSE-go.264). The QCOW2 import reader
+retains its [upstream license notice](internal/qcow2import/LICENSE), and the
+copied gateway UI and LDAP assets retain their upstream license notices.

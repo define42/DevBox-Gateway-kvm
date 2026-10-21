@@ -1,21 +1,21 @@
 package gateway
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"syscall"
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
+	"github.com/define42/DevBox-Gateway-kvm/internal/qcow2import"
 )
 
-// These checks run before any external image tool can interpret filenames in an
-// uploaded header. See https://www.qemu.org/docs/master/interop/qcow2.html.
+// These checks restrict uploads to standalone images before opening their
+// metadata or decoding compressed clusters. See https://www.qemu.org/docs/master/interop/qcow2.html.
 func validateUploadedQCOW2(path string) (int64, error) {
 	file, err := openPrivateFile(path, os.O_RDONLY)
 	if err != nil {
@@ -105,106 +105,162 @@ func validateQCOW2Extensions(file io.ReaderAt, offset, end int64) error {
 	return fmt.Errorf("missing QCOW2 extension terminator: %w", ErrInvalid)
 }
 
+// normalizeUploadedQCOW2 keeps already-writable layouts intact. Other supported
+// standalone layouts are decoded once into the native writer's canonical format.
 func normalizeUploadedQCOW2(ctx context.Context, source, destination string, sizeLimit int64) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := checkNormalizedImageSize(source, sizeLimit); err != nil {
+		return err
+	}
 	opened, err := disk.OpenReadOnly(source)
 	if err == nil {
 		if err := opened.Close(); err != nil {
 			return err
 		}
-		// Open also verifies room for full virtual-disk allocation, including
-		// future metadata. Only those layouts can bypass normalization.
-		return os.Rename(source, destination) //nolint:gosec // Fixed filenames in the same private import directory.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		// Open verifies room for full virtual-disk allocation, including future
+		// metadata. Only those layouts can bypass normalization.
+		return os.Rename(source, destination) //nolint:gosec // Fixed private staging paths.
 	}
-	binary, err := exec.LookPath("qemu-img")
-	if err != nil {
-		return ErrImageToolUnavailable
-	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-	defer cancel()
-	if err := imageTool(ctx, binary, "check", "-f", "qcow2", source); err != nil {
-		return err
-	}
-	if err := convertUploadedQCOW2(ctx, binary, source, destination, sizeLimit); err != nil {
-		return err
-	}
-	//nolint:gosec // Fixed output file in the private import directory.
-	if err := os.Chmod(destination, 0o600); err != nil {
+	if err := convertUploadedQCOW2(ctx, source, destination, sizeLimit); err != nil {
 		return err
 	}
 	opened, err = disk.OpenReadOnly(destination)
 	if err != nil {
-		return fmt.Errorf("image could not be converted to a supported QCOW2 layout: %w", ErrInvalid)
+		return fmt.Errorf("normalized QCOW2 failed validation: %w: %w", ErrInvalid, err)
 	}
 	if err := opened.Close(); err != nil {
 		return err
 	}
-	file, err := openPrivateFile(destination, os.O_RDONLY)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	return os.Remove(source) //nolint:gosec // Only the successfully normalized private upload.
+}
+
+func convertUploadedQCOW2(ctx context.Context, source, destination string, sizeLimit int64) (convertErr error) {
+	input, err := openPrivateFile(source, os.O_RDONLY)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	if err := file.Sync(); err != nil {
-		return err
-	}
-
-	return os.Remove(source) //nolint:gosec // Fixed uploaded file in the private import directory.
-}
-
-func imageTool(ctx context.Context, binary string, args ...string) error {
-	//nolint:gosec // Located operator tool; fixed options and private generated paths, never a shell.
-	cmd := exec.CommandContext(ctx, binary, args...)
-	cmd.Stdout, cmd.Stderr = io.Discard, io.Discard
-	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
-	if err := cmd.Run(); err != nil {
+	defer func() { convertErr = errors.Join(convertErr, input.Close()) }()
+	reader, err := qcow2import.OpenContext(ctx, input)
+	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 
-		return fmt.Errorf("QCOW2 validation or conversion failed: %w", ErrInvalid)
+		return fmt.Errorf("read uploaded QCOW2: %w: %w", ErrInvalid, err)
+	}
+	defer func() { convertErr = errors.Join(convertErr, reader.Close()) }()
+	output, err := disk.CreateQCOW2(destination, reader.Size())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		convertErr = errors.Join(convertErr, output.Close())
+		if convertErr != nil {
+			_ = os.Remove(destination) //nolint:gosec // Only the output created exclusively above.
+		}
+	}()
+	checkSize := func() error { return checkNormalizedImageSize(destination, sizeLimit) }
+	if err := checkSize(); err != nil {
+		return err
+	}
+	if err := copyQCOW2Extents(ctx, reader, output, checkSize); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
-	return nil
+	return output.Sync()
 }
 
-func convertUploadedQCOW2(ctx context.Context, binary, source, destination string, sizeLimit int64) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	finished := make(chan error, 1)
-	go func() {
-		finished <- imageTool(ctx, binary, "convert", "-f", "qcow2", "-O", "qcow2", "-o",
-			"compat=1.1,lazy_refcounts=off,refcount_bits=16,cluster_size=65536", source, destination)
-	}()
-	ticker := time.NewTicker(50 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		select {
-		case err := <-finished:
-			if err != nil {
-				return err
-			}
-			info, err := os.Stat(destination) //nolint:gosec // Fixed conversion output path.
-			if err != nil {
-				return err
-			}
-			if info.Size() > sizeLimit {
-				return ErrImageTooLarge
+type qcow2ImportSource interface {
+	io.ReaderAt
+	Size() int64
+	Extent(start, length int64) (qcow2import.Extent, error)
+}
+
+// copyQCOW2Extents skips source holes and zero data. Writes are serialized because
+// disk.Image owns mutable allocation metadata. At most one 64 KiB data write and
+// its metadata can be added between output size checks.
+func copyQCOW2Extents(ctx context.Context, source qcow2ImportSource, output io.WriterAt, checkSize func() error) error {
+	buffer := make([]byte, 2<<20) // Covers the largest accepted compressed cluster.
+	zero := make([]byte, 64<<10)
+	for offset := int64(0); offset < source.Size(); {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		extent, err := source.Extent(offset, source.Size()-offset)
+		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
 
-			return nil
-		case <-ticker.C:
-			info, err := os.Stat(destination) //nolint:gosec // Monitor only the private conversion output.
-			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				cancel()
-				<-finished
+			return fmt.Errorf("read QCOW2 extent: %w: %w", ErrInvalid, err)
+		}
+		if extent.Start != offset || extent.Length <= 0 || extent.Length > source.Size()-offset {
+			return fmt.Errorf("invalid QCOW2 extent bounds: %w", ErrInvalid)
+		}
+		end := offset + extent.Length
+		if extent.Zero || !extent.Allocated {
+			offset = end
 
+			continue
+		}
+		for offset < end {
+			if err := ctx.Err(); err != nil {
 				return err
 			}
-			if err == nil && info.Size() > sizeLimit {
-				cancel()
-				<-finished
+			data := buffer[:min(int64(len(buffer)), end-offset)]
+			if n, err := source.ReadAt(data, offset); err != nil || n != len(data) {
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
 
-				return ErrImageTooLarge
+				return fmt.Errorf("read QCOW2 data: %w: %w", ErrInvalid, errors.Join(err, io.ErrUnexpectedEOF))
+			}
+			for len(data) > 0 {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				chunk := data[:min(len(data), len(zero))]
+				if !bytes.Equal(chunk, zero[:len(chunk)]) {
+					if n, err := output.WriteAt(chunk, offset); err != nil {
+						return err
+					} else if n != len(chunk) {
+						return io.ErrShortWrite
+					}
+					if err := checkSize(); err != nil {
+						return err
+					}
+				}
+				offset += int64(len(chunk))
+				data = data[len(chunk):]
 			}
 		}
 	}
+
+	return ctx.Err()
+}
+
+func checkNormalizedImageSize(path string, limit int64) error {
+	info, err := os.Stat(path) //nolint:gosec // Server-generated private import path.
+	if err != nil {
+		return err
+	}
+	if info.Size() > limit {
+		return ErrImageTooLarge
+	}
+
+	return nil
 }

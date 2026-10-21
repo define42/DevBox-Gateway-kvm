@@ -19,6 +19,7 @@ archives:
   - LICENSE
   - LICENSE-OpenH264
   - LICENSE-go.264
+  - internal/qcow2import/LICENSE
   - README.md
   - CONTRIBUTING.md
   - llms.txt
@@ -40,9 +41,10 @@ release:
     DevBox-Gateway-kvm built from commit `{{ .FullCommit }}`.
 
     The Linux amd64 archive includes the `devbox-kvm` binary with software H.264
-    encoding. Install OVMF and qemu-utils on the host for gateway use.
+    encoding and native Go QCOW2 image import. Install OVMF on the host for
+    gateway use.
 
-    The container includes OVMF, qemu-img, and NVENC support:
+    The container includes OVMF and NVENC support:
     ```sh
     docker pull {{ .Env.RELEASE_IMAGE }}:{{ .Tag }}
     ```

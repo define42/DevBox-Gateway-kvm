@@ -314,11 +314,6 @@ func imageError(w http.ResponseWriter, err error) {
 			"Choose a smaller image or increase the gateway's VM disk size limit.", http.StatusRequestEntityTooLarge)
 	case errors.As(err, &maxBytes), errors.Is(err, ErrImageTooLarge):
 		http.Error(w, "The image exceeds the configured upload size limit.", http.StatusRequestEntityTooLarge)
-	case errors.Is(err, ErrImageToolUnavailable):
-		http.Error(
-			w, "This image needs conversion. Install qemu-utils on the gateway host and try again.",
-			http.StatusServiceUnavailable,
-		)
 	case errors.Is(err, ErrAuthentication):
 		http.Error(w, "Your session expired. Sign in again before uploading.", http.StatusUnauthorized)
 	case errors.Is(err, ErrInvalid):

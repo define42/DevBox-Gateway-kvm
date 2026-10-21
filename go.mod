@@ -13,6 +13,7 @@ require (
 	github.com/containers/gvisor-tap-vsock v0.9.0
 	github.com/google/gopacket v1.1.19
 	github.com/insomniacslk/dhcp v0.0.0-20240710054256-ddd8a41251c9
+	github.com/klauspost/compress v1.20.3
 	github.com/miekg/dns v1.1.73
 	go.uber.org/zap v1.28.0
 	golang.org/x/image v0.46.0

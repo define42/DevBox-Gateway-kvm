@@ -26,7 +26,7 @@ FROM debian:trixie-slim AS runtime-deps
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates libavcodec61 libavutil59 ovmf qemu-utils \
+        ca-certificates libavcodec61 libavutil59 ovmf \
         libvirglrenderer1 libegl1 libegl-mesa0 libgl1 libgles2 libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/* \
     && test -r /usr/share/OVMF/OVMF_CODE_4M.fd \
@@ -38,6 +38,7 @@ RUN apt-get update \
 
 COPY --from=build /out/devbox-kvm /usr/local/bin/devbox-kvm
 COPY LICENSE LICENSE-OpenH264 LICENSE-go.264 /usr/share/doc/devbox-gateway-kvm/
+COPY internal/qcow2import/LICENSE /usr/share/doc/devbox-gateway-kvm/LICENSE-go-qcow2reader
 
 # The NVIDIA Container Toolkit injects the host driver when --gpus is supplied.
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
@@ -71,7 +72,7 @@ install -d -m 0700 -o 10001 -g 10001 /rootfs/var/lib/devbox-kvm
 # symlinks so the copied files do not depend on Debian's merged /usr layout.
 # EGL vendor dispatch and Mesa drivers are loaded dynamically, so ldd on the
 # executable alone misses them. Include every copied driver and its dependencies.
-ldd /usr/local/bin/devbox-kvm /usr/bin/qemu-img \
+ldd /usr/local/bin/devbox-kvm \
     /usr/lib/x86_64-linux-gnu/libEGL.so.1 /usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0 \
     /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/x86_64-linux-gnu/libGLESv2.so.2 \
     /usr/lib/x86_64-linux-gnu/libgbm.so.1 /usr/lib/x86_64-linux-gnu/dri/*.so \
@@ -90,7 +91,7 @@ done < /tmp/runtime-library-paths
 # even when the gateway's own glibc dependencies no longer list them.
 cp --parents -L /lib/x86_64-linux-gnu/libdl.so.2 \
     /lib/x86_64-linux-gnu/libpthread.so.0 /lib/x86_64-linux-gnu/librt.so.1 /rootfs
-cp --parents -L /usr/local/bin/devbox-kvm /usr/bin/qemu-img /sbin/ldconfig \
+cp --parents -L /usr/local/bin/devbox-kvm /sbin/ldconfig \
     /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_VARS_4M.fd \
     /etc/ssl/certs/ca-certificates.crt /etc/passwd /etc/group /etc/nsswitch.conf \
     /etc/os-release /etc/debian_version /etc/ld.so.conf /rootfs
@@ -114,7 +115,6 @@ dpkg-query -W > /rootfs/usr/share/doc/devbox-gateway-kvm/runtime-packages.txt
 # host driver libraries. Build a cache for this filesystem, not the build stage.
 ldconfig -r /rootfs
 chroot --userspec=10001:10001 /rootfs /usr/local/bin/devbox-kvm serve -help
-chroot --userspec=10001:10001 /rootfs /usr/bin/qemu-img --version
 EOF
 
 # LDAP initializes its own private identity; OpenSSL stays out of the gateway.

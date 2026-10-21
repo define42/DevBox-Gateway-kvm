@@ -25,10 +25,7 @@ const DefaultMaxImageUploadBytes int64 = 20 << 30
 
 const maxImageVirtualSize int64 = 1 << 40
 
-var (
-	ErrImageTooLarge        = errors.New("image exceeds the upload or normalized size limit")
-	ErrImageToolUnavailable = errors.New("install qemu-utils to import compressed or unsupported QCOW2 layouts")
-)
+var ErrImageTooLarge = errors.New("image exceeds the upload or normalized size limit")
 
 // Image describes an immutable desktop template. Host paths are never exposed.
 type Image struct {

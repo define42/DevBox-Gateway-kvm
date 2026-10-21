@@ -3,7 +3,7 @@ package disk
 import "errors"
 
 var errQCOW2Capacity = errors.New(
-	"qcow2: refcount table cannot cover the full virtual disk; convert the image with qemu-img",
+	"qcow2: refcount table cannot cover the full virtual disk; normalize the image through the gateway image catalog",
 )
 
 // validateGrowthCapacity proves that every missing data cluster and L2 table can

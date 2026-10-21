@@ -113,16 +113,16 @@ installed bootloader configuration.
 
 ### Rocky Linux XFCE example
 
-Prepare `rocky9-xfce-v2.4.16.qcow2` in the repository root from the
+Prepare `rocky9-xfce-v2.4.16.img` in the repository root from the
 [DevBox-Gateway v2.4.16 release](https://github.com/define42/DevBox-Gateway/releases/tag/v2.4.16),
 following the [sample image instructions](../README.md#prepare-the-sample-desktop).
-The release uses split `.img` files containing qcow2 data; the preparation step
-reassembles and converts them to the filename expected by the Make target.
-Install `qemu-img` (`qemu-utils` on Debian/Ubuntu), then run this headless
-developer boot helper:
+The release uses split `.img` files containing QCOW2 data. Gateway uploads accept
+the reassembled image directly and normalize it in Go. This optional headless
+developer boot helper still uses `qemu-img` (`qemu-utils` on Debian/Ubuntu) to
+prepare a writable disk:
 
 ```bash
-make qcow2
+make qcow2 QCOW2_IMAGE=./rocky9-xfce-v2.4.16.img
 ```
 
 On the first run, the target preserves the source image and creates:
@@ -247,7 +247,7 @@ reset itself is not a flush. The QCOW2 refcount cache is bounded to 4 MiB of
 block data and keeps metadata writes immediate; it does not defer them until
 eviction.
 
-The qcow2 backend supports standalone v2/v3 images with 16-bit refcounts.
+The writable QCOW2 backend supports standalone v2/v3 images with 16-bit refcounts.
 Backing files, internal snapshots, encryption, compressed or shared data
 clusters, external data files, persistent bitmaps, and extended L2 entries are
 unsupported. Images marked dirty or corrupt are rejected. Opening an image
@@ -265,8 +265,12 @@ allocated clusters. If recovery also fails, the open image rejects further
 writes and reports the failure on flush; it may need offline repair. This
 recovery handles reported I/O errors and does not provide a power-loss journal.
 
-Convert an unsupported image to a new standalone file with `qemu-img` before
-attaching it; preserve the original:
+Gateway catalog uploads normalize supported compressed and shared QCOW2 layouts
+in Go before they reach this writable backend; see
+[image import requirements](gateway.md#shared-base-images-and-administration).
+For standalone boot, convert an unsupported image to a new standalone file
+before attaching it. One optional preparation tool is `qemu-img`; preserve the
+original:
 
 ```bash
 qemu-img convert -f qcow2 -O qcow2 source.qcow2 guest.qcow2
