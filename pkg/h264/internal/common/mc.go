@@ -136,6 +136,10 @@ func PixelAvg_c(pDst []uint8, iDstOff int, iDstStride int32, pSrcA []uint8, iSrc
 
 func McCopy_c(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDstOff int, iDstStride int32,
 	iWidth, iHeight int32) {
+	if (iWidth == 16 || iWidth == 8 || iWidth == 4) &&
+		copyBlockFast(pDst, iDstOff, iDstStride, pSrc, iSrcOff, iSrcStride, int(iWidth), int(iHeight)) {
+		return
+	}
 	if iWidth == 16 {
 		McCopyWidthEq16_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iHeight)
 	} else if iWidth == 8 {

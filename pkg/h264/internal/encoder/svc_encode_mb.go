@@ -10,6 +10,9 @@ import (
 )
 
 func WelsDctMb(pRes []int16, pEncMb []uint8, iEncMbOff int, iEncStride int32, pBestPred []uint8, iBestPredOff int, pfDctFourT4 PDctFunc) {
+	if dctLumaMbFast(pRes, pEncMb, iEncMbOff, iEncStride, pBestPred, iBestPredOff) {
+		return
+	}
 	pfDctFourT4(pRes, pEncMb, iEncMbOff, iEncStride, pBestPred, iBestPredOff, 16)
 	pfDctFourT4(pRes[64:], pEncMb, iEncMbOff+8, iEncStride, pBestPred, iBestPredOff+8, 16)
 	pfDctFourT4(pRes[128:], pEncMb, iEncMbOff+8*int(iEncStride), iEncStride, pBestPred, iBestPredOff+128, 16)

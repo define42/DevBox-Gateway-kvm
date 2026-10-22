@@ -329,6 +329,13 @@ func MdInterAnalysisVaaInfo_c(pSad8x8 []int32) uint8 {
 }
 
 func AnalysisVaaInfoIntra_c(pDataY []uint8, iDataYOff int, kiLineSize int32) int32 {
+	if variance, ok := analysisVaaInfoIntraFast(pDataY, iDataYOff, kiLineSize); ok {
+		return variance
+	}
+	return analysisVaaInfoIntraScalar(pDataY, iDataYOff, kiLineSize)
+}
+
+func analysisVaaInfoIntraScalar(pDataY []uint8, iDataYOff int, kiLineSize int32) int32 {
 	var uiAvgBlock [16]uint16
 	iBlockOff := 0
 	pEncData := pDataY
@@ -392,6 +399,8 @@ func InitMeRefinePointer(pMeRefine *SMeRefinePointer, pMbCache *SMbCache, iStrid
 
 	pMeRefine.pQuarPixBest = pMbCache.pBufferInterPredMe[1280+s:]
 	pMeRefine.pQuarPixTmp = pMbCache.pBufferInterPredMe[1920+s:]
+	pMeRefine.arena = pMbCache.pBufferInterPredMe
+	pMeRefine.arenaOff = s
 }
 
 // SQuarRefineParams is the file-local TagQuarParams. Pixel pointers are

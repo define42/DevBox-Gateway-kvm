@@ -2,7 +2,11 @@
 
 package encoder
 
-import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+import (
+	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
 
 //go:noescape
 func satd4x4(src []byte, srcStride int, ref []byte, refStride int) int
@@ -19,15 +23,24 @@ func sampleSIMDBlockSlice(buf []byte, off int, stride int32, width, height int) 
 }
 
 func checkSampleSIMDBlock(buf []byte, off int, stride int32, width, height int) {
-	first := int64(off)
-	last := first + int64(height-1)*int64(stride)
-	if last < first {
-		first, last = last, first
-	}
-	last += int64(width - 1)
-	if first < 0 || last < first || last >= int64(len(buf)) {
+	_ = sampleBlockPtr(buf, off, stride, width, height)
+}
+
+// sampleBlockPtr validates a block whose stride may be negative and returns
+// its first byte. It inlines into the checked wrappers. Once off is inside
+// buf, 64-bit span arithmetic with int32 strides and block sizes cannot wrap.
+func sampleBlockPtr(buf []byte, off int, stride int32, width, height int) *byte {
+	if uint(off) >= uint(len(buf)) {
 		panic("h264: SIMD sample buffer span out of range")
 	}
+	first, last := off, off+(height-1)*int(stride)
+	if stride < 0 {
+		first, last = last, first
+	}
+	if first < 0 || last+width > len(buf) {
+		panic("h264: SIMD sample buffer span out of range")
+	}
+	return (*byte)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(buf)), off))
 }
 
 func WelsSampleSatd4x4_sse41(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
@@ -53,9 +66,8 @@ func satdBlockAVX2(src *byte, srcStride int, ref *byte, refStride int, width, he
 func satdAvgBlockAVX2(src *byte, srcStride int, a *byte, aStride int, b *byte, bStride int, width, height int) int
 
 func sampleSatdBlockAVX2(a []byte, aOff int, aStride int32, ref []byte, refOff int, refStride int32, width, height int) int32 {
-	checkSampleSIMDBlock(a, aOff, aStride, width, height)
-	checkSampleSIMDBlock(ref, refOff, refStride, width, height)
-	return int32(satdBlockAVX2(&a[aOff], int(aStride), &ref[refOff], int(refStride), width, height))
+	return int32(satdBlockAVX2(sampleBlockPtr(a, aOff, aStride, width, height), int(aStride),
+		sampleBlockPtr(ref, refOff, refStride, width, height), int(refStride), width, height))
 }
 
 func WelsSampleSatd8x8_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
@@ -80,10 +92,9 @@ func sampleAvgSatdAVX2(enc []byte, encOff int, encStride int32,
 	if (width != 8 && width != 16) || height <= 0 || height > 16 || height%4 != 0 {
 		panic("h264: invalid averaged SATD dimensions")
 	}
-	checkSampleSIMDBlock(enc, encOff, encStride, int(width), int(height))
-	checkSampleSIMDBlock(a, aOff, aStride, int(width), int(height))
-	checkSampleSIMDBlock(b, bOff, bStride, int(width), int(height))
-	return int32(satdAvgBlockAVX2(&enc[encOff], int(encStride), &a[aOff], int(aStride), &b[bOff], int(bStride), int(width), int(height)))
+	w, h := int(width), int(height)
+	return int32(satdAvgBlockAVX2(sampleBlockPtr(enc, encOff, encStride, w, h), int(encStride),
+		sampleBlockPtr(a, aOff, aStride, w, h), int(aStride), sampleBlockPtr(b, bOff, bStride, w, h), int(bStride), w, h))
 }
 
 func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {

@@ -5,12 +5,13 @@
 // Reconstruct two horizontally adjacent 4x4 blocks per kernel call. The
 // horizontal transform retains int16 wrapping; AVX2 widens all eight columns
 // before the vertical transform, preserving the scalar's full int16 domain.
-TEXT ·idctFourT4RecAVX2(SB), NOSPLIT, $0-88
-	MOVQ rec_base+0(FP), R9
-	MOVQ recStride+24(FP), CX
-	MOVQ pred_base+32(FP), R10
-	MOVQ predStride+56(FP), SI
-	MOVQ coeff_base+64(FP), R8
+// func idctFourT4RecAVX2(rec *byte, recStride int, pred *byte, predStride int, coeff *[64]int16)
+TEXT ·idctFourT4RecAVX2(SB), NOSPLIT, $0-40
+	MOVQ rec+0(FP), R9
+	MOVQ recStride+8(FP), CX
+	MOVQ pred+16(FP), R10
+	MOVQ predStride+24(FP), SI
+	MOVQ coeff+32(FP), R8
 	MOVQ R9, BX
 	MOVQ R10, DX
 	MOVQ R8, AX

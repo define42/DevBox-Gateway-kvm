@@ -14,8 +14,10 @@ func idctT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff
 //go:noescape
 func idctFourT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
 
+// idctFourT4RecAVX2 receives pointers to spans its caller validated.
+//
 //go:noescape
-func idctFourT4RecAVX2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
+func idctFourT4RecAVX2(rec *byte, recStride int, pred *byte, predStride int, coeff *[64]int16)
 
 // WelsIDctT4Rec_sse2 preserves the scalar transform's wrapping horizontal
 // int16 intermediates and its widened vertical arithmetic.
@@ -33,15 +35,15 @@ func WelsIDctT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte, pr
 // WelsIDctFourT4Rec_sse2 reconstructs an 8x8 block, with coefficients ordered
 // top-left, top-right, bottom-left, bottom-right.
 func WelsIDctFourT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte, predOff int, predStride int32, coeff []int16) {
-	_ = coeff[63]
-	checkSampleSIMDBlock(rec, recOff, recStride, 8, 8)
-	checkSampleSIMDBlock(pred, predOff, predStride, 8, 8)
-	if idctNeedsScalarAlias(rec, recOff, recStride, pred, predOff, predStride, 8) {
+	c := (*[64]int16)(coeff)
+	r := sampleBlockPtr(rec, recOff, recStride, 8, 8)
+	p := sampleBlockPtr(pred, predOff, predStride, 8, 8)
+	if idctPtrsNeedScalar(r, recStride, p, predStride, 8) {
 		WelsIDctFourT4Rec_c(rec, recOff, recStride, pred, predOff, predStride, coeff)
 		return
 	}
 	if cpu.X86.HasAVX2 {
-		idctFourT4RecAVX2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
+		idctFourT4RecAVX2(r, int(recStride), p, int(predStride), c)
 		return
 	}
 	idctFourT4RecSSE2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
@@ -67,8 +69,16 @@ func idctNeedsScalarAlias(rec []byte, recOff int, recStride int32, pred []byte, 
 	if recStride < int32(size) || predStride < int32(size) {
 		return true
 	}
-	r := uintptr(unsafe.Pointer(&rec[recOff]))
-	p := uintptr(unsafe.Pointer(&pred[predOff]))
+	return idctPtrsNeedScalar(&rec[recOff], recStride, &pred[predOff], predStride, size)
+}
+
+// idctPtrsNeedScalar is idctNeedsScalarAlias for already validated blocks.
+func idctPtrsNeedScalar(recPtr *byte, recStride int32, predPtr *byte, predStride int32, size int) bool {
+	if recStride < int32(size) || predStride < int32(size) {
+		return true
+	}
+	r := uintptr(unsafe.Pointer(recPtr))
+	p := uintptr(unsafe.Pointer(predPtr))
 	if r == p && recStride == predStride {
 		return false
 	}

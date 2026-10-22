@@ -46,12 +46,11 @@ func WelsDctFourT4_sse2(
 ) {
 	s1 := int(stride1)
 	s2 := int(stride2)
-	_ = dct[63]
-	checkSampleSIMDBlock(pixel1, pixel1Off, stride1, 8, 8)
-	checkSampleSIMDBlock(pixel2, pixel2Off, stride2, 8, 8)
-	if cpu.X86.HasAVX2 && s1 >= 0 && s2 >= 0 &&
-		!dctFourT4Aliases((*[64]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2) {
-		welsDctFourT4AVX2((*[64]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2)
+	out := (*[64]int16)(dct)
+	p1 := sampleBlockPtr(pixel1, pixel1Off, stride1, 8, 8)
+	p2 := sampleBlockPtr(pixel2, pixel2Off, stride2, 8, 8)
+	if cpu.X86.HasAVX2 && s1 >= 0 && s2 >= 0 && !dctFourT4Aliases(out, p1, s1, p2, s2) {
+		welsDctFourT4AVX2(out, p1, s1, p2, s2)
 		return
 	}
 	welsDctFourT4SSE2(dct, pixel1[pixel1Off:], s1, pixel2[pixel2Off:], s2)

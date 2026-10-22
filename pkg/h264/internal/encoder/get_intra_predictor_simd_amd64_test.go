@@ -205,3 +205,21 @@ func TestIntraSIMDRejectsShortBuffers(t *testing.T) {
 		})
 	}
 }
+
+func TestIntraPlaneCoefficientsParity(t *testing.T) {
+	rng := rand.New(rand.NewSource(816))
+	for test := 0; test < 50000; test++ {
+		size := []int{8, 16}[test%2]
+		stride := size + 1 + rng.Intn(40)
+		off := stride + 1 + rng.Intn(8)
+		ref := make([]byte, off+(size-1)*stride+size)
+		for i := range ref {
+			ref[i] = byte(rng.Uint32())
+		}
+		b0, h0, v0 := intraPlaneCoefficients(ref, off, int32(stride), size)
+		b1, h1, v1 := intraPlaneCoefficientsChecked(ref, off, int32(stride), size)
+		if b0 != b1 || h0 != h1 || v0 != v1 {
+			t.Fatalf("size %d stride %d: %d/%d/%d, want %d/%d/%d", size, stride, b0, h0, v0, b1, h1, v1)
+		}
+	}
+}
