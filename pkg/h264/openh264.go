@@ -77,6 +77,12 @@ type Frame struct {
 	// disables the hint. Decoded frames do not carry it. Incorrect hints can
 	// suppress real changes; encoders may ignore any or all hints.
 	UnchangedMacroblocks []bool
+	// MacroblockMotion is an encoding hint with the same order, length and
+	// lifetime as UnchangedMacroblocks. A nonzero entry suggests the
+	// macroblock's source samples equal the preceding successful encoded
+	// picture's at that full-pel luma displacement, so the encoder codes it with
+	// that vector instead of searching. A wrong hint costs bits, not correctness.
+	MacroblockMotion []api.MacroblockMotion
 }
 
 // NewFrame allocates a zeroed frame of the given (even) size.
@@ -276,6 +282,7 @@ func (e *Encoder) Encode(f *Frame) ([]byte, api.EVideoFrameType, error) {
 	pic.IStride[0], pic.IStride[1], pic.IStride[2] = int32(f.Width), int32(f.Width/2), int32(f.Width/2)
 	pic.PData[0], pic.PData[1], pic.PData[2] = f.Y, f.U, f.V
 	pic.UnchangedMacroblocks = f.UnchangedMacroblocks
+	pic.MacroblockMotion = f.MacroblockMotion
 	info := &e.info
 	if rv := e.e.EncodeFrame(pic, info); rv != 0 {
 		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: EncodeFrame failed (%d)", rv)

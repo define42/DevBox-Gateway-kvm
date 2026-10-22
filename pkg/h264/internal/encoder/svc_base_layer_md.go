@@ -1684,6 +1684,9 @@ func WelsMdInterMb(pEncCtx *sWelsEncCtx, pWelsMd *SWelsMD, pSlice *SSlice, pCurM
 	if tryUnchangedMacroblock(pEncCtx, pWelsMd, pSlice, pCurMb) {
 		return
 	}
+	if tryMotionHintMacroblock(pEncCtx, pWelsMd, pSlice, pCurMb) {
+		return
+	}
 	pCurDqLayer := pEncCtx.pCurDqLayer
 	pMbCache := &pSlice.sMbCacheInfo
 	kuiNeighborAvail := uint32(pCurMb.uiNeighborAvail)

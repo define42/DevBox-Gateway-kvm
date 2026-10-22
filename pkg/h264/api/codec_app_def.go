@@ -604,6 +604,19 @@ type SSourcePicture struct {
 	// ceil(IPicWidth/16)*ceil(IPicHeight/16) elements. Nil/wrong length disables
 	// this optional hint; incorrect hints can suppress actual picture changes.
 	UnchangedMacroblocks []bool
+	// Go-only, borrowed read-only during EncodeFrame, in the same order and
+	// length as UnchangedMacroblocks. A nonzero entry suggests that the
+	// macroblock's source samples equal the preceding successful encoded
+	// picture's at that full-pel luma displacement; the encoder may code it with
+	// that vector instead of searching. Residuals are still coded, so a wrong
+	// hint costs bits, not correctness. Nil/wrong length disables the hints.
+	MacroblockMotion []MacroblockMotion
+}
+
+// MacroblockMotion is a full-pel luma displacement. Its layout matches the C
+// SMacroblockMotion of the patched native library.
+type MacroblockMotion struct {
+	X, Y int16
 }
 
 // SBitrateInfo is the structure for bit rate info.

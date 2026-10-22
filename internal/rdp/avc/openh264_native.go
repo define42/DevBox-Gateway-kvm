@@ -37,14 +37,14 @@ func newCodecEncoderWithConfig(
 }
 
 func (e *nativeOpenH264Encoder) encode(i420 []byte, force bool, timestamp int64) ([]byte, error) {
-	return e.encodeDamage(i420, force, timestamp, nil)
+	return e.encodeDamage(i420, force, timestamp, damageHints{})
 }
 
 func (e *nativeOpenH264Encoder) encodeDamage(
-	i420 []byte, force bool, timestamp int64, unchanged []bool,
+	i420 []byte, force bool, timestamp int64, hints damageHints,
 ) ([]byte, error) {
 	e.lastTimestamp = timestamp
-	data, err := e.codec.EncodeHinted(i420, force, timestamp, unchanged)
+	data, err := e.codec.EncodeHinted(i420, force, timestamp, hints.unchanged, hints.motion)
 	if err != nil {
 		return nil, fmt.Errorf("%w: encode: %w", ErrCodec, err)
 	}

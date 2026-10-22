@@ -20,8 +20,8 @@ func (c *macroblockCodec) encode(pixels []byte, force bool, timestamp int64) ([]
 	return c.damageCodec.encode(pixels, force, timestamp)
 }
 
-func (c *macroblockCodec) encodeDamage(pixels []byte, force bool, timestamp int64, unchanged []bool) ([]byte, error) {
-	c.hints = append(c.hints[:0], unchanged...)
+func (c *macroblockCodec) encodeDamage(pixels []byte, force bool, timestamp int64, hints damageHints) ([]byte, error) {
+	c.hints = append(c.hints[:0], hints.unchanged...)
 
 	return c.damageCodec.encode(pixels, force, timestamp)
 }

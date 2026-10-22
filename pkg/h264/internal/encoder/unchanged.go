@@ -12,6 +12,7 @@ import (
 // never retained after EncodeFrame returns.
 type unchangedFrameState struct {
 	macroblocks []bool
+	motion      []api.MacroblockMotion // borrowed, same length as macroblocks
 	reference   *SPicture
 	frameNum    int32
 	poc         int32
@@ -46,6 +47,7 @@ func unchangedConfiguration(param *SWelsSvcCodingParam) bool {
 
 func (s *unchangedFrameState) begin(ctx *sWelsEncCtx, source *api.SSourcePicture) {
 	s.macroblocks = nil
+	s.motion = nil
 	s.reuseDestination = nil
 	if source == nil || !unchangedConfiguration(ctx.pSvcParam) {
 		return
@@ -60,6 +62,9 @@ func (s *unchangedFrameState) begin(ctx *sWelsEncCtx, source *api.SSourcePicture
 	count := ((int64(source.IPicWidth) + 15) / 16) * ((int64(source.IPicHeight) + 15) / 16)
 	validPrevious := s.reference != nil && s.width == source.IPicWidth && s.height == source.IPicHeight &&
 		s.qp == param.SSpatialLayers[0].IDLayerQp
+	if validPrevious && int64(len(source.MacroblockMotion)) == count {
+		s.motion = source.MacroblockMotion
+	}
 	if validPrevious && int64(len(source.UnchangedMacroblocks)) == count {
 		s.macroblocks = source.UnchangedMacroblocks
 		s.reuseDestination = s.reusableSource()
@@ -73,6 +78,7 @@ func (s *unchangedFrameState) finish(
 	success bool,
 ) {
 	s.macroblocks = nil
+	s.motion = nil
 	s.reuseDestination = nil
 	if !success || source == nil || output == nil || !unchangedConfiguration(ctx.pSvcParam) {
 		*s = unchangedFrameState{}
@@ -98,6 +104,17 @@ func (s *unchangedFrameState) finish(
 	s.width, s.height = source.IPicWidth, source.IPicHeight
 }
 
+// hintReferenceValid reports whether the reference is the picture the hints
+// were made against.
+func hintReferenceValid(ctx *sWelsEncCtx) bool {
+	state := &ctx.unchanged
+	reference := ctx.pCurDqLayer.pRefPic
+
+	return ctx.eSliceType == common.P_SLICE && ctx.iNumRef0 == 1 &&
+		reference != nil && reference == state.reference && reference == ctx.pRefList0[0] &&
+		reference.iFrameNum == state.frameNum && reference.iFramePoc == state.poc
+}
+
 func unchangedMacroblockEligible(ctx *sWelsEncCtx, mb *SMB) bool {
 	state := &ctx.unchanged
 	index := int(mb.iMbXY)
@@ -106,10 +123,7 @@ func unchangedMacroblockEligible(ctx *sWelsEncCtx, mb *SMB) bool {
 	}
 	layer := ctx.pCurDqLayer
 	reference := layer.pRefPic
-	validReference := ctx.eSliceType == common.P_SLICE && ctx.iNumRef0 == 1 &&
-		reference != nil && reference == state.reference && reference == ctx.pRefList0[0] &&
-		reference.iFrameNum == state.frameNum && reference.iFramePoc == state.poc
-	if !validReference || layer.iLoopFilterDisableIdc != 1 || int32(mb.uiLumaQp) != state.qp {
+	if !hintReferenceValid(ctx) || layer.iLoopFilterDisableIdc != 1 || int32(mb.uiLumaQp) != state.qp {
 		return false
 	}
 	// Preserve the existing hint policy: previous P_SKIP and a zero motion-search

@@ -1,4 +1,4 @@
-Unchanged-macroblock hints for OpenH264 v2.7.0 (DevBox-Gateway-kvm).
+Unchanged-macroblock and motion hints for OpenH264 v2.7.0 (DevBox-Gateway-kvm).
 
 SSourcePicture gains pUnchangedMacroblocks/iUnchangedMacroblockCount: one
 byte per 16x16 macroblock, nonzero certifying that its Y/U/V source samples
@@ -14,13 +14,31 @@ bitstream:
   - runs of such macroblocks coded without per-macroblock mode decision
     bookkeeping, and multi-slice pictures with few other macroblocks coded
     on the calling thread instead of the thread pool.
+SSourcePicture also gains pMacroblockMotion/iMacroblockMotionCount: one
+full-pel displacement per macroblock, coded as P16x16 with that vector
+instead of a motion search, exactly as the pure-Go port does.
+The x86 MMX kernels still dispatched on SSE2 machines are replaced with
+SSE2/SSSE3 versions computing the same values.
 Pictures without hints encode exactly as upstream.
 
 diff --git a/codec/api/wels/codec_app_def.h b/codec/api/wels/codec_app_def.h
-index 823d38d..ca01c62 100644
+index 823d38d..8c8b392 100644
 --- a/codec/api/wels/codec_app_def.h
 +++ b/codec/api/wels/codec_app_def.h
-@@ -666,6 +666,13 @@ typedef struct Source_Picture_s {
+@@ -653,6 +653,12 @@ typedef struct {
+   long long uiTimeStamp;
+ } SFrameBSInfo, *PFrameBSInfo;
+ 
++/// DevBox-Gateway-kvm extension: a full-pel luma displacement.
++typedef struct {
++  short iX;
++  short iY;
++} SMacroblockMotion;
++
+ /**
+ *  @brief Structure for source picture
+ */
+@@ -666,6 +672,21 @@ typedef struct Source_Picture_s {
    bool      bPsnrY;                ///< get Y PSNR for this frame
    bool      bPsnrU;                ///< get U PSNR for this frame
    bool      bPsnrV;                ///< get V PSNR for this frame
@@ -31,6 +49,14 @@ index 823d38d..ca01c62 100644
 +  /// this structure so the fields stay disabled.
 +  const unsigned char* pUnchangedMacroblocks;
 +  int       iUnchangedMacroblockCount;
++  /// DevBox-Gateway-kvm extension: optional row-major motion hints, one per
++  /// macroblock, in full luma pixels. A nonzero vector suggests that the
++  /// macroblock's source samples equal those of the preceding successfully
++  /// encoded picture at that displacement; the encoder may then code it with
++  /// that vector instead of searching. Residuals are still coded, so a wrong
++  /// hint costs bits, not correctness. Same lifetime and count rules as above.
++  const SMacroblockMotion* pMacroblockMotion;
++  int       iMacroblockMotionCount;
  } SSourcePicture;
  
  /**
@@ -127,11 +153,598 @@ index 4bbef8c..f2bdb31 100644
  			<File
  				RelativePath="..\..\..\encoder\core\inc\wels_preprocess.h"
  				>
+diff --git a/codec/common/inc/copy_mb.h b/codec/common/inc/copy_mb.h
+index 6a438eb..9864628 100644
+--- a/codec/common/inc/copy_mb.h
++++ b/codec/common/inc/copy_mb.h
+@@ -54,6 +54,8 @@ extern "C" {
+ 
+ void WelsCopy8x8_mmx (uint8_t* pDst, int32_t iStrideD, uint8_t* pSrc, int32_t iStrideS);
+ void WelsCopy8x16_mmx (uint8_t* pDst, int32_t iStrideD, uint8_t* pSrc, int32_t iStrideS);
++void WelsCopy8x8_sse2 (uint8_t* pDst, int32_t iStrideD, uint8_t* pSrc, int32_t iStrideS);
++void WelsCopy8x16_sse2 (uint8_t* pDst, int32_t iStrideD, uint8_t* pSrc, int32_t iStrideS);
+ void WelsCopy16x8NotAligned_sse2 (uint8_t* Dst, int32_t  iStrideD, uint8_t* Src, int32_t  iStrideS);
+ void WelsCopy16x16_sse2 (uint8_t* Dst, int32_t  iStrideD, uint8_t* Src, int32_t  iStrideS);
+ void WelsCopy16x16NotAligned_sse2 (uint8_t* Dst, int32_t  iStrideD, uint8_t* Src, int32_t  iStrideS);
+diff --git a/codec/common/inc/mc.h b/codec/common/inc/mc.h
+index d3a1f06..1744906 100644
+--- a/codec/common/inc/mc.h
++++ b/codec/common/inc/mc.h
+@@ -258,6 +258,14 @@ void PixelAvgWidthEq4_mmx (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSr
+                            const uint8_t* pSrcB, int32_t iSrcBStride, int32_t iHeight);
+ void PixelAvgWidthEq8_mmx (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSrcA, int32_t iSrcAStride,
+                            const uint8_t* pSrcB, int32_t iSrcBStride, int32_t iHeight);
++void McCopyWidthEq8_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
++                          int32_t iHeight);
++void PixelAvgWidthEq4_sse2 (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSrcA, int32_t iSrcAStride,
++                            const uint8_t* pSrcB, int32_t iSrcBStride, int32_t iHeight);
++void PixelAvgWidthEq8_sse2 (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSrcA, int32_t iSrcAStride,
++                            const uint8_t* pSrcB, int32_t iSrcBStride, int32_t iHeight);
++void McChromaWidthEq4_ssse3 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
++                             const uint8_t* kpABCD, int32_t iHeight);
+ 
+ //***************************************************************************//
+ //                       SSE2 definition                                     //
+diff --git a/codec/common/inc/sad_common.h b/codec/common/inc/sad_common.h
+index 96dcb28..63a2d73 100644
+--- a/codec/common/inc/sad_common.h
++++ b/codec/common/inc/sad_common.h
+@@ -62,6 +62,7 @@ extern "C" {
+ #if defined (X86_ASM)
+ 
+ int32_t WelsSampleSad4x4_mmx (uint8_t*, int32_t, uint8_t*, int32_t);
++int32_t WelsSampleSad4x4_sse2 (uint8_t*, int32_t, uint8_t*, int32_t);
+ int32_t WelsSampleSad16x16_sse2 (uint8_t*, int32_t, uint8_t*, int32_t);
+ int32_t WelsSampleSad16x8_sse2 (uint8_t*, int32_t, uint8_t*, int32_t);
+ int32_t WelsSampleSad8x16_sse2 (uint8_t*, int32_t, uint8_t*, int32_t);
+diff --git a/codec/common/src/mc.cpp b/codec/common/src/mc.cpp
+index 8cf2b70..e98bda4 100644
+--- a/codec/common/src/mc.cpp
++++ b/codec/common/src/mc.cpp
+@@ -441,7 +441,7 @@ static inline void McCopy_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t
+   if (iWidth == 16)
+     McCopyWidthEq16_sse2 (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+   else if (iWidth == 8)
+-    McCopyWidthEq8_mmx (pSrc, iSrcStride, pDst, iDstStride, iHeight);
++    McCopyWidthEq8_sse2 (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+   else if (iWidth == 4)
+     McCopyWidthEq4_c (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+   else
+@@ -486,10 +486,10 @@ static inline void McHorVer01_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+     PixelAvgWidthEq16_sse2 (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
+   } else if (iWidth == 8) {
+     McHorVer02WidthEq8_sse2 (pSrc, iSrcStride, pTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
+   } else {
+     McHorVer02_c (pSrc, iSrcStride, pTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer03_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -500,10 +500,10 @@ static inline void McHorVer03_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+     PixelAvgWidthEq16_sse2 (pDst, iDstStride, pSrc + iSrcStride, iSrcStride, pTmp, 16, iHeight);
+   } else if (iWidth == 8) {
+     McHorVer02WidthEq8_sse2 (pSrc, iSrcStride, pTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pSrc + iSrcStride, iSrcStride, pTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pSrc + iSrcStride, iSrcStride, pTmp, 16, iHeight);
+   } else {
+     McHorVer02_c (pSrc, iSrcStride, pTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pSrc + iSrcStride, iSrcStride, pTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pSrc + iSrcStride, iSrcStride, pTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer10_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -514,10 +514,10 @@ static inline void McHorVer10_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+     PixelAvgWidthEq16_sse2 (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc, iSrcStride, pTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc, iSrcStride, pTmp, 16, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pSrc, iSrcStride, pTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer11_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -531,11 +531,11 @@ static inline void McHorVer11_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02WidthEq8_sse2 (pSrc, iSrcStride, pVerTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02_c (pSrc, iSrcStride, pVerTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer12_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -549,11 +549,11 @@ static inline void McHorVer12_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer02WidthEq8_sse2 (pSrc, iSrcStride, pVerTmp, 16, iHeight);
+     McHorVer22WidthEq8_sse2 (pSrc, iSrcStride, pCtrTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
+   } else {
+     McHorVer02_c (pSrc, iSrcStride, pVerTmp, 16, 4, iHeight);
+     McHorVer22_c (pSrc, iSrcStride, pCtrTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer13_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -567,11 +567,11 @@ static inline void McHorVer13_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc + iSrcStride, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02WidthEq8_sse2 (pSrc,            iSrcStride, pVerTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc + iSrcStride, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02_c (pSrc,            iSrcStride, pVerTmp, 16, 4 , iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer21_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -585,11 +585,11 @@ static inline void McHorVer21_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer22WidthEq8_sse2 (pSrc, iSrcStride, pCtrTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer22_c (pSrc, iSrcStride, pCtrTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer23_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -603,11 +603,11 @@ static inline void McHorVer23_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc + iSrcStride, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer22WidthEq8_sse2 (pSrc,            iSrcStride, pCtrTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc + iSrcStride, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer22_c (pSrc,            iSrcStride, pCtrTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pHorTmp, 16, pCtrTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer30_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -618,10 +618,10 @@ static inline void McHorVer30_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+     PixelAvgWidthEq16_sse2 (pDst, iDstStride, pSrc + 1, iSrcStride, pHorTmp, 16, iHeight);
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pSrc + 1, iSrcStride, pHorTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pSrc + 1, iSrcStride, pHorTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pSrc + 1, iSrcStride, pHorTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pSrc + 1, iSrcStride, pHorTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer31_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -635,11 +635,11 @@ static inline void McHorVer31_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02WidthEq8_sse2 (pSrc + 1, iSrcStride, pVerTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02_c (pSrc + 1, iSrcStride, pVerTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer32_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -653,11 +653,11 @@ static inline void McHorVer32_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer02WidthEq8_sse2 (pSrc + 1, iSrcStride, pVerTmp, 16, iHeight);
+     McHorVer22WidthEq8_sse2 (pSrc,   iSrcStride, pCtrTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
+   } else {
+     McHorVer02_c (pSrc + 1, iSrcStride, pVerTmp, 16, 4, iHeight);
+     McHorVer22_c (pSrc,   iSrcStride, pCtrTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pVerTmp, 16, pCtrTmp, 16, iHeight);
+   }
+ }
+ static inline void McHorVer33_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+@@ -671,11 +671,11 @@ static inline void McHorVer33_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uin
+   } else if (iWidth == 8) {
+     McHorVer20WidthEq8_sse2 (pSrc + iSrcStride, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02WidthEq8_sse2 (pSrc + 1,          iSrcStride, pVerTmp, 16, iHeight);
+-    PixelAvgWidthEq8_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq8_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   } else {
+     McHorVer20WidthEq4_mmx (pSrc + iSrcStride, iSrcStride, pHorTmp, 16, iHeight);
+     McHorVer02_c (pSrc + 1,          iSrcStride, pVerTmp, 16, 4, iHeight);
+-    PixelAvgWidthEq4_mmx (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
++    PixelAvgWidthEq4_sse2 (pDst, iDstStride, pHorTmp, 16, pVerTmp, 16, iHeight);
+   }
+ }
+ 
+@@ -718,9 +718,9 @@ void McChroma_sse2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int3
+ void PixelAvgWidth4Or8Or16_sse2 (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSrcA, int32_t iSrcAStride,
+                                  const uint8_t* pSrcB, int32_t iSrcBStride, int32_t iWidth, int32_t iHeight) {
+   if (iWidth < 8) {
+-    PixelAvgWidthEq4_mmx   (pDst, iDstStride, pSrcA, iSrcAStride, pSrcB, iSrcBStride, iHeight);
++    PixelAvgWidthEq4_sse2  (pDst, iDstStride, pSrcA, iSrcAStride, pSrcB, iSrcBStride, iHeight);
+   } else if (iWidth == 8) {
+-    PixelAvgWidthEq8_mmx   (pDst, iDstStride, pSrcA, iSrcAStride, pSrcB, iSrcBStride, iHeight);
++    PixelAvgWidthEq8_sse2  (pDst, iDstStride, pSrcA, iSrcAStride, pSrcB, iSrcBStride, iHeight);
+   } else {
+     PixelAvgWidthEq16_sse2 (pDst, iDstStride, pSrcA, iSrcAStride, pSrcB, iSrcBStride, iHeight);
+   }
+@@ -730,7 +730,7 @@ void McCopy_sse3 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_
+                   int32_t iWidth, int32_t iHeight) {
+   switch (iWidth) {
+   case 16: return McCopyWidthEq16_sse3 (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+-  case 8:  return McCopyWidthEq8_mmx (pSrc, iSrcStride, pDst, iDstStride, iHeight);
++  case 8:  return McCopyWidthEq8_sse2 (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+   case 4:  return McCopyWidthEq4_c (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+   }
+   return McCopyWidthEq2_c (pSrc, iSrcStride, pDst, iDstStride, iHeight);
+@@ -891,7 +891,7 @@ void McLuma_ssse3 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32
+ void McChroma_ssse3 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_t iDstStride,
+                      int16_t iMvX, int16_t iMvY, int32_t iWidth, int32_t iHeight) {
+   static const PMcChromaWidthExtFunc kpMcChromaWidthFuncs[2] = {
+-    McChromaWidthEq4_mmx,
++    McChromaWidthEq4_ssse3,
+     McChromaWidthEq8_ssse3
+   };
+   const int32_t kiD8x = iMvX & 0x07;
+@@ -1072,7 +1072,7 @@ void McLuma_avx2 (const uint8_t* pSrc, int32_t iSrcStride, uint8_t* pDst, int32_
+ void PixelAvg_sse2 (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSrcA, int32_t iSrcAStride,
+                     const uint8_t* pSrcB, int32_t iSrcBStride, int32_t iWidth, int32_t iHeight) {
+   static const PWelsSampleWidthAveragingFunc kpfFuncs[2] = {
+-    PixelAvgWidthEq8_mmx,
++    PixelAvgWidthEq8_sse2,
+     PixelAvgWidthEq16_sse2
+   };
+   kpfFuncs[iWidth >> 4] (pDst, iDstStride, pSrcA, iSrcAStride, pSrcB, iSrcBStride, iHeight);
+diff --git a/codec/common/x86/mb_copy.asm b/codec/common/x86/mb_copy.asm
+index a475295..1a0e3e8 100644
+--- a/codec/common/x86/mb_copy.asm
++++ b/codec/common/x86/mb_copy.asm
+@@ -354,6 +354,70 @@ WELS_EXTERN WelsCopy8x8_mmx
+     pop r4
+     ret
+ 
++;***********************************************************************
++; void WelsCopy8x8_sse2(  uint8_t* Dst,
++;                         int32_t  iStrideD,
++;                         uint8_t* Src,
++;                         int32_t  iStrideS )
++;***********************************************************************
++WELS_EXTERN WelsCopy8x8_sse2
++    push r4
++    push r5
++    %assign  push_num 2
++    LOAD_4_PARA
++    SIGN_EXTENSION r1, r1d
++    SIGN_EXTENSION r3, r3d
++    lea r4, [r3+2*r3]
++    lea r5, [r1+2*r1]
++%rep 2
++    movq xmm0, [r2]
++    movq xmm1, [r2+r3]
++    movq xmm2, [r2+2*r3]
++    movq xmm3, [r2+r4]
++    lea r2, [r2+4*r3]
++    movq [r0], xmm0
++    movq [r0+r1], xmm1
++    movq [r0+2*r1], xmm2
++    movq [r0+r5], xmm3
++    lea r0, [r0+4*r1]
++%endrep
++    LOAD_4_PARA_POP
++    pop r5
++    pop r4
++    ret
++
++;***********************************************************************
++; void WelsCopy8x16_sse2( uint8_t* Dst,
++;                         int32_t  iStrideD,
++;                         uint8_t* Src,
++;                         int32_t  iStrideS )
++;***********************************************************************
++WELS_EXTERN WelsCopy8x16_sse2
++    push r4
++    push r5
++    %assign  push_num 2
++    LOAD_4_PARA
++    SIGN_EXTENSION r1, r1d
++    SIGN_EXTENSION r3, r3d
++    lea r4, [r3+2*r3]
++    lea r5, [r1+2*r1]
++%rep 4
++    movq xmm0, [r2]
++    movq xmm1, [r2+r3]
++    movq xmm2, [r2+2*r3]
++    movq xmm3, [r2+r4]
++    lea r2, [r2+4*r3]
++    movq [r0], xmm0
++    movq [r0+r1], xmm1
++    movq [r0+2*r1], xmm2
++    movq [r0+r5], xmm3
++    lea r0, [r0+4*r1]
++%endrep
++    LOAD_4_PARA_POP
++    pop r5
++    pop r4
++    ret
++
+ ; (dunhuang@cisco), 12/21/2011
+ ;***********************************************************************
+ ; void UpdateMbMv_sse2( SMVUnitXY *pMvBuffer, const SMVUnitXY sMv )
+@@ -454,6 +518,73 @@ ALIGN 4
+ 
+ 
+ 
++;*******************************************************************************
++; void PixelAvgWidthEq4_sse2( uint8_t *pDst,  int iDstStride,
++;                            uint8_t *pSrcA, int iSrcAStride,
++;                            uint8_t *pSrcB, int iSrcBStride,
++;                            int iHeight );
++;*******************************************************************************
++WELS_EXTERN PixelAvgWidthEq4_sse2
++    %assign  push_num 0
++    LOAD_7_PARA
++    SIGN_EXTENSION  r1, r1d
++    SIGN_EXTENSION  r3, r3d
++    SIGN_EXTENSION  r5, r5d
++    SIGN_EXTENSION  r6, r6d
++
++ALIGN 4
++.height_loop:
++    movd        xmm0, [r4]
++    movd        xmm1, [r2]
++    pavgb       xmm0, xmm1
++    movd        [r0], xmm0
++
++    dec         r6
++    lea         r0, [r0+r1]
++    lea         r2, [r2+r3]
++    lea         r4, [r4+r5]
++    jne         .height_loop
++
++    LOAD_7_PARA_POP
++    ret
++
++
++;*******************************************************************************
++; void PixelAvgWidthEq8_sse2( uint8_t *pDst,  int iDstStride,
++;                            uint8_t *pSrcA, int iSrcAStride,
++;                            uint8_t *pSrcB, int iSrcBStride,
++;                            int iHeight );
++;*******************************************************************************
++WELS_EXTERN PixelAvgWidthEq8_sse2
++    %assign  push_num 0
++    LOAD_7_PARA
++    SIGN_EXTENSION  r1, r1d
++    SIGN_EXTENSION  r3, r3d
++    SIGN_EXTENSION  r5, r5d
++    SIGN_EXTENSION  r6, r6d
++
++ALIGN 4
++.height_loop:
++    movq        xmm0, [r2]
++    movhps      xmm0, [r2+r3]
++    movq        xmm1, [r4]
++    movhps      xmm1, [r4+r5]
++    pavgb       xmm0, xmm1
++    movq        [r0], xmm0
++    movhps      [r0+r1], xmm0
++
++    lea         r2,  [r2+2*r3]
++    lea         r4,  [r4+2*r5]
++    lea         r0,  [r0+2*r1]
++
++    sub         r6, 2
++    jnz         .height_loop
++
++    LOAD_7_PARA_POP
++    ret
++
++
++
+ ;*******************************************************************************
+ ; void PixelAvgWidthEq16_sse2( uint8_t *pDst,  int iDstStride,
+ ;                          uint8_t *pSrcA, int iSrcAStride,
+@@ -554,6 +685,33 @@ WELS_EXTERN McCopyWidthEq8_mmx
+     ret
+ 
+ 
++;*******************************************************************************
++;   void McCopyWidthEq8_sse2( uint8_t *pSrc, int iSrcStride,
++;                             uint8_t *pDst, int iDstStride, int iHeight )
++;*******************************************************************************
++WELS_EXTERN McCopyWidthEq8_sse2
++    %assign  push_num 0
++%ifdef X86_32
++    push            r5
++    push            r6
++    %assign  push_num 2
++%endif
++    LOAD_5_PARA
++
++    SIGN_EXTENSION  r1, r1d
++    SIGN_EXTENSION  r3, r3d
++    SIGN_EXTENSION  r4, r4d
++
++    CopyStrided4N   movq, movq, r2, r3, r0, r1, r4, r5, r6, xmm0, xmm1
++
++    LOAD_5_PARA_POP
++%ifdef X86_32
++    pop             r6
++    pop             r5
++%endif
++    ret
++
++
+ ;*******************************************************************************
+ ;   void McCopyWidthEq16_sse2( uint8_t *pSrc, int iSrcStride, uint8_t *pDst, int iDstStride, int iHeight )
+ ;*******************************************************************************
+diff --git a/codec/common/x86/mc_chroma.asm b/codec/common/x86/mc_chroma.asm
+index 02ab26a..5b2ce40 100644
+--- a/codec/common/x86/mc_chroma.asm
++++ b/codec/common/x86/mc_chroma.asm
+@@ -231,6 +231,72 @@ WELS_EXTERN McChromaWidthEq8_sse2
+ 
+ 
+ 
++;*******************************************************************************
++; void McChromaWidthEq4_ssse3( const uint8_t *pSrc,
++;                       int32_t iSrcStride,
++;                       uint8_t *pDst,
++;                       int32_t iDstStride,
++;                       const uint8_t *pABCD,
++;                       int32_t iHeight );
++; Two rows per iteration; iHeight must be even. Reads the same bytes as
++; McChromaWidthEq4_mmx: five per row.
++;*******************************************************************************
++WELS_EXTERN McChromaWidthEq4_ssse3
++    %assign  push_num 0
++    LOAD_6_PARA
++    PUSH_XMM 7
++    SIGN_EXTENSION  r1, r1d
++    SIGN_EXTENSION  r3, r3d
++    SIGN_EXTENSION  r5, r5d
++
++    movd      xmm4, [r4]                 ; A B C D
++    punpcklwd xmm4, xmm4                 ; AB AB CD CD
++    pshufd    xmm5, xmm4, 055h           ; CD in every byte pair
++    pshufd    xmm4, xmm4, 0              ; AB in every byte pair
++%ifdef X86_32_PICASM
++    pcmpeqw   xmm3, xmm3
++    psrlw     xmm3, 15
++    psllw     xmm3, 5
++%else
++    movdqa    xmm3, [h264_d0x20_sse2]
++%endif
++
++    movd      xmm0, [r0]
++    movd      xmm6, [r0+1]
++    punpcklbw xmm0, xmm6                 ; row 0: s0 s1 s1 s2 s2 s3 s3 s4
++
++.hloop_chroma:
++    movd      xmm1, [r0+r1]
++    movd      xmm6, [r0+r1+1]
++    punpcklbw xmm1, xmm6                 ; row 1
++    lea       r0, [r0+2*r1]
++    movd      xmm2, [r0]
++    movd      xmm6, [r0+1]
++    punpcklbw xmm2, xmm6                 ; row 2
++
++    punpcklqdq xmm0, xmm1                ; rows 0 and 1
++    movdqa    xmm6, xmm1
++    punpcklqdq xmm6, xmm2                ; rows 1 and 2
++    pmaddubsw xmm0, xmm4
++    pmaddubsw xmm6, xmm5
++    paddw     xmm0, xmm6
++    paddw     xmm0, xmm3
++    psrlw     xmm0, 6
++    packuswb  xmm0, xmm0
++    movd      [r2], xmm0
++    psrlq     xmm0, 32
++    movd      [r2+r3], xmm0
++
++    movdqa    xmm0, xmm2
++    lea       r2, [r2+2*r3]
++    sub       r5, 2
++    jnz       .hloop_chroma
++
++    POP_XMM
++    LOAD_6_PARA_POP
++    ret
++
++
+ ;***********************************************************************
+ ; void McChromaWidthEq8_ssse3( const uint8_t *pSrc,
+ ;                        int32_t iSrcStride,
+diff --git a/codec/common/x86/satd_sad.asm b/codec/common/x86/satd_sad.asm
+index 3dfc532..4c8c573 100644
+--- a/codec/common/x86/satd_sad.asm
++++ b/codec/common/x86/satd_sad.asm
+@@ -2732,3 +2732,36 @@ WELS_EXTERN WelsSampleSad4x4_mmx
+     WELSEMMS
+     LOAD_4_PARA_POP
+     ret
++
++;***********************************************************************
++;   int32_t WelsSampleSad4x4_sse2 (uint8_t *, int32_t, uint8_t *, int32_t )
++;***********************************************************************
++WELS_EXTERN WelsSampleSad4x4_sse2
++    %assign  push_num 0
++    LOAD_4_PARA
++    SIGN_EXTENSION r1, r1d
++    SIGN_EXTENSION r3, r3d
++    movd       xmm0, [r0]
++    movd       xmm1, [r0+r1]
++    lea        r0, [r0+2*r1]
++    punpckldq  xmm0, xmm1
++    movd       xmm1, [r0]
++    movd       xmm2, [r0+r1]
++    punpckldq  xmm1, xmm2
++    punpcklqdq xmm0, xmm1
++
++    movd       xmm1, [r2]
++    movd       xmm2, [r2+r3]
++    lea        r2, [r2+2*r3]
++    punpckldq  xmm1, xmm2
++    movd       xmm2, [r2]
++    movd       xmm3, [r2+r3]
++    punpckldq  xmm2, xmm3
++    punpcklqdq xmm1, xmm2
++
++    psadbw     xmm0, xmm1
++    movhlps    xmm1, xmm0
++    paddw      xmm0, xmm1
++    movd       retrd, xmm0
++    LOAD_4_PARA_POP
++    ret
+diff --git a/codec/encoder/core/inc/encode_mb_aux.h b/codec/encoder/core/inc/encode_mb_aux.h
+index b8a85ea..282d897 100644
+--- a/codec/encoder/core/inc/encode_mb_aux.h
++++ b/codec/encoder/core/inc/encode_mb_aux.h
+@@ -101,6 +101,8 @@ void WelsDctFourT4_avx2 (int16_t* pDct, uint8_t* pPixel1, int32_t iStride1, uint
+ int32_t WelsHadamardQuant2x2_mmx (int16_t* pRes, const int16_t kiFF, int16_t iMF, int16_t* pDct, int16_t* pBlock);
+ void WelsHadamardT4Dc_sse2 (int16_t* pLumaDc, int16_t* pDct);
+ int32_t WelsHadamardQuant2x2Skip_mmx (int16_t* pRes, int16_t iFF,  int16_t iMF);
++int32_t WelsHadamardQuant2x2_sse2 (int16_t* pRes, const int16_t kiFF, int16_t iMF, int16_t* pDct, int16_t* pBlock);
++int32_t WelsHadamardQuant2x2Skip_sse2 (int16_t* pRes, int16_t iFF,  int16_t iMF);
+ 
+ void WelsQuant4x4_sse2 (int16_t* pDct, const int16_t* pFF, const int16_t* pMF);
+ void WelsQuant4x4Dc_sse2 (int16_t* pDct, int16_t iFF, int16_t iMF);
+diff --git a/codec/encoder/core/inc/encoder.h b/codec/encoder/core/inc/encoder.h
+index ef67f28..96626ef 100644
+--- a/codec/encoder/core/inc/encoder.h
++++ b/codec/encoder/core/inc/encoder.h
+@@ -129,6 +129,8 @@ extern "C" {
+ void WelsSetMemZeroAligned64_sse2 (void* pDst, int32_t iSize);
+ void WelsSetMemZeroSize64_mmx (void* pDst, int32_t iSize);
+ void WelsSetMemZeroSize8_mmx (void* pDst, int32_t iSize);
++void WelsSetMemZeroSize64_sse2 (void* pDst, int32_t iSize);
++void WelsSetMemZeroSize8_sse2 (void* pDst, int32_t iSize);
+ void WelsPrefetchZero_mmx (int8_t const* kpDst);
+ #elif defined(HAVE_NEON)
+ void WelsSetMemZero_neon (void* pDst, int32_t iSize);
 diff --git a/codec/encoder/core/inc/encoder_context.h b/codec/encoder/core/inc/encoder_context.h
-index 90a909e..aa3409d 100644
+index 90a909e..5f45a38 100644
 --- a/codec/encoder/core/inc/encoder_context.h
 +++ b/codec/encoder/core/inc/encoder_context.h
-@@ -113,6 +113,49 @@ typedef struct TagStrideTables {
+@@ -113,6 +113,50 @@ typedef struct TagStrideTables {
    int16_t*      pMbIndexY[MAX_DEPENDENCY_LAYER];                // [iDid][iMbY]: map for iMbY in each spatial layer coding
  } SStrideTables;
  
@@ -154,6 +767,7 @@ index 90a909e..aa3409d 100644
 +  const unsigned char* pMacroblocks;
 +  int32_t   iMacroblockCount;
 +  int32_t   iChangedMacroblockCount; // entries of pMacroblocks that are zero
++  const SMacroblockMotion* pMotion;  // borrowed motion hints, iMacroblockCount long
 +  SPicture* pReference;
 +  int32_t   iFrameNum;
 +  int32_t   iPoc;
@@ -181,7 +795,7 @@ index 90a909e..aa3409d 100644
  typedef struct TagWelsEncCtx {
    SLogContext sLogCtx;
  // Input
-@@ -227,6 +270,7 @@ typedef struct TagWelsEncCtx {
+@@ -227,6 +271,7 @@ typedef struct TagWelsEncCtx {
    int64_t            iLastStatisticsLogTs;
  
    int32_t iEncoderError;
@@ -189,6 +803,31 @@ index 90a909e..aa3409d 100644
    WELS_MUTEX mutexEncoderError;
    bool bDeliveryFlag;
    SStateCtx sWelsCabacContexts[4][WELS_QP_MAX + 1][WELS_CONTEXT_COUNT];
+diff --git a/codec/encoder/core/inc/get_intra_predictor.h b/codec/encoder/core/inc/get_intra_predictor.h
+index b5da88b..9955088 100644
+--- a/codec/encoder/core/inc/get_intra_predictor.h
++++ b/codec/encoder/core/inc/get_intra_predictor.h
+@@ -96,6 +96,7 @@ void WelsI16x16LumaPredDc_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiS
+ void WelsI16x16LumaPredPlane_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ 
+ void WelsIChromaPredH_mmx (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsIChromaPredH_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ void WelsIChromaPredV_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ void WelsIChromaPredDc_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ void WelsIChromaPredPlane_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+@@ -109,6 +110,12 @@ void WelsI4x4LumaPredVR_mmx (uint8_t* pPred, uint8_t* pRef, const int32_t kiStri
+ void WelsI4x4LumaPredHD_mmx (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ void WelsI4x4LumaPredVL_mmx (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ void WelsI4x4LumaPredHU_mmx (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsI4x4LumaPredDDL_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsI4x4LumaPredDDR_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsI4x4LumaPredVR_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsI4x4LumaPredHD_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsI4x4LumaPredVL_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++void WelsI4x4LumaPredHU_sse2 (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
+ #endif//X86_ASM
+ 
+ #if defined(HAVE_NEON)
 diff --git a/codec/encoder/core/inc/svc_base_layer_md.h b/codec/encoder/core/inc/svc_base_layer_md.h
 index c600f77..e71f902 100644
 --- a/codec/encoder/core/inc/svc_base_layer_md.h
@@ -213,10 +852,10 @@ index c600f77..e71f902 100644
  /*static*/ void WelsMdInterFinePartitionVaaOnScreen (sWelsEncCtx* pEnc, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb,
 diff --git a/codec/encoder/core/inc/unchanged.h b/codec/encoder/core/inc/unchanged.h
 new file mode 100644
-index 0000000..389cb88
+index 0000000..bd4e8ce
 --- /dev/null
 +++ b/codec/encoder/core/inc/unchanged.h
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,63 @@
 +/*!
 + * \copy
 + *     Copyright (c)  2009-2013, Cisco Systems
@@ -257,6 +896,9 @@ index 0000000..389cb88
 +bool TryUnchangedMacroblockEarly (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
 +// Inside inter mode decision, with the full median skip predictor.
 +bool TryUnchangedMacroblock (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
++// Inside inter mode decision: codes a macroblock with a motion hint as P16x16
++// with the hinted full-pel vector instead of searching.
++bool TryMotionHintMacroblock (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
 +
 +// Where WelsMdInterMbLoop records each finished macroblock: *pStamp when it
 +// is a zero-motion P_SKIP, else 0. NULL when this picture records nothing.
@@ -388,6 +1030,37 @@ index acd6126..36c7901 100644
  
    int32_t  GetThreadPoolThreadNum() {return 1;};
  };
+diff --git a/codec/encoder/core/src/encode_mb_aux.cpp b/codec/encoder/core/src/encode_mb_aux.cpp
+index c8c86e4..f19db8f 100644
+--- a/codec/encoder/core/src/encode_mb_aux.cpp
++++ b/codec/encoder/core/src/encode_mb_aux.cpp
+@@ -500,6 +500,12 @@ void WelsInitEncodingFuncs (SWelsFuncPtrList* pFuncList, uint32_t  uiCpuFlag) {
+     pFuncList->pfCopy8x16Aligned        = WelsCopy8x16_mmx;
+   }
+   if (uiCpuFlag & WELS_CPU_SSE2) {
++    pFuncList->pfQuantizationHadamard2x2        = WelsHadamardQuant2x2_sse2;
++    pFuncList->pfQuantizationHadamard2x2Skip    = WelsHadamardQuant2x2Skip_sse2;
++
++    pFuncList->pfCopy8x8Aligned         = WelsCopy8x8_sse2;
++    pFuncList->pfCopy8x16Aligned        = WelsCopy8x16_sse2;
++
+     pFuncList->pfGetNoneZeroCount       = WelsGetNoneZeroCount_sse2;
+     pFuncList->pfTransformHadamard4x4Dc = WelsHadamardT4Dc_sse2;
+ 
+diff --git a/codec/encoder/core/src/encoder.cpp b/codec/encoder/core/src/encoder.cpp
+index ffb5977..080a5bc 100644
+--- a/codec/encoder/core/src/encoder.cpp
++++ b/codec/encoder/core/src/encoder.cpp
+@@ -170,7 +170,9 @@ int32_t InitFunctionPointers (sWelsEncCtx* pEncCtx, SWelsSvcCodingParam* pParam,
+     pFuncList->pfSetMemZeroSize64           = WelsSetMemZeroSize64_mmx;     // confirmed_safe_unsafe_usage
+   }
+   if (uiCpuFlag & WELS_CPU_SSE2) {
++    pFuncList->pfSetMemZeroSize8            = WelsSetMemZeroSize8_sse2;     // confirmed_safe_unsafe_usage
+     pFuncList->pfSetMemZeroSize64Aligned16  = WelsSetMemZeroAligned64_sse2; // confirmed_safe_unsafe_usage
++    pFuncList->pfSetMemZeroSize64           = WelsSetMemZeroSize64_sse2;    // confirmed_safe_unsafe_usage
+   }
+ #endif//X86_ASM
+ 
 diff --git a/codec/encoder/core/src/encoder_ext.cpp b/codec/encoder/core/src/encoder_ext.cpp
 index a3d9d8b..373dffb 100644
 --- a/codec/encoder/core/src/encoder_ext.cpp
@@ -412,8 +1085,39 @@ index a3d9d8b..373dffb 100644
          if (pCtx->iEncoderError) {
            WelsLog (pLogCtx, WELS_LOG_ERROR,
                     "WelsEncoderEncodeExt(), multi-slice (mode %d) encoding error!",
+diff --git a/codec/encoder/core/src/get_intra_predictor.cpp b/codec/encoder/core/src/get_intra_predictor.cpp
+index 331c227..43264f4 100644
+--- a/codec/encoder/core/src/get_intra_predictor.cpp
++++ b/codec/encoder/core/src/get_intra_predictor.cpp
+@@ -706,6 +706,14 @@ void WelsInitIntraPredFuncs (SWelsFuncPtrList* pFuncList, const uint32_t kuiCpuF
+     pFuncList->pfGetChromaPred[C_PRED_H] = WelsIChromaPredH_mmx;
+   }
+   if (kuiCpuFlag & WELS_CPU_SSE2) {
++    pFuncList->pfGetLumaI4x4Pred[I4_PRED_DDR] = WelsI4x4LumaPredDDR_sse2;
++    pFuncList->pfGetLumaI4x4Pred[I4_PRED_HD]  = WelsI4x4LumaPredHD_sse2;
++    pFuncList->pfGetLumaI4x4Pred[I4_PRED_HU]  = WelsI4x4LumaPredHU_sse2;
++    pFuncList->pfGetLumaI4x4Pred[I4_PRED_VR]  = WelsI4x4LumaPredVR_sse2;
++    pFuncList->pfGetLumaI4x4Pred[I4_PRED_DDL] = WelsI4x4LumaPredDDL_sse2;
++    pFuncList->pfGetLumaI4x4Pred[I4_PRED_VL]  = WelsI4x4LumaPredVL_sse2;
++    pFuncList->pfGetChromaPred[C_PRED_H]      = WelsIChromaPredH_sse2;
++
+     pFuncList->pfGetLumaI4x4Pred[I4_PRED_H] = WelsI4x4LumaPredH_sse2;
+     pFuncList->pfGetLumaI4x4Pred[I4_PRED_DC] = WelsI4x4LumaPredDc_sse2;
+     pFuncList->pfGetLumaI4x4Pred[I4_PRED_V] = WelsI4x4LumaPredV_sse2;
+diff --git a/codec/encoder/core/src/sample.cpp b/codec/encoder/core/src/sample.cpp
+index 627af68..002affe 100644
+--- a/codec/encoder/core/src/sample.cpp
++++ b/codec/encoder/core/src/sample.cpp
+@@ -372,6 +372,7 @@ void WelsInitSampleSadFunc (SWelsFuncPtrList* pFuncList, uint32_t uiCpuFlag) {
+   }
+ 
+   if (uiCpuFlag & WELS_CPU_SSE2) {
++    pFuncList->sSampleDealingFuncs.pfSampleSad[BLOCK_4x4  ] = WelsSampleSad4x4_sse2;
+     pFuncList->sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] = WelsSampleSad16x16_sse2;
+     pFuncList->sSampleDealingFuncs.pfSampleSad[BLOCK_16x8 ] = WelsSampleSad16x8_sse2;
+     pFuncList->sSampleDealingFuncs.pfSampleSad[BLOCK_8x16] = WelsSampleSad8x16_sse2;
 diff --git a/codec/encoder/core/src/svc_base_layer_md.cpp b/codec/encoder/core/src/svc_base_layer_md.cpp
-index 5acc2d9..895c754 100644
+index 5acc2d9..6493f0a 100644
 --- a/codec/encoder/core/src/svc_base_layer_md.cpp
 +++ b/codec/encoder/core/src/svc_base_layer_md.cpp
 @@ -41,6 +41,7 @@
@@ -502,11 +1206,13 @@ index 5acc2d9..895c754 100644
  
    //comment: sometimes, mode decision process may skip the md_p16x16 and md_pskip function,
    ST32 (&pCurMb->sP16x16Mv, 0);
-@@ -1856,6 +1879,8 @@ bool WelsMdFirstIntraMode (sWelsEncCtx* pEncCtx, SWelsMD* pWelsMd, SMB* pCurMb,
+@@ -1856,6 +1879,10 @@ bool WelsMdFirstIntraMode (sWelsEncCtx* pEncCtx, SWelsMD* pWelsMd, SMB* pCurMb,
  }
  
  void WelsMdInterMb (sWelsEncCtx* pEncCtx, SWelsMD* pWelsMd, SSlice* pSlice, SMB* pCurMb, SMbCache* pUnused) {
 +  if (TryUnchangedMacroblock (pEncCtx, pWelsMd, pSlice, pCurMb))
++    return;
++  if (TryMotionHintMacroblock (pEncCtx, pWelsMd, pSlice, pCurMb))
 +    return;
    SDqLayer* pCurDqLayer             = pEncCtx->pCurDqLayer;
    SMbCache* pMbCache                = &pSlice->sMbCacheInfo;
@@ -589,10 +1295,10 @@ index 1fd7d46..8d84738 100644
      WelsCountMbType (pEncCtx->sPerInfo.iMbCount, P_SLICE, pCurMb);
 diff --git a/codec/encoder/core/src/unchanged.cpp b/codec/encoder/core/src/unchanged.cpp
 new file mode 100644
-index 0000000..30d78a0
+index 0000000..a9efd6f
 --- /dev/null
 +++ b/codec/encoder/core/src/unchanged.cpp
-@@ -0,0 +1,453 @@
+@@ -0,0 +1,529 @@
 +/*!
 + * \copy
 + *     Copyright (c)  2009-2013, Cisco Systems
@@ -614,6 +1320,8 @@ index 0000000..30d78a0
 +#include "svc_enc_slice_segment.h"
 +#include "svc_encode_slice.h"
 +#include "svc_mode_decision.h"
++#include "svc_motion_estimate.h"
++#include "mv_pred.h"
 +
 +namespace WelsEnc {
 +
@@ -730,6 +1438,7 @@ index 0000000..30d78a0
 +  pState->pMacroblocks = NULL;
 +  pState->iMacroblockCount = 0;
 +  pState->iChangedMacroblockCount = 0;
++  pState->pMotion = NULL;
 +  pState->pReuseDestination = NULL;
 +  pState->uiCodingStamp = 0;
 +  if (pSrc == NULL || !UnchangedConfiguration (pCtx->pSvcParam))
@@ -749,6 +1458,8 @@ index 0000000..30d78a0
 +  const int64_t kiCount = ((int64_t)pSrc->iPicWidth + 15) / 16 * (((int64_t)pSrc->iPicHeight + 15) / 16);
 +  const bool kbValidPrevious = pState->pReference != NULL && pState->iWidth == pSrc->iPicWidth &&
 +                               pState->iHeight == pSrc->iPicHeight && pState->iQp == kpParam->sSpatialLayers[0].iDLayerQp;
++  if (kbValidPrevious && pSrc->pMacroblockMotion != NULL && (int64_t)pSrc->iMacroblockMotionCount == kiCount)
++    pState->pMotion = pSrc->pMacroblockMotion;
 +  if (kbValidPrevious && pSrc->pUnchangedMacroblocks != NULL && (int64_t)pSrc->iUnchangedMacroblockCount == kiCount) {
 +    pState->pMacroblocks = pSrc->pUnchangedMacroblocks;
 +    pState->iMacroblockCount = pSrc->iUnchangedMacroblockCount;
@@ -765,6 +1476,7 @@ index 0000000..30d78a0
 +  pState->pMacroblocks = NULL;
 +  pState->iMacroblockCount = 0;
 +  pState->iChangedMacroblockCount = 0;
++  pState->pMotion = NULL;
 +  pState->pReuseDestination = NULL;
 +  if (!bSuccess || pSrc == NULL || pBsInfo == NULL || !UnchangedConfiguration (pCtx->pSvcParam)) {
 +    UnchangedFrameReset (pCtx);
@@ -792,6 +1504,15 @@ index 0000000..30d78a0
 +  pState->iHeight = pSrc->iPicHeight;
 +}
 +
++// The reference is the picture the hints were made against.
++static bool HintReferenceValid (sWelsEncCtx* pCtx) {
++  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
++  const SPicture* kpReference = pCtx->pCurDqLayer->pRefPic;
++  return pCtx->eSliceType == P_SLICE && pCtx->iNumRef0 == 1 &&
++         kpReference != NULL && kpReference == kpState->pReference && kpReference == pCtx->pRefList0[0] &&
++         kpReference->iFrameNum == kpState->iFrameNum && kpReference->iFramePoc == kpState->iPoc;
++}
++
 +static bool UnchangedMacroblockEligible (sWelsEncCtx* pCtx, const SMB* pCurMb) {
 +  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
 +  const int32_t kiIndex = pCurMb->iMbXY;
@@ -800,10 +1521,7 @@ index 0000000..30d78a0
 +    return false;
 +  const SDqLayer* kpLayer = pCtx->pCurDqLayer;
 +  const SPicture* kpReference = kpLayer->pRefPic;
-+  const bool kbValidReference = pCtx->eSliceType == P_SLICE && pCtx->iNumRef0 == 1 &&
-+                                kpReference != NULL && kpReference == kpState->pReference && kpReference == pCtx->pRefList0[0] &&
-+                                kpReference->iFrameNum == kpState->iFrameNum && kpReference->iFramePoc == kpState->iPoc;
-+  if (!kbValidReference || kpLayer->iLoopFilterDisableIdc != 1 || (int32_t)pCurMb->uiLumaQp != kpState->iQp)
++  if (!HintReferenceValid (pCtx) || kpLayer->iLoopFilterDisableIdc != 1 || (int32_t)pCurMb->uiLumaQp != kpState->iQp)
 +    return false;
 +  // Require a previous zero-motion P_SKIP. sMvList is search metadata, which
 +  // keeps first P frames after an IDR on the full path.
@@ -1042,6 +1760,70 @@ index 0000000..30d78a0
 +  if (sPredicted.iMvX != 0 || sPredicted.iMvY != 0)
 +    return false;
 +  EncodeUnchangedMacroblock (pCtx, pMd, pSlice, pCurMb);
++  return true;
++}
++
++}
++
++namespace WelsEnc {
++
++// Mirrors the 16x16 path of WelsMdBackgroundMbEnc with the hinted vector in
++// place of the zero vector and of the motion search.
++bool TryMotionHintMacroblock (sWelsEncCtx* pEncCtx, SWelsMD* pWelsMd, SSlice* pSlice, SMB* pCurMb) {
++  const SUnchangedFrameState* kpState = &pEncCtx->sUnchanged;
++  const int32_t kiIndex = pCurMb->iMbXY;
++  if (kpState->pMotion == NULL || kiIndex < 0 || kiIndex >= kpState->iMacroblockCount)
++    return false;
++  const SMVUnitXY kFull = {kpState->pMotion[kiIndex].iX, kpState->pMotion[kiIndex].iY};
++  if ((kFull.iMvX == 0 && kFull.iMvY == 0) || !HintReferenceValid (pEncCtx) ||
++      !CheckMvInRange (kFull, pSlice->sMvStartMin, pSlice->sMvStartMax))
++    return false;
++
++  SDqLayer* pCurDqLayer = pEncCtx->pCurDqLayer;
++  SWelsFuncPtrList* pFunc = pEncCtx->pFuncList;
++  SMbCache* pMbCache = &pSlice->sMbCacheInfo;
++  SMVUnitXY sMv;
++  sMv.iMvX = (int16_t) (kFull.iMvX * 4);
++  sMv.iMvY = (int16_t) (kFull.iMvY * 4);
++  const int32_t kiLineSizeY = pCurDqLayer->pRefPic->iLineSize[0];
++  const int32_t kiLineSizeUV = pCurDqLayer->pRefPic->iLineSize[1];
++  uint8_t* pRefLuma = pMbCache->SPicData.pRefMb[0] + kFull.iMvY * kiLineSizeY + kFull.iMvX;
++  const int32_t kiChromaOffset = (sMv.iMvY >> 3) * kiLineSizeUV + (sMv.iMvX >> 3);
++  uint8_t* pRefCb = pMbCache->SPicData.pRefMb[1] + kiChromaOffset;
++  uint8_t* pRefCr = pMbCache->SPicData.pRefMb[2] + kiChromaOffset;
++  uint8_t* pDstLuma = pMbCache->pMemPredLuma;
++  uint8_t* pDstCb = pMbCache->pMemPredChroma;
++  uint8_t* pDstCr = pMbCache->pMemPredChroma + 64;
++
++  //MC
++  pFunc->sMcFuncs.pMcLumaFunc (pRefLuma, kiLineSizeY, pDstLuma, 16, 0, 0, 16, 16);
++  pFunc->sMcFuncs.pMcChromaFunc (pRefCb, kiLineSizeUV, pDstCb, 8, sMv.iMvX, sMv.iMvY, 8, 8); //Cb
++  pFunc->sMcFuncs.pMcChromaFunc (pRefCr, kiLineSizeUV, pDstCr, 8, sMv.iMvX, sMv.iMvY, 8, 8); //Cr
++
++  pCurMb->pSadCost[0] = pFunc->sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] (pMbCache->SPicData.pEncMb[0],
++                        pCurDqLayer->iEncStride[0], pRefLuma, kiLineSizeY);
++  if (pWelsMd->bMdUsingSad)
++    pWelsMd->iCostLuma = pCurMb->pSadCost[0];
++  else
++    pWelsMd->iCostLuma = pFunc->sSampleDealingFuncs.pfSampleSatd[BLOCK_16x16] (pMbCache->SPicData.pEncMb[0],
++                         pCurDqLayer->iEncStride[0], pRefLuma, kiLineSizeY);
++  pWelsMd->iCostSkipMb = pFunc->sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] (pMbCache->SPicData.pEncMb[0],
++                         pCurDqLayer->iEncStride[0], pDstLuma, 16);
++  pWelsMd->iCostSkipMb += pFunc->sSampleDealingFuncs.pfSampleSad[BLOCK_8x8] (pMbCache->SPicData.pEncMb[1],
++                          pCurDqLayer->iEncStride[1], pDstCb, 8);
++  pWelsMd->iCostSkipMb += pFunc->sSampleDealingFuncs.pfSampleSad[BLOCK_8x8] (pMbCache->SPicData.pEncMb[2],
++                          pCurDqLayer->iEncStride[2], pDstCr, 8);
++  pCurMb->sP16x16Mv = sMv;
++  pCurDqLayer->pDecPic->sMvList[kiIndex] = sMv;
++
++  pCurMb->uiMbType = MB_TYPE_16x16;
++  pWelsMd->sMe.sMe16x16.sMv = sMv;
++  PredMv (&pMbCache->sMvComponents, 0, 4, pWelsMd->uiRef, &pWelsMd->sMe.sMe16x16.sMvp);
++  pMbCache->sMbMvp[0] = pWelsMd->sMe.sMe16x16.sMvp;
++  UpdateP16x16MotionInfo (pMbCache, pCurMb, pWelsMd->uiRef, &sMv);
++
++  WelsMdInterEncode (pEncCtx, pSlice, pCurMb, pMbCache);
++  WelsMdInterDoubleCheckPskip (pCurMb, pMbCache);
 +  return true;
 +}
 +
@@ -1459,6 +2241,497 @@ index cc53d8d..9a17cef 100644
  int32_t  CWelsTaskManageBase::GetThreadPoolThreadNum() {
    return m_pThreadPool->GetThreadNum();
  }
+diff --git a/codec/encoder/core/x86/intra_pred.asm b/codec/encoder/core/x86/intra_pred.asm
+index edb2cd3..8940dce 100644
+--- a/codec/encoder/core/x86/intra_pred.asm
++++ b/codec/encoder/core/x86/intra_pred.asm
+@@ -975,6 +975,336 @@ WELS_EXTERN WelsI4x4LumaPredVL_mmx
+     WELSEMMS
+     ret
+ 
++;***********************************************************************
++;   SSE2 versions of the MMX 4x4 and chroma H predictors above. Each one keeps
++;   the MMX value in the low qword of an xmm register: per-qword shifts and
++;   bytewise ops match, MMX high unpacks become low unpacks of the low qwords
++;   shifted down by 8 bytes, and memory operands are loaded with movd/movq.
++;***********************************************************************
++
++;   void WelsI4x4LumaPredDDR_sse2(uint8_t *pred,uint8_t *pRef,int32_t stride)
++WELS_EXTERN WelsI4x4LumaPredDDR_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    movq        xmm1,[r1+r2-8]
++    movq        xmm2,[r1-8]
++    sub         r1, r2
++    movq        xmm0,[r1-8]
++    punpcklbw   xmm2,xmm0
++    psrldq      xmm2,8              ;MMX punpckhbw mm2,[r1-8]
++    movd        xmm3,[r1]
++    punpcklwd   xmm1,xmm2
++    psrldq      xmm1,8              ;MMX punpckhwd mm1,mm2
++    psllq       xmm3,18h
++    psrlq       xmm1,28h
++    por         xmm3,xmm1
++    movdqa      xmm1,xmm3
++    lea         r1,[r1+r2*2-8h]
++    movq        xmm4,[r1+r2]
++    psllq       xmm3,8
++    psrlq       xmm4,38h
++    por         xmm3,xmm4
++    movdqa      xmm2,xmm3
++    movq        xmm4,[r1+r2*2]
++    psllq       xmm3,8
++    psrlq       xmm4,38h
++    por         xmm3,xmm4
++    movdqa      xmm4,xmm3
++    pavgb       xmm3,xmm1
++    pxor        xmm1,xmm4
++    pand        xmm1,[pic(mmx_01bytes)]
++    psubusb     xmm3,xmm1
++    pavgb       xmm2,xmm3
++
++    movd        [r0+12],xmm2
++    psrlq       xmm2,8
++    movd        [r0+8],xmm2
++    psrlq       xmm2,8
++    movd        [r0+4],xmm2
++    psrlq       xmm2,8
++    movd        [r0],xmm2
++    DEINIT_X86_32_PIC
++    ret
++
++;   void WelsIChromaPredH_sse2(uint8_t *pred, uint8_t *pRef, int32_t stride)
++%macro SSE2_PRED_H_8X8_ONE_LINE 2
++    movq        xmm0,   %1
++    psrlq       xmm0,   38h
++    pmullw      xmm0,   [pic(mmx_01bytes)]
++    pshuflw     xmm0,   xmm0, 0
++    movq        [%2],   xmm0
++%endmacro
++
++WELS_EXTERN WelsIChromaPredH_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    SSE2_PRED_H_8X8_ONE_LINE [r1-8], r0
++    SSE2_PRED_H_8X8_ONE_LINE [r1+r2-8], r0+8
++    lea         r1,[r1+r2*2]
++    SSE2_PRED_H_8X8_ONE_LINE [r1-8], r0+16
++    SSE2_PRED_H_8X8_ONE_LINE [r1+r2-8], r0+24
++    lea         r1,[r1+r2*2]
++    SSE2_PRED_H_8X8_ONE_LINE [r1-8], r0+32
++    SSE2_PRED_H_8X8_ONE_LINE [r1+r2-8], r0+40
++    lea         r1,[r1+r2*2]
++    SSE2_PRED_H_8X8_ONE_LINE [r1-8], r0+48
++    SSE2_PRED_H_8X8_ONE_LINE [r1+r2-8], r0+56
++    DEINIT_X86_32_PIC
++    ret
++
++;   void WelsI4x4LumaPredHD_sse2(uint8_t *pred,uint8_t *pRef,int32_t stride)
++WELS_EXTERN WelsI4x4LumaPredHD_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    sub         r1, r2
++    movd        xmm0, [r1-1]
++    psllq       xmm0, 20h
++
++    movd        xmm1, [r1+2*r2-4]
++    movd        xmm3, [r1+r2-4]
++    punpcklbw   xmm1, xmm3
++    lea         r1, [r1+2*r2]
++    movd        xmm2, [r1+2*r2-4]
++    movd        xmm3, [r1+r2-4]
++    punpcklbw   xmm2, xmm3
++    punpcklwd   xmm2, xmm1
++    psrldq      xmm2, 8             ;MMX punpckhwd mm2,mm1
++    psrlq       xmm2, 20h
++    pxor        xmm0, xmm2
++
++    movdqa      xmm1, xmm0
++    psrlq       xmm1, 10h
++    movdqa      xmm2, xmm0
++    psrlq       xmm2, 8h
++    movdqa      xmm3, xmm2
++    movdqa      xmm4, xmm1
++    pavgb       xmm1, xmm0
++
++    pxor        xmm4, xmm0
++    pand        xmm4, [pic(mmx_01bytes)]
++    psubusb     xmm1, xmm4
++
++    pavgb       xmm2, xmm1
++
++    movdqa      xmm4, xmm0
++    pavgb       xmm3, xmm4
++    punpcklbw   xmm3, xmm2
++
++    psrlq       xmm2, 20h
++    psllq       xmm2, 30h
++    movdqa      xmm4, xmm3
++    psrlq       xmm4, 10h
++    pxor        xmm2, xmm4
++    psrlq       xmm2, 20h
++
++    movd        [r0], xmm2
++    movd        [r0+12], xmm3
++    psrlq       xmm3, 10h
++    movd        [r0+8], xmm3
++    psrlq       xmm3, 10h
++    movd        [r0+4], xmm3
++    DEINIT_X86_32_PIC
++    ret
++
++;   void WelsI4x4LumaPredHU_sse2(uint8_t *pred,uint8_t *pRef,int32_t stride)
++WELS_EXTERN WelsI4x4LumaPredHU_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    movd        xmm0, [r1-4]
++    movd        xmm1, [r1+r2-4]
++    punpcklbw   xmm0, xmm1
++    lea         r1, [r1+2*r2]
++    movd        xmm2, [r1-4]
++    movd        xmm4, [r1+r2-4]
++    punpcklbw   xmm2, xmm4
++    punpcklwd   xmm0, xmm2
++    psrldq      xmm0, 8             ;MMX punpckhwd mm0,mm2
++
++    psrlq       xmm4, 18h
++    psllq       xmm4, 38h
++    psrlq       xmm0, 8h
++    pxor        xmm0, xmm4
++
++    movdqa      xmm1, xmm0
++    psllq       xmm1, 8h
++    movdqa      xmm3, xmm1
++    pavgb       xmm1, xmm0
++
++    movdqa      xmm2, xmm0
++    psllq       xmm2, 10h
++    movdqa      xmm5, xmm2
++    pavgb       xmm2, xmm0
++
++    pxor        xmm5, xmm0
++    pand        xmm5, [pic(mmx_01bytes)]
++    psubusb     xmm2, xmm5
++
++    pavgb       xmm2, xmm3
++
++    psrlq       xmm2, 8h
++    pxor        xmm2, xmm4
++
++    punpcklbw   xmm1, xmm2
++    psrldq      xmm1, 8             ;MMX punpckhbw mm1,mm2
++    punpcklbw   xmm4, xmm4
++    psrldq      xmm4, 8             ;MMX punpckhbw mm4,mm4
++    punpcklbw   xmm4, xmm4
++    psrldq      xmm4, 8             ;MMX punpckhbw mm4,mm4
++
++    psrlq       xmm4, 20h
++    movd        [r0+12], xmm4
++
++    movd        [r0], xmm1
++    psrlq       xmm1, 10h
++    movd        [r0+4], xmm1
++    psrlq       xmm1, 10h
++    movd        [r0+8], xmm1
++    DEINIT_X86_32_PIC
++    ret
++
++;   void WelsI4x4LumaPredVR_sse2(uint8_t *pred,uint8_t *pRef,int32_t stride)
++WELS_EXTERN WelsI4x4LumaPredVR_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    sub         r1, r2
++    movq        xmm0, [r1-1]
++    psllq       xmm0, 18h
++
++    movd        xmm1, [r1+2*r2-4]
++    movd        xmm3, [r1+r2-4]
++    punpcklbw   xmm1, xmm3
++    lea         r1, [r1+2*r2]
++    movq        xmm2, [r1+r2-8]
++    punpcklwd   xmm2, xmm1
++    psrldq      xmm2, 8             ;MMX punpckhwd mm2,mm1
++    psrlq       xmm2, 28h
++    pxor        xmm0, xmm2
++
++    movdqa      xmm1, xmm0
++    psllq       xmm1, 8h
++    pavgb       xmm1, xmm0
++
++    movdqa      xmm2, xmm0
++    psllq       xmm2, 10h
++    movdqa      xmm3, xmm2
++    pavgb       xmm2, xmm0
++
++    pxor        xmm3, xmm0
++    pand        xmm3, [pic(mmx_01bytes)]
++    psubusb     xmm2, xmm3
++
++    movdqa      xmm3, xmm0
++    psllq       xmm3, 8h
++    pavgb       xmm3, xmm2
++    movdqa      xmm2, xmm3
++
++    psrlq       xmm1, 20h
++    movd        [r0], xmm1
++
++    psrlq       xmm2, 20h
++    movd        [r0+4], xmm2
++
++    movdqa      xmm4, xmm3
++    psllq       xmm4, 20h
++    psrlq       xmm4, 38h
++
++    movdqa      xmm5, xmm3
++    psllq       xmm5, 28h
++    psrlq       xmm5, 38h
++
++    psllq       xmm1, 8h
++    pxor        xmm4, xmm1
++    movd        [r0+8], xmm4
++
++    psllq       xmm2, 8h
++    pxor        xmm5, xmm2
++    movd        [r0+12], xmm5
++    DEINIT_X86_32_PIC
++    ret
++
++;   void WelsI4x4LumaPredDDL_sse2(uint8_t *pred,uint8_t *pRef,int32_t stride)
++WELS_EXTERN WelsI4x4LumaPredDDL_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    sub         r1, r2
++    movq        xmm0, [r1]
++    movdqa      xmm1, xmm0
++    movdqa      xmm2, xmm0
++
++    movdqa      xmm3, xmm0
++    psrlq       xmm3, 38h
++    psllq       xmm3, 38h
++
++    psllq       xmm1, 8h
++    psrlq       xmm2, 8h
++    pxor        xmm2, xmm3
++
++    movdqa      xmm3, xmm1
++    pavgb       xmm1, xmm2
++    pxor        xmm3, xmm2
++    pand        xmm3, [pic(mmx_01bytes)]
++    psubusb     xmm1, xmm3
++
++    pavgb       xmm0, xmm1
++
++    psrlq       xmm0, 8h
++    movd        [r0], xmm0
++    psrlq       xmm0, 8h
++    movd        [r0+4], xmm0
++    psrlq       xmm0, 8h
++    movd        [r0+8], xmm0
++    psrlq       xmm0, 8h
++    movd        [r0+12], xmm0
++    DEINIT_X86_32_PIC
++    ret
++
++;   void WelsI4x4LumaPredVL_sse2(uint8_t *pred,uint8_t *pRef,int32_t stride)
++WELS_EXTERN WelsI4x4LumaPredVL_sse2
++    %assign push_num 0
++    INIT_X86_32_PIC r3
++    LOAD_3_PARA
++    SIGN_EXTENSION r2, r2d
++    sub         r1, r2
++    movq        xmm0, [r1]
++    movdqa      xmm1, xmm0
++    movdqa      xmm2, xmm0
++
++    psrlq       xmm1, 8h
++    psrlq       xmm2, 10h
++
++    movdqa      xmm3, xmm1
++    pavgb       xmm3, xmm0
++
++    movdqa      xmm4, xmm2
++    pavgb       xmm2, xmm0
++    pxor        xmm4, xmm0
++    pand        xmm4, [pic(mmx_01bytes)]
++    psubusb     xmm2, xmm4
++
++    pavgb       xmm2, xmm1
++
++    movd        [r0], xmm3
++    psrlq       xmm3, 8h
++    movd        [r0+8], xmm3
++
++    movd        [r0+4], xmm2
++    psrlq       xmm2, 8h
++    movd        [r0+12], xmm2
++    DEINIT_X86_32_PIC
++    ret
++
+ ;***********************************************************************
+ ;
+ ;   void WelsIChromaPredDc_sse2(uint8_t *pred, uint8_t *pRef, int32_t stride)
+diff --git a/codec/encoder/core/x86/memzero.asm b/codec/encoder/core/x86/memzero.asm
+index a95c649..2db7b7f 100644
+--- a/codec/encoder/core/x86/memzero.asm
++++ b/codec/encoder/core/x86/memzero.asm
+@@ -80,6 +80,55 @@ WELS_EXTERN WelsSetMemZeroAligned64_sse2
+ 
+     ret
+ 
++;***********************************************************************
++;   void WelsSetMemZeroSize64_sse2(void *dst, int32_t size)
++;   size is a positive multiple of 64; dst needs no alignment.
++;***********************************************************************
++WELS_EXTERN WelsSetMemZeroSize64_sse2
++
++    %assign  push_num 0
++    LOAD_2_PARA
++    SIGN_EXTENSION r1, r1d
++    neg     r1
++
++    pxor    xmm0,       xmm0
++.memzero64_sse2_loops:
++    movdqu  [r0],       xmm0
++    movdqu  [r0+16],    xmm0
++    movdqu  [r0+32],    xmm0
++    movdqu  [r0+48],    xmm0
++    add     r0, 0x40
++
++    add r1, 0x40
++    jnz near .memzero64_sse2_loops
++
++    ret
++
++;***********************************************************************
++;   void WelsSetMemZeroSize8_sse2(void *dst, int32_t size)
++;   size is a positive multiple of 8; dst needs no alignment.
++;***********************************************************************
++WELS_EXTERN WelsSetMemZeroSize8_sse2
++
++    %assign  push_num 0
++    LOAD_2_PARA
++    SIGN_EXTENSION r1, r1d
++    neg     r1
++    pxor    xmm0,       xmm0
++
++.memzero16_sse2_loops:
++    cmp     r1,     -16
++    jg      .memzero8_sse2_tail
++    movdqu  [r0],       xmm0
++    add     r0,     0x10
++    add     r1,     0x10
++    jnz near .memzero16_sse2_loops
++    ret
++
++.memzero8_sse2_tail:
++    movq    [r0],       xmm0
++    ret
++
+ ;***********************************************************************
+ ;   void WelsSetMemZeroSize64_mmx(void *dst, int32_t size)
+ ;***********************************************************************
+diff --git a/codec/encoder/core/x86/quant.asm b/codec/encoder/core/x86/quant.asm
+index 21b56b5..b66df87 100644
+--- a/codec/encoder/core/x86/quant.asm
++++ b/codec/encoder/core/x86/quant.asm
+@@ -286,6 +286,85 @@ WELS_EXTERN WelsHadamardQuant2x2Skip_mmx
+     ret
+ 
+ 
++;***********************************************************************
++; SSE2 versions of the two functions above; the coefficients occupy the low
++; four words, and the upper words are cleared before counting nonzeros.
++;***********************************************************************
++%macro SSE2_HDM2x2_QUANT 0
++    movd        xmm0,           [r0]
++    movd        xmm1,           [r0 + 0x20]
++    punpcklwd   xmm0,           xmm1
++    movd        xmm3,           [r0 + 0x40]
++    movd        xmm1,           [r0 + 0x60]
++    punpcklwd   xmm3,           xmm1
++
++    ;hdm_2x2,   xmm0 = dct0 dct1, xmm3 = dct2 dct3
++    movdqa      xmm5,           xmm3
++    paddw       xmm3,           xmm0
++    psubw       xmm0,           xmm5
++    punpcklwd   xmm3,           xmm0
++    movdqa      xmm1,           xmm3
++    psrlq       xmm1,           32
++    movdqa      xmm5,           xmm1
++    paddw       xmm1,           xmm3
++    psubw       xmm3,           xmm5
++    punpcklwd   xmm1,           xmm3
++
++    ;quant_2x2_dc
++    MMX_Copy4Times  xmm3,       r2d
++    MMX_Copy4Times  xmm2,       r1d
++    MMX_Quant4      xmm1,   xmm0,   xmm2,   xmm3
++    movq        xmm1,           xmm1
++%endmacro
++
++%macro SSE2_COUNT_NONZERO_2x2 0
++    pcmpeqb     xmm2,           xmm2
++    pxor        xmm3,           xmm3
++    packsswb    xmm1,           xmm3
++    pcmpeqb     xmm1,           xmm3
++    psubsb      xmm1,           xmm2
++    psadbw      xmm1,           xmm3
++%endmacro
++
++;***********************************************************************
++;int32_t WelsHadamardQuant2x2_sse2(int16_t *rs, const int16_t ff, int16_t mf, int16_t * pDct, int16_t * block);
++;***********************************************************************
++WELS_EXTERN WelsHadamardQuant2x2_sse2
++    %assign push_num 0
++    LOAD_5_PARA
++    SIGN_EXTENSIONW r1, r1w
++    SIGN_EXTENSIONW r2, r2w
++    SSE2_HDM2x2_QUANT
++
++    ; store dct_2x2
++    movq        [r3],           xmm1
++    movq        [r4],           xmm1
++
++    SSE2_COUNT_NONZERO_2x2
++    mov         r1w,                0
++    mov         [r0],           r1w
++    mov         [r0 + 0x20],    r1w
++    mov         [r0 + 0x40],    r1w
++    mov         [r0 + 0x60],    r1w
++
++    movd        retrd,      xmm1
++    LOAD_5_PARA_POP
++    ret
++
++;***********************************************************************
++;int32_t WelsHadamardQuant2x2Skip_sse2(int16_t *pDct, int16_t ff,  int16_t mf);
++;***********************************************************************
++WELS_EXTERN WelsHadamardQuant2x2Skip_sse2
++    %assign push_num 0
++    LOAD_3_PARA
++    SIGN_EXTENSIONW r1, r1w
++    SIGN_EXTENSIONW r2, r2w
++    SSE2_HDM2x2_QUANT
++    SSE2_COUNT_NONZERO_2x2
++    movd        retrd,          xmm1
++    ret
++
++
+ %macro SSE2_DeQuant8 3
+     MOVDQ  %2, %1
+     pmullw %2, %3
 diff --git a/codec/encoder/meson.build b/codec/encoder/meson.build
 index bebb74c..f44f85b 100644
 --- a/codec/encoder/meson.build
@@ -1631,3 +2904,199 @@ index 9a459a5..365a93a 100644
        }
      }
    }
+diff --git a/test/encoder/EncUT_EncoderMbAux.cpp b/test/encoder/EncUT_EncoderMbAux.cpp
+index c9561e5..aa9e4ee 100644
+--- a/test/encoder/EncUT_EncoderMbAux.cpp
++++ b/test/encoder/EncUT_EncoderMbAux.cpp
+@@ -334,6 +334,10 @@ GENERATE_UT_FOR_COPY (8, 16, WelsCopy8x16_c);
+ GENERATE_UT_FOR_COPY (16, 8, WelsCopy16x8_c);
+ GENERATE_UT_FOR_COPY (16, 16, WelsCopy16x16_c);
+ #ifdef X86_ASM
++GENERATE_UT_FOR_COPY (8, 8, WelsCopy8x8_mmx);
++GENERATE_UT_FOR_COPY (8, 16, WelsCopy8x16_mmx);
++GENERATE_UT_FOR_COPY (8, 8, WelsCopy8x8_sse2);
++GENERATE_UT_FOR_COPY (8, 16, WelsCopy8x16_sse2);
+ GENERATE_UT_FOR_COPY (16, 8, WelsCopy16x8NotAligned_sse2);
+ GENERATE_UT_FOR_COPY (16, 16, WelsCopy16x16NotAligned_sse2);
+ GENERATE_UT_FOR_COPY (16, 16, WelsCopy16x16_sse2);
+@@ -742,3 +746,59 @@ TEST (EncodeMbAuxTest, WelsHadamardT4Dc_mmi) {
+   FREE_MEMORY (iLumaDcS);
+ }
+ #endif
++
++#ifdef X86_ASM
++// The chroma DC coefficients sit at every 16th word of pRes.
++typedef int32_t (*PHadamardQuant2x2Func) (int16_t* pRes, const int16_t kiFF, int16_t iMF, int16_t* pDct,
++    int16_t* pBlock);
++typedef int32_t (*PHadamardQuant2x2SkipFunc) (int16_t* pRes, int16_t iFF, int16_t iMF);
++
++static void TestHadamardQuant2x2 (PHadamardQuant2x2Func pfQuant, PHadamardQuant2x2SkipFunc pfSkip) {
++  for (int32_t iTest = 0; iTest < 4000; iTest++) {
++    ENFORCE_STACK_ALIGN_1D (int16_t, iResRef, 64, 16);
++    ENFORCE_STACK_ALIGN_1D (int16_t, iRes, 64, 16);
++    ENFORCE_STACK_ALIGN_1D (int16_t, iDctRef, 4, 16);
++    ENFORCE_STACK_ALIGN_1D (int16_t, iDct, 4, 16);
++    ENFORCE_STACK_ALIGN_1D (int16_t, iBlockRef, 4, 16);
++    ENFORCE_STACK_ALIGN_1D (int16_t, iBlock, 4, 16);
++    // DC values of 4x4 residual transforms, often small enough to quantize to
++    // zero, with the chroma DC parameters the encoder passes: the QP's first
++    // rounding and scale entries, doubled and halved.
++    const int32_t kiRange = (iTest & 1) ? 4080 : 64;
++    for (int32_t i = 0; i < 64; i++)
++      iResRef[i] = iRes[i] = (int16_t) ((rand() % (2 * kiRange + 1)) - kiRange);
++    const int32_t kiQp = rand() % 52;
++    const int16_t* kpFF = (iTest & 2) ? g_kiQuantInterFF[kiQp] : g_iQuantIntraFF[kiQp];
++    const int16_t kiFF = (int16_t) (kpFF[0] << 1);
++    const int16_t kiMF = (int16_t) (g_kiQuantMF[kiQp][0] >> 1);
++
++    // The C version answers whether any coefficient survives; the SIMD ones
++    // count them, and callers only test for nonzero. SIMD variants must also
++    // agree with each other exactly.
++    const int32_t kiSkipRef = WelsHadamardQuant2x2Skip_c (iResRef, kiFF, kiMF);
++    const int32_t kiSkip = pfSkip (iRes, kiFF, kiMF);
++    EXPECT_EQ (kiSkipRef != 0, kiSkip != 0);
++    if (pfSkip != WelsHadamardQuant2x2Skip_mmx && (WelsCPUFeatureDetect (0) & WELS_CPU_MMXEXT))
++      EXPECT_EQ (WelsHadamardQuant2x2Skip_mmx (iRes, kiFF, kiMF), kiSkip);
++
++    const int32_t kiRef = WelsHadamardQuant2x2_c (iResRef, kiFF, kiMF, iDctRef, iBlockRef);
++    EXPECT_EQ (kiRef, pfQuant (iRes, kiFF, kiMF, iDct, iBlock));
++    for (int32_t i = 0; i < 4; i++) {
++      EXPECT_EQ (iDctRef[i], iDct[i]);
++      EXPECT_EQ (iBlockRef[i], iBlock[i]);
++    }
++    for (int32_t i = 0; i < 64; i++)
++      EXPECT_EQ (iResRef[i], iRes[i]);
++  }
++}
++
++TEST (EncodeMbAuxTest, WelsHadamardQuant2x2_mmx) {
++  if (WelsCPUFeatureDetect (0) & WELS_CPU_MMXEXT)
++    TestHadamardQuant2x2 (WelsHadamardQuant2x2_mmx, WelsHadamardQuant2x2Skip_mmx);
++}
++
++TEST (EncodeMbAuxTest, WelsHadamardQuant2x2_sse2) {
++  if (WelsCPUFeatureDetect (0) & WELS_CPU_SSE2)
++    TestHadamardQuant2x2 (WelsHadamardQuant2x2_sse2, WelsHadamardQuant2x2Skip_sse2);
++}
++#endif
+diff --git a/test/encoder/EncUT_GetIntraPredictor.cpp b/test/encoder/EncUT_GetIntraPredictor.cpp
+index 5b8963a..5526c02 100644
+--- a/test/encoder/EncUT_GetIntraPredictor.cpp
++++ b/test/encoder/EncUT_GetIntraPredictor.cpp
+@@ -2,6 +2,7 @@
+ #include <stdlib.h>
+ 
+ #include "get_intra_predictor.h"
++#include "cpu.h"
+ #include "ls_defines.h"
+ #include "macros.h"
+ 
+@@ -554,3 +555,47 @@ TEST (GetIntraPredictorTest, TestGetI16x16LumaPredDcTop) {
+   delete []pRef;
+   delete []pPred;
+ }
++
++#ifdef X86_ASM
++// SIMD 4x4 and chroma predictors against the C versions on random borders.
++typedef void (*PIntraPredFunc) (uint8_t* pPred, uint8_t* pRef, const int32_t kiStride);
++
++static void TestIntraPredAgainstC (PIntraPredFunc pfAsm, PIntraPredFunc pfC, int32_t iPredSize) {
++  const int32_t kiStride = 48;
++  for (int32_t iTest = 0; iTest < 2000; iTest++) {
++    ENFORCE_STACK_ALIGN_1D (uint8_t, pRefBuf, kiStride * 32, 16);
++    ENFORCE_STACK_ALIGN_1D (uint8_t, pPredC, 64, 16);
++    ENFORCE_STACK_ALIGN_1D (uint8_t, pPredAsm, 64, 16);
++    for (int32_t i = 0; i < kiStride * 32; i++)
++      pRefBuf[i] = (iTest & 1) ? (uint8_t) (rand() & 255) : (uint8_t) (rand() & 1 ? 255 : 0);
++    uint8_t* pRef = pRefBuf + kiStride * 12 + 16;
++    memset (pPredC, 0x5a, 64);
++    memset (pPredAsm, 0x5a, 64);
++    pfC (pPredC, pRef, kiStride);
++    pfAsm (pPredAsm, pRef, kiStride);
++    for (int32_t i = 0; i < iPredSize; i++)
++      ASSERT_EQ (pPredC[i], pPredAsm[i]) << "byte " << i << " test " << iTest;
++  }
++}
++
++#define GENERATE_INTRA_PRED_UT(asm_func, c_func, size, cpu) \
++TEST (GetIntraPredictorTest, asm_func) { \
++  if (WelsCPUFeatureDetect (0) & (cpu)) \
++    TestIntraPredAgainstC (asm_func, c_func, size); \
++}
++
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredDDR_mmx, WelsI4x4LumaPredDDR_c, 16, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredHD_mmx, WelsI4x4LumaPredHD_c, 16, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredHU_mmx, WelsI4x4LumaPredHU_c, 16, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredVR_mmx, WelsI4x4LumaPredVR_c, 16, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredDDL_mmx, WelsI4x4LumaPredDDL_c, 16, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredVL_mmx, WelsI4x4LumaPredVL_c, 16, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsIChromaPredH_mmx, WelsIChromaPredH_c, 64, WELS_CPU_MMXEXT)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredDDR_sse2, WelsI4x4LumaPredDDR_c, 16, WELS_CPU_SSE2)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredHD_sse2, WelsI4x4LumaPredHD_c, 16, WELS_CPU_SSE2)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredHU_sse2, WelsI4x4LumaPredHU_c, 16, WELS_CPU_SSE2)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredVR_sse2, WelsI4x4LumaPredVR_c, 16, WELS_CPU_SSE2)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredDDL_sse2, WelsI4x4LumaPredDDL_c, 16, WELS_CPU_SSE2)
++GENERATE_INTRA_PRED_UT (WelsI4x4LumaPredVL_sse2, WelsI4x4LumaPredVL_c, 16, WELS_CPU_SSE2)
++GENERATE_INTRA_PRED_UT (WelsIChromaPredH_sse2, WelsIChromaPredH_c, 64, WELS_CPU_SSE2)
++#endif
+diff --git a/test/encoder/EncUT_MemoryZero.cpp b/test/encoder/EncUT_MemoryZero.cpp
+index dda422c..7158c50 100644
+--- a/test/encoder/EncUT_MemoryZero.cpp
++++ b/test/encoder/EncUT_MemoryZero.cpp
+@@ -28,7 +28,9 @@ TEST (SetMemZeroFunTest, WelsSetMemZero) {
+     sFuncPtrList.pfSetMemZeroSize64          = WelsSetMemZeroSize64_mmx; // confirmed_safe_unsafe_usage
+   }
+   if (uiCpuFlag & WELS_CPU_SSE2) {
++    sFuncPtrList.pfSetMemZeroSize8           = WelsSetMemZeroSize8_sse2;     // confirmed_safe_unsafe_usage
+     sFuncPtrList.pfSetMemZeroSize64Aligned16 = WelsSetMemZeroAligned64_sse2; // confirmed_safe_unsafe_usage
++    sFuncPtrList.pfSetMemZeroSize64          = WelsSetMemZeroSize64_sse2;    // confirmed_safe_unsafe_usage
+   }
+ #else
+   (void) uiCpuFlag; // Avoid warnings if no assembly is enabled
+@@ -94,3 +96,34 @@ TEST (SetMemZeroFunTest, WelsSetMemZero) {
+ }
+ 
+ 
++
++#if defined(X86_ASM)
++// Every x86 variant against the C version, at unaligned offsets.
++TEST (SetMemZeroFunTest, WelsSetMemZeroX86) {
++  const uint32_t kuiCpuFlag = WelsCPUFeatureDetect (0);
++  struct {
++    PSetMemoryZero pfZero;
++    int32_t iGranule;
++    uint32_t uiCpu;
++  } kFuncs[] = {
++    {WelsSetMemZeroSize8_mmx, 8, WELS_CPU_MMXEXT},
++    {WelsSetMemZeroSize64_mmx, 64, WELS_CPU_MMXEXT},
++    {WelsSetMemZeroSize8_sse2, 8, WELS_CPU_SSE2},
++    {WelsSetMemZeroSize64_sse2, 64, WELS_CPU_SSE2},
++  };
++  ENFORCE_STACK_ALIGN_2D (uint8_t, pBuf, 2, 64 * 102, 16)
++  for (size_t f = 0; f < sizeof (kFuncs) / sizeof (kFuncs[0]); f++) {
++    if (! (kuiCpuFlag & kFuncs[f].uiCpu))
++      continue;
++    for (int32_t k = 0; k < MEMORYZEROTEST_NUM; k++) {
++      memset (pBuf[0], 255, 64 * 102);
++      memset (pBuf[1], 255, 64 * 102);
++      const int32_t kiLen = kFuncs[f].iGranule * (1 + (rand() % 100));
++      const int32_t kiOffset = rand() % 16;
++      WelsSetMemZero_c (pBuf[0] + kiOffset, kiLen);
++      kFuncs[f].pfZero (pBuf[1] + kiOffset, kiLen);
++      ASSERT_EQ (0, memcmp (pBuf[0], pBuf[1], 64 * 102)) << "function " << f << " length " << kiLen;
++    }
++  }
++}
++#endif
+diff --git a/test/encoder/EncUT_Sample.cpp b/test/encoder/EncUT_Sample.cpp
+index be19f6f..fe9c190 100644
+--- a/test/encoder/EncUT_Sample.cpp
++++ b/test/encoder/EncUT_Sample.cpp
+@@ -623,6 +623,7 @@ TEST_F (SadSatdAssemblyFuncTest, func) { \
+ 
+ #ifdef X86_ASM
+ GENERATE_Sad4x4_UT (WelsSampleSad4x4_mmx, WelsSampleSad4x4_c, WELS_CPU_MMXEXT)
++GENERATE_Sad4x4_UT (WelsSampleSad4x4_sse2, WelsSampleSad4x4_c, WELS_CPU_SSE2)
+ GENERATE_Sad8x8_UT (WelsSampleSad8x8_sse21, WelsSampleSad8x8_c, WELS_CPU_SSE2)
+ GENERATE_Sad8x16_UT (WelsSampleSad8x16_sse2, WelsSampleSad8x16_c, WELS_CPU_SSE2)
+ GENERATE_Sad16x8_UT (WelsSampleSad16x8_sse2, WelsSampleSad16x8_c, WELS_CPU_SSE2)

@@ -17,6 +17,8 @@ import (
 	"errors"
 	"fmt"
 	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 var (
@@ -89,7 +91,7 @@ func (e *Encoder) Slices() int { return e.slices }
 // Encode returns one Annex-B access unit owned by the caller, or nil when the
 // encoder skipped the frame. The encoder reads i420 only during the call.
 func (e *Encoder) Encode(i420 []byte, forceIDR bool, timestamp int64) ([]byte, error) {
-	return e.EncodeHinted(i420, forceIDR, timestamp, nil)
+	return e.EncodeHinted(i420, forceIDR, timestamp, nil, nil)
 }
 
 // EncodeHinted is Encode with optional unchanged-macroblock hints: in row-major
@@ -98,8 +100,14 @@ func (e *Encoder) Encode(i420 []byte, forceIDR bool, timestamp int64) ([]byte, e
 // encoded picture. The encoder reads the hints only during the call; nil or a
 // wrong length disables them. Hinted streams match the pure-Go port's.
 //
+// motion holds optional full-pel motion hints in the same order; a nonzero
+// entry suggests the macroblock's samples equal the preceding picture's at that
+// displacement. A wrong hint costs bits, not correctness.
+//
 //nolint:nlreturn // cgo-generated pointer checks trigger false positives.
-func (e *Encoder) EncodeHinted(i420 []byte, forceIDR bool, timestamp int64, unchanged []bool) ([]byte, error) {
+func (e *Encoder) EncodeHinted(
+	i420 []byte, forceIDR bool, timestamp int64, unchanged []bool, motion []api.MacroblockMotion,
+) ([]byte, error) {
 	if e.native == nil {
 		return nil, errClosed
 	}
@@ -115,8 +123,13 @@ func (e *Encoder) EncodeHinted(i420 []byte, forceIDR bool, timestamp int64, unch
 		// A Go bool is one byte holding 0 or 1.
 		hints = (*C.uchar)(unsafe.Pointer(&unchanged[0]))
 	}
+	var motionHints *C.SMacroblockMotion
+	if len(motion) != 0 {
+		// api.MacroblockMotion and SMacroblockMotion are both two int16 fields.
+		motionHints = (*C.SMacroblockMotion)(unsafe.Pointer(&motion[0]))
+	}
 	size := C.devbox_kvm_openh264_encode(e.native, (*C.uint8_t)(unsafe.Pointer(&i420[0])), force, C.int64_t(timestamp),
-		hints, C.int(len(unchanged)))
+		hints, C.int(len(unchanged)), motionHints, C.int(len(motion)))
 	if size < 0 {
 		return nil, fmt.Errorf("%w: encode status %d", errNative, -size)
 	}

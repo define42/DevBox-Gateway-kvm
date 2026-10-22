@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "wels/codec_api.h"
+
 typedef struct DevBoxKVMOpenH264 DevBoxKVMOpenH264;
 
 typedef struct {
@@ -32,10 +34,11 @@ DevBoxKVMOpenH264 *devbox_kvm_openh264_new(const DevBoxKVMOpenH264Config *config
                                            char *detail, size_t detail_size);
 // Encodes one I420 frame and returns the access unit size, or a negative
 // OpenH264 status. The bytes stay valid until the next encode or free.
-// unchanged, when not NULL, holds one hint per macroblock (see codec_app_def.h)
-// and is read only during the call.
+// unchanged and motion, when not NULL, hold one hint per macroblock (see
+// codec_app_def.h) and are read only during the call.
 int devbox_kvm_openh264_encode(DevBoxKVMOpenH264 *codec, const uint8_t *i420, int force_idr,
-                               int64_t timestamp, const unsigned char *unchanged, int unchanged_count);
+                               int64_t timestamp, const unsigned char *unchanged, int unchanged_count,
+                               const SMacroblockMotion *motion, int motion_count);
 void devbox_kvm_openh264_copy(const DevBoxKVMOpenH264 *codec, uint8_t *dst);
 int devbox_kvm_openh264_settings(DevBoxKVMOpenH264 *codec, DevBoxKVMOpenH264Settings *settings);
 void devbox_kvm_openh264_free(DevBoxKVMOpenH264 *codec);

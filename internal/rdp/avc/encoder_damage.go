@@ -4,12 +4,23 @@ import (
 	"image"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 // The optional extension keeps hardware backends on their existing full-picture
 // API. Hints never change AVC dimensions, surface placement or the reference chain.
 type damageCodecEncoder interface {
-	encodeDamage([]byte, bool, int64, []bool) ([]byte, error)
+	encodeDamage([]byte, bool, int64, damageHints) ([]byte, error)
+}
+
+// damageHints are borrowed, row-major per-macroblock encoding hints for one
+// picture. Either slice may be nil.
+type damageHints struct {
+	// unchanged certifies that every Y/U/V sample of the macroblock equals the
+	// preceding successfully encoded picture's.
+	unchanged []bool
+	// motion suggests a nonzero full-pel displacement into that picture.
+	motion []api.MacroblockMotion
 }
 
 func (e *Encoder) encodeWithDamageHints(
@@ -17,7 +28,7 @@ func (e *Encoder) encodeWithDamageHints(
 ) ([]byte, error) {
 	timestamp := e.frame * 1000 / int64(e.frameRate)
 	if codec, ok := e.codec.(damageCodecEncoder); ok && !fullConversion && !force {
-		return codec.encodeDamage(e.i420, false, timestamp, e.unchangedMacroblocks(source, regions))
+		return codec.encodeDamage(e.i420, false, timestamp, damageHints{unchanged: e.unchangedMacroblocks(source, regions)})
 	}
 
 	return e.codec.encode(e.i420, force, timestamp)
