@@ -8,6 +8,17 @@ import "golang.org/x/sys/cpu"
 // I420. The destination slices must start at the corresponding luma and chroma
 // positions. ok reports whether the input shape and CPU support the fast path.
 func rgbaToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte) (changed, ok bool) {
+	return rgb32ToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1, 0)
+}
+
+// bgrxToI420AVX2 reads guest BGRX pixels directly, without a channel-swap buffer.
+func bgrxToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte) (changed, ok bool) {
+	return rgb32ToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1, 2)
+}
+
+// redIndex is zero for RGBA and two for BGRX. The assembly chooses coefficients
+// and channel shuffles once per row pair, keeping the pixel loop identical.
+func rgb32ToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte, redIndex int) (changed, ok bool) {
 	width := len(dstY0)
 	if !cpu.X86.HasAVX2 || width == 0 || width > maxDimension || width&1 != 0 ||
 		len(dstY1) != width || len(dstU) != width/2 || len(dstV) != width/2 ||
@@ -17,20 +28,21 @@ func rgbaToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte) (changed, ok bo
 
 	vectorWidth := width &^ 7
 	if vectorWidth != 0 {
-		changed = rgbaToI420AVX2Kernel(
+		changed = rgb32ToI420AVX2Kernel(
 			&dstY0[0], &dstY1[0], &dstU[0], &dstV[0],
-			&src0[0], &src1[0], vectorWidth,
+			&src0[0], &src1[0], vectorWidth, redIndex,
 		)
 	}
 
 	// Keep the assembly loop branch-free by finishing its zero-to-six-pixel
 	// suffix here. The arithmetic deliberately mirrors scaleI420Region.
+	blueIndex := 2 - redIndex
 	for x := vectorWidth; x < width; x += 2 {
 		offset := x * 4
-		r00, g00, b00 := int(src0[offset]), int(src0[offset+1]), int(src0[offset+2])
-		r01, g01, b01 := int(src0[offset+4]), int(src0[offset+5]), int(src0[offset+6])
-		r10, g10, b10 := int(src1[offset]), int(src1[offset+1]), int(src1[offset+2])
-		r11, g11, b11 := int(src1[offset+4]), int(src1[offset+5]), int(src1[offset+6])
+		r00, g00, b00 := int(src0[offset+redIndex]), int(src0[offset+1]), int(src0[offset+blueIndex])
+		r01, g01, b01 := int(src0[offset+4+redIndex]), int(src0[offset+5]), int(src0[offset+4+blueIndex])
+		r10, g10, b10 := int(src1[offset+redIndex]), int(src1[offset+1]), int(src1[offset+blueIndex])
+		r11, g11, b11 := int(src1[offset+4+redIndex]), int(src1[offset+5]), int(src1[offset+4+blueIndex])
 
 		y00 := byte((54*r00 + 183*g00 + 18*b00) >> 8)
 		y01 := byte((54*r01 + 183*g01 + 18*b01) >> 8)
@@ -57,4 +69,4 @@ func rgbaToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte) (changed, ok bo
 }
 
 //go:noescape
-func rgbaToI420AVX2Kernel(dstY0, dstY1, dstU, dstV, src0, src1 *byte, width int) bool
+func rgb32ToI420AVX2Kernel(dstY0, dstY1, dstU, dstV, src0, src1 *byte, width, redIndex int) bool

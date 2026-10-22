@@ -1,0 +1,27 @@
+Go 1.26.9 affected package tests: go test ./internal/rdp/... ./internal/virtio -count=1
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/rdp	0.387s
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc	3.760s
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage	0.059s
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/virtio	1.123s
+
+Go 1.26.9 full project build: CGO_ENABLED=0 go build ./... (exit 0)
+(no output)
+
+Go 1.27.3 race: go test -race ./internal/virtio -run Test(RDP|GPU|Framebuffer) -count=1
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/virtio	3.617s
+
+Go 1.27.3 race: go test -race ./internal/rdp/avc -count=1
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc	30.451s
+
+Go 1.26.9 GODEBUG=cpu.avx2=off focused tests
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc	1.415s
+ok  	github.com/define42/DevBox-Gateway-kvm/internal/virtio	0.024s
+
+Go 1.26.9 golangci-lint v2.12.2: run ./internal/virtio ./internal/rdp/avc
+0 issues.
+
+Go 1.27.3 CGO_ENABLED=0 GOOS=linux GOARCH=arm64:
+go test -c -o /tmp/pixel-copy-avc-arm64.test ./internal/rdp/avc — exit 0
+go test -c -o /tmp/pixel-copy-virtio-arm64.test ./internal/virtio — exit 0
+
+git diff --check — exit 0

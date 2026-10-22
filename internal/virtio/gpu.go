@@ -107,6 +107,7 @@ const (
 var (
 	ErrNoGPUReq       = errors.New("no virtio-gpu request")
 	ErrGPUDisplaySize = errors.New("GPU display size must be even, 200..4096 per dimension, and at most 4096x2160 pixels")
+	errGPUBGRXBounds  = errors.New("virtio-gpu: BGRX scanout exceeds resource pixels")
 )
 
 // GPU is a modern PCI device exposing capabilities and a memory BAR.
@@ -166,8 +167,9 @@ type GPU struct {
 	resources   map[uint32]*gpuResource
 	scanout     [gpuNumScanouts]uint32
 	scanoutRect image.Rectangle
-	frame       *image.RGBA // Last presented scanout, without the hardware cursor.
-	composite   *image.RGBA // Reusable cursor composition, borrowed only during Flush.
+	frame       *image.RGBA     // Last presented scanout, without the hardware cursor.
+	composite   *image.RGBA     // Reusable cursor composition, borrowed only during Flush.
+	bgrxSource  image.Rectangle // Viewport last published directly; no GPU-side pixel copy.
 	cursor      gpuCursor
 
 	VirtQueue    [gpuNumQueues]*SplitQueue
@@ -760,6 +762,7 @@ func (g *GPU) cmdResourceUnref(req []byte) []byte {
 			g.scanout[0] = 0
 			g.scanoutRect = image.Rectangle{}
 			g.frame, g.composite = nil, nil
+			g.bgrxSource = image.Rectangle{}
 			g.telemetry.SourceSize(0, 0)
 		}
 	}
@@ -802,6 +805,7 @@ func (g *GPU) cmdSetScanout(req []byte) []byte {
 		// A different source cannot inherit unchanged pixels from the previous
 		// scanout. Its first visible flush publishes the entire new viewport.
 		g.frame, g.composite = nil, nil
+		g.bgrxSource = image.Rectangle{}
 		g.telemetry.ScanoutSwitch()
 	}
 	g.scanout[scanoutID] = resourceID
@@ -1030,8 +1034,9 @@ func (g *GPU) flush(res *gpuResource) {
 	_ = g.flushDamage(res, image.Rect(0, 0, int(res.width), int(res.height)))
 }
 
-// flushDamage updates only flushed pixels in the private, persistent RGBA
-// desktop. Later transfers outside this region must not become visible yet.
+// flushDamage publishes only flushed pixels. A direct BGRX sink retains the
+// published desktop itself; other displays use a persistent private RGBA copy.
+// Later transfers outside this region must not become visible yet.
 func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) error {
 	if g.display == nil || res.width == 0 || res.height == 0 {
 		return nil
@@ -1046,6 +1051,12 @@ func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) error {
 	}
 	started := g.telemetry.Begin()
 	bounds := image.Rect(0, 0, source.Dx(), source.Dy())
+	_, separateCursor := g.display.(CursorDisplay)
+	if direct, ok := g.display.(BGRXDisplay); ok && separateCursor &&
+		res.handle == 0 && res.format == gpuFormatB8G8R8X8 {
+		return g.flushBGRX(direct, res, source, damage, started)
+	}
+	g.bgrxSource = image.Rectangle{}
 	frame := g.frame
 	fullRefresh := frame == nil || frame.Bounds() != bounds
 	if fullRefresh {
@@ -1078,6 +1089,35 @@ func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) error {
 		return nil
 	}
 	g.present()
+	g.telemetry.Flush(g.telemetry.Elapsed(started), uint64(damage.Dx())*uint64(damage.Dy()), fullRefresh)
+
+	return nil
+}
+
+// flushBGRX borrows resource pixels while the sink updates its own publication.
+// Pixels outside damage may contain transfers that have not been flushed yet.
+func (g *GPU) flushBGRX(
+	display BGRXDisplay, res *gpuResource, source, damage image.Rectangle, started time.Time,
+) error {
+	stride := uint64(res.width) * gpuBytesPerPixel
+	start := uint64(source.Min.Y)*stride + uint64(source.Min.X)*gpuBytesPerPixel
+	end := start + uint64(source.Dy()-1)*stride + uint64(source.Dx())*gpuBytesPerPixel
+	if !source.In(image.Rect(0, 0, int(res.width), int(res.height))) ||
+		end > uint64(len(res.data)) || stride > uint64(^uint(0)>>1) {
+		return errGPUBGRXBounds
+	}
+	fullRefresh := g.bgrxSource != source
+	if fullRefresh {
+		damage = source
+	}
+	if err := display.FlushBGRX(source.Dx(), source.Dy(), int(stride), res.data[start:end],
+		[]image.Rectangle{damage.Sub(source.Min)}); err != nil {
+		log.Printf("virtio-gpu: display flush: %v", err)
+	} else {
+		g.bgrxSource = source
+	}
+	// A later legacy publication must rebuild its own persistent copy.
+	g.frame, g.composite = nil, nil
 	g.telemetry.Flush(g.telemetry.Elapsed(started), uint64(damage.Dx())*uint64(damage.Dy()), fullRefresh)
 
 	return nil
@@ -1237,6 +1277,7 @@ func (g *GPU) resetLocked() {
 	g.scanoutRect = image.Rectangle{}
 	g.telemetry.SourceSize(0, 0)
 	g.frame, g.composite = nil, nil
+	g.bgrxSource = image.Rectangle{}
 	g.cursor = gpuCursor{}
 	g.events = 0
 }

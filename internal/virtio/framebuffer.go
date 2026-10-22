@@ -33,6 +33,7 @@ type framebuffer struct {
 	width          int
 	height         int
 	frame          []byte
+	frameBGRX      bool
 	frameShared    bool
 	tileVersions   []uint64
 	seq            uint64
@@ -128,6 +129,7 @@ func (d *framebuffer) flush(width, height int, img *image.RGBA) error {
 	d.width = width
 	d.height = height
 	d.frame = frame
+	d.frameBGRX = false
 	d.frameShared = false
 	d.seq++
 	d.markFrameDamageLocked(nil)
@@ -326,6 +328,9 @@ func (d *framebuffer) changedFrame(sequence uint64, force bool) (displayFrame, b
 	if !force && d.seq == sequence {
 		return displayFrame{}, false, d.changed
 	}
+	if d.frameBGRX {
+		return d.snapshotLocked(), true, d.changed
+	}
 	d.frameShared = true
 
 	return displayFrame{width: d.width, height: d.height, pix: d.frame, seq: d.seq}, true, d.changed
@@ -333,7 +338,11 @@ func (d *framebuffer) changedFrame(sequence uint64, force bool) (displayFrame, b
 
 func (d *framebuffer) snapshotLocked() displayFrame {
 	frame := make([]byte, len(d.frame))
-	copy(frame, d.frame)
+	if d.frameBGRX {
+		bgrToRGBARow(frame, d.frame, 0xff000000)
+	} else {
+		copy(frame, d.frame)
+	}
 
 	return displayFrame{
 		width:  d.width,

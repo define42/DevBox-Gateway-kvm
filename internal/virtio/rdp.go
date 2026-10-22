@@ -703,10 +703,16 @@ func (w *rdpFrameWriter) writeWhenReady(display *framebuffer, timer *time.Timer)
 	}
 	w.lastFrame = time.Now()
 	w.nextFrame = w.lastFrame.Add(w.frameInterval())
-	start := w.stats.begin()
-	damage := display.copyFrameChanges(&w.frame, w.force)
-	w.stats.copied(w.stats.elapsed(start))
-	sent, err := w.write(w.frame, damage, w.force)
+	var sent bool
+	var err error
+	if w.graphics {
+		sent, err = w.writeGraphics(display)
+	} else {
+		start := w.stats.begin()
+		damage := display.copyFrameChanges(&w.frame, w.force)
+		w.stats.copied(w.stats.elapsed(start))
+		sent, err = w.write(w.frame, damage, w.force)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -822,31 +828,86 @@ func (w *rdpFrameWriter) write(frame displayFrame, damage []image.Rectangle, for
 
 		return err == nil, err
 	}
-	if w.avc == nil {
-		width, height := w.session.Size()
-		encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
-			Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.measuring(), FrameRate: w.frameRate,
-			QP: w.h264QP,
-		})
-		if err != nil {
-			return false, err
-		}
-		w.avc = encoder
-		force = true // A new encoder starts an independent reference chain.
-		log.Printf(
-			"rdp: client %s H.264 encoder=%s slices=%d max_fps=%d qp=%d",
-			w.stats.peer,
-			encoder.Backend(),
-			encoder.Threads(),
-			encoder.FrameRate(),
-			encoder.QP(),
-		)
-		if reason := encoder.FallbackReason(); reason != nil {
-			log.Printf("rdp: client %s H.264 using software fallback: %v", w.stats.peer, reason)
-		}
+	created, err := w.ensureAVC()
+	if err != nil {
+		return false, err
 	}
+	force = force || created
 	previousBackend := w.avc.Backend()
 	data, err := w.avc.EncodeDamage(img, damage, force)
+
+	return w.writeAVC(data, err, previousBackend, img.Bounds(), damage, force)
+}
+
+// ensureAVC initializes outside the framebuffer lock. New encoders need every
+// source pixel even when the reader has already observed the latest sequence.
+func (w *rdpFrameWriter) ensureAVC() (bool, error) {
+	if w.avc != nil {
+		return false, nil
+	}
+	width, height := w.session.Size()
+	encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
+		Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.measuring(), FrameRate: w.frameRate,
+		QP: w.h264QP,
+	})
+	if err != nil {
+		return false, err
+	}
+	w.avc = encoder
+	log.Printf(
+		"rdp: client %s H.264 encoder=%s slices=%d max_fps=%d qp=%d",
+		w.stats.peer,
+		encoder.Backend(),
+		encoder.Threads(),
+		encoder.FrameRate(),
+		encoder.QP(),
+	)
+	if reason := encoder.FallbackReason(); reason != nil {
+		log.Printf("rdp: client %s H.264 using software fallback: %v", w.stats.peer, reason)
+	}
+
+	return true, nil
+}
+
+func (w *rdpFrameWriter) captureAVC(display *framebuffer, force bool) ([]image.Rectangle, error) {
+	start := w.stats.begin()
+	consume := func(img *image.RGBA, bgrx bool, rects []image.Rectangle) error {
+		if bgrx {
+			return w.avc.PrepareBGRXDamage(img.Pix, img.Stride, img.Rect.Dx(), img.Rect.Dy(), rects, force)
+		}
+
+		return w.avc.PrepareDamage(img, rects, force)
+	}
+	damage, err := display.readFrameChanges(&w.frame, force, consume)
+	// Conversion is reported separately, just as it is for the copied path.
+	prepared := w.avc.LastStats()
+	w.stats.copied(max(0, w.stats.elapsed(start)-prepared.Conversion-prepared.Encoding))
+
+	return damage, err
+}
+
+func (w *rdpFrameWriter) writeGraphics(display *framebuffer) (bool, error) {
+	created, err := w.ensureAVC()
+	if err != nil {
+		return false, err
+	}
+	force := w.force || created
+	damage, err := w.captureAVC(display, force)
+	if err != nil {
+		return false, err
+	}
+	previousBackend := w.avc.Backend()
+	// captureAVC has released the publication lock; encoding and socket writes
+	// only read viewer-owned I420, so guest flushes can continue independently.
+	data, err := w.avc.EncodePrepared()
+	source := image.Rect(0, 0, w.frame.width, w.frame.height)
+
+	return w.writeAVC(data, err, previousBackend, source, damage, force)
+}
+
+func (w *rdpFrameWriter) writeAVC(
+	data []byte, err error, previousBackend avc.Backend, source image.Rectangle, damage []image.Rectangle, force bool,
+) (bool, error) {
 	if w.avc.Backend() != previousBackend {
 		log.Printf(
 			"rdp: client %s H.264 encoder=%s after %s failure: %v",
@@ -870,7 +931,7 @@ func (w *rdpFrameWriter) write(frame displayFrame, damage []image.Rectangle, for
 		width, height := w.session.Size()
 		output := image.Rect(0, 0, width, height)
 		for _, rect := range damage {
-			mapped := rdpdamage.Map(rect, img.Bounds(), output)
+			mapped := rdpdamage.Map(rect, source, output)
 			if !mapped.Empty() {
 				regions = append(regions, mapped)
 			}

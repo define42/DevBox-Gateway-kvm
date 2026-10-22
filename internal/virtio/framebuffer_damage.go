@@ -8,19 +8,36 @@ const (
 )
 
 // flushDamage is called with textMu held. The display owns one persistent
-// image; each RDP writer copies changed tiles into its own encoding image.
+// image; readers consume changed tiles while holding the frame lock.
 func (d *framebuffer) flushDamage(width, height int, img *image.RGBA, damage []image.Rectangle) error {
+	if img == nil {
+		if width <= 0 || height <= 0 {
+			return nil
+		}
+
+		return errInvalidFramebuffer
+	}
+
+	return d.flushPixels(width, height, img.Pix, img.Stride, img.Rect, false, damage)
+}
+
+// flushPixels accepts either RGBA or BGRX rows, borrowing them only for this
+// call. Format changes preserve pixels outside the flushed rectangles.
+// The caller holds textMu; mu protects publication and synchronous conversion.
+func (d *framebuffer) flushPixels(
+	width, height int, pix []byte, stride int, source image.Rectangle, bgrx bool, damage []image.Rectangle,
+) error {
 	if width <= 0 || height <= 0 {
 		return nil
 	}
 	const maxInt = int(^uint(0) >> 1)
-	if img == nil || width > maxInt/4 || height > maxInt/(width*4) ||
-		width > img.Rect.Dx() || height > img.Rect.Dy() {
+	if width > maxInt/4 || height > maxInt/(width*4) ||
+		width > source.Dx() || height > source.Dy() {
 		return errInvalidFramebuffer
 	}
 	rowBytes := width * 4
-	if img.Stride < rowBytes || len(img.Pix) < rowBytes ||
-		height-1 > (len(img.Pix)-rowBytes)/img.Stride {
+	if stride < rowBytes || len(pix) < rowBytes ||
+		height-1 > (len(pix)-rowBytes)/stride {
 		return errInvalidFramebuffer
 	}
 	d.mu.Lock()
@@ -48,13 +65,20 @@ func (d *framebuffer) flushDamage(width, height int, img *image.RGBA, damage []i
 		d.frame = append([]byte(nil), d.frame...)
 	}
 	d.frameShared = false
+	if !full && d.frameBGRX != bgrx {
+		// Convert the retained publication, never unflushed input pixels.
+		for i := 0; i < len(d.frame); i += 4 {
+			d.frame[i], d.frame[i+2], d.frame[i+3] = d.frame[i+2], d.frame[i], 255
+		}
+	}
+	d.frameBGRX = bgrx
 	d.width, d.height = width, height
 	for _, rect := range damage {
 		rect = rect.Intersect(bounds)
 		for y := rect.Min.Y; y < rect.Max.Y && !rect.Empty(); y++ {
-			src := y*img.Stride + rect.Min.X*4
+			src := y*stride + rect.Min.X*4
 			dst := (y*width + rect.Min.X) * 4
-			copy(d.frame[dst:dst+rect.Dx()*4], img.Pix[src:src+rect.Dx()*4])
+			copy(d.frame[dst:dst+rect.Dx()*4], pix[src:src+rect.Dx()*4])
 		}
 	}
 	d.seq++
@@ -127,7 +151,11 @@ func (d *framebuffer) copyFrameChanges(frame *displayFrame, force bool) []image.
 			start := (y*d.width + rect.Min.X) * 4
 			end := start + rect.Dx()*4
 			if end <= len(d.frame) {
-				copy(frame.pix[start:end], d.frame[start:end])
+				if d.frameBGRX {
+					bgrToRGBARow(frame.pix[start:end], d.frame[start:end], 0xff000000)
+				} else {
+					copy(frame.pix[start:end], d.frame[start:end])
+				}
 			} else {
 				clear(frame.pix[start:end])
 			}
@@ -178,4 +206,39 @@ func (d *framebuffer) changedTileRectsLocked(sequence uint64) []image.Rectangle 
 	}
 
 	return rects
+}
+
+// readFrameChanges borrows the publication only until consume returns. A video
+// reader converts directly into its own I420 storage here, then encodes after
+// releasing mu. The callback boolean identifies BGRX bytes; the image descriptor
+// supplies geometry in either format. Neither pixels nor the descriptor may escape consume.
+// Frame metadata advances only after successful consumption, so failed readers
+// and independently paced viewers retain all pending damage.
+func (d *framebuffer) readFrameChanges(
+	frame *displayFrame, force bool, consume func(*image.RGBA, bool, []image.Rectangle) error,
+) ([]image.Rectangle, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	bounds := image.Rect(0, 0, d.width, d.height)
+	var damage []image.Rectangle
+	if force || frame.width != d.width || frame.height != d.height || len(d.tileVersions) == 0 {
+		damage = []image.Rectangle{bounds}
+	} else {
+		damage = d.changedTileRectsLocked(frame.seq)
+	}
+	if damage == nil {
+		damage = []image.Rectangle{}
+	}
+	// Before the first guest publication, expose the same black image as the
+	// bitmap path without allocating a private RGB image per viewer.
+	if len(d.frame) == 0 {
+		d.frame = make([]byte, d.width*d.height*4)
+	}
+	img := &image.RGBA{Pix: d.frame, Stride: d.width * 4, Rect: bounds}
+	if err := consume(img, d.frameBGRX, damage); err != nil {
+		return nil, err
+	}
+	*frame = displayFrame{width: d.width, height: d.height, seq: d.seq}
+
+	return damage, nil
 }

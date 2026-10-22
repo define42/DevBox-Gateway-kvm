@@ -21,13 +21,15 @@ const MaxThreads = 16
 const maxDimension = 4096
 
 var (
-	ErrGeometry  = errors.New("invalid H.264 frame geometry")
-	ErrCodec     = errors.New("H.264 encoding failed")
-	ErrClosed    = errors.New("H.264 encoder is closed")
-	ErrThreads   = errors.New("H.264 slice count must be between 1 and 16")
-	ErrBackend   = errors.New("H.264 encoder must be software, nvenc, or auto")
-	ErrFrameRate = errors.New("H.264 frame rate must be between 1 and 60")
-	ErrQP        = errors.New("H.264 quantizer must be between 0 and 51")
+	ErrGeometry        = errors.New("invalid H.264 frame geometry")
+	ErrCodec           = errors.New("H.264 encoding failed")
+	ErrClosed          = errors.New("H.264 encoder is closed")
+	ErrThreads         = errors.New("H.264 slice count must be between 1 and 16")
+	ErrBackend         = errors.New("H.264 encoder must be software, nvenc, or auto")
+	ErrFrameRate       = errors.New("H.264 frame rate must be between 1 and 60")
+	ErrQP              = errors.New("H.264 quantizer must be between 0 and 51")
+	ErrPendingFrame    = errors.New("H.264 frame is already prepared")
+	ErrNoPreparedFrame = errors.New("no H.264 frame is prepared")
 )
 
 // Backend selects an H.264 encoder implementation.
@@ -50,8 +52,8 @@ type Options struct {
 	QP        *int    // Nil selects DefaultQP; explicit values range from MinQP to MaxQP.
 }
 
-// EncodeStats describes the most recent Encode or EncodeDamage call. Encoding
-// includes the codec and preparing its output as the returned Go slice.
+// EncodeStats describes the most recent frame preparation and encoding. Encoding
+// includes damage hints, the codec and preparing its output as the returned Go slice.
 type EncodeStats struct {
 	Conversion time.Duration
 	Encoding   time.Duration
@@ -82,6 +84,11 @@ type Encoder struct {
 	fallbackReason   error
 	measure          bool
 	stats            EncodeStats
+	prepared         bool
+	preparedChanged  bool
+	preparedForce    bool
+	preparedHints    bool
+	borrowedSource   image.RGBA // Temporary BGRX header, cleared before preparation returns.
 }
 
 // NewEncoder fixes the output size for the lifetime of the encoder. Dimensions
@@ -183,7 +190,9 @@ func (e *Encoder) useSoftware() error {
 	return nil
 }
 
-// LastStats returns measurements for the most recent encode call. Measurements
+// LastStats returns measurements for the most recent encode or preparation call.
+// After preparation, Encoding includes only damage-hint preparation; EncodePrepared
+// adds codec execution. Measurements
 // are zero when Options.Measure is false; that path does not read the clock.
 func (e *Encoder) LastStats() EncodeStats { return e.stats }
 
@@ -204,40 +213,33 @@ func (e *Encoder) Encode(img *image.RGBA, force bool) ([]byte, error) {
 // Software encoding can reuse reconstructed blocks outside these regions when
 // the reference and motion predictor permit it; the AVC picture size is unchanged.
 func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force bool) ([]byte, error) {
-	e.stats = EncodeStats{}
+	if err := e.PrepareDamage(img, regions, force); err != nil {
+		return nil, err
+	}
+
+	return e.EncodePrepared()
+}
+
+// EncodePrepared encodes and consumes the frame prepared by PrepareDamage or
+// PrepareBGRXDamage. It does not access the source pixels or damage rectangles.
+// An unchanged frame returns nil unless a refresh or retry is required. A frame
+// is consumed even if the codec fails; prepare again to retry the retained image.
+func (e *Encoder) EncodePrepared() ([]byte, error) {
 	if e.codec == nil {
 		return nil, ErrClosed
 	}
-	if !validRGBA(img) {
-		return nil, ErrGeometry
+	if !e.prepared {
+		return nil, ErrNoPreparedFrame
+	}
+	e.prepared = false
+	if !e.preparedChanged {
+		return nil, nil
 	}
 	var started time.Time
 	if e.measure {
 		started = time.Now()
 	}
-
-	changed := !e.initialized || e.retry
-	output := image.Rect(0, 0, e.width, e.height)
-	fullConversion := force || regions == nil || !e.initialized || e.source != img.Rect
-	if fullConversion {
-		changed = e.convertI420Region(img, output) || changed
-	} else {
-		for _, region := range regions {
-			mapped := damage.Align(damage.Map(region, img.Rect, output), 2, output)
-			changed = e.convertI420Region(img, mapped) || changed
-		}
-	}
-	e.source, e.initialized = img.Rect, true
-	if e.measure {
-		e.stats.Conversion = time.Since(started)
-	}
-	if !force && !changed {
-		return nil, nil
-	}
-	if e.measure {
-		started = time.Now()
-	}
-	data, err := e.encodeWithDamageHints(img.Rect, regions, fullConversion, force || e.retry)
+	data, err := e.encodeWithDamageHints()
 	if err != nil && e.auto && e.backend == BackendNVENC {
 		e.fallbackReason = err
 		if fallbackErr := e.useSoftware(); fallbackErr != nil {
@@ -249,7 +251,7 @@ func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force
 		}
 	}
 	if e.measure {
-		e.stats.Encoding = time.Since(started)
+		e.stats.Encoding += time.Since(started)
 	}
 	e.frame++
 	e.retry = err != nil
@@ -264,6 +266,7 @@ func (e *Encoder) Close() {
 		e.codec = nil
 		e.i420 = nil
 		e.unchanged = nil
+		e.prepared = false
 	}
 }
 

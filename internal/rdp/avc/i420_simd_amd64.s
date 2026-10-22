@@ -15,6 +15,13 @@ DATA ·i420YCoeff<>+16(SB)/8, $0x0012b7360012b736
 DATA ·i420YCoeff<>+24(SB)/8, $0x0012b7360012b736
 GLOBL ·i420YCoeff<>(SB), RODATA|NOPTR, $32
 
+// The same luma identity applied to B,G,R,X source bytes.
+DATA ·i420BGRXYCoeff<>+0(SB)/8, $0x0036b7120036b712
+DATA ·i420BGRXYCoeff<>+8(SB)/8, $0x0036b7120036b712
+DATA ·i420BGRXYCoeff<>+16(SB)/8, $0x0036b7120036b712
+DATA ·i420BGRXYCoeff<>+24(SB)/8, $0x0036b7120036b712
+GLOBL ·i420BGRXYCoeff<>(SB), RODATA|NOPTR, $32
+
 // Select G as words, duplicated to match VPHADDW's lane layout.
 DATA ·i420GShuffle<>+0(SB)/8, $0x800d800980058001
 DATA ·i420GShuffle<>+8(SB)/8, $0x800d800980058001
@@ -28,6 +35,13 @@ DATA ·i420PairShuffle<>+8(SB)/8, $0x80800e0a0d090c08
 DATA ·i420PairShuffle<>+16(SB)/8, $0x8080060205010400
 DATA ·i420PairShuffle<>+24(SB)/8, $0x80800e0a0d090c08
 GLOBL ·i420PairShuffle<>(SB), RODATA|NOPTR, $32
+
+// Arrange adjacent BGRX pixels into the same R0,R1,G0,G1,B0,B1,0,0 order.
+DATA ·i420BGRXPairShuffle<>+0(SB)/8, $0x8080040005010602
+DATA ·i420BGRXPairShuffle<>+8(SB)/8, $0x80800c080d090e0a
+DATA ·i420BGRXPairShuffle<>+16(SB)/8, $0x8080040005010602
+DATA ·i420BGRXPairShuffle<>+24(SB)/8, $0x80800c080d090e0a
+GLOBL ·i420BGRXPairShuffle<>(SB), RODATA|NOPTR, $32
 
 DATA ·i420ByteOnes<>+0(SB)/8, $0x0101010101010101
 DATA ·i420ByteOnes<>+8(SB)/8, $0x0101010101010101
@@ -53,10 +67,10 @@ DATA ·i420ChromaBias<>+16(SB)/8, $0x0000008000000080
 DATA ·i420ChromaBias<>+24(SB)/8, $0x0000008000000080
 GLOBL ·i420ChromaBias<>(SB), RODATA|NOPTR, $32
 
-// func rgbaToI420AVX2Kernel(dstY0, dstY1, dstU, dstV, src0, src1 *byte,
-//     width int) bool
+// func rgb32ToI420AVX2Kernel(dstY0, dstY1, dstU, dstV, src0, src1 *byte,
+//     width, redIndex int) bool
 // Requires AVX2. width is a positive multiple of eight pixels.
-TEXT ·rgbaToI420AVX2Kernel(SB), NOSPLIT, $0-57
+TEXT ·rgb32ToI420AVX2Kernel(SB), NOSPLIT, $0-65
 	MOVQ dstY0+0(FP), AX
 	MOVQ dstY1+8(FP), BX
 	MOVQ dstU+16(FP), CX
@@ -66,8 +80,14 @@ TEXT ·rgbaToI420AVX2Kernel(SB), NOSPLIT, $0-57
 	MOVQ width+48(FP), R8
 
 	VMOVDQU ·i420YCoeff<>(SB), Y15
-	VMOVDQU ·i420GShuffle<>(SB), Y14
 	VMOVDQU ·i420PairShuffle<>(SB), Y13
+	CMPQ redIndex+56(FP), $0
+	JE i420AVX2CoefficientsReady
+	VMOVDQU ·i420BGRXYCoeff<>(SB), Y15
+	VMOVDQU ·i420BGRXPairShuffle<>(SB), Y13
+
+i420AVX2CoefficientsReady:
+	VMOVDQU ·i420GShuffle<>(SB), Y14
 	VMOVDQU ·i420ByteOnes<>(SB), Y12
 	VMOVDQU ·i420UCoeff<>(SB), Y11
 	VMOVDQU ·i420VCoeff<>(SB), Y10
@@ -155,5 +175,5 @@ i420AVX2Loop:
 
 	VZEROUPPER
 	TESTQ R15, R15
-	SETNE ret+56(FP)
+	SETNE ret+64(FP)
 	RET

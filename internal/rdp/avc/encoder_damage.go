@@ -12,15 +12,13 @@ type damageCodecEncoder interface {
 	encodeDamage([]byte, bool, int64, []bool) ([]byte, error)
 }
 
-func (e *Encoder) encodeWithDamageHints(
-	source image.Rectangle, regions []image.Rectangle, fullConversion, force bool,
-) ([]byte, error) {
+func (e *Encoder) encodeWithDamageHints() ([]byte, error) {
 	timestamp := e.frame * 1000 / int64(e.frameRate)
-	if codec, ok := e.codec.(damageCodecEncoder); ok && !fullConversion && !force {
-		return codec.encodeDamage(e.i420, false, timestamp, e.unchangedMacroblocks(source, regions))
+	if codec, ok := e.codec.(damageCodecEncoder); ok && e.preparedHints {
+		return codec.encodeDamage(e.i420, false, timestamp, e.unchanged)
 	}
 
-	return e.codec.encode(e.i420, force, timestamp)
+	return e.codec.encode(e.i420, e.preparedForce, timestamp)
 }
 
 // Every true bit certifies all Y/U/V samples in the corresponding 16x16 output

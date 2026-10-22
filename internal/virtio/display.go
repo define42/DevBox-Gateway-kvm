@@ -24,6 +24,18 @@ type DamageDisplay interface {
 	FlushDamage(width, height int, img *image.RGBA, damage []image.Rectangle) error
 }
 
+// BGRXDisplay accepts a cursor-free scanout directly from a 2D GPU resource.
+// Pixels have blue, green, red and ignored bytes, with stride bytes between
+// rows. The first pixel is already offset to the scanout viewport. Damage is
+// viewport-relative; nil means the full image and an empty slice means none.
+// Only damaged pixels may be published: other resource pixels can contain
+// transfers that the guest has not flushed. Pixels and damage are borrowed
+// only for the call, so implementations must retain their own published copy.
+// The GPU uses this interface only when the sink also implements CursorDisplay.
+type BGRXDisplay interface {
+	FlushBGRX(width, height, stride int, pix []byte, damage []image.Rectangle) error
+}
+
 // GraphicsResetDisplay releases graphics ownership when the guest resets its
 // GPU. The notification follows scanout removal and cursor hiding; it does not
 // require clearing the last image.
@@ -41,7 +53,8 @@ type DisplayCursor struct {
 }
 
 // CursorDisplay receives the cursor separately. Implementations of this
-// interface receive cursor-free desktop pixels through Flush or FlushDamage.
+// interface receive cursor-free desktop pixels through Flush, FlushDamage or
+// FlushBGRX.
 type CursorDisplay interface {
 	SetCursor(cursor DisplayCursor) error
 }

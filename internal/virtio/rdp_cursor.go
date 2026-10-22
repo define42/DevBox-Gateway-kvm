@@ -38,6 +38,22 @@ type rdpPointerSink interface {
 // FlushDamage receives cursor-free scanout pixels and copies only changed
 // regions. The guest owns img until this call returns.
 func (d *RDPDisplay) FlushDamage(width, height int, img *image.RGBA, rects []image.Rectangle) error {
+	if img == nil {
+		return d.flushScanout(width, height, nil, 0, image.Rect(0, 0, width, height), false, rects)
+	}
+
+	return d.flushScanout(width, height, img.Pix, img.Stride, img.Rect, false, rects)
+}
+
+// FlushBGRX publishes borrowed BGRX rows without an intermediate RGBA image.
+// Only flushed regions become visible, and bitmap readers convert on capture.
+func (d *RDPDisplay) FlushBGRX(width, height, stride int, pix []byte, rects []image.Rectangle) error {
+	return d.flushScanout(width, height, pix, stride, image.Rect(0, 0, width, height), true, rects)
+}
+
+func (d *RDPDisplay) flushScanout(
+	width, height int, pix []byte, stride int, source image.Rectangle, bgrx bool, rects []image.Rectangle,
+) error {
 	d.textMu.Lock()
 	defer d.textMu.Unlock()
 	if d.stopped {
@@ -65,7 +81,7 @@ func (d *RDPDisplay) FlushDamage(width, height int, img *image.RGBA, rects []ima
 	d.mu.Lock()
 	before := d.seq
 	d.mu.Unlock()
-	if err := d.flushDamage(width, height, img, rects); err != nil {
+	if err := d.flushPixels(width, height, pix, stride, source, bgrx, rects); err != nil {
 		return err
 	}
 	d.mu.Lock()
