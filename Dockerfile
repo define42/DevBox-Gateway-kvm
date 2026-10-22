@@ -7,6 +7,7 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         libavcodec-dev libavutil-dev libvirglrenderer-dev libegl-dev libgbm-dev pkg-config \
+        libopenh264-dev nasm \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -19,14 +20,14 @@ COPY kvm/ ./kvm/
 COPY pkg/ ./pkg/
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 go build -tags nvenc,virgl -trimpath -buildvcs=false \
+    CGO_ENABLED=1 go build -tags nvenc,virgl,openh264_native -trimpath -buildvcs=false \
         -ldflags="-s -w" -o /out/devbox-kvm .
 
 FROM debian:trixie-slim AS runtime-deps
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates libavcodec61 libavutil59 ovmf \
+        ca-certificates libavcodec61 libavutil59 libopenh264-8 ovmf \
         libvirglrenderer1 libegl1 libegl-mesa0 libgl1 libgles2 libgl1-mesa-dri \
     && rm -rf /var/lib/apt/lists/* \
     && test -r /usr/share/OVMF/OVMF_CODE_4M.fd \
