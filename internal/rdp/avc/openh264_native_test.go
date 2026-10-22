@@ -12,13 +12,28 @@ import (
 )
 
 // The native backend must produce exactly the pure-Go port's stream for the
-// same full pictures, including slices, forced IDRs and extreme quantizers.
+// same pictures, including slices, forced IDRs, extreme quantizers and the
+// unchanged-macroblock hints that the patched library shares with the port.
 func TestNativeOpenH264MatchesPureGo(t *testing.T) {
 	t.Parallel()
-	for _, test := range []struct{ width, height, slices, qp int }{
-		{66, 50, 1, 0}, {66, 50, 4, 20}, {320, 192, 1, 0}, {320, 192, 4, 20}, {320, 192, 4, 51}, {640, 360, 3, 32},
+	for _, test := range []struct {
+		width, height, slices, qp int
+		hinted                    bool
+	}{
+		{66, 50, 1, 0, false},
+		{66, 50, 4, 20, false},
+		{320, 192, 1, 0, false},
+		{320, 192, 4, 20, false},
+		{320, 192, 4, 51, false},
+		{640, 360, 3, 32, false},
+		{66, 50, 1, 0, true},
+		{66, 50, 4, 20, true},
+		{320, 192, 1, 26, true},
+		{320, 192, 4, 51, true},
+		{640, 360, 3, 32, true},
 	} {
-		t.Run(fmt.Sprintf("%dx%d/%dSlices/QP%d", test.width, test.height, test.slices, test.qp), func(t *testing.T) {
+		name := fmt.Sprintf("%dx%d/%dSlices/QP%d/Hinted=%t", test.width, test.height, test.slices, test.qp, test.hinted)
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			config := codecConfig{intraPeriod: codecIntraPeriod, loopFilterDisableIDC: codecLoopFilterDisableIDC}
 			native, slices, err := newCodecEncoderWithConfig(test.width, test.height, test.slices, FrameRate, test.qp, config)
@@ -42,18 +57,38 @@ func TestNativeOpenH264MatchesPureGo(t *testing.T) {
 			for i := range i420 {
 				i420[i] = byte(i*7 + i/test.width*3)
 			}
-			for frame := range 24 {
-				// Move a noisy block so frames mix static and changed areas.
+			cols, rows := (test.width+15)/16, (test.height+15)/16
+			for frame := range 40 {
+				// Move a noisy block so frames mix static and changed areas;
+				// some frames change nothing, some change chroma only.
 				x, y := (frame*9)%(test.width-16), (frame*5)%(test.height-16)
-				for row := y; row < y+16; row++ {
-					for col := x; col < x+16; col++ {
-						seed = seed*1664525 + 1013904223
-						i420[row*test.width+col] = byte(seed >> 24)
+				unchanged := make([]bool, cols*rows)
+				for i := range unchanged {
+					unchanged[i] = true
+				}
+				if frame%7 != 3 {
+					for row := y; row < y+16; row++ {
+						for col := x; col < x+16; col++ {
+							seed = seed*1664525 + 1013904223
+							if frame%5 == 2 {
+								i420[luma+row/2*(test.width/2)+col/2] = byte(seed >> 24)
+							} else {
+								i420[row*test.width+col] = byte(seed >> 24)
+							}
+						}
 					}
+					for row := y / 16; row <= (y+15)/16; row++ {
+						for col := x / 16; col <= (x+15)/16; col++ {
+							unchanged[row*cols+col] = false
+						}
+					}
+				}
+				if !test.hinted || frame%13 == 6 {
+					unchanged = nil
 				}
 				force := frame == 0 || frame == 11
 				timestamp := int64(frame * 1000 / FrameRate)
-				got, err := native.encode(i420, force, timestamp)
+				got, err := native.(damageCodecEncoder).encodeDamage(i420, force, timestamp, unchanged)
 				if err != nil {
 					t.Fatalf("frame %d: native: %v", frame, err)
 				}
@@ -65,6 +100,7 @@ func TestNativeOpenH264MatchesPureGo(t *testing.T) {
 				want, frameType, err := pure.Encode(&openh264.Frame{
 					Width: test.width, Height: test.height, Timestamp: timestamp,
 					Y: i420[:luma], U: i420[luma : luma+luma/4], V: i420[luma+luma/4:],
+					UnchangedMacroblocks: unchanged,
 				})
 				if err != nil || frameType == api.VideoFrameTypeSkip {
 					t.Fatalf("frame %d: pure Go: type %d, %v", frame, frameType, err)

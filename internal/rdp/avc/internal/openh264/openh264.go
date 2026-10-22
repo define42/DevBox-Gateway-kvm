@@ -1,8 +1,8 @@
 //go:build cgo && !purego
 
 // Package openh264 encodes H.264 with the native OpenH264 library, including
-// its NASM assembly. tools/build-openh264.sh builds the pinned release into
-// third_party/openh264, which is linked statically. It is separate from avc
+// its NASM assembly. tools/build-openh264.sh builds the pinned release with
+// tools/openh264-patches into third_party/openh264, which is linked statically. It is separate from avc
 // because cgo packages cannot contain Go assembly.
 package openh264
 
@@ -88,9 +88,18 @@ func (e *Encoder) Slices() int { return e.slices }
 
 // Encode returns one Annex-B access unit owned by the caller, or nil when the
 // encoder skipped the frame. The encoder reads i420 only during the call.
+func (e *Encoder) Encode(i420 []byte, forceIDR bool, timestamp int64) ([]byte, error) {
+	return e.EncodeHinted(i420, forceIDR, timestamp, nil)
+}
+
+// EncodeHinted is Encode with optional unchanged-macroblock hints: in row-major
+// order, one entry per 16x16 macroblock, true certifies that every source Y/U/V
+// sample of that macroblock is unchanged since the preceding successfully
+// encoded picture. The encoder reads the hints only during the call; nil or a
+// wrong length disables them. Hinted streams match the pure-Go port's.
 //
 //nolint:nlreturn // cgo-generated pointer checks trigger false positives.
-func (e *Encoder) Encode(i420 []byte, forceIDR bool, timestamp int64) ([]byte, error) {
+func (e *Encoder) EncodeHinted(i420 []byte, forceIDR bool, timestamp int64, unchanged []bool) ([]byte, error) {
 	if e.native == nil {
 		return nil, errClosed
 	}
@@ -101,7 +110,13 @@ func (e *Encoder) Encode(i420 []byte, forceIDR bool, timestamp int64) ([]byte, e
 	if forceIDR {
 		force = 1
 	}
-	size := C.devbox_kvm_openh264_encode(e.native, (*C.uint8_t)(unsafe.Pointer(&i420[0])), force, C.int64_t(timestamp))
+	var hints *C.uchar
+	if len(unchanged) != 0 {
+		// A Go bool is one byte holding 0 or 1.
+		hints = (*C.uchar)(unsafe.Pointer(&unchanged[0]))
+	}
+	size := C.devbox_kvm_openh264_encode(e.native, (*C.uint8_t)(unsafe.Pointer(&i420[0])), force, C.int64_t(timestamp),
+		hints, C.int(len(unchanged)))
 	if size < 0 {
 		return nil, fmt.Errorf("%w: encode status %d", errNative, -size)
 	}

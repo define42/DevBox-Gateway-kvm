@@ -533,7 +533,8 @@ Fluxbox autostart, place it at `~/.local/bin/devbox-kvm-resize` and add
 ## H.264 and hardware encoding
 
 With cgo enabled, the software backend is native [OpenH264](https://github.com/cisco/openh264)
-v2.7.0, built from pinned sources with its NASM assembly and linked statically.
+v2.7.0, built from pinned sources with its NASM assembly and the repository's
+[patches](../tools/openh264-patches) and linked statically.
 `make devbox-kvm`, `make gateway` and the Docker image build it automatically;
 manual builds run the script once. It needs git, make, a C/C++ compiler and NASM:
 
@@ -552,12 +553,12 @@ binaries use it.
 CGO_ENABLED=0 go build -o devbox-kvm .
 ```
 
-Both backends produce identical streams for full-picture updates. Only the
-pure-Go port uses damage hints to skip unchanged macroblocks; native OpenH264
-analyzes every picture completely. Native is about 1.6x faster for full-screen
-video and 1.3x faster for scrolling, but 2.7-3.4x slower for small desktop
-updates such as a changing widget (about 2-3 ms instead of 0.7-0.9 ms per 1080p
-frame). Encoded sizes are the same.
+Both backends produce identical streams. The patch ports the pure-Go encoder's
+damage hints, which skip unchanged macroblocks, to native OpenH264; upstream
+OpenH264 analyzes every picture completely. Native is about 1.5x faster for
+full-screen video, 1.4-1.6x faster for scrolling and 1.1-1.5x faster for small
+desktop updates such as a changing widget (about 0.6-0.75 ms instead of
+0.75-0.9 ms per 1080p frame).
 
 Follow the [software-only gateway setup](gateway.md#build-without-nvenc) and set
 `H264_ENCODER=software`. All RDP connections still use the gateway UI's downloaded

@@ -8,8 +8,8 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc/internal/openh264"
 )
 
-// nativeOpenH264Encoder runs the native OpenH264 library with its NASM kernels.
-// It encodes complete pictures; it does not implement damageCodecEncoder.
+// nativeOpenH264Encoder runs the native OpenH264 library with its NASM kernels,
+// patched to accept the same unchanged-macroblock hints as the pure-Go port.
 type nativeOpenH264Encoder struct {
 	codec         *openh264.Encoder
 	lastTimestamp int64
@@ -37,8 +37,14 @@ func newCodecEncoderWithConfig(
 }
 
 func (e *nativeOpenH264Encoder) encode(i420 []byte, force bool, timestamp int64) ([]byte, error) {
+	return e.encodeDamage(i420, force, timestamp, nil)
+}
+
+func (e *nativeOpenH264Encoder) encodeDamage(
+	i420 []byte, force bool, timestamp int64, unchanged []bool,
+) ([]byte, error) {
 	e.lastTimestamp = timestamp
-	data, err := e.codec.Encode(i420, force, timestamp)
+	data, err := e.codec.EncodeHinted(i420, force, timestamp, unchanged)
 	if err != nil {
 		return nil, fmt.Errorf("%w: encode: %w", ErrCodec, err)
 	}

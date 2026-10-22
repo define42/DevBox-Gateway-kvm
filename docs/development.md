@@ -9,8 +9,11 @@ Run the commands below from the repository root. New contributors can start with
 Development targets x86-64 Linux with Go 1.26.0 or newer, as declared in
 [`go.mod`](../go.mod). A `CGO_ENABLED=0` build includes the pure-Go H.264
 encoder and needs no C compiler or native codec libraries. cgo builds link
-native OpenH264 instead; run `tools/build-openh264.sh` (git, make, a C/C++
-compiler and NASM) or use the Makefile targets, which build it first. See
+patched native OpenH264 instead; run `tools/build-openh264.sh` (git, make, a
+C/C++ compiler and NASM) or use the Makefile targets, which build it first.
+Changes to the encoder's unchanged-macroblock hints must update both
+`pkg/h264/internal/encoder` and `tools/openh264-patches`; the native tests
+compare the two streams byte for byte. See
 [H.264 and hardware encoding](runtime.md#h264-and-hardware-encoding).
 
 ```bash

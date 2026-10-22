@@ -13,8 +13,9 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
-# Native OpenH264 with NASM assembly is the image's software H.264 encoder.
+# Patched native OpenH264 with NASM assembly is the image's software H.264 encoder.
 COPY tools/build-openh264.sh ./tools/
+COPY tools/openh264-patches/ ./tools/openh264-patches/
 RUN tools/build-openh264.sh
 
 COPY *.go ./

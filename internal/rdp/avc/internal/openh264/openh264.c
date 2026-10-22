@@ -111,7 +111,7 @@ DevBoxKVMOpenH264 *devbox_kvm_openh264_new(const DevBoxKVMOpenH264Config *config
 }
 
 int devbox_kvm_openh264_encode(DevBoxKVMOpenH264 *codec, const uint8_t *i420, int force_idr,
-                               int64_t timestamp) {
+                               int64_t timestamp, const unsigned char *unchanged, int unchanged_count) {
     ISVCEncoder *encoder = codec->encoder;
     int status;
     if (force_idr && (status = (*encoder)->ForceIntraFrame(encoder, true)) != 0) {
@@ -130,6 +130,8 @@ int devbox_kvm_openh264_encode(DevBoxKVMOpenH264 *codec, const uint8_t *i420, in
     picture.pData[1] = (unsigned char *)i420 + luma;
     picture.pData[2] = (unsigned char *)i420 + luma + luma / 4;
     picture.uiTimeStamp = timestamp;
+    picture.pUnchangedMacroblocks = unchanged;
+    picture.iUnchangedMacroblockCount = unchanged != NULL ? unchanged_count : 0;
     memset(&codec->info, 0, sizeof(codec->info));
     if ((status = (*encoder)->EncodeFrame(encoder, &picture, &codec->info)) != 0) {
         return status > 0 ? -status : status - 1;

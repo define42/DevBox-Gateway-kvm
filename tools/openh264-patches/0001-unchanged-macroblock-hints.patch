@@ -1,0 +1,1195 @@
+Unchanged-macroblock hints for OpenH264 v2.7.0 (DevBox-Gateway-kvm).
+
+SSourcePicture gains pUnchangedMacroblocks/iUnchangedMacroblockCount: one
+byte per 16x16 macroblock, nonzero certifying that its Y/U/V source samples
+equal the previous successfully encoded picture's. Ports the pure-Go
+encoder's hint handling (pkg/h264/internal/encoder) so both produce the same
+bitstream:
+  - forced zero-MV P_SKIP for certified macroblocks whose collocated
+    reference macroblock was a zero-MV P_SKIP (unchanged.cpp);
+  - reconstruction reuse for those macroblocks;
+  - VAA SADs that skip certified macroblocks (vaacalculation.cpp);
+  - source copies limited to the damage since each buffer's last refresh
+    (wels_preprocess_unchanged.cpp).
+Pictures without hints encode exactly as upstream.
+
+diff --git a/codec/api/wels/codec_app_def.h b/codec/api/wels/codec_app_def.h
+index 823d38d..ca01c62 100644
+--- a/codec/api/wels/codec_app_def.h
++++ b/codec/api/wels/codec_app_def.h
+@@ -666,6 +666,13 @@ typedef struct Source_Picture_s {
+   bool      bPsnrY;                ///< get Y PSNR for this frame
+   bool      bPsnrU;                ///< get U PSNR for this frame
+   bool      bPsnrV;                ///< get V PSNR for this frame
++  /// DevBox-Gateway-kvm extension: optional row-major hints, one per 16x16
++  /// macroblock. Nonzero certifies that every source sample of the macroblock is
++  /// unchanged since the preceding successfully encoded picture. Borrowed only
++  /// during EncodeFrame; NULL or a wrong count disables them. Zero-initialize
++  /// this structure so the fields stay disabled.
++  const unsigned char* pUnchangedMacroblocks;
++  int       iUnchangedMacroblockCount;
+ } SSourcePicture;
+ 
+ /**
+diff --git a/codec/encoder/core/inc/encoder_context.h b/codec/encoder/core/inc/encoder_context.h
+index 90a909e..6da2ba8 100644
+--- a/codec/encoder/core/inc/encoder_context.h
++++ b/codec/encoder/core/inc/encoder_context.h
+@@ -113,6 +113,40 @@ typedef struct TagStrideTables {
+   int16_t*      pMbIndexY[MAX_DEPENDENCY_LAYER];                // [iDid][iMbY]: map for iMbY in each spatial layer coding
+ } SStrideTables;
+ 
++// State of the optional unchanged-macroblock hints (see unchanged.h). The
++// reference identity includes frame number and POC because picture buffers are
++// recycled. The caller's mask is borrowed only during EncodeFrame.
++// A reconstruction allocation and the generation of its last complete write.
++// Pixel identity includes plane origins and strides; POC does not take part.
++typedef struct TagReconstructedPictureVersion {
++  SPicture* pPicture;
++  uint64_t  uiGeneration;
++  uint8_t*  pData[3];
++  int32_t   iLineSize[3];
++} SReconstructedPictureVersion;
++
++// Level 5.2 MaxFS; larger pictures do not reuse reconstructions.
++#define UNCHANGED_MAX_MB_COUNT 139264
++
++typedef struct TagUnchangedFrameState {
++  const unsigned char* pMacroblocks;
++  int32_t   iMacroblockCount;
++  SPicture* pReference;
++  int32_t   iFrameNum;
++  int32_t   iPoc;
++  int32_t   iQp;
++  int32_t   iWidth;
++  int32_t   iHeight;
++
++  uint64_t  uiGeneration;
++  SReconstructedPictureVersion sPictures[2];
++  SReconstructedPictureVersion sSource;
++  SPicture* pReuseDestination;
++  int32_t   iFinalZeroSkipCount;
++  // Final coded zero-motion P_SKIPs of the last frame, not search heuristics.
++  bool      bFinalZeroSkip[UNCHANGED_MAX_MB_COUNT];
++} SUnchangedFrameState;
++
+ typedef struct TagWelsEncCtx {
+   SLogContext sLogCtx;
+ // Input
+@@ -227,6 +261,7 @@ typedef struct TagWelsEncCtx {
+   int64_t            iLastStatisticsLogTs;
+ 
+   int32_t iEncoderError;
++  SUnchangedFrameState sUnchanged;
+   WELS_MUTEX mutexEncoderError;
+   bool bDeliveryFlag;
+   SStateCtx sWelsCabacContexts[4][WELS_QP_MAX + 1][WELS_CONTEXT_COUNT];
+diff --git a/codec/encoder/core/inc/svc_base_layer_md.h b/codec/encoder/core/inc/svc_base_layer_md.h
+index c600f77..e71f902 100644
+--- a/codec/encoder/core/inc/svc_base_layer_md.h
++++ b/codec/encoder/core/inc/svc_base_layer_md.h
+@@ -45,6 +45,8 @@
+ 
+ namespace WelsEnc {
+ void WelsMdIntraInit (sWelsEncCtx* pEncCtx, SMB* pCurMb, SMbCache* pMbCache, const int32_t kiSliceFirstMbXY);
++void WelsMdIntraInitPointers (sWelsEncCtx* pEncCtx, SMB* pCurMb, SMbCache* pMbCache, const int32_t kiSliceFirstMbXY);
++void WelsMdIntraInitNeighborCache (SMB* pCurMb, SMbCache* pMbCache, const int32_t kiMbWidth);
+ int32_t WelsMdI16x16 (SWelsFuncPtrList* pFunc, SDqLayer* pCurDqLayer, SMbCache* pMbCache, int32_t iLambda);
+ int32_t WelsMdIntraChroma (SWelsFuncPtrList* pFunc, SDqLayer* pCurDqLayer, SMbCache* pMbCache, int32_t iLambda);
+ 
+@@ -67,6 +69,8 @@ int32_t WelsMdP4x4 (SWelsFuncPtrList* pFunc, SDqLayer* pCurDqLayer, SWelsMD* pWe
+ int32_t WelsMdP8x4 (SWelsFuncPtrList* pFunc, SDqLayer* pCurDqLayer, SWelsMD* pWelsMd, SSlice* pSlice, const int32_t ki8x8Idx);
+ int32_t WelsMdP4x8 (SWelsFuncPtrList* pFunc, SDqLayer* pCurDqLayer, SWelsMD* pWelsMd, SSlice* pSlice, const int32_t ki8x8Idx);
+ /*static*/  void WelsMdInterInit (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb, const int32_t kiSliceFirstMbXY);
++void WelsMdInterInitPointers (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb, const int32_t kiSliceFirstMbXY);
++void WelsMdInterInitNeighborCache (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb);
+ /*static*/ void WelsMdInterFinePartition (sWelsEncCtx* pEnc, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb, int32_t bestCost);
+ /*static*/ void WelsMdInterFinePartitionVaa (sWelsEncCtx* pEnc, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb, int32_t bestCost);
+ /*static*/ void WelsMdInterFinePartitionVaaOnScreen (sWelsEncCtx* pEnc, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb,
+diff --git a/codec/encoder/core/inc/unchanged.h b/codec/encoder/core/inc/unchanged.h
+new file mode 100644
+index 0000000..71fe6e6
+--- /dev/null
++++ b/codec/encoder/core/inc/unchanged.h
+@@ -0,0 +1,44 @@
++/*!
++ * \copy
++ *     Copyright (c)  2009-2013, Cisco Systems
++ *     All rights reserved. BSD-2-Clause; see LICENSE.
++ *
++ * \file    unchanged.h
++ *
++ * \brief   Optional unchanged-macroblock hints (DevBox-Gateway-kvm extension).
++ *
++ *          A caller may certify, per macroblock, that every source sample is
++ *          unchanged since the preceding successfully encoded picture. In the
++ *          fixed-QP, single-reference real-time configuration, such a block
++ *          whose collocated reference block was a zero-motion P_SKIP is coded
++ *          as P_SKIP without mode decision. This mirrors the pure-Go port's
++ *          UnchangedMacroblocks hint and produces the same bitstream.
++ */
++#ifndef WELS_UNCHANGED_H__
++#define WELS_UNCHANGED_H__
++
++#include "typedefs.h"
++#include "codec_app_def.h"
++
++namespace WelsEnc {
++
++struct TagWelsEncCtx;
++struct TagWelsSvcCodingParam;
++struct TagWelsMD;
++struct TagSlice;
++struct TagMB;
++
++bool UnchangedConfiguration (const TagWelsSvcCodingParam* pParam);
++void UnchangedFrameBegin (TagWelsEncCtx* pCtx, const SSourcePicture* pSrc);
++void UnchangedFrameFinish (TagWelsEncCtx* pCtx, const SSourcePicture* pSrc, const SFrameBSInfo* pBsInfo, bool bSuccess);
++void UnchangedFrameReset (TagWelsEncCtx* pCtx);
++
++// Before neighbor caches are loaded: only the cases whose skip predictor is
++// provably zero from the left and top neighbors.
++bool TryUnchangedMacroblockEarly (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
++// Inside inter mode decision, with the full median skip predictor.
++bool TryUnchangedMacroblock (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
++
++}
++
++#endif // WELS_UNCHANGED_H__
+diff --git a/codec/encoder/core/inc/wels_preprocess.h b/codec/encoder/core/inc/wels_preprocess.h
+index 7d4db94..40b7224 100644
+--- a/codec/encoder/core/inc/wels_preprocess.h
++++ b/codec/encoder/core/inc/wels_preprocess.h
+@@ -115,8 +115,55 @@ typedef struct SVAAFrameInfoExt_t: public SVAAFrameInfo {
+   uint8_t*    pVaaBlockStaticIdc[16];//real memory,
+ } SVAAFrameInfoExt;
+ 
++// Unchanged-macroblock hint state of the preprocessing (see unchanged.h).
++// VAA compares ORIGINAL source pictures, unlike mode decision, which compares
++// reconstructions, so it tracks its own validated reference.
++typedef struct TagVaaUnchangedFrameState {
++  SPicture* pReference;
++  SPicture* pCurrent;
++  int32_t   iPoc;
++  int32_t   iWidth;
++  int32_t   iHeight;
++  const unsigned char* pMask;
++  int32_t   iMaskCount;
++  bool      bEnabled;
++} SVaaUnchangedFrameState;
++
++#define SOURCE_COPY_MAX_MB_COUNT 139264 // level 5.2 MaxFS
++
++// Original pictures rotate independently of reconstructions. A source buffer
++// usually holds frame N-2, so each resident buffer owns the union of damage
++// since its last refresh.
++typedef struct TagSourceCopyBuffer {
++  SPicture* pPicture;
++  uint8_t*  pData[3];
++  int32_t   iLineSize[3];
++  int32_t   iDirtyCount;
++  bool      bValid;
++  bool      bDirty[SOURCE_COPY_MAX_MB_COUNT];
++} SSourceCopyBuffer;
++
++typedef struct TagSourceCopyState {
++  SSourceCopyBuffer sBuffers[3];
++  SPicture* pReference;
++  SPicture* pCurrent;
++  int32_t   iPoc;
++  int32_t   iWidth;
++  int32_t   iHeight;
++  int32_t   iQp;
++  int32_t   iSliceMode;
++  uint32_t  uiSlices;
++  bool      bPartial;
++} SSourceCopyState;
++
+ class CWelsPreProcess {
+  public:
++  void VaaUnchangedBegin (sWelsEncCtx* pCtx, const SSourcePicture* kpSrc);
++  void VaaUnchangedFinish (sWelsEncCtx* pCtx, const SFrameBSInfo* kpBsInfo, bool bSuccess);
++  void VaaUnchangedReset();
++  void SourceCopyFinish (const SFrameBSInfo* kpBsInfo);
++  void SourceCopyInvalidate();
++
+   CWelsPreProcess (sWelsEncCtx* pEncCtx);
+   virtual  ~CWelsPreProcess();
+ 
+@@ -194,6 +241,13 @@ class CWelsPreProcess {
+   sWelsEncCtx*     m_pEncCtx;
+   uint8_t          m_uiSpatialLayersInTemporal[MAX_DEPENDENCY_LAYER];
+ 
++ private:
++  const unsigned char* VaaUnchangedMask (SPicture* pCurrent, SPicture* pReference, int32_t* pCount);
++  bool TryCopySource (SWelsSvcCodingParam* pParam, SPicture* pDst, const SSourcePicture* kpSrc, int32_t iWidth,
++                      int32_t iHeight);
++  SVaaUnchangedFrameState m_sVaaUnchanged;
++  SSourceCopyState* m_pSourceCopy;
++
+  private:
+   Scaled_Picture   m_sScaledPicture;
+   SPicture*        m_pLastSpatialPicture[MAX_DEPENDENCY_LAYER][2];
+diff --git a/codec/encoder/core/src/svc_base_layer_md.cpp b/codec/encoder/core/src/svc_base_layer_md.cpp
+index 5acc2d9..895c754 100644
+--- a/codec/encoder/core/src/svc_base_layer_md.cpp
++++ b/codec/encoder/core/src/svc_base_layer_md.cpp
+@@ -41,6 +41,7 @@
+ #include "mv_pred.h"
+ #include "svc_enc_golomb.h"
+ #include "svc_base_layer_md.h"
++#include "unchanged.h"
+ #include "encoder.h"
+ #include "svc_encode_mb.h"
+ #include "svc_encode_slice.h"
+@@ -257,6 +258,13 @@ int32_t PredIntra4x4Mode (int8_t* pIntraPredMode, int32_t iIdx4) {
+ }
+ 
+ void WelsMdIntraInit (sWelsEncCtx* pEncCtx, SMB* pCurMb, SMbCache* pMbCache, const int32_t iSliceFirstMbXY) {
++  WelsMdIntraInitPointers (pEncCtx, pCurMb, pMbCache, iSliceFirstMbXY);
++  WelsMdIntraInitNeighborCache (pCurMb, pMbCache, pEncCtx->pCurDqLayer->iMbWidth);
++}
++
++// The unchanged-macroblock skip needs picture pointers but not neighbor caches,
++// so WelsMdIntraInit and WelsMdInterInit are split into their two halves.
++void WelsMdIntraInitPointers (sWelsEncCtx* pEncCtx, SMB* pCurMb, SMbCache* pMbCache, const int32_t iSliceFirstMbXY) {
+   SDqLayer* pCurLayer = pEncCtx->pCurDqLayer;
+ 
+   const int32_t kiMbX  = pCurMb->iMbX;
+@@ -305,34 +313,35 @@ void WelsMdIntraInit (sWelsEncCtx* pEncCtx, SMB* pCurMb, SMbCache* pMbCache, con
+     pMbCache->SPicData.pCsMb[1]         += MB_WIDTH_CHROMA;
+     pMbCache->SPicData.pCsMb[2]         += MB_WIDTH_CHROMA;
+   }
++}
+ 
++void WelsMdIntraInitNeighborCache (SMB* pCurMb, SMbCache* pMbCache, const int32_t kiMbWidth) {
+   //step 2. initial pWelsMd
+   pCurMb->uiCbp = 0;
+ 
+   //step 4: locating scaled_tcoeff
+ 
+   //step 1. load neighbor cache
+-  FillNeighborCacheIntra (pMbCache, pCurMb, pCurLayer->iMbWidth);
++  FillNeighborCacheIntra (pMbCache, pCurMb, kiMbWidth);
+   pMbCache->pMemPredLuma = pMbCache->pMemPredMb;// in WelsMdI16x16() will be changed, so re-init here!
+   pMbCache->pMemPredChroma = pMbCache->pMemPredMb +
+                              256;// Init with default, maybe change in WelsMdI16x16 and svc_md_i16x16_sad
+ }
+ 
+ void WelsMdInterInit (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb, const int32_t iSliceFirstMbXY) {
++  WelsMdInterInitPointers (pEncCtx, pSlice, pCurMb, iSliceFirstMbXY);
++  WelsMdInterInitNeighborCache (pEncCtx, pSlice, pCurMb);
++}
++
++void WelsMdInterInitPointers (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb, const int32_t iSliceFirstMbXY) {
+   SDqLayer* pCurLayer = pEncCtx->pCurDqLayer;
+   SMbCache* pMbCache  = &pSlice->sMbCacheInfo;
+   const int32_t kiMbX  = pCurMb->iMbX;
+   const int32_t kiMbY  = pCurMb->iMbY;
+   const int32_t kiMbXY = pCurMb->iMbXY;
+-  const int32_t kiMbWidth = pCurLayer->iMbWidth;
+-  const int32_t kiMbHeight = pCurLayer->iMbHeight;
+ 
+   pMbCache->pEncSad = &pCurLayer->pDecPic->pMbSkipSad[kiMbXY];
+ 
+-  //step 1. load neighbor cache
+-  pEncCtx->pFuncList->pfFillInterNeighborCache (pMbCache, pCurMb, kiMbWidth,
+-      pEncCtx->pVaa->pVaaBackgroundMbFlag + kiMbXY); //BGD spatial pFunc
+-
+   //step 3: initial cost
+ 
+   //step 4. locating current p_ref
+@@ -353,6 +362,20 @@ void WelsMdInterInit (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb, const i
+ 
+   pMbCache->uiRefMbType = pCurLayer->pRefPic->uiRefMbType[kiMbXY];
+   pMbCache->bCollocatedPredFlag = false;
++}
++
++void WelsMdInterInitNeighborCache (sWelsEncCtx* pEncCtx, SSlice* pSlice, SMB* pCurMb) {
++  SDqLayer* pCurLayer = pEncCtx->pCurDqLayer;
++  SMbCache* pMbCache  = &pSlice->sMbCacheInfo;
++  const int32_t kiMbX  = pCurMb->iMbX;
++  const int32_t kiMbY  = pCurMb->iMbY;
++  const int32_t kiMbXY = pCurMb->iMbXY;
++  const int32_t kiMbWidth = pCurLayer->iMbWidth;
++  const int32_t kiMbHeight = pCurLayer->iMbHeight;
++
++  //step 1. load neighbor cache
++  pEncCtx->pFuncList->pfFillInterNeighborCache (pMbCache, pCurMb, kiMbWidth,
++      pEncCtx->pVaa->pVaaBackgroundMbFlag + kiMbXY); //BGD spatial pFunc
+ 
+   //comment: sometimes, mode decision process may skip the md_p16x16 and md_pskip function,
+   ST32 (&pCurMb->sP16x16Mv, 0);
+@@ -1856,6 +1879,8 @@ bool WelsMdFirstIntraMode (sWelsEncCtx* pEncCtx, SWelsMD* pWelsMd, SMB* pCurMb,
+ }
+ 
+ void WelsMdInterMb (sWelsEncCtx* pEncCtx, SWelsMD* pWelsMd, SSlice* pSlice, SMB* pCurMb, SMbCache* pUnused) {
++  if (TryUnchangedMacroblock (pEncCtx, pWelsMd, pSlice, pCurMb))
++    return;
+   SDqLayer* pCurDqLayer             = pEncCtx->pCurDqLayer;
+   SMbCache* pMbCache                = &pSlice->sMbCacheInfo;
+   const uint32_t kuiNeighborAvail   = pCurMb->uiNeighborAvail;
+diff --git a/codec/encoder/core/src/svc_encode_slice.cpp b/codec/encoder/core/src/svc_encode_slice.cpp
+index 1fd7d46..8ce8925 100644
+--- a/codec/encoder/core/src/svc_encode_slice.cpp
++++ b/codec/encoder/core/src/svc_encode_slice.cpp
+@@ -40,6 +40,7 @@
+ 
+ #include "ls_defines.h"
+ #include "svc_encode_slice.h"
++#include "unchanged.h"
+ #include "svc_enc_golomb.h"
+ #include "svc_base_layer_md.h"
+ #include "svc_encode_mb.h"
+@@ -1843,12 +1844,19 @@ int32_t WelsMdInterMbLoop (sWelsEncCtx* pEncCtx, SSlice* pSlice, void* pWelsMd,
+     pEncCtx->pFuncList->pfRc.pfWelsRcMbInit (pEncCtx, pCurMb, pSlice);
+ 
+     //step (2). save some vale for future use, initial pWelsMd
+-    WelsMdIntraInit (pEncCtx, pCurMb, pMbCache, kiSliceFirstMbXY);
+-    WelsMdInterInit (pEncCtx, pSlice, pCurMb, kiSliceFirstMbXY);
++    WelsMdIntraInitPointers (pEncCtx, pCurMb, pMbCache, kiSliceFirstMbXY);
++    WelsMdInterInitPointers (pEncCtx, pSlice, pCurMb, kiSliceFirstMbXY);
++    bool bEarlySkip = TryUnchangedMacroblockEarly (pEncCtx, pMd, pSlice, pCurMb);
++    if (!bEarlySkip) {
++      WelsMdIntraInitNeighborCache (pCurMb, pMbCache, pCurLayer->iMbWidth);
++      WelsMdInterInitNeighborCache (pEncCtx, pSlice, pCurMb);
++    }
+ 
+ TRY_REENCODING:
+-    WelsInitInterMDStruc (pCurMb, pMvdCostTable, kiMvdInterTableStride, pMd);
+-    pEncCtx->pFuncList->pfInterMd (pEncCtx, pMd, pSlice, pCurMb, pMbCache);
++    if (!bEarlySkip) {
++      WelsInitInterMDStruc (pCurMb, pMvdCostTable, kiMvdInterTableStride, pMd);
++      pEncCtx->pFuncList->pfInterMd (pEncCtx, pMd, pSlice, pCurMb, pMbCache);
++    }
+     //mb_qp
+ 
+     //step (4): save from the MD process from future use
+@@ -1867,6 +1875,11 @@ TRY_REENCODING:
+       if (iEncReturn == ENC_RETURN_VLCOVERFLOWFOUND && (pCurMb->uiLumaQp < 50)) {
+         pSlice->iMbSkipRun = pEncCtx->pFuncList->pfStashPopMBStatus (&sDss, pSlice);
+         UpdateQpForOverflow (pCurMb, kuiChromaQpIndexOffset);
++        if (bEarlySkip) {
++          bEarlySkip = false;
++          WelsMdIntraInitNeighborCache (pCurMb, pMbCache, pCurLayer->iMbWidth);
++          WelsMdInterInitNeighborCache (pEncCtx, pSlice, pCurMb);
++        }
+         goto TRY_REENCODING;
+       }
+     }
+diff --git a/codec/encoder/core/src/unchanged.cpp b/codec/encoder/core/src/unchanged.cpp
+new file mode 100644
+index 0000000..707729b
+--- /dev/null
++++ b/codec/encoder/core/src/unchanged.cpp
+@@ -0,0 +1,281 @@
++/*!
++ * \copy
++ *     Copyright (c)  2009-2013, Cisco Systems
++ *     All rights reserved. BSD-2-Clause; see LICENSE.
++ *
++ * \file    unchanged.cpp
++ *
++ * \brief   Optional unchanged-macroblock hints (DevBox-Gateway-kvm extension).
++ *          A line-by-line counterpart of the pure-Go port's unchanged.go.
++ */
++#include <stddef.h>
++#include <string.h>
++
++#include "unchanged.h"
++#include "encoder_context.h"
++#include "md.h"
++#include "mv_pred.h"
++#include "svc_base_layer_md.h"
++#include "svc_enc_slice_segment.h"
++
++namespace WelsEnc {
++
++bool UnchangedConfiguration (const SWelsSvcCodingParam* pParam) {
++  if (pParam == NULL)
++    return false;
++  const bool kbOrdinarySingleReference = pParam->iUsageType == CAMERA_VIDEO_REAL_TIME &&
++                                         pParam->iSpatialLayerNum == 1 && pParam->iTemporalLayerNum == 1 && pParam->iNumRefFrame == 1;
++  const bool kbFixedIndependentCoding = pParam->iRCMode == RC_OFF_MODE && pParam->iComplexityMode == LOW_COMPLEXITY &&
++                                        pParam->iEntropyCodingModeFlag == 0 && pParam->iLoopFilterDisableIdc == 1;
++  const bool kbNoSourceOrReferencePolicy = !pParam->bEnableDenoise && !pParam->bEnableAdaptiveQuant &&
++      !pParam->bEnableBackgroundDetection && !pParam->bEnableLongTermReference && !pParam->bSimulcastAVC;
++  const SliceModeEnum kiMode = pParam->sSpatialLayers[0].sSliceArgument.uiSliceMode;
++  const bool kbFixedSlices = kiMode == SM_SINGLE_SLICE || kiMode == SM_FIXEDSLCNUM_SLICE;
++  return kbOrdinarySingleReference && kbFixedIndependentCoding && kbNoSourceOrReferencePolicy && kbFixedSlices;
++}
++
++void UnchangedFrameReset (sWelsEncCtx* pCtx) {
++  // bFinalZeroSkip is read only below iFinalZeroSkipCount; leave it as is.
++  memset (&pCtx->sUnchanged, 0, offsetof (SUnchangedFrameState, bFinalZeroSkip));
++}
++
++static SReconstructedPictureVersion PictureVersion (SPicture* pPicture, uint64_t uiGeneration) {
++  SReconstructedPictureVersion sVersion;
++  memset (&sVersion, 0, sizeof (sVersion));
++  sVersion.pPicture = pPicture;
++  sVersion.uiGeneration = uiGeneration;
++  if (pPicture != NULL) {
++    for (int32_t i = 0; i < 3; ++i) {
++      sVersion.pData[i] = pPicture->pData[i];
++      sVersion.iLineSize[i] = pPicture->iLineSize[i];
++    }
++  }
++  return sVersion;
++}
++
++static bool SameVersion (const SReconstructedPictureVersion* kpA, const SReconstructedPictureVersion* kpB) {
++  if (kpA->pPicture != kpB->pPicture || kpA->uiGeneration != kpB->uiGeneration)
++    return false;
++  for (int32_t i = 0; i < 3; ++i) {
++    if (kpA->pData[i] != kpB->pData[i] || kpA->iLineSize[i] != kpB->iLineSize[i])
++      return false;
++  }
++  return true;
++}
++
++// The previous frame's prediction source, if its allocation still holds the
++// same complete write; a zero-motion skip into it is already resident.
++static SPicture* ReusableSource (const SUnchangedFrameState* kpState) {
++  const SReconstructedPictureVersion* kpSource = &kpState->sSource;
++  if (kpSource->pPicture == NULL || kpSource->uiGeneration == 0)
++    return NULL;
++  SReconstructedPictureVersion sCurrent = PictureVersion (kpSource->pPicture, kpSource->uiGeneration);
++  if (!SameVersion (kpSource, &sCurrent))
++    return NULL;
++  for (int32_t i = 0; i < 2; ++i) {
++    if (SameVersion (&kpState->sPictures[i], kpSource))
++      return kpSource->pPicture;
++  }
++  return NULL;
++}
++
++static void CaptureFinalSkipMotion (SUnchangedFrameState* pState, const SDqLayer* kpLayer, bool bValidSource) {
++  const int32_t kiCount = kpLayer->iMbWidth * kpLayer->iMbHeight;
++  if (!bValidSource || kiCount < 1 || kiCount > UNCHANGED_MAX_MB_COUNT) {
++    pState->iFinalZeroSkipCount = 0;
++    return;
++  }
++  // Called after a successful frame, after every slice thread finished.
++  for (int32_t i = 0; i < kiCount; ++i) {
++    const SMB* kpMb = &kpLayer->sMbDataP[i];
++    pState->bFinalZeroSkip[i] = kpMb->uiMbType == MB_TYPE_SKIP && kpMb->sMv[0].iMvX == 0 && kpMb->sMv[0].iMvY == 0;
++  }
++  pState->iFinalZeroSkipCount = kiCount;
++}
++
++static void FinishReconstruction (sWelsEncCtx* pCtx, SPicture* pReference, EVideoFrameType eFrameType) {
++  SUnchangedFrameState* pState = &pCtx->sUnchanged;
++  // A previous zero-motion skip equals the picture used to predict it. If that
++  // allocation keeps the same generation, a matching block in the next
++  // destination already holds the required reconstruction.
++  SReconstructedPictureVersion sSource;
++  memset (&sSource, 0, sizeof (sSource));
++  if (eFrameType == videoFrameTypeP && pCtx->pCurDqLayer->pRefPic == pState->pReference) {
++    for (int32_t i = 0; i < 2; ++i) {
++      SReconstructedPictureVersion sCurrent = PictureVersion (pState->pReference, pState->sPictures[i].uiGeneration);
++      if (pState->sPictures[i].pPicture == pState->pReference && SameVersion (&pState->sPictures[i], &sCurrent)) {
++        sSource = pState->sPictures[i];
++        break;
++      }
++    }
++  }
++  const SWelsSvcCodingParam* kpParam = pCtx->pSvcParam;
++  if (eFrameType == videoFrameTypeIDR || pState->iWidth != kpParam->iPicWidth || pState->iHeight != kpParam->iPicHeight ||
++      pState->iQp != kpParam->sSpatialLayers[0].iDLayerQp) {
++    memset (pState->sPictures, 0, sizeof (pState->sPictures));
++    memset (&sSource, 0, sizeof (sSource));
++  }
++  ++pState->uiGeneration;
++  if (pState->uiGeneration == 0) {
++    memset (pState->sPictures, 0, sizeof (pState->sPictures));
++    memset (&sSource, 0, sizeof (sSource));
++    pState->uiGeneration = 1;
++  }
++  // One short-term reference means two allocations: replace the destination's
++  // previous version and keep the source's.
++  const int32_t kiIndex = (pState->sPictures[0].pPicture == sSource.pPicture && sSource.pPicture != NULL) ? 1 : 0;
++  pState->sPictures[kiIndex] = PictureVersion (pReference, pState->uiGeneration);
++  pState->sSource = sSource;
++  CaptureFinalSkipMotion (pState, pCtx->pCurDqLayer, sSource.pPicture != NULL);
++}
++
++void UnchangedFrameBegin (sWelsEncCtx* pCtx, const SSourcePicture* pSrc) {
++  SUnchangedFrameState* pState = &pCtx->sUnchanged;
++  pState->pMacroblocks = NULL;
++  pState->iMacroblockCount = 0;
++  pState->pReuseDestination = NULL;
++  if (pSrc == NULL || !UnchangedConfiguration (pCtx->pSvcParam))
++    return;
++  const SWelsSvcCodingParam* kpParam = pCtx->pSvcParam;
++  const bool kbMatchingGeometry = pSrc->iPicWidth == kpParam->iPicWidth && pSrc->iPicHeight == kpParam->iPicHeight &&
++                                  pSrc->iPicWidth == kpParam->sDependencyLayers[0].iActualWidth &&
++                                  pSrc->iPicHeight == kpParam->sDependencyLayers[0].iActualHeight;
++  if (!kbMatchingGeometry || pSrc->iPicWidth < 16 || pSrc->iPicHeight < 16)
++    return;
++  const int64_t kiCount = ((int64_t)pSrc->iPicWidth + 15) / 16 * (((int64_t)pSrc->iPicHeight + 15) / 16);
++  const bool kbValidPrevious = pState->pReference != NULL && pState->iWidth == pSrc->iPicWidth &&
++                               pState->iHeight == pSrc->iPicHeight && pState->iQp == kpParam->sSpatialLayers[0].iDLayerQp;
++  if (kbValidPrevious && pSrc->pUnchangedMacroblocks != NULL && (int64_t)pSrc->iUnchangedMacroblockCount == kiCount) {
++    pState->pMacroblocks = pSrc->pUnchangedMacroblocks;
++    pState->iMacroblockCount = pSrc->iUnchangedMacroblockCount;
++    pState->pReuseDestination = ReusableSource (pState);
++  }
++}
++
++void UnchangedFrameFinish (sWelsEncCtx* pCtx, const SSourcePicture* pSrc, const SFrameBSInfo* pBsInfo, bool bSuccess) {
++  SUnchangedFrameState* pState = &pCtx->sUnchanged;
++  pState->pMacroblocks = NULL;
++  pState->iMacroblockCount = 0;
++  pState->pReuseDestination = NULL;
++  if (!bSuccess || pSrc == NULL || pBsInfo == NULL || !UnchangedConfiguration (pCtx->pSvcParam)) {
++    UnchangedFrameReset (pCtx);
++    return;
++  }
++  const bool kbEncodedPicture = pBsInfo->iFrameSizeInBytes > 0 &&
++                                (pBsInfo->eFrameType == videoFrameTypeP || pBsInfo->eFrameType == videoFrameTypeIDR);
++  if (!kbEncodedPicture || pCtx->iEncoderError != ENC_RETURN_SUCCESS || pCtx->pCurDqLayer == NULL) {
++    UnchangedFrameReset (pCtx);
++    return;
++  }
++  // pCtx->pDecPic already points at the next free buffer after the reference
++  // list update; the layer retains the reconstruction that was just published.
++  SPicture* pReference = pCtx->pCurDqLayer->pDecPic;
++  if (pReference == NULL || !pReference->bUsedAsRef || pReference->bIsLongRef) {
++    UnchangedFrameReset (pCtx);
++    return;
++  }
++  FinishReconstruction (pCtx, pReference, pBsInfo->eFrameType);
++  pState->pReference = pReference;
++  pState->iFrameNum = pReference->iFrameNum;
++  pState->iPoc = pReference->iFramePoc;
++  pState->iQp = pCtx->pSvcParam->sSpatialLayers[0].iDLayerQp;
++  pState->iWidth = pSrc->iPicWidth;
++  pState->iHeight = pSrc->iPicHeight;
++}
++
++static bool UnchangedMacroblockEligible (sWelsEncCtx* pCtx, const SMB* pCurMb) {
++  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
++  const int32_t kiIndex = pCurMb->iMbXY;
++  if (kiIndex < 0 || kiIndex >= kpState->iMacroblockCount || kpState->pMacroblocks == NULL ||
++      !kpState->pMacroblocks[kiIndex])
++    return false;
++  const SDqLayer* kpLayer = pCtx->pCurDqLayer;
++  const SPicture* kpReference = kpLayer->pRefPic;
++  const bool kbValidReference = pCtx->eSliceType == P_SLICE && pCtx->iNumRef0 == 1 &&
++                                kpReference != NULL && kpReference == kpState->pReference && kpReference == pCtx->pRefList0[0] &&
++                                kpReference->iFrameNum == kpState->iFrameNum && kpReference->iFramePoc == kpState->iPoc;
++  if (!kbValidReference || kpLayer->iLoopFilterDisableIdc != 1 || (int32_t)pCurMb->uiLumaQp != kpState->iQp)
++    return false;
++  // Require a previous zero-motion P_SKIP. sMvList is search metadata, which
++  // keeps first P frames after an IDR on the full path.
++  return kpReference->iPictureType == P_SLICE && kpReference->uiRefMbType[kiIndex] == MB_TYPE_SKIP &&
++         kpReference->sMvList[kiIndex].iMvX == 0 && kpReference->sMvList[kiIndex].iMvY == 0;
++}
++
++static bool UnchangedSkipPredictorIsZero (const SMB* pCurMb, const int32_t kiMbWidth) {
++  const uint32_t kuiAvail = pCurMb->uiNeighborAvail;
++  if (! (kuiAvail & LEFT_MB_POS) || ! (kuiAvail & TOP_MB_POS))
++    return true;
++  const SMB* kpLeft = pCurMb - 1;
++  if (IS_SVC_INTER (kpLeft->uiMbType) && kpLeft->pRefIndex[1] == 0 && kpLeft->sMv[3].iMvX == 0 &&
++      kpLeft->sMv[3].iMvY == 0)
++    return true;
++  const SMB* kpTop = pCurMb - kiMbWidth;
++  return IS_SVC_INTER (kpTop->uiMbType) && kpTop->pRefIndex[2] == 0 && kpTop->sMv[12].iMvX == 0 &&
++         kpTop->sMv[12].iMvY == 0;
++}
++
++static void CopyBlock (uint8_t* pDst, int32_t iDstStride, const uint8_t* pSrc, int32_t iSrcStride, int32_t iSize) {
++  for (int32_t i = 0; i < iSize; ++i) {
++    memcpy (pDst, pSrc, iSize);
++    pDst += iDstStride;
++    pSrc += iSrcStride;
++  }
++}
++
++static void EncodeUnchangedMacroblock (sWelsEncCtx* pCtx, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb) {
++  SDqLayer* pLayer = pCtx->pCurDqLayer;
++  SPicture* pReference = pLayer->pRefPic;
++  const int32_t kiIndex = pCurMb->iMbXY;
++  SMbCache* pMbCache = &pSlice->sMbCacheInfo;
++
++  // Copy reconstructed reference samples, never source pixels: the decoder
++  // infers the same zero-motion prediction from P_SKIP. When the recycled
++  // destination still holds the generation a previous zero-motion skip copied
++  // from, its samples are already identical.
++  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
++  const bool kbResident = kpState->pReuseDestination != NULL && pLayer->pDecPic == kpState->pReuseDestination &&
++                          kiIndex < kpState->iFinalZeroSkipCount && kpState->bFinalZeroSkip[kiIndex];
++  if (!kbResident) {
++    CopyBlock (pMbCache->SPicData.pCsMb[0], pLayer->iCsStride[0], pMbCache->SPicData.pRefMb[0],
++               pReference->iLineSize[0], 16);
++    for (int32_t iPlane = 1; iPlane < 3; ++iPlane) {
++      CopyBlock (pMbCache->SPicData.pCsMb[iPlane], pLayer->iCsStride[iPlane], pMbCache->SPicData.pRefMb[iPlane],
++                 pReference->iLineSize[iPlane], 8);
++    }
++  }
++
++  pCurMb->uiMbType = MB_TYPE_SKIP;
++  pCurMb->uiCbp = 0;
++  pCurMb->pRefIndex[0] = pCurMb->pRefIndex[1] = pCurMb->pRefIndex[2] = pCurMb->pRefIndex[3] = 0;
++  const SMVUnitXY kZero = {0, 0};
++  pCtx->pFuncList->pfUpdateMbMv (pCurMb->sMv, kZero);
++  pCurMb->sP16x16Mv = kZero;
++  pLayer->pDecPic->sMvList[kiIndex] = kZero;
++  memset (pCurMb->pNonZeroCount, 0, 24);
++  // Initialization leaves this MB's previous luma cost intact; keep that
++  // heuristic metadata as the full mode decision would see it.
++  pMd->iCostLuma = *pCurMb->pSadCost;
++  pMd->iCostSkipMb = pReference->pMbSkipSad[kiIndex];
++  WelsMdInterUpdatePskip (pLayer, pSlice, pCurMb, pMbCache);
++}
++
++bool TryUnchangedMacroblockEarly (sWelsEncCtx* pCtx, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb) {
++  if (!UnchangedMacroblockEligible (pCtx, pCurMb) || !UnchangedSkipPredictorIsZero (pCurMb, pCtx->pCurDqLayer->iMbWidth))
++    return false;
++  EncodeUnchangedMacroblock (pCtx, pMd, pSlice, pCurMb);
++  return true;
++}
++
++bool TryUnchangedMacroblock (sWelsEncCtx* pCtx, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb) {
++  if (!UnchangedMacroblockEligible (pCtx, pCurMb))
++    return false;
++  SMVUnitXY sPredicted;
++  PredSkipMv (&pSlice->sMbCacheInfo, &sPredicted);
++  if (sPredicted.iMvX != 0 || sPredicted.iMvY != 0)
++    return false;
++  EncodeUnchangedMacroblock (pCtx, pMd, pSlice, pCurMb);
++  return true;
++}
++
++}
+diff --git a/codec/encoder/core/src/wels_preprocess.cpp b/codec/encoder/core/src/wels_preprocess.cpp
+index da7ff9e..15fb13f 100644
+--- a/codec/encoder/core/src/wels_preprocess.cpp
++++ b/codec/encoder/core/src/wels_preprocess.cpp
+@@ -30,6 +30,8 @@
+  *
+  */
+ 
++#include <stdlib.h>
++
+ #include "wels_preprocess.h"
+ #include "picture_handle.h"
+ #include "encoder_context.h"
+@@ -115,11 +117,16 @@ CWelsPreProcess::CWelsPreProcess (sWelsEncCtx* pEncCtx) {
+   memset (m_pSpatialPic, 0, sizeof (m_pSpatialPic));
+   memset (m_uiSpatialLayersInTemporal, 0, sizeof (m_uiSpatialLayersInTemporal));
+   memset (m_uiSpatialPicNum, 0, sizeof (m_uiSpatialPicNum));
++  memset (&m_sVaaUnchanged, 0, sizeof (m_sVaaUnchanged));
++  // Large dirty maps; a failed allocation only disables partial source copies.
++  m_pSourceCopy = (SSourceCopyState*)calloc (1, sizeof (SSourceCopyState));
+ }
+ 
+ CWelsPreProcess::~CWelsPreProcess() {
+   FreeScaledPic (&m_sScaledPicture,  m_pEncCtx->pMemAlign);
+   WelsPreprocessDestroy();
++  free (m_pSourceCopy);
++  m_pSourceCopy = NULL;
+ }
+ 
+ int32_t CWelsPreProcess::WelsPreprocessCreate() {
+@@ -138,6 +145,7 @@ exit:
+ }
+ 
+ int32_t CWelsPreProcess::WelsPreprocessDestroy() {
++  SourceCopyInvalidate();
+   WelsDestroyVpInterface (m_pInterfaceVp, WELSVP_INTERFACE_VERION);
+   m_pInterfaceVp = NULL;
+ 
+@@ -145,6 +153,7 @@ int32_t CWelsPreProcess::WelsPreprocessDestroy() {
+ }
+ 
+ int32_t CWelsPreProcess::WelsPreprocessReset (sWelsEncCtx* pCtx, int32_t iWidth, int32_t iHeight) {
++  SourceCopyInvalidate();
+   int32_t iRet = -1;
+   SWelsSvcCodingParam* pSvcParam = pCtx->pSvcParam;
+   //init source width and height
+@@ -280,6 +289,8 @@ int32_t CWelsPreProcess::AnalyzeSpatialPic (sWelsEncCtx* pCtx, const int32_t kiD
+     iRefTemporalIdx = m_uiSpatialLayersInTemporal[kiDidx] + pCtx->pVaa->uiValidLongTermPicIdx;
+ 
+   SPicture* pCurPic = m_pSpatialPic[kiDidx][iCurTemporalIdx];
++  if (kiDidx == 0 && m_sVaaUnchanged.bEnabled)
++    m_sVaaUnchanged.pCurrent = pCurPic;
+   bool bCalculateVar = (pSvcParam->iRCMode >= RC_BITRATE_MODE && pCtx->eSliceType == I_SLICE);
+ 
+   if (pSvcParam->iUsageType == SCREEN_CONTENT_REAL_TIME) {
+@@ -714,9 +725,19 @@ void CWelsPreProcess::VaaCalculation (SVAAFrameInfo* pVaaInfo, SPicture* pCurPic
+     calc_param.iCalcBgd = bCalculateBGD;
+     calc_param.iCalcSsd = bCalculateSQDiff;
+     calc_param.pCalcResult = &pVaaInfo->sVaaCalcInfo;
++    if (!bCalculateVar && !bCalculateBGD && !bCalculateSQDiff)
++      calc_param.pUnchangedMacroblocks = VaaUnchangedMask (pCurPicture, pRefPicture,
++                                         &calc_param.iUnchangedMacroblockCount);
+ 
+     m_pInterfaceVp->Set (iMethodIdx, &calc_param);
+     m_pInterfaceVp->Process (iMethodIdx, &sCurPixMap, &sRefPixMap);
++    if (calc_param.pUnchangedMacroblocks != NULL) {
++      // Framework validation may reject the maps before the strategy can
++      // consume its borrowed hint. Release it on that path as well.
++      calc_param.pUnchangedMacroblocks = NULL;
++      calc_param.iUnchangedMacroblockCount = 0;
++      m_pInterfaceVp->Set (iMethodIdx, &calc_param);
++    }
+   }
+ }
+ 
+@@ -1468,9 +1489,10 @@ int32_t  CWelsPreProcess::WelsMoveMemoryWrapper (SWelsSvcCodingParam* pSvcParam,
+     return ENC_RETURN_INVALIDINPUT;
+   } else {
+     //i420_to_i420_c
+-    WelsMoveMemory_c(pDstY, pDstU, pDstV, kiDstStrideY, kiDstStrideU,
+-                     kiDstStrideV, pSrcY, pSrcU, pSrcV, kiSrcStrideY,
+-                     kiSrcStrideU, kiSrcStrideV, iSrcWidth, iSrcHeight);
++    if (!TryCopySource (pSvcParam, pDstPic, kpSrc, kiTargetWidth, kiTargetHeight))
++      WelsMoveMemory_c(pDstY, pDstU, pDstV, kiDstStrideY, kiDstStrideU,
++                       kiDstStrideV, pSrcY, pSrcU, pSrcV, kiSrcStrideY,
++                       kiSrcStrideU, kiSrcStrideV, iSrcWidth, iSrcHeight);
+ 
+     //in VP Process
+     if (kiTargetWidth > iSrcWidth || kiTargetHeight > iSrcHeight) {
+diff --git a/codec/encoder/core/src/wels_preprocess_unchanged.cpp b/codec/encoder/core/src/wels_preprocess_unchanged.cpp
+new file mode 100644
+index 0000000..32a96c8
+--- /dev/null
++++ b/codec/encoder/core/src/wels_preprocess_unchanged.cpp
+@@ -0,0 +1,270 @@
++/*!
++ * \copy
++ *     Copyright (c)  2009-2013, Cisco Systems
++ *     All rights reserved. BSD-2-Clause; see LICENSE.
++ *
++ * \file    wels_preprocess_unchanged.cpp
++ *
++ * \brief   Unchanged-macroblock hints in preprocessing (DevBox-Gateway-kvm
++ *          extension): VAA SADs and source copies skip certified macroblocks.
++ *          Counterparts of the pure-Go port's wels_preprocess_unchanged.go and
++ *          wels_preprocess_source.go. Neither changes the encoded stream.
++ */
++#include <string.h>
++
++#include "wels_preprocess.h"
++#include "encoder_context.h"
++#include "unchanged.h"
++
++namespace WelsEnc {
++
++void CWelsPreProcess::VaaUnchangedReset() {
++  memset (&m_sVaaUnchanged, 0, sizeof (m_sVaaUnchanged));
++}
++
++void CWelsPreProcess::VaaUnchangedBegin (sWelsEncCtx* pCtx, const SSourcePicture* kpSrc) {
++  SVaaUnchangedFrameState* pState = &m_sVaaUnchanged;
++  pState->pMask = NULL;
++  pState->iMaskCount = 0;
++  pState->pCurrent = NULL;
++  pState->bEnabled = false;
++  if (kpSrc == NULL || pCtx == NULL || !UnchangedConfiguration (pCtx->pSvcParam) ||
++      kpSrc->iColorFormat != videoFormatI420 || pCtx->pVpp != this || m_sScaledPicture.pScaledInputPicture != NULL) {
++    VaaUnchangedReset();
++    return;
++  }
++  const SWelsSvcCodingParam* kpParam = pCtx->pSvcParam;
++  if (kpParam->SUsedPicRect.iLeft != 0 || kpParam->SUsedPicRect.iTop != 0 ||
++      kpParam->SUsedPicRect.iWidth != kpSrc->iPicWidth || kpParam->SUsedPicRect.iHeight != kpSrc->iPicHeight ||
++      kpSrc->iPicWidth < 16 || kpSrc->iPicHeight < 16 ||
++      kpSrc->iPicWidth != kpParam->iPicWidth || kpSrc->iPicHeight != kpParam->iPicHeight ||
++      kpSrc->iPicWidth != kpParam->sDependencyLayers[0].iActualWidth ||
++      kpSrc->iPicHeight != kpParam->sDependencyLayers[0].iActualHeight) {
++    VaaUnchangedReset();
++    return;
++  }
++  if (pState->iWidth != kpSrc->iPicWidth || pState->iHeight != kpSrc->iPicHeight)
++    pState->pReference = NULL;
++  pState->iWidth = kpSrc->iPicWidth;
++  pState->iHeight = kpSrc->iPicHeight;
++  pState->bEnabled = true;
++  const int64_t kiCount = ((int64_t)pState->iWidth + 15) / 16 * (((int64_t)pState->iHeight + 15) / 16);
++  if (pState->pReference != NULL && kpSrc->pUnchangedMacroblocks != NULL &&
++      (int64_t)kpSrc->iUnchangedMacroblockCount == kiCount) {
++    pState->pMask = kpSrc->pUnchangedMacroblocks;
++    pState->iMaskCount = kpSrc->iUnchangedMacroblockCount;
++  }
++}
++
++const unsigned char* CWelsPreProcess::VaaUnchangedMask (SPicture* pCurrent, SPicture* pReference, int32_t* pCount) {
++  const SVaaUnchangedFrameState* kpState = &m_sVaaUnchanged;
++  sWelsEncCtx* pCtx = m_pEncCtx;
++  *pCount = 0;
++  if (!kpState->bEnabled || kpState->pMask == NULL || pCtx == NULL || pCtx->pVpp != this ||
++      pCtx->eSliceType != P_SLICE || !UnchangedConfiguration (pCtx->pSvcParam) ||
++      pCurrent == NULL || pReference == NULL || pCurrent == pReference || pCurrent != kpState->pCurrent ||
++      pReference != kpState->pReference || pReference->iFramePoc != kpState->iPoc ||
++      pReference != m_pLastSpatialPicture[0][0])
++    return NULL;
++  // Padding is constant, so an unchanged partial edge block also has equal
++  // padded source samples. Require the exact padded geometry.
++  const int32_t kiWidth = (kpState->iWidth + 15) & ~15;
++  const int32_t kiHeight = (kpState->iHeight + 15) & ~15;
++  if (pCurrent->iWidthInPixel != kiWidth || pCurrent->iHeightInPixel != kiHeight ||
++      pCurrent->iWidthInPixel != pReference->iWidthInPixel || pCurrent->iHeightInPixel != pReference->iHeightInPixel ||
++      pCurrent->iLineSize[0] != pReference->iLineSize[0])
++    return NULL;
++  *pCount = kpState->iMaskCount;
++  return kpState->pMask;
++}
++
++void CWelsPreProcess::VaaUnchangedFinish (sWelsEncCtx* pCtx, const SFrameBSInfo* kpBsInfo, bool bSuccess) {
++  SPicture* pCurrent = m_sVaaUnchanged.pCurrent;
++  const int32_t kiWidth = m_sVaaUnchanged.iWidth;
++  const int32_t kiHeight = m_sVaaUnchanged.iHeight;
++  const bool kbEnabled = m_sVaaUnchanged.bEnabled;
++  VaaUnchangedReset();
++  if (!kbEnabled || !bSuccess || pCtx == NULL || pCtx->pVpp != this || kpBsInfo == NULL ||
++      pCtx->iEncoderError != ENC_RETURN_SUCCESS || !UnchangedConfiguration (pCtx->pSvcParam) ||
++      kpBsInfo->iFrameSizeInBytes <= 0 ||
++      (kpBsInfo->eFrameType != videoFrameTypeP && kpBsInfo->eFrameType != videoFrameTypeIDR) ||
++      pCurrent == NULL || pCurrent != pCtx->pEncPic || pCurrent != m_pLastSpatialPicture[0][0])
++    return;
++  m_sVaaUnchanged.pReference = pCurrent;
++  m_sVaaUnchanged.iPoc = pCurrent->iFramePoc;
++  m_sVaaUnchanged.iWidth = kiWidth;
++  m_sVaaUnchanged.iHeight = kiHeight;
++}
++
++void CWelsPreProcess::SourceCopyInvalidate() {
++  SSourceCopyState* pState = m_pSourceCopy;
++  if (pState == NULL)
++    return;
++  for (int32_t i = 0; i < 3; ++i) {
++    SSourceCopyBuffer* pBuffer = &pState->sBuffers[i];
++    pBuffer->pPicture = NULL;
++    memset (pBuffer->pData, 0, sizeof (pBuffer->pData));
++    memset (pBuffer->iLineSize, 0, sizeof (pBuffer->iLineSize));
++    pBuffer->bValid = false;
++  }
++  pState->pReference = NULL;
++  pState->pCurrent = NULL;
++  pState->bPartial = false;
++}
++
++// Runs after VAA's independent original-reference validation. Only a
++// successfully published source establishes the next input generation.
++void CWelsPreProcess::SourceCopyFinish (const SFrameBSInfo* kpBsInfo) {
++  SSourceCopyState* pState = m_pSourceCopy;
++  if (pState == NULL)
++    return;
++  if (kpBsInfo == NULL || pState->pCurrent == NULL || pState->pCurrent != m_sVaaUnchanged.pReference) {
++    SourceCopyInvalidate();
++    return;
++  }
++  pState->pReference = pState->pCurrent;
++  pState->iPoc = m_sVaaUnchanged.iPoc;
++  if (kpBsInfo->eFrameType == videoFrameTypeIDR) {
++    for (int32_t i = 0; i < 3; ++i) {
++      if (pState->sBuffers[i].pPicture != pState->pCurrent)
++        pState->sBuffers[i].bValid = false;
++    }
++  }
++  pState->pCurrent = NULL;
++}
++
++static void CopySourceDirtyRuns (SPicture* pDst, const SSourcePicture* kpSrc, const bool* kpDirty, int32_t iCols,
++                                 int32_t iRows) {
++  for (int32_t iMbY = 0; iMbY < iRows; ++iMbY) {
++    const bool* kpRow = kpDirty + iMbY * iCols;
++    for (int32_t iMbX = 0; iMbX < iCols;) {
++      if (!kpRow[iMbX]) {
++        ++iMbX;
++        continue;
++      }
++      const int32_t kiStart = iMbX;
++      while (iMbX < iCols && kpRow[iMbX])
++        ++iMbX;
++      const int32_t kiX0 = kiStart * 16, kiX1 = WELS_MIN (iMbX * 16, kpSrc->iPicWidth);
++      const int32_t kiY0 = iMbY * 16, kiY1 = WELS_MIN ((iMbY + 1) * 16, kpSrc->iPicHeight);
++      for (int32_t iPlane = 0; iPlane < 3; ++iPlane) {
++        const int32_t kiShift = iPlane != 0 ? 1 : 0;
++        const int32_t kiLeft = kiX0 >> kiShift, kiRight = kiX1 >> kiShift;
++        for (int32_t y = kiY0 >> kiShift; y < (kiY1 >> kiShift); ++y) {
++          memcpy (pDst->pData[iPlane] + y * pDst->iLineSize[iPlane] + kiLeft,
++                  kpSrc->pData[iPlane] + y * kpSrc->iStride[iPlane] + kiLeft, kiRight - kiLeft);
++        }
++      }
++    }
++  }
++}
++
++// Returns true when it copied only pending dirty runs. False leaves copying to
++// WelsMoveMemory_c; the resident record is committed only if the encode then
++// publishes this original picture.
++bool CWelsPreProcess::TryCopySource (SWelsSvcCodingParam* pParam, SPicture* pDst, const SSourcePicture* kpSrc,
++                                     int32_t iWidth, int32_t iHeight) {
++  SSourceCopyState* pState = m_pSourceCopy;
++  const SVaaUnchangedFrameState* kpVaa = &m_sVaaUnchanged;
++  sWelsEncCtx* pCtx = m_pEncCtx;
++  if (pState == NULL)
++    return false;
++  const int32_t kiCols = (iWidth + 15) / 16, kiRows = (iHeight + 15) / 16;
++  if (pCtx == NULL || pCtx->pVpp != this || !kpVaa->bEnabled || !UnchangedConfiguration (pParam) ||
++      kpSrc->iColorFormat != videoFormatI420 || m_sScaledPicture.pScaledInputPicture != NULL ||
++      iWidth != kpSrc->iPicWidth || iHeight != kpSrc->iPicHeight || iWidth < 16 || iHeight < 16 || (iWidth & 1) ||
++      (iHeight & 1) || iWidth != pParam->iPicWidth || iHeight != pParam->iPicHeight ||
++      iWidth != pParam->sDependencyLayers[0].iActualWidth || iHeight != pParam->sDependencyLayers[0].iActualHeight ||
++      pParam->SUsedPicRect.iLeft != 0 || pParam->SUsedPicRect.iTop != 0 || pParam->SUsedPicRect.iWidth != iWidth ||
++      pParam->SUsedPicRect.iHeight != iHeight || pDst == NULL || pDst->iWidthInPixel != ((iWidth + 15) & ~15) ||
++      pDst->iHeightInPixel != ((iHeight + 15) & ~15) || kiCols * kiRows > SOURCE_COPY_MAX_MB_COUNT) {
++    SourceCopyInvalidate();
++    return false;
++  }
++  for (int32_t iPlane = 0; iPlane < 3; ++iPlane) {
++    const int32_t kiPlaneWidth = iPlane == 0 ? iWidth : iWidth / 2;
++    if (kpSrc->iStride[iPlane] < kiPlaneWidth || pDst->iLineSize[iPlane] < kiPlaneWidth ||
++        kpSrc->pData[iPlane] == NULL || pDst->pData[iPlane] == NULL) {
++      SourceCopyInvalidate();
++      return false;
++    }
++  }
++
++  const int32_t kiCount = kiCols * kiRows;
++  const SSpatialLayerConfig* kpLayer = &pParam->sSpatialLayers[0];
++  const unsigned char* kpMask = kpVaa->pMask;
++  const bool kbValidChain = pState->pReference != NULL && pState->pReference == kpVaa->pReference &&
++                            pState->pReference == m_pLastSpatialPicture[0][0] && pState->pReference->iFramePoc == pState->iPoc &&
++                            pState->iPoc == kpVaa->iPoc && pDst != pState->pReference && pState->iWidth == iWidth &&
++                            pState->iHeight == iHeight && pState->iQp == kpLayer->iDLayerQp &&
++                            pState->iSliceMode == (int32_t)kpLayer->sSliceArgument.uiSliceMode &&
++                            pState->uiSlices == kpLayer->sSliceArgument.uiSliceNum && kpMask != NULL && kpVaa->iMaskCount == kiCount &&
++                            !pParam->sDependencyLayers[0].bEncCurFrmAsIdrFlag && (pCtx->pVaa == NULL || !pCtx->pVaa->bIdrPeriodFlag);
++  if (!kbValidChain)
++    SourceCopyInvalidate();
++  pState->iWidth = iWidth;
++  pState->iHeight = iHeight;
++  pState->iQp = kpLayer->iDLayerQp;
++  pState->iSliceMode = (int32_t)kpLayer->sSliceArgument.uiSliceMode;
++  pState->uiSlices = kpLayer->sSliceArgument.uiSliceNum;
++  pState->pCurrent = pDst;
++  pState->bPartial = false;
++
++  SSourceCopyBuffer* pBuffer = NULL;
++  for (int32_t i = 0; i < 3 && pBuffer == NULL; ++i) {
++    if (pState->sBuffers[i].pPicture == pDst)
++      pBuffer = &pState->sBuffers[i];
++  }
++  for (int32_t i = 0; i < 3 && pBuffer == NULL; ++i) {
++    if (pState->sBuffers[i].pPicture == NULL)
++      pBuffer = &pState->sBuffers[i];
++  }
++  if (pBuffer == NULL) {
++    // Unexpected source-buffer lifecycle: refresh fully and forget every
++    // older generation.
++    SourceCopyInvalidate();
++    pState->pCurrent = pDst;
++    pBuffer = &pState->sBuffers[0];
++  }
++  bool bSamePlanes = pBuffer->iDirtyCount == kiCount;
++  for (int32_t iPlane = 0; iPlane < 3; ++iPlane) {
++    bSamePlanes = bSamePlanes && pBuffer->pData[iPlane] == pDst->pData[iPlane] &&
++                  pBuffer->iLineSize[iPlane] == pDst->iLineSize[iPlane];
++  }
++  if (!bSamePlanes)
++    pBuffer->bValid = false;
++  pBuffer->pPicture = pDst;
++  for (int32_t iPlane = 0; iPlane < 3; ++iPlane) {
++    pBuffer->pData[iPlane] = pDst->pData[iPlane];
++    pBuffer->iLineSize[iPlane] = pDst->iLineSize[iPlane];
++  }
++  if (pBuffer->iDirtyCount != kiCount) {
++    memset (pBuffer->bDirty, 0, (size_t)kiCount * sizeof (bool));
++    pBuffer->iDirtyCount = kiCount;
++  }
++  if (kbValidChain) {
++    for (int32_t i = 0; i < 3; ++i) {
++      SSourceCopyBuffer* pResident = &pState->sBuffers[i];
++      if (!pResident->bValid)
++        continue;
++      for (int32_t iMb = 0; iMb < kiCount; ++iMb) {
++        if (!kpMask[iMb])
++          pResident->bDirty[iMb] = true;
++      }
++    }
++  }
++  if (pBuffer->bValid) {
++    int32_t iDirtyCount = 0;
++    for (int32_t iMb = 0; iMb < kiCount; ++iMb)
++      iDirtyCount += pBuffer->bDirty[iMb] ? 1 : 0;
++    if (iDirtyCount < kiCount) {
++      CopySourceDirtyRuns (pDst, kpSrc, pBuffer->bDirty, kiCols, kiRows);
++      pState->bPartial = true;
++    }
++  }
++  memset (pBuffer->bDirty, 0, (size_t)kiCount * sizeof (bool));
++  pBuffer->bValid = true;
++  return pState->bPartial;
++}
++
++}
+diff --git a/codec/encoder/plus/inc/welsEncoderExt.h b/codec/encoder/plus/inc/welsEncoderExt.h
+index b281f8f..a05afaa 100644
+--- a/codec/encoder/plus/inc/welsEncoderExt.h
++++ b/codec/encoder/plus/inc/welsEncoderExt.h
+@@ -77,6 +77,7 @@ class CWelsH264SVCEncoder : public ISVCEncoder {
+    */
+   virtual int EXTAPI EncodeFrame (const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo);
+   virtual int        EncodeFrameInternal (const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo);
++  int                EncodeFrameChecked (const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo);
+ 
+   /*
+    * return: 0 - success; otherwise - failed;
+diff --git a/codec/encoder/plus/src/welsEncoderExt.cpp b/codec/encoder/plus/src/welsEncoderExt.cpp
+index aca94ec..9d7e833 100644
+--- a/codec/encoder/plus/src/welsEncoderExt.cpp
++++ b/codec/encoder/plus/src/welsEncoderExt.cpp
+@@ -32,6 +32,7 @@
+ 
+ #include <assert.h>
+ #include "welsEncoderExt.h"
++#include "unchanged.h"
+ #include "welsCodecTrace.h"
+ #include "typedefs.h"
+ #include "wels_const.h"
+@@ -373,6 +374,34 @@ int32_t CWelsH264SVCEncoder::Uninitialize() {
+  *  SVC core encoding
+  */
+ int CWelsH264SVCEncoder::EncodeFrame (const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo) {
++  // Unchanged-macroblock hints are valid only for this call; the state that
++  // permits the next frame's hints is published only after success.
++  // A fatal encode error frees the context (and its preprocessing), so
++  // nothing may touch it once m_pEncContext changed; a new context starts
++  // with zeroed hint state.
++  sWelsEncCtx* pCtx = m_pEncContext;
++  CWelsPreProcess* pVpp = pCtx != NULL ? pCtx->pVpp : NULL;
++  if (pCtx != NULL) {
++    UnchangedFrameBegin (pCtx, kpSrcPic);
++    if (pVpp != NULL)
++      pVpp->VaaUnchangedBegin (pCtx, kpSrcPic);
++  }
++  const int kiResult = EncodeFrameChecked (kpSrcPic, pBsInfo);
++  if (pCtx != NULL && m_pEncContext == pCtx) {
++    const bool kbSuccess = kiResult == cmResultSuccess;
++    UnchangedFrameFinish (pCtx, kpSrcPic, pBsInfo, kbSuccess);
++    if (pVpp != NULL && pCtx->pVpp == pVpp) {
++      pVpp->VaaUnchangedFinish (pCtx, pBsInfo, kbSuccess);
++      pVpp->SourceCopyFinish (pBsInfo);
++    } else if (pCtx->pVpp != NULL) {
++      pCtx->pVpp->VaaUnchangedReset();
++      pCtx->pVpp->SourceCopyInvalidate();
++    }
++  }
++  return kiResult;
++}
++
++int CWelsH264SVCEncoder::EncodeFrameChecked (const SSourcePicture* kpSrcPic, SFrameBSInfo* pBsInfo) {
+   if (! (kpSrcPic && m_bInitialFlag && pBsInfo)) {
+     WelsLog (&m_pWelsTrace->m_sLogCtx, WELS_LOG_ERROR, "CWelsH264SVCEncoder::EncodeFrame(), cmInitParaError.");
+     return cmInitParaError;
+diff --git a/codec/encoder/targets.mk b/codec/encoder/targets.mk
+index d6cbe01..8f02d67 100644
+--- a/codec/encoder/targets.mk
++++ b/codec/encoder/targets.mk
+@@ -23,6 +23,7 @@ ENCODER_CPP_SRCS=\
+ 	$(ENCODER_SRCDIR)/core/src/set_mb_syn_cavlc.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/slice_multi_threading.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/svc_base_layer_md.cpp\
++	$(ENCODER_SRCDIR)/core/src/unchanged.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/svc_enc_slice_segment.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/svc_encode_mb.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/svc_encode_slice.cpp\
+@@ -31,6 +32,7 @@ ENCODER_CPP_SRCS=\
+ 	$(ENCODER_SRCDIR)/core/src/svc_set_mb_syn_cabac.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/svc_set_mb_syn_cavlc.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/wels_preprocess.cpp\
++	$(ENCODER_SRCDIR)/core/src/wels_preprocess_unchanged.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/wels_task_base.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/wels_task_encoder.cpp\
+ 	$(ENCODER_SRCDIR)/core/src/wels_task_management.cpp\
+diff --git a/codec/processing/interface/IWelsVP.h b/codec/processing/interface/IWelsVP.h
+index 8a78794..4f90bc8 100644
+--- a/codec/processing/interface/IWelsVP.h
++++ b/codec/processing/interface/IWelsVP.h
+@@ -186,6 +186,10 @@ typedef struct {
+   int iCalcSsd;
+   int iReserved;
+   SVAACalcResult*  pCalcResult;
++  // DevBox-Gateway-kvm extension: optional macroblocks whose source samples
++  // equal the reference's; their SADs are exactly zero. Borrowed during Process.
++  const unsigned char* pUnchangedMacroblocks;
++  int iUnchangedMacroblockCount;
+ } SVAACalcParam;
+ 
+ typedef struct {
+diff --git a/codec/processing/src/vaacalc/vaacalculation.cpp b/codec/processing/src/vaacalc/vaacalculation.cpp
+index 9a459a5..365a93a 100644
+--- a/codec/processing/src/vaacalc/vaacalculation.cpp
++++ b/codec/processing/src/vaacalc/vaacalculation.cpp
+@@ -30,6 +30,7 @@
+  *
+  */
+ 
++#include <string.h>
+ #include "vaacalculation.h"
+ #include "cpu.h"
+ 
+@@ -117,7 +118,46 @@ void CVAACalculation::InitVaaFuncs (SVaaFuncs& sVaaFuncs, int32_t iCpuFlag) {
+ #endif//HAVE_LASX
+ }
+ 
++// Computes SADs over changed runs within each macroblock row. A valid hint
++// certifies source equality, so skipped SADs are exactly zero.
++static void VAACalcSadMasked (PVAACalcSadFunc pfCalc, const uint8_t* pCurData, const uint8_t* pRefData,
++                              int32_t iPicWidth, int32_t iPicHeight, int32_t iPicStride, int32_t* pFrameSad,
++                              int32_t* pSad8x8, const unsigned char* pUnchanged, int32_t iCount) {
++  const int32_t kiMbWidth = iPicWidth >> 4;
++  const int32_t kiMbHeight = iPicHeight >> 4;
++  if (iPicWidth <= 0 || iPicHeight <= 0 || (iPicWidth & 15) || (iPicHeight & 15) || pUnchanged == NULL ||
++      iCount != kiMbWidth * kiMbHeight) {
++    pfCalc (pCurData, pRefData, iPicWidth, iPicHeight, iPicStride, pFrameSad, pSad8x8);
++    return;
++  }
++  memset (pSad8x8, 0, (size_t)iCount * 4 * sizeof (int32_t));
++  int32_t iTotal = 0;
++  for (int32_t y = 0; y < kiMbHeight; ++y) {
++    const int32_t kiRow = y * kiMbWidth;
++    for (int32_t x = 0; x < kiMbWidth;) {
++      if (pUnchanged[kiRow + x]) {
++        ++x;
++        continue;
++      }
++      const int32_t kiStart = x;
++      while (x < kiMbWidth && !pUnchanged[kiRow + x])
++        ++x;
++      const int32_t kiOffset = y * 16 * iPicStride + kiStart * 16;
++      int32_t iRunSad = 0;
++      pfCalc (pCurData + kiOffset, pRefData + kiOffset, (x - kiStart) * 16, 16, iPicStride, &iRunSad,
++              pSad8x8 + (kiRow + kiStart) * 4);
++      iTotal += iRunSad;
++    }
++  }
++  *pFrameSad = iTotal;
++}
++
+ EResult CVAACalculation::Process (int32_t iType, SPixMap* pSrcPixMap, SPixMap* pRefPixMap) {
++  const unsigned char* pUnchanged = m_sCalcParam.pUnchangedMacroblocks;
++  const int32_t kiUnchangedCount = m_sCalcParam.iUnchangedMacroblockCount;
++  // Never retain the caller-owned hints.
++  m_sCalcParam.pUnchangedMacroblocks = NULL;
++  m_sCalcParam.iUnchangedMacroblockCount = 0;
+   uint8_t* pCurData     = (uint8_t*)pSrcPixMap->pPixel[0];
+   uint8_t* pRefData     = (uint8_t*)pRefPixMap->pPixel[0];
+   int32_t iPicWidth     = pSrcPixMap->sRect.iRectWidth;
+@@ -150,8 +190,8 @@ EResult CVAACalculation::Process (int32_t iType, SPixMap* pSrcPixMap, SPixMap* p
+         m_sVaaFuncs.pfVAACalcSadVar (pCurData, pRefData, iPicWidth, iPicHeight, iPicStride, &pResult->iFrameSad,
+                                      (int32_t*)pResult->pSad8x8, pResult->pSum16x16, pResult->pSumOfSquare16x16);
+       } else {
+-        m_sVaaFuncs.pfVAACalcSad (pCurData, pRefData, iPicWidth, iPicHeight, iPicStride, &pResult->iFrameSad,
+-                                  (int32_t*)pResult->pSad8x8);
++        VAACalcSadMasked (m_sVaaFuncs.pfVAACalcSad, pCurData, pRefData, iPicWidth, iPicHeight, iPicStride,
++                          &pResult->iFrameSad, (int32_t*)pResult->pSad8x8, pUnchanged, kiUnchangedCount);
+       }
+     }
+   }

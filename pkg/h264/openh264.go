@@ -11,8 +11,10 @@
 // The port includes architecture-specific SIMD assembly kernels with Go
 // fallbacks. Its audited fixed-slice encoder path can use bounded Go workers;
 // decoding and other encoder modes remain sequential. Without the optional
-// Go-only UnchangedMacroblocks hints, its output is bit-exact with the C reference
-// implementation. Those hints may produce a different valid H.264 bitstream.
+// UnchangedMacroblocks hints, its output is bit-exact with the C reference
+// implementation. Those hints, which upstream OpenH264 lacks, may produce a
+// different valid H.264 bitstream; tools/openh264-patches adds them to the
+// native library with identical output.
 package openh264
 
 import (
@@ -68,7 +70,7 @@ type Frame struct {
 	// Timestamp is the input timestamp for encoding (milliseconds), or the
 	// output timestamp reported by the decoder.
 	Timestamp int64
-	// UnchangedMacroblocks is a Go-only encoding hint, borrowed until Encode
+	// UnchangedMacroblocks is an encoding hint, borrowed until Encode
 	// returns. In row-major ceil(Width/16)*ceil(Height/16) order, true certifies
 	// that every source Y/U/V sample in that macroblock is unchanged since the
 	// immediately preceding successful encoded picture. Nil or a wrong length
