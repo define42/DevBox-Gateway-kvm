@@ -1,3 +1,5 @@
+//go:build !openh264_native || !cgo || !linux
+
 package avc
 
 import (
