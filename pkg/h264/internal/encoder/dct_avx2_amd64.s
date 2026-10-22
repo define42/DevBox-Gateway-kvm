@@ -26,114 +26,150 @@ DATA dctHorizontalFactors<>+16(SB)/8, $0xfffeffff00020001
 DATA dctHorizontalFactors<>+24(SB)/8, $0xfffeffff00020001
 GLOBL dctHorizontalFactors<>(SB), RODATA|NOPTR, $32
 
+// DCT_FOUR_T4 transforms four 4x4 blocks: AX = 64-coefficient output,
+// BX/CX = first pixel block and stride, DX/SI = second pixel block and stride.
+// Each 128-bit lane holds one horizontal pair; the upper lanes hold the bottom
+// pair. The byte shuffle loads each row as [x0,x3,x1,x2] so each horizontal
+// transform uses signs, a word multiply and two shuffles. Coefficients are
+// stored row-major in TL, TR, BL, BR block order with unaligned stores.
+// R11-R14 hold the shuffle, sign and factor tables (DCT_TABLES).
+// Clobbers BX, DX and Y0-Y6.
+#define DCT_TABLES \
+	LEAQ dctShufflePixels<>(SB), R11; \
+	LEAQ dctShufflePairs<>(SB), R12; \
+	LEAQ dctHorizontalSigns<>(SB), R13; \
+	LEAQ dctHorizontalFactors<>(SB), R14
+
+#define DCT_FOUR_T4 \
+	VBROADCASTI128 (R11), Y6; \
+	VMOVQ (BX), X0; \
+	VPBROADCASTQ (BX)(CX*4), Y4; \
+	VPBLENDD $0xf0, Y4, Y0, Y0; \
+	VPSHUFB Y6, Y0, Y0; \
+	VMOVQ (DX), X4; \
+	VPBROADCASTQ (DX)(SI*4), Y5; \
+	VPBLENDD $0xf0, Y5, Y4, Y4; \
+	VPSHUFB Y6, Y4, Y4; \
+	VPSUBW Y4, Y0, Y0; \
+	ADDQ CX, BX; \
+	ADDQ SI, DX; \
+	VMOVQ (BX), X1; \
+	VPBROADCASTQ (BX)(CX*4), Y4; \
+	VPBLENDD $0xf0, Y4, Y1, Y1; \
+	VPSHUFB Y6, Y1, Y1; \
+	VMOVQ (DX), X4; \
+	VPBROADCASTQ (DX)(SI*4), Y5; \
+	VPBLENDD $0xf0, Y5, Y4, Y4; \
+	VPSHUFB Y6, Y4, Y4; \
+	VPSUBW Y4, Y1, Y1; \
+	ADDQ CX, BX; \
+	ADDQ SI, DX; \
+	VMOVQ (BX), X2; \
+	VPBROADCASTQ (BX)(CX*4), Y4; \
+	VPBLENDD $0xf0, Y4, Y2, Y2; \
+	VPSHUFB Y6, Y2, Y2; \
+	VMOVQ (DX), X4; \
+	VPBROADCASTQ (DX)(SI*4), Y5; \
+	VPBLENDD $0xf0, Y5, Y4, Y4; \
+	VPSHUFB Y6, Y4, Y4; \
+	VPSUBW Y4, Y2, Y2; \
+	ADDQ CX, BX; \
+	ADDQ SI, DX; \
+	VMOVQ (BX), X3; \
+	VPBROADCASTQ (BX)(CX*4), Y4; \
+	VPBLENDD $0xf0, Y4, Y3, Y3; \
+	VPSHUFB Y6, Y3, Y3; \
+	VMOVQ (DX), X4; \
+	VPBROADCASTQ (DX)(SI*4), Y5; \
+	VPBLENDD $0xf0, Y5, Y4, Y4; \
+	VPSHUFB Y6, Y4, Y4; \
+	VPSUBW Y4, Y3, Y3; \
+	VPSUBW Y3, Y0, Y5; \
+	VPADDW Y3, Y0, Y0; \
+	VPSUBW Y2, Y1, Y3; \
+	VPADDW Y2, Y1, Y1; \
+	VPSUBW Y1, Y0, Y2; \
+	VPADDW Y1, Y0, Y0; \
+	VPSLLW $1, Y5, Y1; \
+	VPADDW Y3, Y1, Y1; \
+	VPSLLW $1, Y3, Y3; \
+	VPSUBW Y3, Y5, Y3; \
+	VBROADCASTI128 (R12), Y6; \
+	VPSIGNW (R13), Y0, Y5; \
+	VPSHUFB Y6, Y0, Y0; \
+	VPADDW Y5, Y0, Y0; \
+	VPMULLW (R14), Y0, Y5; \
+	VPSHUFD $0xb1, Y0, Y0; \
+	VPADDW Y5, Y0, Y0; \
+	VPSIGNW (R13), Y1, Y5; \
+	VPSHUFB Y6, Y1, Y1; \
+	VPADDW Y5, Y1, Y1; \
+	VPMULLW (R14), Y1, Y5; \
+	VPSHUFD $0xb1, Y1, Y1; \
+	VPADDW Y5, Y1, Y1; \
+	VPSIGNW (R13), Y2, Y5; \
+	VPSHUFB Y6, Y2, Y2; \
+	VPADDW Y5, Y2, Y2; \
+	VPMULLW (R14), Y2, Y5; \
+	VPSHUFD $0xb1, Y2, Y2; \
+	VPADDW Y5, Y2, Y2; \
+	VPSIGNW (R13), Y3, Y5; \
+	VPSHUFB Y6, Y3, Y3; \
+	VPADDW Y5, Y3, Y3; \
+	VPMULLW (R14), Y3, Y5; \
+	VPSHUFD $0xb1, Y3, Y3; \
+	VPADDW Y5, Y3, Y3; \
+	VPUNPCKLQDQ Y1, Y0, Y5; \
+	VMOVDQU X5, 0(AX); \
+	VEXTRACTI128 $1, Y5, 64(AX); \
+	VPUNPCKHQDQ Y1, Y0, Y5; \
+	VMOVDQU X5, 32(AX); \
+	VEXTRACTI128 $1, Y5, 96(AX); \
+	VPUNPCKLQDQ Y3, Y2, Y5; \
+	VMOVDQU X5, 16(AX); \
+	VEXTRACTI128 $1, Y5, 80(AX); \
+	VPUNPCKHQDQ Y3, Y2, Y5; \
+	VMOVDQU X5, 48(AX); \
+	VEXTRACTI128 $1, Y5, 112(AX)
+
 // func welsDctFourT4AVX2(dct *[64]int16, pixel1 *byte, stride1 int,
 //     pixel2 *byte, stride2 int)
-// Each 128-bit lane holds one horizontal pair; the upper lanes hold the
-// bottom pair. Eight-byte loads touch exactly the validated pixel columns.
+// Eight-byte loads touch exactly the validated pixel columns.
 TEXT ·welsDctFourT4AVX2(SB), NOSPLIT, $0-40
 	MOVQ dct+0(FP), AX
 	MOVQ pixel1+8(FP), BX
 	MOVQ stride1+16(FP), CX
 	MOVQ pixel2+24(FP), DX
 	MOVQ stride2+32(FP), SI
-	VBROADCASTI128 dctShufflePixels<>(SB), Y6
+	DCT_TABLES
+	DCT_FOUR_T4
+	VZEROUPPER
+	RET
 
-	VMOVQ (BX), X0
-	VPBROADCASTQ (BX)(CX*4), Y4
-	VPBLENDD $0xf0, Y4, Y0, Y0
-	VPSHUFB Y6, Y0, Y0
-	VMOVQ (DX), X4
-	VPBROADCASTQ (DX)(SI*4), Y5
-	VPBLENDD $0xf0, Y5, Y4, Y4
-	VPSHUFB Y6, Y4, Y4
-	VPSUBW Y4, Y0, Y0
-	ADDQ CX, BX
-	ADDQ SI, DX
-	VMOVQ (BX), X1
-	VPBROADCASTQ (BX)(CX*4), Y4
-	VPBLENDD $0xf0, Y4, Y1, Y1
-	VPSHUFB Y6, Y1, Y1
-	VMOVQ (DX), X4
-	VPBROADCASTQ (DX)(SI*4), Y5
-	VPBLENDD $0xf0, Y5, Y4, Y4
-	VPSHUFB Y6, Y4, Y4
-	VPSUBW Y4, Y1, Y1
-	ADDQ CX, BX
-	ADDQ SI, DX
-	VMOVQ (BX), X2
-	VPBROADCASTQ (BX)(CX*4), Y4
-	VPBLENDD $0xf0, Y4, Y2, Y2
-	VPSHUFB Y6, Y2, Y2
-	VMOVQ (DX), X4
-	VPBROADCASTQ (DX)(SI*4), Y5
-	VPBLENDD $0xf0, Y5, Y4, Y4
-	VPSHUFB Y6, Y4, Y4
-	VPSUBW Y4, Y2, Y2
-	ADDQ CX, BX
-	ADDQ SI, DX
-	VMOVQ (BX), X3
-	VPBROADCASTQ (BX)(CX*4), Y4
-	VPBLENDD $0xf0, Y4, Y3, Y3
-	VPSHUFB Y6, Y3, Y3
-	VMOVQ (DX), X4
-	VPBROADCASTQ (DX)(SI*4), Y5
-	VPBLENDD $0xf0, Y5, Y4, Y4
-	VPSHUFB Y6, Y4, Y4
-	VPSUBW Y4, Y3, Y3
-
-	// Vertical 4-point transform of all four blocks together.
-	VPSUBW Y3, Y0, Y5
-	VPADDW Y3, Y0, Y0
-	VPSUBW Y2, Y1, Y3
-	VPADDW Y2, Y1, Y1
-	VPSUBW Y1, Y0, Y2
-	VPADDW Y1, Y0, Y0
-	VPSLLW $1, Y5, Y1
-	VPADDW Y3, Y1, Y1
-	VPSLLW $1, Y3, Y3
-	VPSUBW Y3, Y5, Y3
-
-	// The byte shuffle loaded each row as [x0,x3,x1,x2], allowing each
-	// horizontal transform to use signs, a word multiply and two shuffles.
-	VBROADCASTI128 dctShufflePairs<>(SB), Y6
-	VPSIGNW dctHorizontalSigns<>(SB), Y0, Y5
-	VPSHUFB Y6, Y0, Y0
-	VPADDW Y5, Y0, Y0
-	VPMULLW dctHorizontalFactors<>(SB), Y0, Y5
-	VPSHUFD $0xb1, Y0, Y0
-	VPADDW Y5, Y0, Y0
-	VPSIGNW dctHorizontalSigns<>(SB), Y1, Y5
-	VPSHUFB Y6, Y1, Y1
-	VPADDW Y5, Y1, Y1
-	VPMULLW dctHorizontalFactors<>(SB), Y1, Y5
-	VPSHUFD $0xb1, Y1, Y1
-	VPADDW Y5, Y1, Y1
-	VPSIGNW dctHorizontalSigns<>(SB), Y2, Y5
-	VPSHUFB Y6, Y2, Y2
-	VPADDW Y5, Y2, Y2
-	VPMULLW dctHorizontalFactors<>(SB), Y2, Y5
-	VPSHUFD $0xb1, Y2, Y2
-	VPADDW Y5, Y2, Y2
-	VPSIGNW dctHorizontalSigns<>(SB), Y3, Y5
-	VPSHUFB Y6, Y3, Y3
-	VPADDW Y5, Y3, Y3
-	VPMULLW dctHorizontalFactors<>(SB), Y3, Y5
-	VPSHUFD $0xb1, Y3, Y3
-	VPADDW Y5, Y3, Y3
-
-	// Store row-major coefficients in TL, TR, BL, BR block order. Go does
-	// not guarantee vector alignment, so all output stores are unaligned.
-	VPUNPCKLQDQ Y1, Y0, Y5
-	VMOVDQU X5, 0(AX)
-	VEXTRACTI128 $1, Y5, 64(AX)
-	VPUNPCKHQDQ Y1, Y0, Y5
-	VMOVDQU X5, 32(AX)
-	VEXTRACTI128 $1, Y5, 96(AX)
-	VPUNPCKLQDQ Y3, Y2, Y5
-	VMOVDQU X5, 16(AX)
-	VEXTRACTI128 $1, Y5, 80(AX)
-	VPUNPCKHQDQ Y3, Y2, Y5
-	VMOVDQU X5, 48(AX)
-	VEXTRACTI128 $1, Y5, 112(AX)
+// func welsDctLumaMbAVX2(dct *[256]int16, enc *byte, encStride int, pred *[256]byte)
+// Transforms the four 8x8 quadrants of a 16x16 macroblock residual in
+// WelsDctMb order; pred has stride 16.
+TEXT ·welsDctLumaMbAVX2(SB), NOSPLIT, $0-32
+	MOVQ dct+0(FP), AX
+	MOVQ enc+8(FP), R8
+	MOVQ encStride+16(FP), CX
+	MOVQ pred+24(FP), R9
+	MOVQ $16, SI
+	DCT_TABLES
+	MOVQ R8, BX
+	MOVQ R9, DX
+	DCT_FOUR_T4
+	ADDQ $128, AX
+	LEAQ 8(R8), BX
+	LEAQ 8(R9), DX
+	DCT_FOUR_T4
+	ADDQ $128, AX
+	LEAQ (R8)(CX*8), BX
+	LEAQ 128(R9), DX
+	DCT_FOUR_T4
+	ADDQ $128, AX
+	LEAQ 8(R8)(CX*8), BX
+	LEAQ 136(R9), DX
+	DCT_FOUR_T4
 	VZEROUPPER
 	RET

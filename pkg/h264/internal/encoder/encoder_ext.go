@@ -2363,6 +2363,7 @@ func PreprocessSliceCoding(pCtx *sWelsEncCtx) {
 		pFuncList.pfSearchMethod[BLOCK_4x4] = WelsDiamondSearch
 		pFuncList.pfSearchMethod[BLOCK_8x4] = WelsDiamondSearch
 		pFuncList.pfSearchMethod[BLOCK_4x8] = WelsDiamondSearch
+		pFuncList.bDiamondSearch = true
 		pFuncList.pfFirstIntraMode = WelsMdFirstIntraMode
 		pFuncList.sSampleDealingFuncs.pfMeCost = &pCtx.pFuncList.sSampleDealingFuncs.pfSampleSatd
 		pFuncList.pfSetScrollingMv = SetScrollingMvToMdNull
@@ -2395,6 +2396,7 @@ func PreprocessSliceCoding(pCtx *sWelsEncCtx) {
 
 			pFuncList.pfMotionSearch[processing.NO_STATIC] = WelsMotionEstimateSearch
 			pFuncList.pfMotionSearch[processing.COLLOCATED_STATIC] = WelsMotionEstimateSearchStatic
+			pFuncList.bDiamondSearch = false // SetMeMethod below may replace the methods
 			pFuncList.pfMotionSearch[processing.SCROLLED_STATIC] = WelsMotionEstimateSearchScrolled
 			//ME16x16
 			if !SetMeMethod(ME_DIA_CROSS, &pFuncList.pfSearchMethod[BLOCK_16x16]) {

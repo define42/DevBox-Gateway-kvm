@@ -6,6 +6,9 @@ package common
 // Signature: func(pDst []uint8, iDstOff int, iStrideD int32, pSrc []uint8, iSrcOff int, iStrideS int32)
 
 func welsCopyNxM(pDst []uint8, iDstOff int, iStrideD int32, pSrc []uint8, iSrcOff int, iStrideS int32, n, m int) {
+	if copyBlockFast(pDst, iDstOff, iStrideD, pSrc, iSrcOff, iStrideS, n, m) {
+		return
+	}
 	for i := 0; i < m; i++ {
 		copy(pDst[iDstOff:iDstOff+n], pSrc[iSrcOff:iSrcOff+n])
 		iDstOff += int(iStrideD)
@@ -28,6 +31,9 @@ func WelsCopy4x8_c(pDst []uint8, iDstOff int, iStrideD int32, pSrc []uint8, iSrc
 }
 
 func WelsCopy8x8_c(pDst []uint8, iDstOff int, iStrideD int32, pSrc []uint8, iSrcOff int, iStrideS int32) {
+	if copyBlockFast8(pDst, iDstOff, iStrideD, pSrc, iSrcOff, iStrideS, 8) {
+		return
+	}
 	welsCopyNxM(pDst, iDstOff, iStrideD, pSrc, iSrcOff, iStrideS, 8, 8)
 }
 
@@ -40,5 +46,8 @@ func WelsCopy16x8_c(pDst []uint8, iDstOff int, iStrideD int32, pSrc []uint8, iSr
 }
 
 func WelsCopy16x16_c(pDst []uint8, iDstOff int, iStrideD int32, pSrc []uint8, iSrcOff int, iStrideS int32) {
+	if copyBlockFast16(pDst, iDstOff, iStrideD, pSrc, iSrcOff, iStrideS, 16) {
+		return
+	}
 	welsCopyNxM(pDst, iDstOff, iStrideD, pSrc, iSrcOff, iStrideS, 16, 16)
 }

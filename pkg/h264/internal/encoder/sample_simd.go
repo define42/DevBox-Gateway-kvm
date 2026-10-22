@@ -86,7 +86,62 @@ func sampleMemoryRangesOverlap(a, b sampleMemoryRange) bool {
 // Keep the original sequential averaging behavior if any output can modify
 // a later input. Normal refinement buffers occupy disjoint regions of the
 // same allocation, so compare the accessed spans, not whole trailing slices.
+// refineRegion is the size of each InitMeRefinePointer scratch region.
+const refineRegion = 640
+
+// quarterRefineLayoutDisjoint proves disjointness from the scratch layout set
+// by InitMeRefinePointer: four disjoint regions of one arena at offset s, with
+// the outputs in the upper two. Every input must then avoid the upper regions.
+// It reports false when it cannot decide; the caller then runs the full check.
+func quarterRefineLayoutDisjoint(me *SWelsME, refine *SMeRefinePointer,
+	params *SQuarRefineParams, encStride, width, height int32) bool {
+	arena, s := refine.arena, refine.arenaOff
+	if len(arena) != 4*refineRegion || s < 0 || width <= 0 || height <= 0 || width > ME_REFINE_BUF_STRIDE {
+		return false
+	}
+	base := uintptr(unsafe.Pointer(unsafe.SliceData(arena)))
+	at := func(region int) uintptr { return base + uintptr(region*refineRegion+s) }
+	best := uintptr(unsafe.Pointer(unsafe.SliceData(refine.pQuarPixBest)))
+	tmp := uintptr(unsafe.Pointer(unsafe.SliceData(refine.pQuarPixTmp)))
+	refineSpan := int(height-1)*ME_REFINE_BUF_STRIDE + int(width)
+	if !(best == at(2) && tmp == at(3) || best == at(3) && tmp == at(2)) ||
+		len(refine.pQuarPixBest) < refineSpan || len(refine.pQuarPixTmp) < refineSpan || s+refineSpan > refineRegion {
+		return false
+	}
+	// input reports whether one input span is a valid read that cannot
+	// overlap either output: it ends below the upper two regions or starts
+	// after the arena. Which lower region it uses does not matter.
+	outStart, outEnd := base+2*refineRegion, base+4*refineRegion
+	input := func(buf []byte, off int, stride int32) bool {
+		span := int(height-1)*int(stride) + int(width)
+		if off < 0 || stride < width || span > len(buf)-off {
+			return false
+		}
+		start := uintptr(unsafe.Pointer(unsafe.SliceData(buf))) + uintptr(off)
+		return start+uintptr(span) <= outStart || start >= outEnd
+	}
+	if !input(me.pEncMb, me.iEncMbOff, encStride) {
+		return false
+	}
+	for i := 0; i < 4; i++ {
+		stride := params.iStrideA
+		if i >= 2 {
+			stride = params.iStrideB
+		}
+		if !input(params.pSrcA[i], params.iSrcAOff[i], ME_REFINE_BUF_STRIDE) || !input(params.pSrcB[i], params.iSrcBOff[i], stride) {
+			return false
+		}
+	}
+	return true
+}
+
 func quarterRefineBuffersDisjoint(me *SWelsME, refine *SMeRefinePointer,
+	params *SQuarRefineParams, encStride, width, height int32) bool {
+	return quarterRefineLayoutDisjoint(me, refine, params, encStride, width, height) ||
+		quarterRefineBuffersDisjointFull(me, refine, params, encStride, width, height)
+}
+
+func quarterRefineBuffersDisjointFull(me *SWelsME, refine *SMeRefinePointer,
 	params *SQuarRefineParams, encStride, width, height int32) bool {
 	best, valid := sampleBlockMemoryRange(refine.pQuarPixBest, 0, ME_REFINE_BUF_STRIDE, width, height)
 	if !valid {

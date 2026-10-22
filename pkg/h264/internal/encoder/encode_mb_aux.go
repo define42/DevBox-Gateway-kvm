@@ -95,33 +95,21 @@ func WelsHadamardQuant2x2Skip_c(pRs []int16, iFF int16, iMF int16) int32 {
 }
 
 func WelsHadamardQuant2x2_c(pRs []int16, iFF int16, iMF int16, pDct []int16, pBlock []int16) int32 {
-	var s [4]int16
+	// Fixed-size views check each slice once instead of on every access.
+	rs, dct, block := (*[49]int16)(pRs), (*[4]int16)(pDct), (*[4]int16)(pBlock)
+	s0, s1 := rs[0]+rs[32], rs[0]-rs[32]
+	s2, s3 := rs[16]+rs[48], rs[16]-rs[48]
+	rs[0], rs[16], rs[32], rs[48] = 0, 0, 0, 0
+
+	dct[0] = wels_NEW_QUANT(s0+s2, iFF, iMF)
+	dct[1] = wels_NEW_QUANT(s0-s2, iFF, iMF)
+	dct[2] = wels_NEW_QUANT(s1+s3, iFF, iMF)
+	dct[3] = wels_NEW_QUANT(s1-s3, iFF, iMF)
+	*block = *dct
+
 	iDcNzc := int32(0)
-
-	s[0] = pRs[0] + pRs[32]
-	s[1] = pRs[0] - pRs[32]
-	s[2] = pRs[16] + pRs[48]
-	s[3] = pRs[16] - pRs[48]
-
-	pRs[0] = 0
-	pRs[16] = 0
-	pRs[32] = 0
-	pRs[48] = 0
-
-	pDct[0] = s[0] + s[2]
-	pDct[1] = s[0] - s[2]
-	pDct[2] = s[1] + s[3]
-	pDct[3] = s[1] - s[3]
-
-	pDct[0] = wels_NEW_QUANT(pDct[0], iFF, iMF)
-	pDct[1] = wels_NEW_QUANT(pDct[1], iFF, iMF)
-	pDct[2] = wels_NEW_QUANT(pDct[2], iFF, iMF)
-	pDct[3] = wels_NEW_QUANT(pDct[3], iFF, iMF)
-
-	copy(pBlock[:4], pDct[:4])
-
-	for i := 0; i < 4; i++ {
-		if pBlock[i] != 0 {
+	for _, v := range block {
+		if v != 0 {
 			iDcNzc++
 		}
 	}

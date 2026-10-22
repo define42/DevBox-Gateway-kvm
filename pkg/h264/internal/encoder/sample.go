@@ -255,8 +255,11 @@ func WelsInitSampleSadFunc(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) {
 	s.pfSample4Sad[BLOCK_4x4] = common.WelsSampleSadFour4x4_c
 	s.pfSample4Sad[BLOCK_8x4] = common.WelsSampleSadFour8x4_c
 	s.pfSample4Sad[BLOCK_4x8] = common.WelsSampleSadFour4x8_c
+	s.bSadSIMD = false
+	s.bSatdAVX2 = false
 
 	if uiCpuFlag&common.WELS_CPU_SSE2 != 0 {
+		s.bSadSIMD = common.SadPtrSupported
 		s.pfSampleSad[BLOCK_16x16] = common.WelsSampleSad16x16_sse2
 		s.pfSampleSad[BLOCK_16x8] = common.WelsSampleSad16x8_sse2
 		s.pfSampleSad[BLOCK_8x16] = common.WelsSampleSad8x16_sse2
@@ -288,6 +291,7 @@ func WelsInitSampleSadFunc(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) {
 			s.pfSampleSatd[BLOCK_16x8] = WelsSampleSatd16x8_avx2
 			s.pfSampleSatd[BLOCK_8x16] = WelsSampleSatd8x16_avx2
 			s.pfSampleSatd[BLOCK_8x8] = WelsSampleSatd8x8_avx2
+			s.bSatdAVX2 = satdPtrSupported
 		}
 	}
 

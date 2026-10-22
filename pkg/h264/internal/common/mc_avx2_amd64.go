@@ -28,6 +28,7 @@ func initMcAVX2(funcs *SMcFunc, flags uint32) {
 	funcs.PfLumaHalfpelVer = McHorVer02_avx2
 	funcs.PfLumaHalfpelCen = McHorVer22_avx2
 	funcs.PMcLumaFunc = McLuma_avx2
+	funcs.BRefineAVX2 = true
 }
 
 // mcAVX2BlocksOverlap compares live pointers only within this expression. In

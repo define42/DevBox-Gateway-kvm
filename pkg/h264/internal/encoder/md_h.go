@@ -83,5 +83,10 @@ type SMeRefinePointer struct {
 	pQuarPixBest []uint8
 	pQuarPixTmp  []uint8
 
+	// arena and arenaOff record the InitMeRefinePointer layout, letting the
+	// fused quarter-pixel refinement prove buffer disjointness cheaply.
+	arena    []uint8
+	arenaOff int
+
 	pfCopyBlockByMode PCopyFunc
 }

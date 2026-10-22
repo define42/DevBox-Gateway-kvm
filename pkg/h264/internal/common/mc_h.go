@@ -28,4 +28,8 @@ type SMcFunc struct {
 	PMcChromaFunc     PWelsMcFunc
 	PMcLumaFunc       PWelsMcFunc
 	PfSampleAveraging PWelsSampleAveragingFunc
+
+	// BRefineAVX2 records that the half-pixel functions are the AVX2 ones,
+	// whose refinement shapes the RefineHalfpel* entries reproduce.
+	BRefineAVX2 bool
 }

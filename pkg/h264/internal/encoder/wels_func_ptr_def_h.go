@@ -146,6 +146,11 @@ const MAX_BLOCK_TYPE = BLOCK_SIZE_ALL
 
 // SSampleDealingFunc is the SAD / SATD function table.
 type SSampleDealingFunc struct {
+	// bSadSIMD records that pfSampleSad and pfSample4Sad hold the SSE2 kernels;
+	// bSatdAVX2 that the 16x16, 16x8, 8x16 and 8x8 pfSampleSatd entries are
+	// the AVX2 ones.
+	bSadSIMD        bool
+	bSatdAVX2       bool
 	pfSampleSad     [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
 	pfSampleSatd    [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
 	pfSample4Sad    [MAX_BLOCK_TYPE]PSample4SadCostFunc
@@ -193,6 +198,10 @@ type PGetBsPosition func(pSlice *SSlice) int32
 
 // SWelsFuncPtrList is the encoder function table (struct TagWelsFuncPointerList).
 type SWelsFuncPtrList struct {
+	// bDiamondSearch records that every pfSearchMethod entry is
+	// WelsDiamondSearch, allowing the fused integer-pixel search.
+	bDiamondSearch bool
+
 	sExpandPicFunc            common.SExpandPicFunc
 	pfFillInterNeighborCache  PFillInterNeighborCacheFunc
 	pfGetVarianceFromIntraVaa PGetVarianceFromIntraVaaFunc

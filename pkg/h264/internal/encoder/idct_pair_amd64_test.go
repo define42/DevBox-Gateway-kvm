@@ -38,10 +38,10 @@ func TestIDctPairedAVX2MatchesPriorKernel(t *testing.T) {
 			copy(got, pred)
 			copy(want, pred)
 			idctFourT4RecSSE2(want[offset:], recStride, want[offset:], recStride, coeff[:])
-			idctFourT4RecAVX2(got[offset:], recStride, got[offset:], recStride, coeff[:])
+			idctFourT4RecAVX2(&got[offset], recStride, &got[offset], recStride, &coeff)
 		} else {
 			idctFourT4RecSSE2(want[offset:], recStride, pred[offset:], predStride, coeff[:])
-			idctFourT4RecAVX2(got[offset:], recStride, pred[offset:], predStride, coeff[:])
+			idctFourT4RecAVX2(&got[offset], recStride, &pred[offset], predStride, &coeff)
 		}
 		if !bytes.Equal(got, want) || !bytes.Equal(pred, predBefore) || coeff != before {
 			t.Fatalf("run %d: paired kernel differs from four independent transforms", run)
@@ -58,7 +58,9 @@ func BenchmarkIDctPairedKernel(b *testing.B) {
 		fn   func([]byte, int, []byte, int, []int16)
 	}{
 		{"PriorFourSSE2", idctFourT4RecSSE2},
-		{"PairedAVX2", idctFourT4RecAVX2},
+		{"PairedAVX2", func(rec []byte, recStride int, pred []byte, predStride int, coeff []int16) {
+			idctFourT4RecAVX2(&rec[0], recStride, &pred[0], predStride, (*[64]int16)(coeff))
+		}},
 	} {
 		b.Run(candidate.name, func(b *testing.B) {
 			var coefficients [64]int16

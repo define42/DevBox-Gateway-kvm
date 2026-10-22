@@ -2,7 +2,11 @@
 
 package encoder
 
-import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+import (
+	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
 
 //go:noescape
 func intraPredFillSSE2(dst []byte, value uint8)
@@ -63,6 +67,33 @@ func intra8Horizontal(dst []byte, dstOff int, ref []byte, refOff int, stride int
 // and chroma within [-8114,19016], including rounding. SSE2 therefore preserves
 // the arithmetic shift before unsigned saturation.
 func intraPlaneCoefficients(ref []byte, off int, stride int32, size int) (int32, int32, int32) {
+	s, half := int(stride), size/2
+	top, left := off-s, off-1
+	// Validate the corner, the top row and the left column once, then read
+	// them through unchecked pointers.
+	first, last := min(top-1, left-s, left+(size-1)*s), max(top+size-1, left-s, left+(size-1)*s)
+	if size != 8 && size != 16 || first < 0 || last >= len(ref) {
+		return intraPlaneCoefficientsChecked(ref, off, stride, size)
+	}
+	base := unsafe.Pointer(unsafe.SliceData(ref))
+	at := func(i int) int32 { return int32(*(*byte)(unsafe.Add(base, i))) }
+	var h, v int32
+	for i := 0; i < half; i++ {
+		h += int32(i+1) * (at(top+half+i) - at(top+half-2-i))
+		v += int32(i+1) * (at(left+(half+i)*s) - at(left+(half-2-i)*s))
+	}
+	if size == 16 {
+		h, v = (5*h+32)>>6, (5*v+32)>>6
+	} else {
+		h, v = (17*h+16)>>5, (17*v+16)>>5
+	}
+	a := (at(left+(size-1)*s) + at(top+size-1)) << 4
+	return a - int32(half-1)*(h+v) + 16, h, v
+}
+
+// intraPlaneCoefficientsChecked is the bounds-checked form for unusual
+// geometry; out-of-range references panic as before.
+func intraPlaneCoefficientsChecked(ref []byte, off int, stride int32, size int) (int32, int32, int32) {
 	s, half := int(stride), size/2
 	top, left := off-s, off-1
 	var h, v int32

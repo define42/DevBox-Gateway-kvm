@@ -120,23 +120,22 @@ func UpdateP16x16MotionInfo(pMbCache *SMbCache, pCurMb *SMB, kiRef int8, pMv *SM
 	pMvComp := &pMbCache.sMvComponents
 	kMv := *pMv
 
-	pCurMb.pRefIndex[0] = kiRef
-	pCurMb.pRefIndex[1] = kiRef
-	pCurMb.pRefIndex[2] = kiRef
-	pCurMb.pRefIndex[3] = kiRef
+	// Fixed-size views check each slice once; constant cache indexes need
+	// no checks at all.
+	*(*[4]int8)(pCurMb.pRefIndex) = [4]int8{kiRef, kiRef, kiRef, kiRef}
 	// update pMv range from 0~15
-	for i := 0; i < 16; i++ {
-		pCurMb.sMv[i] = kMv
+	mv := (*[16]SMVUnitXY)(pCurMb.sMv)
+	for i := range mv {
+		mv[i] = kMv
 	}
 
 	/*
 	 * blocks 0: 7~10, 1: 13~16, 2: 19~22, 3: 25~28
 	 */
-	for _, base := range [4]int{7, 13, 19, 25} {
-		for k := 0; k < 4; k++ {
-			pMvComp.iRefIndexCache[base+k] = kiRef
-			pMvComp.sMotionVectorCache[base+k] = kMv
-		}
+	ref, cache := &pMvComp.iRefIndexCache, &pMvComp.sMotionVectorCache
+	for k := 0; k < 4; k++ {
+		ref[7+k], ref[13+k], ref[19+k], ref[25+k] = kiRef, kiRef, kiRef, kiRef
+		cache[7+k], cache[13+k], cache[19+k], cache[25+k] = kMv, kMv, kMv, kMv
 	}
 }
 
