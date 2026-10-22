@@ -1,0 +1,25 @@
+name: Native OpenH264
+on:
+  push:
+    branches: [feature/native-openh264-nasm]
+  pull_request:
+    branches: [main]
+jobs:
+  native-avc:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+      - name: Install NASM-optimized OpenH264
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenh264-dev nasm pkg-config g++
+          pkg-config --modversion openh264
+      - name: Build native gateway
+        run: CGO_ENABLED=1 go build -tags openh264_native ./...
+      - name: Native encoder interoperability
+        run: CGO_ENABLED=1 go test -tags openh264_native -count=1 -run 'TestOpenH264RoundTrip|TestOpenH264SlicesRoundTrip' ./internal/rdp/avc
+      - name: RDP tests with native encoder
+        run: CGO_ENABLED=1 go test -tags openh264_native -short ./internal/rdp/...
