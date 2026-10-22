@@ -226,3 +226,12 @@ gateway: generate
 .PHONY: gateway-virgl
 gateway-virgl: GATEWAY_BUILD_TAGS=nvenc,virgl
 gateway-virgl: gateway
+
+# Native Cisco OpenH264 requires CGO and the distribution's NASM-optimized libopenh264.
+# Debian trixie: apt install libopenh264-dev pkg-config nasm.
+.PHONY: devbox-kvm-openh264 test-openh264
+devbox-kvm-openh264:
+	CGO_ENABLED=1 $(GO) build -tags openh264_native -o devbox-kvm .
+
+test-openh264:
+	CGO_ENABLED=1 $(GO) test -tags openh264_native -count=1 ./internal/rdp/avc ./internal/rdp
