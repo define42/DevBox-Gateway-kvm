@@ -1,0 +1,28 @@
+/tmp/openh264-comparison-20261021/go.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)	
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Native source: 4c8c5cdc0299407af14751a4c37449ff3d367745 (OpenH264 2.6.0)
+Native: release -O3 -DNDEBUG -DX86_ASM -DHAVE_AVX2; statically linked libopenh264.a
+Host: Intel i7-7700HQ, Linux/amd64, GOMAXPROCS=4; no affinity; normal workstation activity
+Six serial alternating pairs per slice count; 16 warmup +120 timed frames; full parity check136frames
+Existing round4 manifest verified: all293 production/build files unchanged
+No COMPARE_STREAM environment variable during performance runs; no warning/error logs
+7d16cf7819b7d0571e831164751b92407f98a1e8d33ec0236c88ac09c7ba4d79  /tmp/openh264-comparison-20261021/go.test
+dadfcd69a16086de641bd2d94d611d8ff2e0eed0019c5322207f2fa351af7ce9  /tmp/openh264-comparison-20261021/native_bench
+bdf4afe9916fa08d44dfc615c7fa0afaef3170340d5b3cb640e74593841a53fc  /tmp/openh264-comparison-20261021/native/libopenh264.a
+01fd1443b2ce08fe27e201f7848b0a68ffaba991332df24b18178015f1d54397  /tmp/openh264-comparison-20261021/clip1080p.i420
+cdeafdba15b4620ba18fbfe8152429c04e6fb4ec3bba6dd716a27b9babad0123  /tmp/h264-fullscreen-20261021/clip1080p.rgba

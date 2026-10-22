@@ -470,7 +470,7 @@ func TestGraphicsCapabilitiesAndFallback(t *testing.T) {
 
 func TestGraphicsFragmentsAndZGFX(t *testing.T) {
 	t.Parallel()
-	for _, size := range []int{1, 1598, 1599, 65535, 65536, 140000} {
+	for _, size := range []int{0, 1, 1598, 1599, 65535, 65536, 140000} {
 		data := make([]byte, size)
 		for i := range data {
 			data[i] = byte(i)

@@ -1,0 +1,432 @@
+# sample=1 stride=8 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/old-SSE2-4         	 7113594	        34.35 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=8 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/dispatch-4         	10905024	        21.96 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=8 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/raw-AVX2-4         	17359238	        13.77 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=8 path=native-AVX2
+BenchmarkDCTFourAVX2/stride8/native-AVX2 14000000 8.9619 ns/op
+native-dct-corpus stride=8 fnv64=b30392e88e291ed2
+# sample=1 stride=64 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/old-SSE2-4         	 6580549	        35.72 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=64 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/dispatch-4         	 9761046	        21.14 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=64 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/raw-AVX2-4         	15818689	        14.77 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=64 path=native-AVX2
+BenchmarkDCTFourAVX2/stride64/native-AVX2 14000000 8.8223 ns/op
+native-dct-corpus stride=64 fnv64=735fa3f800503c1b
+# sample=1 stride=2048 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/old-SSE2-4         	 6400150	        36.94 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=2048 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/dispatch-4         	10649208	        21.93 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=2048 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/raw-AVX2-4         	15577545	        15.14 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=1 stride=2048 path=native-AVX2
+BenchmarkDCTFourAVX2/stride2048/native-AVX2 14000000 9.1882 ns/op
+native-dct-corpus stride=2048 fnv64=7857315bf447fd23
+# sample=2 stride=8 path=native-AVX2
+BenchmarkDCTFourAVX2/stride8/native-AVX2 14000000 9.1021 ns/op
+native-dct-corpus stride=8 fnv64=b30392e88e291ed2
+# sample=2 stride=8 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/raw-AVX2-4         	17197551	        14.45 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=8 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/dispatch-4         	11398857	        21.16 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=8 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/old-SSE2-4         	 7128042	        34.12 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=64 path=native-AVX2
+BenchmarkDCTFourAVX2/stride64/native-AVX2 14000000 8.7651 ns/op
+native-dct-corpus stride=64 fnv64=735fa3f800503c1b
+# sample=2 stride=64 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/raw-AVX2-4         	16880834	        15.18 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=64 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/dispatch-4         	10644126	        21.76 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=64 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/old-SSE2-4         	 6487789	        36.85 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=2048 path=native-AVX2
+BenchmarkDCTFourAVX2/stride2048/native-AVX2 14000000 9.1005 ns/op
+native-dct-corpus stride=2048 fnv64=7857315bf447fd23
+# sample=2 stride=2048 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/raw-AVX2-4         	16343590	        14.59 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=2048 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/dispatch-4         	11211782	        21.55 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=2 stride=2048 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/old-SSE2-4         	 6271819	        37.86 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=8 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/old-SSE2-4         	 6798164	        39.87 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=8 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/dispatch-4         	11608657	        22.12 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=8 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/raw-AVX2-4         	16022102	        14.79 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=8 path=native-AVX2
+BenchmarkDCTFourAVX2/stride8/native-AVX2 14000000 9.0781 ns/op
+native-dct-corpus stride=8 fnv64=b30392e88e291ed2
+# sample=3 stride=64 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/old-SSE2-4         	 6837534	        34.40 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=64 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/dispatch-4         	11117846	        21.95 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=64 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/raw-AVX2-4         	16029889	        14.89 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=64 path=native-AVX2
+BenchmarkDCTFourAVX2/stride64/native-AVX2 14000000 9.5794 ns/op
+native-dct-corpus stride=64 fnv64=735fa3f800503c1b
+# sample=3 stride=2048 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/old-SSE2-4         	 6339778	        36.01 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=2048 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/dispatch-4         	10391678	        21.98 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=2048 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/raw-AVX2-4         	15943070	        15.03 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=3 stride=2048 path=native-AVX2
+BenchmarkDCTFourAVX2/stride2048/native-AVX2 14000000 10.7687 ns/op
+native-dct-corpus stride=2048 fnv64=7857315bf447fd23
+# sample=4 stride=8 path=native-AVX2
+BenchmarkDCTFourAVX2/stride8/native-AVX2 14000000 11.1079 ns/op
+native-dct-corpus stride=8 fnv64=b30392e88e291ed2
+# sample=4 stride=8 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/raw-AVX2-4         	15402498	        14.46 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=8 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/dispatch-4         	11058039	        22.53 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=8 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/old-SSE2-4         	 6521750	        38.05 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=64 path=native-AVX2
+BenchmarkDCTFourAVX2/stride64/native-AVX2 14000000 10.1688 ns/op
+native-dct-corpus stride=64 fnv64=735fa3f800503c1b
+# sample=4 stride=64 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/raw-AVX2-4         	16080374	        14.66 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=64 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/dispatch-4         	10372551	        22.78 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=64 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/old-SSE2-4         	 6752835	        35.81 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=2048 path=native-AVX2
+BenchmarkDCTFourAVX2/stride2048/native-AVX2 14000000 9.5455 ns/op
+native-dct-corpus stride=2048 fnv64=7857315bf447fd23
+# sample=4 stride=2048 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/raw-AVX2-4         	16456122	        14.74 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=2048 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/dispatch-4         	 9908407	        23.25 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=4 stride=2048 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/old-SSE2-4         	 6461557	        39.20 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=8 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/old-SSE2-4         	 6262021	        37.16 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=8 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/dispatch-4         	10277096	        23.23 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=8 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/raw-AVX2-4         	14693118	        14.02 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=8 path=native-AVX2
+BenchmarkDCTFourAVX2/stride8/native-AVX2 14000000 8.7291 ns/op
+native-dct-corpus stride=8 fnv64=b30392e88e291ed2
+# sample=5 stride=64 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/old-SSE2-4         	 6619412	        35.08 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=64 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/dispatch-4         	10703522	        22.86 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=64 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/raw-AVX2-4         	17149396	        14.11 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=64 path=native-AVX2
+BenchmarkDCTFourAVX2/stride64/native-AVX2 14000000 8.9920 ns/op
+native-dct-corpus stride=64 fnv64=735fa3f800503c1b
+# sample=5 stride=2048 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/old-SSE2-4         	 6497718	        35.54 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=2048 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/dispatch-4         	11637334	        22.74 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=2048 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/raw-AVX2-4         	16418438	        14.37 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=5 stride=2048 path=native-AVX2
+BenchmarkDCTFourAVX2/stride2048/native-AVX2 14000000 9.0981 ns/op
+native-dct-corpus stride=2048 fnv64=7857315bf447fd23
+# sample=6 stride=8 path=native-AVX2
+BenchmarkDCTFourAVX2/stride8/native-AVX2 14000000 9.4354 ns/op
+native-dct-corpus stride=8 fnv64=b30392e88e291ed2
+# sample=6 stride=8 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/raw-AVX2-4         	17381533	        13.87 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=8 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/dispatch-4         	11368825	        22.12 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=8 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride8/old-SSE2-4         	 6441204	        37.47 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=64 path=native-AVX2
+BenchmarkDCTFourAVX2/stride64/native-AVX2 14000000 10.4324 ns/op
+native-dct-corpus stride=64 fnv64=735fa3f800503c1b
+# sample=6 stride=64 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/raw-AVX2-4         	14504840	        15.21 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=64 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/dispatch-4         	11483119	        21.74 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=64 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride64/old-SSE2-4         	 6807240	        35.76 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=2048 path=native-AVX2
+BenchmarkDCTFourAVX2/stride2048/native-AVX2 14000000 9.0235 ns/op
+native-dct-corpus stride=2048 fnv64=7857315bf447fd23
+# sample=6 stride=2048 path=raw-AVX2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/raw-AVX2-4         	15399508	        15.25 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=2048 path=dispatch
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/dispatch-4         	10187113	        21.40 ns/op	       0 B/op	       0 allocs/op
+PASS
+# sample=6 stride=2048 path=old-SSE2
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDCTFourAVX2/stride2048/old-SSE2-4         	 6837002	        41.22 ns/op	       0 B/op	       0 allocs/op
+PASS

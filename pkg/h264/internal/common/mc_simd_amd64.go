@@ -86,6 +86,7 @@ func McHorVer20_sse2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, 
 	dstBlock := simdBlockSlice(pDst, iDstOff, iDstStride, width, height)
 	srcStart := iSrcOff - 2
 	srcEnd := iSrcOff + (height-1)*int(iSrcStride) + width + 3
+	checkSIMDSpan(pSrc, int64(srcStart), int64(srcEnd)-1)
 	srcBlock := pSrc[srcStart:srcEnd]
 	mcHorVer20SSE2(dstBlock, int(iDstStride), srcBlock[2:], int(iSrcStride), width, height)
 }
@@ -104,6 +105,7 @@ func McHorVer02_sse2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, 
 	dstBlock := simdBlockSlice(pDst, iDstOff, iDstStride, width, height)
 	srcStart := iSrcOff - 2*stride
 	srcEnd := iSrcOff + (height+2)*stride + width
+	checkSIMDSpan(pSrc, int64(srcStart), int64(srcEnd)-1)
 	srcBlock := pSrc[srcStart:srcEnd]
 	mcHorVer02SSE2(dstBlock, int(iDstStride), srcBlock[2*stride:], stride, width, height)
 }
@@ -128,6 +130,7 @@ func McHorVer22_sse2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, 
 	dstBlock := simdBlockSlice(pDst, iDstOff, iDstStride, width, height)
 	srcStart := iSrcOff - 2*stride - 2
 	srcEnd := iSrcOff + (height+2)*stride + width + 3
+	checkSIMDSpan(pSrc, int64(srcStart), int64(srcEnd)-1)
 	srcBlock := pSrc[srcStart:srcEnd]
 
 	const tapStride = 24

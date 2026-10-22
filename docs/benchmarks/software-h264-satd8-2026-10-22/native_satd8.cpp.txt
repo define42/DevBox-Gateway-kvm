@@ -1,0 +1,48 @@
+// Matches BenchmarkSampleSatd8Rows/plain in sample_satd8_bench_amd64_test.go.
+// Native calls its unchecked, shape-specific AVX2 entry directly. Go's raw
+// benchmark calls its generic private assembly entry through the Go ABI;
+// checked Go measurements additionally include its visible-length checks.
+#include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+
+extern "C" int32_t WelsSampleSatd8x8_avx2(uint8_t*, int32_t, uint8_t*, int32_t);
+extern "C" int32_t WelsSampleSatd8x16_avx2(uint8_t*, int32_t, uint8_t*, int32_t);
+extern "C" int32_t WelsSampleSatd16x8_avx2(uint8_t*, int32_t, uint8_t*, int32_t);
+extern "C" int32_t WelsSampleSatd16x16_avx2(uint8_t*, int32_t, uint8_t*, int32_t);
+
+static volatile int32_t sink;
+using Satd = int32_t (*)(uint8_t*, int32_t, uint8_t*, int32_t);
+
+template <Satd Function>
+static void measure(const char* size, int iterations) {
+  uint8_t src[32 * 16 + 7], ref[32 * 16 + 7];
+  for (size_t i = 0; i < sizeof(src); ++i) {
+    src[i] = uint8_t(i * 17 + 5);
+    ref[i] = uint8_t(i * 29 + 3);
+  }
+  int32_t result = 0;
+  for (int i = 0; i < 100000; ++i) {
+    result = Function(src + 3, 32, ref + 7, 32);
+  }
+  const auto start = std::chrono::steady_clock::now();
+  for (int i = 0; i < iterations; ++i) {
+    result = Function(src + 3, 32, ref + 7, 32);
+  }
+  const auto elapsed = std::chrono::duration<double, std::nano>(
+      std::chrono::steady_clock::now() - start).count();
+  sink = result;
+  std::printf("BenchmarkSampleSatd8Rows/plain/%s/raw %d %.4f ns/op\n",
+              size, iterations, elapsed / iterations);
+  std::printf("# native fixed-fixture SATD %s = %d\n", size, result);
+}
+
+int main(int argc, char** argv) {
+  const int iterations = argc > 1 ? std::atoi(argv[1]) : 3000000;
+  if (iterations < 1) return 2;
+  measure<WelsSampleSatd8x8_avx2>("8x8", iterations);
+  measure<WelsSampleSatd8x16_avx2>("8x16", iterations);
+  measure<WelsSampleSatd16x8_avx2>("16x8", iterations);
+  measure<WelsSampleSatd16x16_avx2>("16x16", iterations);
+}

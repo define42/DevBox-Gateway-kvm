@@ -36,19 +36,27 @@ func (s *sCavlcBs) uninit(pBs *common.SBitStringAux) {
 }
 
 // CAVLC_BS_WRITE( n,  v ) (n is modified by the macro only in its local copy here;
-// the callers never read n afterwards).
+// the callers never read n afterwards). Symbol lengths are nonnegative.
 func (s *sCavlcBs) write(n int32, v int32) {
 	if n < s.iLeftBits {
-		s.uiCurBits = (s.uiCurBits << uint(n)) | uint32(v)
+		s.uiCurBits = (s.uiCurBits << n) | uint32(v)
 		s.iLeftBits -= n
 	} else {
-		n -= s.iLeftBits
-		s.uiCurBits = (s.uiCurBits << uint(s.iLeftBits)) | uint32(v>>uint(n))
-		common.WRITE_BE_32(s.pBuf, s.pBufPtr, s.uiCurBits)
-		s.pBufPtr += 4
-		s.uiCurBits = uint32(v & ((1 << uint(n)) - 1))
-		s.iLeftBits = 32 - n
+		s.flush(n, v)
 	}
+}
+
+// Keep word emission outside write so the common bit-accumulation path can be
+// inlined at each CAVLC symbol. Signed shifts match the original writer.
+//
+//go:noinline
+func (s *sCavlcBs) flush(n int32, v int32) {
+	n -= s.iLeftBits
+	s.uiCurBits = (s.uiCurBits << uint(s.iLeftBits)) | uint32(v>>uint(n))
+	common.WRITE_BE_32(s.pBuf, s.pBufPtr, s.uiCurBits)
+	s.pBufPtr += 4
+	s.uiCurBits = uint32(v & ((1 << uint(n)) - 1))
+	s.iLeftBits = 32 - n
 }
 
 func CavlcParamCal_c(pCoffLevel []int16, pRun []uint8, pLevel []int16, pTotalCoeff *int32, iLastIndex int32) int32 {
@@ -95,9 +103,13 @@ func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iE
 
 	if iCalRunLevelFlag != 0 {
 		iCount := int32(0)
-		// The direct call keeps these per-block run and level buffers on the
-		// stack. Scalar extraction is faster than mask enumeration here.
-		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+		// The scratch arrays are private to this call. A direct, noescape
+		// SIMD call keeps them on the stack and extracts four levels at once.
+		if cavlcExtractSupported(pCoffLevel, iEndIdx) {
+			iTotalZeros = cavlcExtractSSSE3((*[16]int16)(pCoffLevel), &uiRun, &iLevel, &iTotalCoeffs, iEndIdx)
+		} else {
+			iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+		}
 		if iTotalCoeffs > 3 {
 			iCount = 3
 		} else {

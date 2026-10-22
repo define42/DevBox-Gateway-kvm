@@ -1,0 +1,22 @@
+                         │ /tmp/h264-native-parity-20261021/dct-native-AVX2.txt │ /tmp/h264-native-parity-20261021/dct-raw-AVX2.txt │
+                         │                        sec/op                        │           sec/op            vs base               │
+DCTFourAVX2/stride8-4                                              9.090n ± 22%                 14.235n ± 4%  +56.60% (p=0.002 n=6)
+DCTFourAVX2/stride64-4                                             9.286n ± 12%                 14.830n ± 5%  +59.71% (p=0.002 n=6)
+DCTFourAVX2/stride2048-4                                           9.144n ± 18%                 14.885n ± 3%  +62.78% (p=0.002 n=6)
+geomean                                                            9.173n                        14.65n       +59.68%
+
+                         │ /tmp/h264-native-parity-20261021/dct-raw-AVX2.txt │
+                         │                       B/op                        │
+DCTFourAVX2/stride8-4                                           0.000 ± 0%
+DCTFourAVX2/stride64-4                                          0.000 ± 0%
+DCTFourAVX2/stride2048-4                                        0.000 ± 0%
+geomean                                                                    ¹
+¹ summaries must be >0 to compute geomean
+
+                         │ /tmp/h264-native-parity-20261021/dct-raw-AVX2.txt │
+                         │                     allocs/op                     │
+DCTFourAVX2/stride8-4                                           0.000 ± 0%
+DCTFourAVX2/stride64-4                                          0.000 ± 0%
+DCTFourAVX2/stride2048-4                                        0.000 ± 0%
+geomean                                                                    ¹
+¹ summaries must be >0 to compute geomean

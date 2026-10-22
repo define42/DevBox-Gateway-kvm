@@ -1,0 +1,103 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                 │ /tmp/h264-round4-20261021/halfpel-component-before.txt │ /tmp/h264-round4-20261021/halfpel-component-after.txt │
+                                 │                         sec/op                         │             sec/op              vs base               │
+McAVX2RawHorizontal/width8-4                                                165.55n ±  3%                     86.37n ±  3%  -47.83% (p=0.002 n=6)
+McAVX2RawHorizontal/width16-4                                                325.3n ±  3%                     153.8n ±  8%  -52.74% (p=0.002 n=6)
+McAVX2RawHorizontal/width17-4                                                345.1n ± 20%                     181.1n ± 10%  -47.53% (p=0.002 n=6)
+McAVX2RawVertical/width13-4                                                  181.8n ±  2%                     177.9n ±  5%        ~ (p=0.485 n=6)
+McAVX2RawVertical/width21-4                                                  238.1n ±  3%                     194.1n ±  2%  -18.48% (p=0.002 n=6)
+McAVX2RawVertical/width22-4                                                  281.4n ±  2%                     234.5n ±  6%  -16.67% (p=0.002 n=6)
+McAVX2Halfpel/horizontal/8x8-4                                               43.78n ± 17%                     44.80n ±  4%        ~ (p=0.310 n=6)
+McAVX2Halfpel/vertical/8x8-4                                                 55.30n ± 10%                     54.44n ±  8%        ~ (p=0.937 n=6)
+McAVX2Halfpel/center/8x8-4                                                   184.2n ±  4%                     143.8n ± 13%  -21.95% (p=0.002 n=6)
+McAVX2Halfpel/horizontal/16x16-4                                            124.10n ± 25%                     89.12n ±  4%  -28.18% (p=0.002 n=6)
+McAVX2Halfpel/vertical/16x16-4                                               154.8n ±  3%                     108.0n ±  2%  -30.22% (p=0.002 n=6)
+McAVX2Halfpel/center/16x16-4                                                 525.5n ±  7%                     324.9n ±  3%  -38.18% (p=0.002 n=6)
+McAVX2Halfpel/horizontal/17x17-4                                             162.5n ±  9%                     132.3n ±  7%  -18.53% (p=0.002 n=6)
+McAVX2Halfpel/vertical/17x17-4                                               211.6n ±  7%                     169.1n ±  4%  -20.09% (p=0.002 n=6)
+McAVX2Halfpel/center/17x17-4                                                 645.3n ±  3%                     426.6n ± 53%  -33.90% (p=0.026 n=6)
+McAVX2LumaQuarterpel/phase10-4                                               199.8n ±  3%                     170.2n ±  2%  -14.79% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase11-4                                               361.5n ± 16%                     275.3n ±  7%  -23.83% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase12-4                                               749.9n ± 11%                     508.1n ±  2%  -32.26% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase21-4                                               717.5n ±  5%                     498.4n ±  3%  -30.55% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase33-4                                               349.9n ±  2%                     277.1n ±  5%  -20.79% (p=0.002 n=6)
+geomean                                                                      236.8n                           174.3n        -26.39%
+
+                                 │ /tmp/h264-round4-20261021/halfpel-component-before.txt │ /tmp/h264-round4-20261021/halfpel-component-after.txt │
+                                 │                          B/s                           │              B/s               vs base                │
+McAVX2RawHorizontal/width8-4                                                783.3Mi ±  3%                  1501.7Mi ±  3%   +91.71% (p=0.002 n=6)
+McAVX2RawHorizontal/width16-4                                               797.3Mi ±  3%                  1688.1Mi ±  7%  +111.73% (p=0.002 n=6)
+McAVX2RawHorizontal/width17-4                                               798.5Mi ± 17%                  1522.0Mi ±  9%   +90.60% (p=0.002 n=6)
+McAVX2RawVertical/width13-4                                                 1.132Gi ±  2%                   1.157Gi ±  5%         ~ (p=0.485 n=6)
+McAVX2RawVertical/width21-4                                                 1.397Gi ±  3%                   1.714Gi ±  2%   +22.69% (p=0.002 n=6)
+McAVX2RawVertical/width22-4                                                 1.238Gi ±  2%                   1.486Gi ±  6%   +20.03% (p=0.002 n=6)
+McAVX2Halfpel/horizontal/8x8-4                                              1.362Gi ± 14%                   1.331Gi ±  4%         ~ (p=0.310 n=6)
+McAVX2Halfpel/vertical/8x8-4                                                1.078Gi ±  9%                   1.095Gi ±  7%         ~ (p=0.937 n=6)
+McAVX2Halfpel/center/8x8-4                                                  331.3Mi ±  4%                   424.5Mi ± 11%   +28.13% (p=0.002 n=6)
+McAVX2Halfpel/horizontal/16x16-4                                            1.921Gi ± 20%                   2.675Gi ±  4%   +39.23% (p=0.002 n=6)
+McAVX2Halfpel/vertical/16x16-4                                              1.539Gi ±  3%                   2.206Gi ±  2%   +43.31% (p=0.002 n=6)
+McAVX2Halfpel/center/16x16-4                                                465.0Mi ±  7%                   751.6Mi ±  3%   +61.63% (p=0.002 n=6)
+McAVX2Halfpel/horizontal/17x17-4                                            1.657Gi ±  8%                   2.035Gi ±  7%   +22.81% (p=0.002 n=6)
+McAVX2Halfpel/vertical/17x17-4                                              1.272Gi ±  7%                   1.592Gi ±  4%   +25.16% (p=0.002 n=6)
+McAVX2Halfpel/center/17x17-4                                                427.1Mi ±  3%                   646.1Mi ± 35%   +51.28% (p=0.026 n=6)
+McAVX2LumaQuarterpel/phase10-4                                              1.193Gi ±  3%                   1.401Gi ±  2%   +17.36% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase11-4                                              675.5Mi ± 14%                   887.0Mi ±  7%   +31.32% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase12-4                                              325.5Mi ± 10%                   480.5Mi ±  2%   +47.61% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase21-4                                              340.3Mi ±  5%                   489.9Mi ±  3%   +43.97% (p=0.002 n=6)
+McAVX2LumaQuarterpel/phase33-4                                              697.7Mi ±  2%                   881.1Mi ±  6%   +26.28% (p=0.002 n=6)
+geomean                                                                     857.7Mi                         1.138Gi         +35.86%
+
+                                 │ /tmp/h264-round4-20261021/halfpel-component-before.txt │ /tmp/h264-round4-20261021/halfpel-component-after.txt │
+                                 │                          B/op                          │             B/op               vs base                │
+McAVX2RawHorizontal/width8-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawHorizontal/width16-4                                                0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawHorizontal/width17-4                                                0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawVertical/width13-4                                                  0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawVertical/width21-4                                                  0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawVertical/width22-4                                                  0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/horizontal/8x8-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/vertical/8x8-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/center/8x8-4                                                   0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/horizontal/16x16-4                                             0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/vertical/16x16-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/center/16x16-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/horizontal/17x17-4                                             0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/vertical/17x17-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/center/17x17-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase10-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase11-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase12-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase21-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase33-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                 ²                                  +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                 │ /tmp/h264-round4-20261021/halfpel-component-before.txt │ /tmp/h264-round4-20261021/halfpel-component-after.txt │
+                                 │                       allocs/op                        │           allocs/op            vs base                │
+McAVX2RawHorizontal/width8-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawHorizontal/width16-4                                                0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawHorizontal/width17-4                                                0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawVertical/width13-4                                                  0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawVertical/width21-4                                                  0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2RawVertical/width22-4                                                  0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/horizontal/8x8-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/vertical/8x8-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/center/8x8-4                                                   0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/horizontal/16x16-4                                             0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/vertical/16x16-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/center/16x16-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/horizontal/17x17-4                                             0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/vertical/17x17-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2Halfpel/center/17x17-4                                                 0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase10-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase11-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase12-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase21-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McAVX2LumaQuarterpel/phase33-4                                               0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                 ²                                  +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

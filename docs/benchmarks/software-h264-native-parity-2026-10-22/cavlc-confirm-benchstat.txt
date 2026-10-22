@@ -1,0 +1,91 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                             │ /tmp/h264-native-parity-20261021/cavlc-confirm-scalar.txt │ /tmp/h264-native-parity-20261021/cavlc-confirm-simd.txt │
+                                             │                          sec/op                           │              sec/op               vs base               │
+CavlcExtractionResidual/end3/zero-4                                                        23.21n ± 344%                       24.36n ±  3%        ~ (p=0.093 n=6)
+CavlcExtractionResidual/end3/dc-4                                                          35.72n ± 301%                       35.20n ± 15%        ~ (p=0.485 n=6)
+CavlcExtractionResidual/end3/sparse-low-4                                                  49.29n ± 325%                       50.72n ±  6%        ~ (p=0.781 n=6)
+CavlcExtractionResidual/end3/sparse-wide-4                                                 44.01n ± 286%                       44.37n ±  5%        ~ (p=0.937 n=6)
+CavlcExtractionResidual/end3/medium-4                                                      41.29n ± 339%                       40.19n ±  6%        ~ (p=0.132 n=6)
+CavlcExtractionResidual/end3/nearly-dense-4                                                42.53n ± 301%                       42.08n ±  4%        ~ (p=0.589 n=6)
+CavlcExtractionResidual/end3/one-zero-4                                                    42.24n ± 326%                       43.51n ±  5%        ~ (p=0.937 n=6)
+CavlcExtractionResidual/end3/dense-4                                                       40.31n ± 322%                       42.74n ±  4%        ~ (p=0.310 n=6)
+CavlcExtractionResidual/end14/zero-4                                                       31.59n ± 310%                       24.67n ± 21%  -21.89% (p=0.002 n=6)
+CavlcExtractionResidual/end14/dc-4                                                         40.54n ± 255%                       36.84n ±  5%   -9.13% (p=0.002 n=6)
+CavlcExtractionResidual/end14/sparse-low-4                                                 57.69n ±  42%                       50.97n ±  7%  -11.64% (p=0.002 n=6)
+CavlcExtractionResidual/end14/sparse-wide-4                                                60.40n ±   4%                       55.88n ±  6%   -7.48% (p=0.015 n=6)
+CavlcExtractionResidual/end14/medium-4                                                    105.05n ±   6%                       99.91n ±  4%   -4.90% (p=0.041 n=6)
+CavlcExtractionResidual/end14/nearly-dense-4                                               141.4n ±   6%                       137.3n ±  5%        ~ (p=0.331 n=6)
+CavlcExtractionResidual/end14/one-zero-4                                                   140.2n ±   4%                       145.8n ±  9%        ~ (p=0.143 n=6)
+CavlcExtractionResidual/end14/dense-4                                                      122.4n ±   5%                       105.0n ± 10%  -14.25% (p=0.002 n=6)
+CavlcExtractionResidual/end15/zero-4                                                       33.15n ±   3%                       25.00n ±  4%  -24.59% (p=0.002 n=6)
+CavlcExtractionResidual/end15/dc-4                                                         41.91n ±   3%                       35.87n ±  5%  -14.42% (p=0.002 n=6)
+CavlcExtractionResidual/end15/sparse-low-4                                                 56.52n ±   5%                       51.70n ±  4%   -8.54% (p=0.002 n=6)
+CavlcExtractionResidual/end15/sparse-wide-4                                                71.65n ±   5%                       65.79n ±  8%   -8.19% (p=0.015 n=6)
+CavlcExtractionResidual/end15/medium-4                                                     107.8n ±  11%                       101.2n ±  4%   -6.03% (p=0.015 n=6)
+CavlcExtractionResidual/end15/nearly-dense-4                                               140.2n ±  19%                       139.3n ±  4%        ~ (p=0.485 n=6)
+CavlcExtractionResidual/end15/one-zero-4                                                   154.6n ±  47%                       137.7n ± 12%  -10.99% (p=0.009 n=6)
+CavlcExtractionResidual/end15/dense-4                                                      121.4n ±   5%                       104.4n ± 14%  -13.97% (p=0.004 n=6)
+geomean                                                                                    61.83n                              57.93n         -6.31%
+
+                                             │ /tmp/h264-native-parity-20261021/cavlc-confirm-scalar.txt │ /tmp/h264-native-parity-20261021/cavlc-confirm-simd.txt │
+                                             │                           B/op                            │              B/op                vs base                │
+CavlcExtractionResidual/end3/zero-4                                                         0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dc-4                                                           0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-low-4                                                   0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-wide-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/medium-4                                                       0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/nearly-dense-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/one-zero-4                                                     0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dense-4                                                        0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/zero-4                                                        0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dc-4                                                          0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-low-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-wide-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/medium-4                                                      0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/nearly-dense-4                                                0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/one-zero-4                                                    0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dense-4                                                       0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/zero-4                                                        0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dc-4                                                          0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-low-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-wide-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/medium-4                                                      0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/nearly-dense-4                                                0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/one-zero-4                                                    0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dense-4                                                       0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                ²                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                             │ /tmp/h264-native-parity-20261021/cavlc-confirm-scalar.txt │ /tmp/h264-native-parity-20261021/cavlc-confirm-simd.txt │
+                                             │                         allocs/op                         │            allocs/op             vs base                │
+CavlcExtractionResidual/end3/zero-4                                                         0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dc-4                                                           0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-low-4                                                   0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-wide-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/medium-4                                                       0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/nearly-dense-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/one-zero-4                                                     0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dense-4                                                        0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/zero-4                                                        0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dc-4                                                          0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-low-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-wide-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/medium-4                                                      0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/nearly-dense-4                                                0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/one-zero-4                                                    0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dense-4                                                       0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/zero-4                                                        0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dc-4                                                          0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-low-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-wide-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/medium-4                                                      0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/nearly-dense-4                                                0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/one-zero-4                                                    0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dense-4                                                       0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                ²                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

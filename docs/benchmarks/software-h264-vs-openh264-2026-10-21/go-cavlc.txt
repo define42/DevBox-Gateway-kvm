@@ -1,0 +1,152 @@
+Total: 10.72s
+ROUTINE ======================== github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.CavlcParamCal_c in /home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+     380ms      380ms (flat, cum)  3.54% of Total
+         .          .     62:func CavlcParamCal_c(pCoffLevel []int16, pRun []uint8, pLevel []int16, pTotalCoeff *int32, iLastIndex int32) int32 {
+         .          .     63:	iTotalZeros := int32(0)
+         .          .     64:	iTotalCoeffs := int32(0)
+         .          .     65:
+     140ms      140ms     66:	for iLastIndex >= 0 && pCoffLevel[iLastIndex] == 0 {
+      10ms       10ms     67:		iLastIndex--
+         .          .     68:	}
+         .          .     69:
+         .          .     70:	for iLastIndex >= 0 {
+         .          .     71:		iCountZero := int32(0)
+      20ms       20ms     72:		pLevel[iTotalCoeffs] = pCoffLevel[iLastIndex]
+      20ms       20ms     73:		iLastIndex--
+         .          .     74:
+     130ms      130ms     75:		for iLastIndex >= 0 && pCoffLevel[iLastIndex] == 0 {
+         .          .     76:			iCountZero++
+         .          .     77:			iLastIndex--
+         .          .     78:		}
+      30ms       30ms     79:		iTotalZeros += iCountZero
+      20ms       20ms     80:		pRun[iTotalCoeffs] = uint8(iCountZero)
+         .          .     81:		iTotalCoeffs++
+         .          .     82:	}
+      10ms       10ms     83:	*pTotalCoeff = iTotalCoeffs
+         .          .     84:	return iTotalZeros
+         .          .     85:}
+         .          .     86:
+         .          .     87:func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
+         .          .     88:	var iLevel [16]int16
+ROUTINE ======================== github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WriteBlockResidualCavlc in /home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+     600ms      1.25s (flat, cum) 11.66% of Total
+      30ms       30ms     87:func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
+      10ms       10ms     88:	var iLevel [16]int16
+         .          .     89:	var uiRun [16]uint8
+         .          .     90:
+         .          .     91:	iTotalCoeffs := int32(0)
+         .          .     92:	iTrailingOnes := int32(0)
+         .          .     93:	iTotalZeros, iZerosLeft := int32(0), int32(0)
+         .          .     94:	uiSign := uint32(0)
+         .          .     95:	var uiSuffixLength int32
+         .          .     96:	var iValue, iZeroLeft int32
+         .          .     97:	var n int32
+         .          .     98:	var i int32
+         .          .     99:
+     210ms      250ms    100:	bs := cavlcBsInit(pBs)
+         .          .    101:
+         .          .    102:	/*Step 1: calculate iLevel and iRun and total */
+         .          .    103:
+      20ms       20ms    104:	if iCalRunLevelFlag != 0 {
+         .          .    105:		iCount := int32(0)
+         .          .    106:		// The direct call keeps these per-block run and level buffers on the
+         .          .    107:		// stack. Scalar extraction is faster than mask enumeration here.
+         .      380ms    108:		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+      30ms       30ms    109:		if iTotalCoeffs > 3 {
+         .          .    110:			iCount = 3
+         .          .    111:		} else {
+         .          .    112:			iCount = iTotalCoeffs
+         .          .    113:		}
+         .          .    114:		for i = 0; i < iCount; i++ {
+      20ms       40ms    115:			if common.WELS_ABS(int32(iLevel[i])) == 1 {
+         .          .    116:				iTrailingOnes++
+         .          .    117:				uiSign <<= 1
+      10ms       10ms    118:				if iLevel[i] < 0 {
+         .          .    119:					uiSign |= 1
+         .          .    120:				}
+         .          .    121:			} else {
+         .          .    122:				break
+         .          .    123:			}
+         .          .    124:		}
+         .          .    125:	}
+         .          .    126:	/*Step 3: coeff token */
+     110ms      110ms    127:	upCoeffToken := &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[iNC]][iTotalCoeffs][iTrailingOnes]
+      10ms       10ms    128:	iValue = int32(upCoeffToken[0])
+      20ms       20ms    129:	n = int32(upCoeffToken[1])
+         .          .    130:
+      10ms       10ms    131:	if iTotalCoeffs == 0 {
+         .       70ms    132:		bs.write(n, iValue)
+         .          .    133:
+         .          .    134:		bs.uninit(pBs)
+         .          .    135:		return ENC_RETURN_SUCCESS
+         .          .    136:	}
+         .          .    137:
+         .          .    138:	/* Step 4: */
+         .          .    139:	/*  trailing */
+      10ms       10ms    140:	n += iTrailingOnes
+         .          .    141:	iValue = int32(uint32(iValue<<uint(iTrailingOnes)) + uiSign)
+         .       20ms    142:	bs.write(n, iValue)
+         .          .    143:
+         .          .    144:	/*  levels */
+         .          .    145:	if iTotalCoeffs > 10 && iTrailingOnes < 3 {
+         .          .    146:		uiSuffixLength = 1
+         .          .    147:	} else {
+         .          .    148:		uiSuffixLength = 0
+         .          .    149:	}
+         .          .    150:
+         .          .    151:	// The first non-trailing level has a distinct code adjustment. Keeping
+         .          .    152:	// both forms in the small table also supplies the next suffix length.
+         .          .    153:	adjustment := 0
+         .          .    154:	if iTrailingOnes < 3 {
+         .          .    155:		adjustment = 1
+         .          .    156:	}
+      10ms       10ms    157:	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
+      10ms       10ms    158:		value := int32(iLevel[i])
+         .          .    159:		var symbol cavlcLevelSymbol
+         .          .    160:		if index := uint32(value + cavlcLevelLimit); index < 2*cavlcLevelLimit {
+      30ms       30ms    161:			symbol = cavlcLevelTable[adjustment][uiSuffixLength][index]
+         .          .    162:		} else {
+         .          .    163:			var ok bool
+         .          .    164:			symbol, ok = cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
+         .          .    165:			if !ok {
+         .          .    166:				return ENC_RETURN_VLCOVERFLOWFOUND
+         .          .    167:			}
+         .          .    168:		}
+         .       20ms    169:		bs.write(int32(symbol.length), int32(symbol.code))
+         .          .    170:		uiSuffixLength = int32(symbol.nextSuffix)
+         .          .    171:		adjustment = 0
+         .          .    172:	}
+         .          .    173:
+         .          .    174:	/* Step 5: total zeros */
+         .          .    175:
+         .          .    176:	if iTotalCoeffs < iEndIdx+1 {
+         .          .    177:		if int32(CHROMA_DC) != iResidualProperty {
+      10ms       10ms    178:			upTotalZeros := &g_kuiVlcTotalZeros[iTotalCoeffs][iTotalZeros]
+      10ms       10ms    179:			n = int32(upTotalZeros[1])
+         .          .    180:			iValue = int32(upTotalZeros[0])
+         .       60ms    181:			bs.write(n, iValue)
+         .          .    182:		} else {
+      20ms       20ms    183:			upTotalZeros := &g_kuiVlcTotalZerosChromaDc[iTotalCoeffs][iTotalZeros]
+         .          .    184:			n = int32(upTotalZeros[1])
+         .          .    185:			iValue = int32(upTotalZeros[0])
+         .          .    186:			bs.write(n, iValue)
+         .          .    187:		}
+         .          .    188:	}
+         .          .    189:
+         .          .    190:	/* Step 6: pRun before */
+         .          .    191:	iZerosLeft = iTotalZeros
+      10ms       10ms    192:	for i = 0; i+1 < iTotalCoeffs && iZerosLeft > 0; i++ {
+      10ms       10ms    193:		uirun := uiRun[i]
+         .          .    194:		iZeroLeft = int32(g_kuiZeroLeftMap[iZerosLeft])
+         .          .    195:		n = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][1])
+         .          .    196:		iValue = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][0])
+         .       30ms    197:		bs.write(n, iValue)
+         .          .    198:		iZerosLeft -= int32(uirun)
+         .          .    199:	}
+         .          .    200:
+         .       10ms    201:	bs.uninit(pBs)
+         .          .    202:	return ENC_RETURN_SUCCESS
+         .          .    203:}
+         .          .    204:
+         .          .    205:func StashMBStatusCavlc(pDss *SDynamicSlicingStack, pSlice *SSlice, iMbSkipRun int32) {
+         .          .    206:	pBs := pSlice.pSliceBsa

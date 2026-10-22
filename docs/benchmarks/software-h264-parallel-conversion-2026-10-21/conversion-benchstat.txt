@@ -1,0 +1,39 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                            │ conversion-1.txt │          conversion-2.txt          │          conversion-4.txt           │
+                            │      sec/op      │   sec/op     vs base               │    sec/op     vs base               │
+I420Parallel/Native1080p-4       1500.0µ ±  2%   869.7µ ± 2%  -42.02% (p=0.002 n=6)   612.2µ ± 11%  -59.19% (p=0.002 n=6)
+I420Parallel/Scaled1080p-4        3.566m ± 14%   1.865m ± 2%  -47.71% (p=0.002 n=6)   1.356m ± 14%  -61.97% (p=0.002 n=6)
+I420Parallel/Partial1080p-4       613.4µ ±  2%   403.3µ ± 6%  -34.25% (p=0.002 n=6)   273.5µ ±  3%  -55.41% (p=0.002 n=6)
+I420Parallel/Widget1080p-4        1.708µ ±  5%   1.720µ ± 3%        ~ (p=0.416 n=6)   1.717µ ±  2%        ~ (p=0.561 n=6)
+geomean                           273.6µ         183.1µ       -33.06%                 140.5µ        -48.64%
+
+                            │ conversion-1.txt │          conversion-2.txt           │            conversion-4.txt            │
+                            │       B/s        │     B/s       vs base               │      B/s        vs base                │
+I420Parallel/Native1080p-4       5.150Gi ±  2%   8.883Gi ± 2%  +72.49% (p=0.002 n=6)   12.619Gi ± 10%  +145.05% (p=0.002 n=6)
+I420Parallel/Scaled1080p-4       2.166Gi ± 12%   4.143Gi ± 2%  +91.23% (p=0.002 n=6)    5.697Gi ± 16%  +162.98% (p=0.002 n=6)
+I420Parallel/Partial1080p-4      4.789Gi ±  2%   7.288Gi ± 6%  +52.19% (p=0.002 n=6)   10.741Gi ±  3%  +124.29% (p=0.002 n=6)
+I420Parallel/Widget1080p-4       4.468Gi ±  5%   4.436Gi ± 3%        ~ (p=0.394 n=6)    4.444Gi ±  1%         ~ (p=0.589 n=6)
+geomean                          3.931Gi         5.873Gi       +49.42%                  7.654Gi         +94.72%
+
+                            │ conversion-1.txt │        conversion-2.txt        │        conversion-4.txt        │
+                            │       B/op       │    B/op      vs base           │    B/op      vs base           │
+I420Parallel/Native1080p-4          0.0 ± 0%     133.0 ± 22%  ? (p=0.002 n=6)     333.0 ± 17%  ? (p=0.002 n=6)
+I420Parallel/Scaled1080p-4          0.0 ± 0%     124.0 ±  0%  ? (p=0.002 n=6)     332.0 ±  0%  ? (p=0.002 n=6)
+I420Parallel/Partial1080p-4         0.0 ± 0%     124.0 ±  0%  ? (p=0.002 n=6)     332.0 ±  0%  ? (p=0.002 n=6)
+I420Parallel/Widget1080p-4        0.000 ± 0%     0.000 ±  0%  ~ (p=1.000 n=6) ¹   0.000 ±  0%  ~ (p=1.000 n=6) ¹
+geomean                                      ²                ?               ²                ?               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                            │ conversion-1.txt │       conversion-2.txt        │       conversion-4.txt        │
+                            │    allocs/op     │ allocs/op   vs base           │ allocs/op   vs base           │
+I420Parallel/Native1080p-4        0.000 ± 0%     4.000 ± 0%  ? (p=0.002 n=6)     8.000 ± 0%  ? (p=0.002 n=6)
+I420Parallel/Scaled1080p-4        0.000 ± 0%     4.000 ± 0%  ? (p=0.002 n=6)     8.000 ± 0%  ? (p=0.002 n=6)
+I420Parallel/Partial1080p-4       0.000 ± 0%     4.000 ± 0%  ? (p=0.002 n=6)     8.000 ± 0%  ? (p=0.002 n=6)
+I420Parallel/Widget1080p-4        0.000 ± 0%     0.000 ± 0%  ~ (p=1.000 n=6) ¹   0.000 ± 0%  ~ (p=1.000 n=6) ¹
+geomean                                      ²               ?               ²               ?               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

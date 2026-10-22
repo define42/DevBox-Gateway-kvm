@@ -1,0 +1,104 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                      │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                      │                       sec/op                       │           sec/op            vs base               │
+McAVX2Halfpel/horizontal/16x16/AVX2-4                                         93.16n ± 11%                 73.67n ± 14%  -20.92% (p=0.002 n=6)
+
+                                      │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                      │                        B/op                        │              B/op               vs base           │
+McAVX2Halfpel/horizontal/16x16/AVX2-4                                           0.000 ± 0%                       0.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                      │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                      │                     allocs/op                      │           allocs/op             vs base           │
+McAVX2Halfpel/horizontal/16x16/AVX2-4                                           0.000 ± 0%                       0.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                      │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                      │                        B/s                         │            B/s              vs base               │
+McAVX2Halfpel/horizontal/16x16/AVX2-4                                        2.559Gi ± 10%                3.238Gi ± 12%  +26.52% (p=0.002 n=6)
+
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+                                  │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                  │                       sec/op                       │           sec/op            vs base               │
+SampleSatdBlocks/8x8/scalar-4                                             155.1n ±  7%                 156.7n ±  4%        ~ (p=0.818 n=6)
+SampleSatdBlocks/8x8/sse41-4                                              55.19n ±  7%                 54.95n ±  8%        ~ (p=0.937 n=6)
+SampleSatdBlocks/8x8/avx2-4                                               37.42n ± 31%                 26.06n ±  4%  -30.35% (p=0.002 n=6)
+SampleSatdBlocks/16x8/scalar-4                                            328.1n ± 71%                 321.2n ±  4%        ~ (p=0.394 n=6)
+SampleSatdBlocks/16x8/sse41-4                                             115.9n ± 22%                 110.0n ± 29%        ~ (p=0.589 n=6)
+SampleSatdBlocks/16x8/avx2-4                                              38.08n ± 19%                 23.54n ± 12%  -38.20% (p=0.002 n=6)
+SampleSatdBlocks/8x16/scalar-4                                            321.2n ±  2%                 322.0n ±  8%        ~ (p=1.000 n=6)
+SampleSatdBlocks/8x16/sse41-4                                             112.0n ±  9%                 116.1n ±  5%        ~ (p=0.485 n=6)
+SampleSatdBlocks/8x16/avx2-4                                              61.73n ±  6%                 40.34n ±  9%  -34.65% (p=0.002 n=6)
+SampleSatdBlocks/16x16/scalar-4                                           637.6n ±  3%                 662.4n ±  7%        ~ (p=0.240 n=6)
+SampleSatdBlocks/16x16/sse41-4                                            225.8n ± 10%                 228.8n ± 11%        ~ (p=0.699 n=6)
+SampleSatdBlocks/16x16/avx2-4                                             60.34n ± 13%                 34.38n ± 17%  -43.04% (p=0.002 n=6)
+SampleAvgSatd/8x8/fused=false-4                                           65.17n ± 10%                 52.33n ±  6%  -19.71% (p=0.002 n=6)
+SampleAvgSatd/8x8/fused=true-4                                            39.80n ± 11%                 28.89n ±  7%  -27.43% (p=0.002 n=6)
+SampleAvgSatd/16x8/fused=false-4                                          70.05n ± 11%                 53.96n ±  5%  -22.96% (p=0.002 n=6)
+SampleAvgSatd/16x8/fused=true-4                                           39.23n ±  6%                 27.89n ± 11%  -28.89% (p=0.002 n=6)
+SampleAvgSatd/8x16/fused=false-4                                         114.20n ±  4%                 82.13n ±  7%  -28.08% (p=0.002 n=6)
+SampleAvgSatd/8x16/fused=true-4                                           62.49n ± 13%                 43.02n ± 11%  -31.16% (p=0.002 n=6)
+SampleAvgSatd/16x16/fused=false-4                                        116.10n ±  7%                 92.42n ±  7%  -20.39% (p=0.002 n=6)
+SampleAvgSatd/16x16/fused=true-4                                          61.41n ±  7%                 46.51n ±  6%  -24.28% (p=0.002 n=6)
+QuarterRefineFused/fused=false-4                                          492.9n ± 31%                 458.4n ± 34%        ~ (p=0.240 n=6)
+QuarterRefineFused/fused=true-4                                           407.6n ±  6%                 320.1n ± 13%  -21.46% (p=0.002 n=6)
+geomean                                                                   108.9n                       88.86n        -18.40%
+
+                                  │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                  │                        B/op                        │           B/op             vs base                │
+SampleSatdBlocks/8x8/scalar-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x8/sse41-4                                              0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x8/avx2-4                                               0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/scalar-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/sse41-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/avx2-4                                              0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/scalar-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/sse41-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/avx2-4                                              0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/scalar-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/sse41-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/avx2-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x8/fused=false-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x8/fused=true-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x8/fused=false-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x8/fused=true-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x16/fused=false-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x16/fused=true-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x16/fused=false-4                                         0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x16/fused=true-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFused/fused=false-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFused/fused=true-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                              ²                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                  │ /tmp/h264-native-parity-20261021/motion-before.txt │ /tmp/h264-native-parity-20261021/motion-after.txt │
+                                  │                     allocs/op                      │         allocs/op          vs base                │
+SampleSatdBlocks/8x8/scalar-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x8/sse41-4                                              0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x8/avx2-4                                               0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/scalar-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/sse41-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x8/avx2-4                                              0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/scalar-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/sse41-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/8x16/avx2-4                                              0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/scalar-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/sse41-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatdBlocks/16x16/avx2-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x8/fused=false-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x8/fused=true-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x8/fused=false-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x8/fused=true-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x16/fused=false-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/8x16/fused=true-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x16/fused=false-4                                         0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleAvgSatd/16x16/fused=true-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFused/fused=false-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFused/fused=true-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                              ²                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

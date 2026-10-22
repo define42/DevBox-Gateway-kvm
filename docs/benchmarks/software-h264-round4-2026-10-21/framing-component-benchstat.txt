@@ -1,0 +1,35 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                    │ /tmp/h264-round4-20261021/framing-component-before.txt │ /tmp/h264-round4-20261021/framing-component-after.txt │
+                                    │                         sec/op                         │             sec/op              vs base               │
+GraphicsFrameStream/bytes=65536-4                                              22.744µ ±  1%                     2.464µ ±  4%  -89.17% (p=0.002 n=6)
+GraphicsFrameStream/bytes=262144-4                                            139.428µ ± 21%                     9.125µ ± 19%  -93.46% (p=0.002 n=6)
+GraphicsFrameStream/bytes=1048576-4                                            518.91µ ± 12%                     34.96µ ±  5%  -93.26% (p=0.002 n=6)
+geomean                                                                         118.1µ                           9.229µ        -92.18%
+
+                                    │ /tmp/h264-round4-20261021/framing-component-before.txt │ /tmp/h264-round4-20261021/framing-component-after.txt │
+                                    │                          B/s                           │             B/s               vs base                 │
+GraphicsFrameStream/bytes=65536-4                                              2.684Gi ±  1%                 24.772Gi ±  4%   +823.13% (p=0.002 n=6)
+GraphicsFrameStream/bytes=262144-4                                             1.751Gi ± 26%                 26.760Gi ± 16%  +1428.01% (p=0.002 n=6)
+GraphicsFrameStream/bytes=1048576-4                                            1.882Gi ± 11%                 27.930Gi ±  4%  +1384.09% (p=0.002 n=6)
+geomean                                                                        2.068Gi                        26.46Gi        +1179.23%
+
+                                    │ /tmp/h264-round4-20261021/framing-component-before.txt │ /tmp/h264-round4-20261021/framing-component-after.txt │
+                                    │                          B/op                          │           B/op             vs base                    │
+GraphicsFrameStream/bytes=65536-4                                               144.0Ki ± 0%                0.0Ki ±   0%  -100.00% (p=0.002 n=6)
+GraphicsFrameStream/bytes=262144-4                                              528.0Ki ± 0%                0.0Ki ±   0%  -100.00% (p=0.002 n=6)
+GraphicsFrameStream/bytes=1048576-4                                         2113579.500 ± 0%                1.000 ± 100%  -100.00% (p=0.002 n=6)
+geomean                                                                         539.4Ki                                   ?                      ¹ ²
+¹ summaries must be >0 to compute geomean
+² ratios must be >0 to compute geomean
+
+                                    │ /tmp/h264-round4-20261021/framing-component-before.txt │ /tmp/h264-round4-20261021/framing-component-after.txt │
+                                    │                       allocs/op                        │         allocs/op          vs base                    │
+GraphicsFrameStream/bytes=65536-4                                                 2.000 ± 0%                  0.000 ± 0%  -100.00% (p=0.002 n=6)
+GraphicsFrameStream/bytes=262144-4                                                2.000 ± 0%                  0.000 ± 0%  -100.00% (p=0.002 n=6)
+GraphicsFrameStream/bytes=1048576-4                                               2.000 ± 0%                  0.000 ± 0%  -100.00% (p=0.002 n=6)
+geomean                                                                           2.000                                   ?                      ¹ ²
+¹ summaries must be >0 to compute geomean
+² ratios must be >0 to compute geomean

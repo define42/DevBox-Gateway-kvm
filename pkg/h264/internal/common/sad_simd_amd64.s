@@ -4,13 +4,13 @@
 // Copyright (c) 2026 Valery Chukalin. BSD-2-Clause; see LICENSE-go.264.
 
 #include "textflag.h"
-// func sad16x16(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad16x16(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad16x16(SB), NOSPLIT, $0-72
-	MOVQ   src_base+0(FP), AX
-	MOVQ   srcStride+24(FP), CX
-	MOVQ   ref_base+32(FP), DX
-	MOVQ   refStride+56(FP), BX
+TEXT ·sad16x16(SB), NOSPLIT, $0-40
+	MOVQ   src+0(FP), AX
+	MOVQ   srcStride+8(FP), CX
+	MOVQ   ref+16(FP), DX
+	MOVQ   refStride+24(FP), BX
 	PXOR   X0, X0
 	MOVOU  (AX), X1
 	MOVOU  (DX), X2
@@ -110,16 +110,16 @@ TEXT ·sad16x16(SB), NOSPLIT, $0-72
 	PSRLDQ $0x08, X1
 	PADDD  X1, X0
 	MOVQ   X0, AX
-	MOVQ   AX, ret+64(FP)
+	MOVQ   AX, ret+32(FP)
 	RET
 
-// func sad16x8(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad16x8(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad16x8(SB), NOSPLIT, $0-72
-	MOVQ   src_base+0(FP), AX
-	MOVQ   srcStride+24(FP), CX
-	MOVQ   ref_base+32(FP), DX
-	MOVQ   refStride+56(FP), BX
+TEXT ·sad16x8(SB), NOSPLIT, $0-40
+	MOVQ   src+0(FP), AX
+	MOVQ   srcStride+8(FP), CX
+	MOVQ   ref+16(FP), DX
+	MOVQ   refStride+24(FP), BX
 	PXOR   X0, X0
 	MOVOU  (AX), X1
 	MOVOU  (DX), X2
@@ -171,16 +171,16 @@ TEXT ·sad16x8(SB), NOSPLIT, $0-72
 	PSRLDQ $0x08, X1
 	PADDD  X1, X0
 	MOVQ   X0, AX
-	MOVQ   AX, ret+64(FP)
+	MOVQ   AX, ret+32(FP)
 	RET
 
-// func sad8x16(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad8x16(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad8x16(SB), NOSPLIT, $0-72
-	MOVQ   src_base+0(FP), AX
-	MOVQ   srcStride+24(FP), CX
-	MOVQ   ref_base+32(FP), DX
-	MOVQ   refStride+56(FP), BX
+TEXT ·sad8x16(SB), NOSPLIT, $0-40
+	MOVQ   src+0(FP), AX
+	MOVQ   srcStride+8(FP), CX
+	MOVQ   ref+16(FP), DX
+	MOVQ   refStride+24(FP), BX
 	PXOR   X0, X0
 	MOVQ   (AX), X1
 	MOVQ   (DX), X2
@@ -277,16 +277,16 @@ TEXT ·sad8x16(SB), NOSPLIT, $0-72
 	PSADBW X2, X1
 	PADDD  X1, X0
 	MOVQ   X0, AX
-	MOVQ   AX, ret+64(FP)
+	MOVQ   AX, ret+32(FP)
 	RET
 
-// func sad8x8(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad8x8(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad8x8(SB), NOSPLIT, $0-72
-	MOVQ   src_base+0(FP), AX
-	MOVQ   srcStride+24(FP), CX
-	MOVQ   ref_base+32(FP), DX
-	MOVQ   refStride+56(FP), BX
+TEXT ·sad8x8(SB), NOSPLIT, $0-40
+	MOVQ   src+0(FP), AX
+	MOVQ   srcStride+8(FP), CX
+	MOVQ   ref+16(FP), DX
+	MOVQ   refStride+24(FP), BX
 	PXOR   X0, X0
 	MOVQ   (AX), X1
 	MOVQ   (DX), X2
@@ -335,16 +335,16 @@ TEXT ·sad8x8(SB), NOSPLIT, $0-72
 	PSADBW X2, X1
 	PADDD  X1, X0
 	MOVQ   X0, AX
-	MOVQ   AX, ret+64(FP)
+	MOVQ   AX, ret+32(FP)
 	RET
 
-// func sad8x4(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad8x4(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad8x4(SB), NOSPLIT, $0-72
-	MOVQ   src_base+0(FP), AX
-	MOVQ   srcStride+24(FP), CX
-	MOVQ   ref_base+32(FP), DX
-	MOVQ   refStride+56(FP), BX
+TEXT ·sad8x4(SB), NOSPLIT, $0-40
+	MOVQ   src+0(FP), AX
+	MOVQ   srcStride+8(FP), CX
+	MOVQ   ref+16(FP), DX
+	MOVQ   refStride+24(FP), BX
 	PXOR   X0, X0
 	MOVQ   (AX), X1
 	MOVQ   (DX), X2
@@ -369,97 +369,97 @@ TEXT ·sad8x4(SB), NOSPLIT, $0-72
 	PSADBW X2, X1
 	PADDD  X1, X0
 	MOVQ   X0, AX
-	MOVQ   AX, ret+64(FP)
+	MOVQ   AX, ret+32(FP)
 	RET
 
-// func sad4x8(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad4x8(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad4x8(SB), NOSPLIT, $0-72
-	MOVQ      src_base+0(FP), AX
-	MOVQ      srcStride+24(FP), CX
-	MOVQ      ref_base+32(FP), DX
-	MOVQ      refStride+56(FP), BX
+TEXT ·sad4x8(SB), NOSPLIT, $0-40
+	MOVQ      src+0(FP), AX
+	MOVQ      srcStride+8(FP), CX
+	MOVQ      ref+16(FP), DX
+	MOVQ      refStride+24(FP), BX
 	PXOR      X0, X0
-	MOVD      (AX), X1
-	MOVD      (DX), X2
+	MOVL      (AX), X1
+	MOVL      (DX), X2
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X3
-	MOVD      (DX), X4
+	MOVL      (AX), X3
+	MOVL      (DX), X4
 	PUNPCKLLQ X3, X1
 	PUNPCKLLQ X4, X2
 	PSADBW    X2, X1
 	PADDD     X1, X0
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X1
-	MOVD      (DX), X2
+	MOVL      (AX), X1
+	MOVL      (DX), X2
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X3
-	MOVD      (DX), X4
+	MOVL      (AX), X3
+	MOVL      (DX), X4
 	PUNPCKLLQ X3, X1
 	PUNPCKLLQ X4, X2
 	PSADBW    X2, X1
 	PADDD     X1, X0
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X1
-	MOVD      (DX), X2
+	MOVL      (AX), X1
+	MOVL      (DX), X2
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X3
-	MOVD      (DX), X4
+	MOVL      (AX), X3
+	MOVL      (DX), X4
 	PUNPCKLLQ X3, X1
 	PUNPCKLLQ X4, X2
 	PSADBW    X2, X1
 	PADDD     X1, X0
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X1
-	MOVD      (DX), X2
+	MOVL      (AX), X1
+	MOVL      (DX), X2
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X3
-	MOVD      (DX), X4
+	MOVL      (AX), X3
+	MOVL      (DX), X4
 	PUNPCKLLQ X3, X1
 	PUNPCKLLQ X4, X2
 	PSADBW    X2, X1
 	PADDD     X1, X0
 	MOVQ      X0, AX
-	MOVQ      AX, ret+64(FP)
+	MOVQ      AX, ret+32(FP)
 	RET
 
-// func sad4x4(src []byte, srcStride int, ref []byte, refStride int) int
+// func sad4x4(src *byte, srcStride int, ref *byte, refStride int) int
 // Requires: SSE2
-TEXT ·sad4x4(SB), NOSPLIT, $0-72
-	MOVQ      src_base+0(FP), AX
-	MOVQ      srcStride+24(FP), CX
-	MOVQ      ref_base+32(FP), DX
-	MOVQ      refStride+56(FP), BX
+TEXT ·sad4x4(SB), NOSPLIT, $0-40
+	MOVQ      src+0(FP), AX
+	MOVQ      srcStride+8(FP), CX
+	MOVQ      ref+16(FP), DX
+	MOVQ      refStride+24(FP), BX
 	PXOR      X0, X0
-	MOVD      (AX), X1
-	MOVD      (DX), X2
+	MOVL      (AX), X1
+	MOVL      (DX), X2
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X3
-	MOVD      (DX), X4
+	MOVL      (AX), X3
+	MOVL      (DX), X4
 	PUNPCKLLQ X3, X1
 	PUNPCKLLQ X4, X2
 	PSADBW    X2, X1
 	PADDD     X1, X0
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X1
-	MOVD      (DX), X2
+	MOVL      (AX), X1
+	MOVL      (DX), X2
 	ADDQ      CX, AX
 	ADDQ      BX, DX
-	MOVD      (AX), X3
-	MOVD      (DX), X4
+	MOVL      (AX), X3
+	MOVL      (DX), X4
 	PUNPCKLLQ X3, X1
 	PUNPCKLLQ X4, X2
 	PSADBW    X2, X1
 	PADDD     X1, X0
 	MOVQ      X0, AX
-	MOVQ      AX, ret+64(FP)
+	MOVQ      AX, ret+32(FP)
 	RET

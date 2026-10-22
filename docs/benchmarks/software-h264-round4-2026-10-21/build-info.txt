@@ -1,0 +1,18 @@
+go version go1.27.3 linux/amd64
+HEAD c5d6f239d3182f22ab3fdbf62f66b0285df1bef6
+GOMAXPROCS=4; test.cpu=4; CPU: Intel i7-7700HQ; linux/amd64
+Baseline: previous parallel-conversion candidate; snapshot matched all 272 entries in its production-source manifest.
+Binaries and fixture (SHA-256):
+242143bbbdf8899edf9117e9537a6f32d3a046e4cb92da90ea3247e0cc0708be  /tmp/h264-rgb-parallel-20261021/after.test
+2796f638692bf32fcfe35d3946a57fd28df21c6139811253c6aa42f6170f37fa  /tmp/h264-round4-20261021/after.test
+e9891009ccfd5774932c471cad6e7e6565d9f761879b2c95ec2d5824566ae14d  /tmp/h264-round4-20261021/before-encoder.test
+3b33b226fa63d01ca22fac51878cfa6245b5b1cb09bd50516e838024ac2c0d7f  /tmp/h264-round4-20261021/after-encoder.test
+f92d4f70f026f05d9ca26666075450783ad2217f3ab2356dfdc3cd66e03fad49  /tmp/h264-round4-20261021/after-common.test
+c8bb1d9a547fab03b6c5eaebaff3c02d99872bd2bebde26363792c41e5b0f25e  /tmp/h264-round4-20261021/after-rdp.test
+cdeafdba15b4620ba18fbfe8152429c04e6fb4ec3bba6dd716a27b9babad0123  /tmp/h264-fullscreen-20261021/clip1080p.rgba
+FFmpeg found at /usr/bin/ffmpeg
+ARM64 common, encoder and public AVC package cross-compiles: PASS (CGO_ENABLED=0)
+gopls check of changed native Go files: PASS (no diagnostics)
+Go 1.26.9 CAVLC parity and inline check: PASS
+Full-screen digest comparison: all 8 streams and byte counts identical, 76 frames per stream
+No live write-stage samples available; no sender overlap enabled.

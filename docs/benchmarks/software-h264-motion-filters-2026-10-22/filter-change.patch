@@ -1,0 +1,1441 @@
+--- a/pkg/h264/internal/common/mc_avx2_amd64.go
++++ b/pkg/h264/internal/common/mc_avx2_amd64.go
+@@ -37,8 +37,8 @@
+ 		uintptr(unsafe.Pointer(unsafe.SliceData(b))) < uintptr(unsafe.Pointer(unsafe.SliceData(a)))+uintptr(len(a))
+ }
+ 
+-// McHorVer20_avx2 computes sixteen horizontal outputs with packed tap pairs. The
+-// existing SSE2 path remains preferable for blocks narrower than sixteen.
++// McHorVer20_avx2 uses packed horizontal tap pairs, with exact-width AVX2
++// paths for the extra column needed by 4-, 8- and 16-wide refinement blocks.
+ func McHorVer20_avx2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDstOff int,
+ 	iDstStride, iWidth, iHeight int32) {
+ 	if iWidth <= 0 || iHeight <= 0 {
+@@ -58,7 +58,15 @@
+ 	checkSIMDSpan(pSrc, int64(srcStart), int64(srcEnd)-1)
+ 	src := pSrc[srcStart:srcEnd]
+ 	// Preserve the narrower SSE2 read/write order for in-place callers.
+-	if width < 16 || mcAVX2BlocksOverlap(src, dst) {
++	if mcAVX2BlocksOverlap(src, dst) {
++		mcHorVer20SSE2(dst, int(iDstStride), src[2:], stride, width, height)
++		return
++	}
++	if width == 5 || width == 9 || width == 17 {
++		mcHorRefineAVX2(&dst[0], int(iDstStride), &src[2], stride, width, height)
++		return
++	}
++	if width < 16 {
+ 		mcHorVer20SSE2(dst, int(iDstStride), src[2:], stride, width, height)
+ 		return
+ 	}
+@@ -85,7 +93,20 @@
+ 	srcStart, srcEnd := iSrcOff-2*stride, iSrcOff+(height+2)*stride+width
+ 	checkSIMDSpan(pSrc, int64(srcStart), int64(srcEnd)-1)
+ 	src := pSrc[srcStart:srcEnd]
+-	if width < 16 || mcAVX2BlocksOverlap(src, dst) {
++	if mcAVX2BlocksOverlap(src, dst) {
++		mcHorVer02SSE2(dst, int(iDstStride), src[2*stride:], stride, width, height)
++		return
++	}
++	// The row-reuse kernel writes wide blocks in column groups. Preserve the
++	// original ordering when destination rows overlap, including zero stride.
++	if stride > 0 && int(iDstStride) >= width {
++		switch width {
++		case 4, 5, 8, 9, 16, 17:
++			mcVerReuseAVX2(&dst[0], int(iDstStride), &src[2*stride], stride, width, height)
++			return
++		}
++	}
++	if width < 16 {
+ 		mcHorVer02SSE2(dst, int(iDstStride), src[2*stride:], stride, width, height)
+ 		return
+ 	}
+@@ -114,13 +135,25 @@
+ 	src := pSrc[srcStart:srcEnd]
+ 	const tapStride = 24
+ 	var taps [17 * tapStride]int16
+-	if width < 8 {
+-		mcVerticalRawSSE2(taps[:], tapStride, src[2*stride:], stride, width+5, height)
++	switch width {
++	case 4, 5, 8, 9, 16, 17:
++		// Scratch rows are disjoint and contain the exact width+5 first-pass
++		// samples. Row reuse therefore also applies to the center filter.
++		mcVerRawReuseAVX2(&taps[0], tapStride, &src[2*stride], stride, width+5, height)
++	default:
++		if width < 8 {
++			mcVerticalRawSSE2(taps[:], tapStride, src[2*stride:], stride, width+5, height)
++		} else {
++			mcVerticalRawAVX2(taps[:], tapStride, src[2*stride:], stride, width+5, height)
++		}
++	}
++	if width == 5 || width == 9 || width == 17 {
++		mcHorRawRefineAVX2(&dst[0], int(iDstStride), &taps[0], tapStride, width, height)
++	} else if width < 8 {
+ 		mcHorizontalRawToU8SSE2(dst, int(iDstStride), taps[:], tapStride, width, height)
+-		return
+-	}
+-	mcVerticalRawAVX2(taps[:], tapStride, src[2*stride:], stride, width+5, height)
+-	mcHorizontalRawToU8AVX2(dst, int(iDstStride), taps[:], tapStride, width, height)
++	} else {
++		mcHorizontalRawToU8AVX2(dst, int(iDstStride), taps[:], tapStride, width, height)
++	}
+ }
+ 
+ // McLuma_avx2 composes quarter-pel samples from the AVX2 half-pel filters and
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_amd64_test.go
+@@ -0,0 +1,216 @@
++//go:build amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"testing"
++)
++
++// mcRefinementSourceLayout describes precisely the visible source span,
++// including the two leading and three trailing filter taps.
++func mcRefinementSourceLayout(kernel string, width, height, stride int) (offset, length int) {
++	switch kernel {
++	case "horizontal":
++		return 2, (height-1)*stride + width + 5
++	case "vertical":
++		return 2 * stride, (height+4)*stride + width
++	default:
++		return 2*stride + 2, (height+4)*stride + width + 5
++	}
++}
++
++func TestMcAVX2RefinementShapes(t *testing.T) {
++	// Include the new refinement dimensions, odd and short row counts, and
++	// adjacent unsupported dimensions that must retain the existing paths.
++	shapes := [][2]int{
++		{5, 1}, {5, 2}, {5, 4}, {5, 5}, {9, 8}, {9, 9}, {17, 16}, {17, 17},
++		{4, 5}, {8, 9}, {16, 17}, {16, 16}, {3, 3}, {6, 5}, {7, 9},
++		{10, 9}, {15, 17}, {18, 17},
++	}
++	rng := rand.New(rand.NewSource(0x52917))
++	for _, kernel := range mcAVX2TestKernels {
++		for _, shape := range shapes {
++			width, height := shape[0], shape[1]
++			if kernel.name == "center" && width > 17 {
++				continue // The scalar center reference uses a fixed 17-wide scratch buffer.
++			}
++			t.Run(fmt.Sprintf("%s/%dx%d", kernel.name, width, height), func(t *testing.T) {
++				stride, dstStride := width+9, width+3
++				srcOff, srcLen := mcRefinementSourceLayout(kernel.name, width, height, stride)
++				// Both views are unaligned and end at the last required sample.
++				// Extra capacity and backing canaries expose writes beyond len.
++				srcBacking := bytes.Repeat([]byte{0xAD}, srcLen+11)
++				src := srcBacking[3 : 3+srcLen]
++				dstLen := 1 + (height-1)*dstStride + width
++				for pattern := 0; pattern < 7; pattern++ {
++					for i := range src {
++						switch pattern {
++						case 0:
++							src[i] = 0
++						case 1:
++							src[i] = 255
++						case 2:
++							src[i] = byte((i & 1) * 255)
++						case 3:
++							src[i] = byte(((i / stride) & 1) * 255)
++						default:
++							src[i] = byte(rng.Intn(256))
++						}
++					}
++					before := bytes.Clone(srcBacking)
++					want := bytes.Repeat([]byte{0xCD}, dstLen+8)
++					got := bytes.Clone(want)
++					kernel.c(src, srcOff, int32(stride), want[:dstLen], 1, int32(dstStride),
++						int32(width), int32(height))
++					kernel.avx2(src, srcOff, int32(stride), got[:dstLen], 1, int32(dstStride),
++						int32(width), int32(height))
++					if !bytes.Equal(got, want) {
++						t.Fatalf("pattern %d: output or destination canary differs", pattern)
++					}
++					if !bytes.Equal(srcBacking, before) {
++						t.Fatalf("pattern %d: source or source canary changed", pattern)
++					}
++				}
++			})
++		}
++	}
++}
++
++func TestMcAVX2RefinementImpulses(t *testing.T) {
++	for _, kernel := range mcAVX2TestKernels {
++		for _, width := range []int{5, 9, 17} {
++			t.Run(fmt.Sprintf("%s/width%d", kernel.name, width), func(t *testing.T) {
++				height, stride := width, width+5
++				srcOff, srcLen := mcRefinementSourceLayout(kernel.name, width, height, stride)
++				src := make([]byte, srcLen)
++				want, got := make([]byte, width*height), make([]byte, width*height)
++				// Moving one impulse through every source/halo position catches
++				// tap swaps, lane joins, and stale row registers independently.
++				for impulse := range src {
++					src[impulse] = 255
++					kernel.c(src, srcOff, int32(stride), want, 0, int32(width), int32(width), int32(height))
++					kernel.avx2(src, srcOff, int32(stride), got, 0, int32(width), int32(width), int32(height))
++					if !bytes.Equal(got, want) {
++						t.Fatalf("impulse at source index %d differs", impulse)
++					}
++					src[impulse] = 0
++				}
++			})
++		}
++	}
++}
++
++func TestMcAVX2RefinementOverlap(t *testing.T) {
++	for _, kernel := range mcAVX2TestKernels {
++		for _, width := range []int32{4, 5, 8, 9, 16, 17} {
++			t.Run(fmt.Sprintf("%s/width%d", kernel.name, width), func(t *testing.T) {
++				const stride, srcOff = 32, 3*32 + 3
++				for _, delta := range []int{-stride + 1, -1, 0, 1, 4, 8, 16, stride} {
++					want := make([]byte, stride*24)
++					for i := range want {
++						want[i] = byte(i*37 + 13)
++					}
++					got := bytes.Clone(want)
++					// Existing SSE2 ordering is the contract for overlapping
++					// horizontal/vertical input and output, not scalar ordering.
++					kernel.sse2(want, srcOff, stride, want, srcOff+delta, stride, width, 17)
++					kernel.avx2(got, srcOff, stride, got, srcOff+delta, stride, width, 17)
++					if !bytes.Equal(got, want) {
++						t.Fatalf("overlap delta %d differs", delta)
++					}
++				}
++			})
++		}
++	}
++}
++
++func TestMcAVX2RefinementNegativeStrides(t *testing.T) {
++	for _, kernel := range mcAVX2TestKernels {
++		for _, width := range []int32{4, 5, 8, 9, 16, 17} {
++			t.Run(fmt.Sprintf("%s/width%d", kernel.name, width), func(t *testing.T) {
++				const height, stride = 9, 32
++				src := make([]byte, stride*(height+5))
++				for i := range src {
++					src[i] = byte(i*29 + 37)
++				}
++				for _, reverseSrc := range []bool{false, true} {
++					for _, reverseDst := range []bool{false, true} {
++						srcOff, srcStride := 2*stride+2, int32(stride)
++						dstOff, dstStride := 1, int32(stride)
++						if reverseSrc {
++							srcOff, srcStride = (height+2)*stride+2, -stride
++						}
++						if reverseDst {
++							dstOff, dstStride = 1+(height-1)*stride, -stride
++						}
++						want := bytes.Repeat([]byte{0xDB}, stride*height+8)
++						got := bytes.Clone(want)
++						kernel.c(src, srcOff, srcStride, want, dstOff, dstStride, width, height)
++						kernel.avx2(src, srcOff, srcStride, got, dstOff, dstStride, width, height)
++						if !bytes.Equal(got, want) {
++							t.Fatalf("reverse source=%v destination=%v differs", reverseSrc, reverseDst)
++						}
++					}
++				}
++			})
++		}
++	}
++}
++
++func TestMcAVX2RefinementShortVisibleBuffers(t *testing.T) {
++	for _, kernel := range mcAVX2TestKernels {
++		for _, width := range []int{4, 5, 8, 9, 16, 17} {
++			for _, shortSource := range []bool{false, true} {
++				t.Run(fmt.Sprintf("%s/width%d/source%v", kernel.name, width, shortSource), func(t *testing.T) {
++					const height = 9
++					stride := width + 5
++					srcOff, srcLen := mcRefinementSourceLayout(kernel.name, width, height, stride)
++					src, dst := make([]byte, srcLen+32), make([]byte, width*height+32)
++					src, dst = src[:srcLen], dst[:width*height]
++					if shortSource {
++						src = src[:len(src)-1]
++					} else {
++						dst = dst[:len(dst)-1]
++					}
++					defer func() {
++						if recover() == nil {
++							t.Fatal("short visible buffer did not panic despite extra capacity")
++						}
++					}()
++					kernel.avx2(src, srcOff, int32(stride), dst, 0, int32(width), int32(width), height)
++				})
++			}
++		}
++	}
++}
++
++func TestMcAVX2RefinementOverlappingRows(t *testing.T) {
++	// Strides may be shorter than the block width. Those rows share storage,
++	// but disjoint source and destination buffers still have scalar semantics.
++	for _, kernel := range mcAVX2TestKernels {
++		for _, width := range []int{5, 9, 17} {
++			for _, stride := range []int{0, 1, width, width + 5} {
++				for _, dstStride := range []int{0, 1, width - 1, width, width + 3} {
++					t.Run(fmt.Sprintf("%s/width%d/src%d/dst%d", kernel.name, width, stride, dstStride), func(t *testing.T) {
++						const height = 5
++						srcOff, srcLen := mcRefinementSourceLayout(kernel.name, width, height, stride)
++						src := make([]byte, srcLen)
++						for i := range src {
++							src[i] = byte(i*41 + 17)
++						}
++						want := bytes.Repeat([]byte{0xDA}, (height-1)*dstStride+width)
++						got := bytes.Clone(want)
++						kernel.c(src, srcOff, int32(stride), want, 0, int32(dstStride), int32(width), height)
++						kernel.avx2(src, srcOff, int32(stride), got, 0, int32(dstStride), int32(width), height)
++						if !bytes.Equal(got, want) {
++							t.Fatal("overlapping rows differ")
++						}
++					})
++				}
++			}
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_bench_test.go
+@@ -0,0 +1,43 @@
++//go:build amd64
++
++package common
++
++import (
++	"fmt"
++	"testing"
++
++	"golang.org/x/sys/cpu"
++)
++
++// BenchmarkMcAVX2Refinement measures the extra row or column required while
++// evaluating the neighboring half-pel candidates for 4-, 8- and 16-wide blocks.
++func BenchmarkMcAVX2Refinement(b *testing.B) {
++	if !cpu.X86.HasAVX2 {
++		b.Skip("AVX2 unavailable")
++	}
++	const srcStride, dstStride = 48, 32
++	src := make([]byte, srcStride*24)
++	dst := make([]byte, dstStride*17)
++	for i := range src {
++		src[i] = byte(i*29 + 41)
++	}
++	for _, kernel := range mcAVX2TestKernels {
++		shapes := [][2]int32{{5, 4}, {9, 8}, {17, 16}, {16, 16}}
++		if kernel.name == "vertical" {
++			shapes = [][2]int32{{4, 5}, {8, 9}, {16, 17}, {16, 16}}
++		} else if kernel.name == "center" {
++			shapes = [][2]int32{{5, 5}, {9, 9}, {17, 17}, {16, 16}}
++		}
++		for _, shape := range shapes {
++			width, height := shape[0], shape[1]
++			b.Run(fmt.Sprintf("%s/%dx%d", kernel.name, width, height), func(b *testing.B) {
++				b.ReportAllocs()
++				b.SetBytes(int64(width * height))
++				for b.Loop() {
++					kernel.avx2(src, 3*srcStride+3, srcStride, dst, 0, dstStride, width, height)
++				}
++				mcSIMDBenchmarkSink = dst[0]
++			})
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_center_amd64.go
+@@ -0,0 +1,10 @@
++//go:build amd64
++
++package common
++
++// mcHorRawRefineAVX2 filters signed intermediates for widths 5, 9 or 17.
++// The caller provides positive height, nonnegative strides and disjoint, checked buffers.
++// src starts at the leftmost tap; each row contains exactly width+5 inputs.
++//
++//go:noescape
++func mcHorRawRefineAVX2(dst *byte, dstStride int, src *int16, srcStride, width, height int)
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_center_amd64.s
+@@ -0,0 +1,195 @@
++//go:build amd64
++
++#include "textflag.h"
++
++// The final vector overlaps preceding outputs instead of computing a scalar
++// tail. All loads/stores remain within the exact width and its five-tap halo.
++// Widen before arithmetic so the complete signed int16 domain is supported.
++TEXT ·mcHorRawRefineAVX2(SB), NOSPLIT, $0-48
++	MOVQ dst+0(FP), AX
++	MOVQ dstStride+8(FP), CX
++	MOVQ src+16(FP), DX
++	MOVQ srcStride+24(FP), BX
++	SHLQ $1, BX
++	MOVQ width+32(FP), SI
++	MOVQ height+40(FP), DI
++	VPCMPEQD Y7, Y7, Y7
++	VPSRLD $31, Y7, Y7
++	VPSLLD $9, Y7, Y7
++	CMPQ SI, $5
++	JE center_refine5
++	CMPQ SI, $9
++	JE center_refine9
++center_refine17:
++	VPMOVSXWD 0(DX), Y0
++	VPMOVSXWD 10(DX), Y1
++	VPMOVSXWD 2(DX), Y2
++	VPMOVSXWD 8(DX), Y3
++	VPMOVSXWD 4(DX), Y4
++	VPMOVSXWD 6(DX), Y5
++	VPADDD Y1, Y0, Y0
++	VPADDD Y3, Y2, Y2
++	VPADDD Y5, Y4, Y4
++	VPSLLD $2, Y4, Y5
++	VPADDD Y5, Y4, Y4
++	VPSLLD $2, Y4, Y4
++	VPSLLD $2, Y2, Y3
++	VPADDD Y2, Y3, Y3
++	VPADDD Y4, Y0, Y0
++	VPSUBD Y3, Y0, Y0
++	VPADDD Y7, Y0, Y0
++	VPSRAD $10, Y0, Y0
++	VEXTRACTI128 $1, Y0, X1
++	VPACKSSDW X1, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVQ X0, 0(AX)
++	VPMOVSXWD 16(DX), Y0
++	VPMOVSXWD 26(DX), Y1
++	VPMOVSXWD 18(DX), Y2
++	VPMOVSXWD 24(DX), Y3
++	VPMOVSXWD 20(DX), Y4
++	VPMOVSXWD 22(DX), Y5
++	VPADDD Y1, Y0, Y0
++	VPADDD Y3, Y2, Y2
++	VPADDD Y5, Y4, Y4
++	VPSLLD $2, Y4, Y5
++	VPADDD Y5, Y4, Y4
++	VPSLLD $2, Y4, Y4
++	VPSLLD $2, Y2, Y3
++	VPADDD Y2, Y3, Y3
++	VPADDD Y4, Y0, Y0
++	VPSUBD Y3, Y0, Y0
++	VPADDD Y7, Y0, Y0
++	VPSRAD $10, Y0, Y0
++	VEXTRACTI128 $1, Y0, X1
++	VPACKSSDW X1, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVQ X0, 8(AX)
++	VPMOVSXWD 26(DX), X0
++	VPMOVSXWD 36(DX), X1
++	VPMOVSXWD 28(DX), X2
++	VPMOVSXWD 34(DX), X3
++	VPMOVSXWD 30(DX), X4
++	VPMOVSXWD 32(DX), X5
++	VPADDD X1, X0, X0
++	VPADDD X3, X2, X2
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X5
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X4
++	VPSLLD $2, X2, X3
++	VPADDD X2, X3, X3
++	VPADDD X4, X0, X0
++	VPSUBD X3, X0, X0
++	VPADDD X7, X0, X0
++	VPSRAD $10, X0, X0
++	VPACKSSDW X0, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVD X0, 13(AX)
++	ADDQ CX, AX
++	ADDQ BX, DX
++	DECQ DI
++	JNZ center_refine17
++	VZEROUPPER
++	RET
++
++center_refine9:
++	VPMOVSXWD 0(DX), Y0
++	VPMOVSXWD 10(DX), Y1
++	VPMOVSXWD 2(DX), Y2
++	VPMOVSXWD 8(DX), Y3
++	VPMOVSXWD 4(DX), Y4
++	VPMOVSXWD 6(DX), Y5
++	VPADDD Y1, Y0, Y0
++	VPADDD Y3, Y2, Y2
++	VPADDD Y5, Y4, Y4
++	VPSLLD $2, Y4, Y5
++	VPADDD Y5, Y4, Y4
++	VPSLLD $2, Y4, Y4
++	VPSLLD $2, Y2, Y3
++	VPADDD Y2, Y3, Y3
++	VPADDD Y4, Y0, Y0
++	VPSUBD Y3, Y0, Y0
++	VPADDD Y7, Y0, Y0
++	VPSRAD $10, Y0, Y0
++	VEXTRACTI128 $1, Y0, X1
++	VPACKSSDW X1, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVQ X0, 0(AX)
++	VPMOVSXWD 10(DX), X0
++	VPMOVSXWD 20(DX), X1
++	VPMOVSXWD 12(DX), X2
++	VPMOVSXWD 18(DX), X3
++	VPMOVSXWD 14(DX), X4
++	VPMOVSXWD 16(DX), X5
++	VPADDD X1, X0, X0
++	VPADDD X3, X2, X2
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X5
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X4
++	VPSLLD $2, X2, X3
++	VPADDD X2, X3, X3
++	VPADDD X4, X0, X0
++	VPSUBD X3, X0, X0
++	VPADDD X7, X0, X0
++	VPSRAD $10, X0, X0
++	VPACKSSDW X0, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVD X0, 5(AX)
++	ADDQ CX, AX
++	ADDQ BX, DX
++	DECQ DI
++	JNZ center_refine9
++	VZEROUPPER
++	RET
++
++center_refine5:
++	VPMOVSXWD 0(DX), X0
++	VPMOVSXWD 10(DX), X1
++	VPMOVSXWD 2(DX), X2
++	VPMOVSXWD 8(DX), X3
++	VPMOVSXWD 4(DX), X4
++	VPMOVSXWD 6(DX), X5
++	VPADDD X1, X0, X0
++	VPADDD X3, X2, X2
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X5
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X4
++	VPSLLD $2, X2, X3
++	VPADDD X2, X3, X3
++	VPADDD X4, X0, X0
++	VPSUBD X3, X0, X0
++	VPADDD X7, X0, X0
++	VPSRAD $10, X0, X0
++	VPACKSSDW X0, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVD X0, 0(AX)
++	VPMOVSXWD 2(DX), X0
++	VPMOVSXWD 12(DX), X1
++	VPMOVSXWD 4(DX), X2
++	VPMOVSXWD 10(DX), X3
++	VPMOVSXWD 6(DX), X4
++	VPMOVSXWD 8(DX), X5
++	VPADDD X1, X0, X0
++	VPADDD X3, X2, X2
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X5
++	VPADDD X5, X4, X4
++	VPSLLD $2, X4, X4
++	VPSLLD $2, X2, X3
++	VPADDD X2, X3, X3
++	VPADDD X4, X0, X0
++	VPSUBD X3, X0, X0
++	VPADDD X7, X0, X0
++	VPSRAD $10, X0, X0
++	VPACKSSDW X0, X0, X0
++	VPACKUSWB X0, X0, X0
++	VMOVD X0, 1(AX)
++	ADDQ CX, AX
++	ADDQ BX, DX
++	DECQ DI
++	JNZ center_refine5
++	VZEROUPPER
++	RET
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_center_amd64_test.go
+@@ -0,0 +1,61 @@
++//go:build amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"slices"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestMcAVX2RefinementCenterRawSigned(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	rng := rand.New(rand.NewSource(0x51917))
++	for _, width := range []int{5, 9, 17} {
++		t.Run(fmt.Sprintf("width%d", width), func(t *testing.T) {
++			const height = 9
++			stride, dstStride := width+5, width+3
++			input := make([]int16, 1+stride*height)
++			src := input[1:]
++			for pattern := 0; pattern < 40; pattern++ {
++				for i := range src {
++					switch pattern {
++					case 0:
++						src[i] = -32768
++					case 1:
++						src[i] = 32767
++					case 2:
++						src[i] = int16((i&1)*65535 - 32768)
++					case 3:
++						src[i] = 0
++					default:
++						src[i] = int16(rng.Intn(65536) - 32768)
++					}
++				}
++				before := slices.Clone(input)
++				want := bytes.Repeat([]byte{0xCA}, 1+height*dstStride+8)
++				got := bytes.Clone(want)
++				for row := 0; row < height; row++ {
++					for col := 0; col < width; col++ {
++						value := (HorFilterInput16bit_c(src, row*stride+col) + 512) >> 10
++						want[1+row*dstStride+col] = byte(min(max(value, 0), 255))
++					}
++				}
++				mcHorRawRefineAVX2(&got[1], dstStride, unsafe.SliceData(src), stride, width, height)
++				if !bytes.Equal(got, want) {
++					t.Fatalf("pattern %d: signed output or canary differs", pattern)
++				}
++				if !slices.Equal(input, before) {
++					t.Fatalf("pattern %d: signed source changed", pattern)
++				}
++			}
++		})
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_guard_linux_amd64_test.go
+@@ -0,0 +1,74 @@
++//go:build linux && amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestMcAVX2RefinementGuardPages(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, kernel := range mcAVX2TestKernels {
++		for _, width := range []int{4, 5, 8, 9, 16, 17} {
++			for _, height := range []int{1, 5, 9, 17} {
++				for _, atEnd := range []bool{false, true} {
++					t.Run(fmt.Sprintf("%s/%dx%d/end%v", kernel.name, width, height, atEnd), func(t *testing.T) {
++						stride := width + 5
++						if kernel.name == "vertical" {
++							stride = width
++						}
++						srcOff, srcLen := mcRefinementSourceLayout(kernel.name, width, height, stride)
++						src := mcAVX2GuardedBuffer(t, srcLen, atEnd)
++						dst := mcAVX2GuardedBuffer(t, width*height, atEnd)
++						for i := range src {
++							src[i] = byte(i*53 + 37)
++						}
++						want := make([]byte, len(dst))
++						kernel.c(src, srcOff, int32(stride), want, 0, int32(width), int32(width), int32(height))
++						kernel.avx2(src, srcOff, int32(stride), dst, 0, int32(width), int32(width), int32(height))
++						if !bytes.Equal(dst, want) {
++							t.Fatal("guarded refinement shape differs")
++						}
++					})
++				}
++			}
++		}
++	}
++}
++
++func TestMcAVX2RefinementCenterRawGuardPages(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, width := range []int{5, 9, 17} {
++		for _, height := range []int{1, 2, 5, 9, 17} {
++			for _, atEnd := range []bool{false, true} {
++				t.Run(fmt.Sprintf("%dx%d/end%v", width, height, atEnd), func(t *testing.T) {
++					stride := width + 5
++					srcBytes := mcAVX2GuardedBuffer(t, 2*stride*height, atEnd)
++					src := unsafe.Slice((*int16)(unsafe.Pointer(unsafe.SliceData(srcBytes))), stride*height)
++					dst := mcAVX2GuardedBuffer(t, width*height, atEnd)
++					for i := range src {
++						src[i] = int16(i*733 + 0x7FFF)
++					}
++					mcHorRawRefineAVX2(unsafe.SliceData(dst), width, unsafe.SliceData(src), stride, width, height)
++					for row := 0; row < height; row++ {
++						for col := 0; col < width; col++ {
++							value := (HorFilterInput16bit_c(src, row*stride+col) + 512) >> 10
++							if got, want := dst[row*width+col], byte(min(max(value, 0), 255)); got != want {
++								t.Fatalf("row %d col %d: got %d want %d", row, col, got, want)
++							}
++						}
++					}
++				})
++			}
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_horizontal_amd64.go
+@@ -0,0 +1,11 @@
++//go:build amd64
++
++package common
++
++// mcHorRefineAVX2 filters two rows together for refinement widths 5, 9 and
++// 17. The caller checks AVX2, disjoint source/destination spans and nonnegative
++// strides. Each row reads only src[-2:width+3] and writes exactly width bytes;
++// odd heights do not require a padded final row.
++//
++//go:noescape
++func mcHorRefineAVX2(dst *byte, dstStride int, src *byte, srcStride, width, height int)
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_horizontal_amd64.s
+@@ -0,0 +1,164 @@
++//go:build amd64
++
++// Horizontal six-tap filtering for the extra column required by fractional
++// motion refinement. Each AVX2 lane handles a separate row. Unlike the padded
++// native kernels, exact-width loads preserve the checked Go buffer contract.
++#include "textflag.h"
++
++// Filter eight samples in each 128-bit lane with [1,-5,20,20,-5,1].
++// The existing shared masks address byte pairs within each source row.
++#define REFINE_HOR8(src) \
++	VPSHUFB Y8, src, Y1; \
++	VPSHUFB Y9, src, Y2; \
++	VPSHUFB Y10, src, Y3; \
++	VPMADDUBSW Y11, Y1, Y1; \
++	VPMADDUBSW Y12, Y2, Y2; \
++	VPMADDUBSW Y13, Y3, Y3; \
++	VPADDW Y1, Y2, src; \
++	VPADDW Y3, src, src; \
++	VPADDW Y15, src, src; \
++	VPSRAW $5, src, src
++
++// Filter the ninth sample in each lane. The last six source bytes occupy
++// positions 8..13, and the coefficient mask ignores all remaining bytes.
++#define REFINE_HOR_EXTRA(src) \
++	VPSRLDQ $8, src, Y5; \
++	VPMADDUBSW Y14, Y5, Y5; \
++	VPHADDW Y5, Y5, Y5; \
++	VPHADDW Y5, Y5, Y5; \
++	VPADDW Y15, Y5, Y5; \
++	VPSRAW $5, Y5, Y5; \
++	VPACKUSWB Y5, Y5, Y5
++
++// func mcHorRefineAVX2(dst *byte, dstStride int, src *byte,
++//     srcStride, width, height int)
++TEXT ·mcHorRefineAVX2(SB), NOSPLIT, $0-48
++	MOVQ dst+0(FP), AX
++	MOVQ dstStride+8(FP), CX
++	MOVQ src+16(FP), DX
++	MOVQ srcStride+24(FP), BX
++	MOVQ width+32(FP), SI
++	MOVQ height+40(FP), DI
++	VBROADCASTI128 ·mcPair01Mask(SB), Y8
++	VBROADCASTI128 ·mcPair23Mask(SB), Y9
++	VBROADCASTI128 ·mcPair45Mask(SB), Y10
++	VPBROADCASTD ·mcPair01Coeff(SB), Y11
++	VPBROADCASTD ·mcPair23Coeff(SB), Y12
++	VPBROADCASTD ·mcPair45Coeff(SB), Y13
++	VPBROADCASTQ ·mcRefineExtraCoeff(SB), Y14
++	VPCMPEQW Y15, Y15, Y15
++	VPSRLW $15, Y15, Y15
++	VPSLLW $4, Y15, Y15
++	CMPQ SI, $5
++	JE mchorrefine5
++	CMPQ SI, $9
++	JE mchorrefine9
++	JMP mchorrefine17
++
++mchorrefine5:
++	// Duplicate the last source row into the upper lane for an odd height.
++	// The upper output is then discarded, so neither span needs padding.
++	MOVQ DX, R9
++	CMPQ DI, $2
++	JB mchorrefine5_load
++	ADDQ BX, R9
++mchorrefine5_load:
++	VMOVQ -2(DX), X0
++	VPINSRW $4, 6(DX), X0, X0
++	VMOVQ -2(R9), X4
++	VPINSRW $4, 6(R9), X4, X4
++	VINSERTI128 $1, X4, Y0, Y0
++	REFINE_HOR8(Y0)
++	VPACKUSWB Y0, Y0, Y0
++	// Overlapping four-byte stores write exactly the five output bytes.
++	VMOVD X0, (AX)
++	VPSRLDQ $1, X0, X1
++	VMOVD X1, 1(AX)
++	CMPQ DI, $2
++	JB mchorrefine_done
++	VEXTRACTI128 $1, Y0, X0
++	VMOVD X0, (AX)(CX*1)
++	VPSRLDQ $1, X0, X1
++	VMOVD X1, 1(AX)(CX*1)
++	LEAQ (DX)(BX*2), DX
++	LEAQ (AX)(CX*2), AX
++	SUBQ $2, DI
++	JNZ mchorrefine5
++	JMP mchorrefine_done
++
++mchorrefine9:
++	MOVQ DX, R9
++	CMPQ DI, $2
++	JB mchorrefine9_load
++	ADDQ BX, R9
++mchorrefine9_load:
++	// Two overlapping eight-byte loads cover fourteen input bytes exactly.
++	VMOVQ -2(DX), X0
++	VMOVQ 4(DX), X4
++	VPSLLDQ $6, X4, X4
++	VPOR X4, X0, X0
++	VMOVQ -2(R9), X1
++	VMOVQ 4(R9), X4
++	VPSLLDQ $6, X4, X4
++	VPOR X4, X1, X1
++	VINSERTI128 $1, X1, Y0, Y0
++	REFINE_HOR_EXTRA(Y0)
++	REFINE_HOR8(Y0)
++	VPACKUSWB Y0, Y0, Y0
++	VMOVQ X0, (AX)
++	VMOVD X5, R8
++	MOVB R8, 8(AX)
++	CMPQ DI, $2
++	JB mchorrefine_done
++	VEXTRACTI128 $1, Y0, X0
++	VEXTRACTI128 $1, Y5, X5
++	VMOVQ X0, (AX)(CX*1)
++	VMOVD X5, R8
++	MOVB R8, 8(AX)(CX*1)
++	LEAQ (DX)(BX*2), DX
++	LEAQ (AX)(CX*2), AX
++	SUBQ $2, DI
++	JNZ mchorrefine9
++	JMP mchorrefine_done
++
++mchorrefine17:
++	MOVQ DX, R9
++	CMPQ DI, $2
++	JB mchorrefine17_load
++	ADDQ BX, R9
++mchorrefine17_load:
++	VMOVDQU -2(DX), X0
++	VMOVDQU -2(R9), X1
++	VINSERTI128 $1, X1, Y0, Y0
++	// The shifted second load starts at output eight and ends at its halo.
++	VMOVDQU 4(DX), X4
++	VPSRLDQ $2, X4, X4
++	VMOVDQU 4(R9), X1
++	VPSRLDQ $2, X1, X1
++	VINSERTI128 $1, X1, Y4, Y4
++	REFINE_HOR_EXTRA(Y4)
++	REFINE_HOR8(Y0)
++	REFINE_HOR8(Y4)
++	VPACKUSWB Y4, Y0, Y0
++	VMOVDQU X0, (AX)
++	VMOVD X5, R8
++	MOVB R8, 16(AX)
++	CMPQ DI, $2
++	JB mchorrefine_done
++	VEXTRACTI128 $1, Y0, X0
++	VEXTRACTI128 $1, Y5, X5
++	VMOVDQU X0, (AX)(CX*1)
++	VMOVD X5, R8
++	MOVB R8, 16(AX)(CX*1)
++	LEAQ (DX)(BX*2), DX
++	LEAQ (AX)(CX*2), AX
++	SUBQ $2, DI
++	JNZ mchorrefine17
++
++mchorrefine_done:
++	VZEROUPPER
++	RET
++
++// Only the first six bytes in each group contribute to the extra output.
++DATA ·mcRefineExtraCoeff+0(SB)/8, $0x000001fb1414fb01
++GLOBL ·mcRefineExtraCoeff(SB), RODATA|NOPTR, $8
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_vertical_amd64.go
+@@ -0,0 +1,23 @@
++//go:build amd64
++
++package common
++
++// mcVerReuseAVX2 applies the vertical six-tap filter, retaining adjacent-row
++// pairs in registers between output rows. src points at the first output
++// sample and requires a two-row upper and three-row lower halo.
++//
++// The caller must check AVX2 support, positive dimensions, complete live spans,
++// disjoint source/destination storage, and dstStride >= width. Supported widths
++// are 4, 5, 8, 9, 10, 13, 14, 16, 17, 21, 22 and 24. Loads and stores touch
++// exactly those columns; widths above 16 finish with an overlapping eight-wide
++// vector, avoiding scalar tails.
++//
++//go:noescape
++func mcVerReuseAVX2(dst *byte, dstStride int, src *byte, srcStride, width, height int)
++
++// mcVerRawReuseAVX2 preserves the signed, unrounded filter result for the
++// diagonal filter's second pass. Its preconditions match mcVerReuseAVX2.
++// dstStride counts int16 elements.
++//
++//go:noescape
++func mcVerRawReuseAVX2(dst *int16, dstStride int, src *byte, srcStride, width, height int)
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_vertical_amd64.s
+@@ -0,0 +1,356 @@
++//go:build amd64
++
++// Vertical six-tap filtering follows the adjacent-row reuse technique in
++// OpenH264's codec/common/x86/mc_luma.asm.
++// Copyright (c) 2009-2013, Cisco Systems. BSD-2-Clause; see
++// LICENSE-OpenH264 in the repository root.
++//
++// Five adjacent-row pairs stay in Y0..Y4. Each output multiplies three pairs
++// by [1,-5], [20,20] and [-5,1]. Advancing a row replaces only the oldest pair,
++// so each source row is loaded once per vector-width pass. Pair sums are in
++// [-1275,10200] and the complete sum in [-2550,10710], fitting signed words.
++//
++// Lower/upper 128-bit lanes represent columns 0..7/8..15. Narrow row loads
++// never cross the requested width. The ring is unrolled five times to rotate
++// pair registers without copying all five vectors on every row.
++#include "textflag.h"
++
++#define MC_VER_LOAD4(X, Y) VMOVD (DX), X
++#define MC_VER_LOAD5(X, Y) VMOVD (DX), X; VPINSRB $4, 4(DX), X, X
++#define MC_VER_LOAD8(X, Y) VMOVQ (DX), X
++#define MC_VER_LOAD9(X, Y) VMOVQ (DX), X; VMOVD 5(DX), X7; VPSRLDQ $3, X7, X7; VINSERTI128 $1, X7, Y, Y
++#define MC_VER_LOAD10(X, Y) VMOVQ (DX), X; VMOVD 6(DX), X7; VPSRLDQ $2, X7, X7; VINSERTI128 $1, X7, Y, Y
++#define MC_VER_LOAD13(X, Y) VMOVQ (DX), X; VMOVD 8(DX), X7; VPINSRB $4, 12(DX), X7, X7; VINSERTI128 $1, X7, Y, Y
++#define MC_VER_LOAD14(X, Y) VMOVQ (DX), X; VMOVD 8(DX), X7; VPINSRW $2, 12(DX), X7, X7; VINSERTI128 $1, X7, Y, Y
++#define MC_VER_LOAD16(X, Y) VMOVDQU (DX), X; VPSRLDQ $8, X, X7; VINSERTI128 $1, X7, Y, Y
++
++#define MC_VER_SUM(A, B, C) \
++	VPMADDUBSW Y12, A, Y8; \
++	VPMADDUBSW Y13, B, Y9; \
++	VPMADDUBSW Y14, C, Y10; \
++	VPADDW Y9, Y8, Y8; \
++	VPADDW Y10, Y8, Y8
++
++#define MC_VER_CLIP \
++	VPADDW Y15, Y8, Y8; \
++	VPSRAW $5, Y8, Y8; \
++	VEXTRACTI128 $1, Y8, X9; \
++	VPACKUSWB X9, X8, X8
++
++#define MC_VER_STORE4 MC_VER_CLIP; VMOVD X8, (AX)
++#define MC_VER_STORE5 MC_VER_CLIP; VMOVD X8, (AX); VPEXTRB $4, X8, R11; MOVB R11, 4(AX)
++#define MC_VER_STORE8 MC_VER_CLIP; VMOVQ X8, (AX)
++#define MC_VER_STORE9 MC_VER_CLIP; VMOVQ X8, (AX); VPEXTRB $8, X8, R11; MOVB R11, 8(AX)
++#define MC_VER_STORE10 MC_VER_CLIP; VMOVQ X8, (AX); VPEXTRW $4, X8, R11; MOVW R11, 8(AX)
++#define MC_VER_STORE13 MC_VER_CLIP; VMOVQ X8, (AX); VPSRLDQ $8, X8, X9; VMOVD X9, 8(AX); VPEXTRB $12, X8, R11; MOVB R11, 12(AX)
++#define MC_VER_STORE14 MC_VER_CLIP; VMOVQ X8, (AX); VPSRLDQ $8, X8, X9; VMOVD X9, 8(AX); VPEXTRW $6, X8, R11; MOVW R11, 12(AX)
++#define MC_VER_STORE16 MC_VER_CLIP; VMOVDQU X8, (AX)
++
++#define MC_VER_RAW_STORE4 VMOVQ X8, (AX)
++#define MC_VER_RAW_STORE5 VMOVQ X8, (AX); VPEXTRW $4, X8, R11; MOVW R11, 8(AX)
++#define MC_VER_RAW_STORE8 VMOVDQU X8, (AX)
++#define MC_VER_RAW_STORE9 VMOVDQU X8, (AX); VEXTRACTI128 $1, Y8, X9; VPEXTRW $0, X9, R11; MOVW R11, 16(AX)
++#define MC_VER_RAW_STORE10 VMOVDQU X8, (AX); VEXTRACTI128 $1, Y8, X9; VMOVD X9, 16(AX)
++#define MC_VER_RAW_STORE13 VMOVDQU X8, (AX); VEXTRACTI128 $1, Y8, X9; VMOVQ X9, 16(AX); VPEXTRW $4, X9, R11; MOVW R11, 24(AX)
++#define MC_VER_RAW_STORE14 VMOVDQU X8, (AX); VEXTRACTI128 $1, Y8, X9; VMOVQ X9, 16(AX); VPSRLDQ $8, X9, X9; VMOVD X9, 24(AX)
++#define MC_VER_RAW_STORE16 VMOVDQU Y8, (AX)
++
++// Load six rows once, building the five adjacent-row pairs. DX then points
++// at the next unread source row and Y6 holds the newest complete source row.
++#define MC_VER_INIT(LOAD) \
++	LOAD(X5, Y5); ADDQ BX, DX; \
++	LOAD(X6, Y6); VPUNPCKLBW Y6, Y5, Y0; ADDQ BX, DX; \
++	LOAD(X5, Y5); VPUNPCKLBW Y5, Y6, Y1; ADDQ BX, DX; \
++	LOAD(X6, Y6); VPUNPCKLBW Y6, Y5, Y2; ADDQ BX, DX; \
++	LOAD(X5, Y5); VPUNPCKLBW Y5, Y6, Y3; ADDQ BX, DX; \
++	LOAD(X6, Y6); VPUNPCKLBW Y6, Y5, Y4; ADDQ BX, DX
++
++// Check for completion before loading another row: arbitrary positive heights
++// consume exactly height+5 input rows, including the one-row height case.
++#define MC_VER_STEP(A, B, C, LOAD, X, Y, PREV, NEXT, STORE, DONE) \
++	MC_VER_SUM(A, B, C); STORE; DECQ R10; JE DONE; ADDQ CX, AX; \
++	LOAD(X, Y); VPUNPCKLBW Y, PREV, NEXT; ADDQ BX, DX
++
++// func mcVerReuseAVX2(dst *byte, dstStride int, src *byte,
++//     srcStride, width, height int)
++TEXT ·mcVerReuseAVX2(SB), NOSPLIT, $0-48
++	MOVQ dst+0(FP), AX
++	MOVQ dstStride+8(FP), CX
++	MOVQ src+16(FP), DX
++	MOVQ srcStride+24(FP), BX
++	MOVQ width+32(FP), SI
++	MOVQ height+40(FP), DI
++	MOVQ AX, R12
++	MOVQ DX, R13
++	MOVQ DI, R10
++	SUBQ BX, DX
++	SUBQ BX, DX
++	VPBROADCASTD ·mcPair01Coeff(SB), Y12
++	VPBROADCASTD ·mcPair23Coeff(SB), Y13
++	VPBROADCASTD ·mcPair45Coeff(SB), Y14
++	VPCMPEQW Y15, Y15, Y15
++	VPSRLW $15, Y15, Y15
++	VPSLLW $4, Y15, Y15
++	CMPQ SI, $16
++	JE mcverreuse_w16
++	CMPQ SI, $8
++	JE mcverreuse_w8
++	CMPQ SI, $9
++	JE mcverreuse_w9
++	CMPQ SI, $4
++	JE mcverreuse_w4
++	CMPQ SI, $5
++	JE mcverreuse_w5
++	CMPQ SI, $10
++	JE mcverreuse_w10
++	CMPQ SI, $13
++	JE mcverreuse_w13
++	CMPQ SI, $14
++	JE mcverreuse_w14
++	// Wider supported blocks use 16 columns, followed by the final eight.
++	JMP mcverreuse_w16
++
++mcverreuse_w4:
++	MC_VER_INIT(MC_VER_LOAD4)
++mcverreuse_w4_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD4, X5, Y5, Y6, Y0, MC_VER_STORE4, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD4, X6, Y6, Y5, Y1, MC_VER_STORE4, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD4, X5, Y5, Y6, Y2, MC_VER_STORE4, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD4, X6, Y6, Y5, Y3, MC_VER_STORE4, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD4, X5, Y5, Y6, Y4, MC_VER_STORE4, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w4_loop
++
++mcverreuse_w5:
++	MC_VER_INIT(MC_VER_LOAD5)
++mcverreuse_w5_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD5, X5, Y5, Y6, Y0, MC_VER_STORE5, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD5, X6, Y6, Y5, Y1, MC_VER_STORE5, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD5, X5, Y5, Y6, Y2, MC_VER_STORE5, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD5, X6, Y6, Y5, Y3, MC_VER_STORE5, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD5, X5, Y5, Y6, Y4, MC_VER_STORE5, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w5_loop
++
++mcverreuse_w8:
++	MC_VER_INIT(MC_VER_LOAD8)
++mcverreuse_w8_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD8, X5, Y5, Y6, Y0, MC_VER_STORE8, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD8, X6, Y6, Y5, Y1, MC_VER_STORE8, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD8, X5, Y5, Y6, Y2, MC_VER_STORE8, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD8, X6, Y6, Y5, Y3, MC_VER_STORE8, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD8, X5, Y5, Y6, Y4, MC_VER_STORE8, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w8_loop
++
++mcverreuse_w9:
++	MC_VER_INIT(MC_VER_LOAD9)
++mcverreuse_w9_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD9, X5, Y5, Y6, Y0, MC_VER_STORE9, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD9, X6, Y6, Y5, Y1, MC_VER_STORE9, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD9, X5, Y5, Y6, Y2, MC_VER_STORE9, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD9, X6, Y6, Y5, Y3, MC_VER_STORE9, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD9, X5, Y5, Y6, Y4, MC_VER_STORE9, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w9_loop
++
++mcverreuse_w10:
++	MC_VER_INIT(MC_VER_LOAD10)
++mcverreuse_w10_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD10, X5, Y5, Y6, Y0, MC_VER_STORE10, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD10, X6, Y6, Y5, Y1, MC_VER_STORE10, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD10, X5, Y5, Y6, Y2, MC_VER_STORE10, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD10, X6, Y6, Y5, Y3, MC_VER_STORE10, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD10, X5, Y5, Y6, Y4, MC_VER_STORE10, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w10_loop
++
++mcverreuse_w13:
++	MC_VER_INIT(MC_VER_LOAD13)
++mcverreuse_w13_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD13, X5, Y5, Y6, Y0, MC_VER_STORE13, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD13, X6, Y6, Y5, Y1, MC_VER_STORE13, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD13, X5, Y5, Y6, Y2, MC_VER_STORE13, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD13, X6, Y6, Y5, Y3, MC_VER_STORE13, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD13, X5, Y5, Y6, Y4, MC_VER_STORE13, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w13_loop
++
++mcverreuse_w14:
++	MC_VER_INIT(MC_VER_LOAD14)
++mcverreuse_w14_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD14, X5, Y5, Y6, Y0, MC_VER_STORE14, mcverreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD14, X6, Y6, Y5, Y1, MC_VER_STORE14, mcverreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD14, X5, Y5, Y6, Y2, MC_VER_STORE14, mcverreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD14, X6, Y6, Y5, Y3, MC_VER_STORE14, mcverreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD14, X5, Y5, Y6, Y4, MC_VER_STORE14, mcverreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w14_loop
++
++mcverreuse_w16:
++	MC_VER_INIT(MC_VER_LOAD16)
++mcverreuse_w16_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD16, X5, Y5, Y6, Y0, MC_VER_STORE16, mcverreuse_wide_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD16, X6, Y6, Y5, Y1, MC_VER_STORE16, mcverreuse_wide_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD16, X5, Y5, Y6, Y2, MC_VER_STORE16, mcverreuse_wide_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD16, X6, Y6, Y5, Y3, MC_VER_STORE16, mcverreuse_wide_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD16, X5, Y5, Y6, Y4, MC_VER_STORE16, mcverreuse_wide_done)
++	VMOVDQA Y5, Y6
++	JMP mcverreuse_w16_loop
++
++mcverreuse_wide_done:
++	CMPQ SI, $16
++	JE mcverreuse_done
++	SUBQ $8, SI
++	LEAQ (R12)(SI*1), AX
++	LEAQ (R13)(SI*1), DX
++	SUBQ BX, DX
++	SUBQ BX, DX
++	MOVQ DI, R10
++	JMP mcverreuse_w8
++
++mcverreuse_done:
++	VZEROUPPER
++	RET
++
++// func mcVerRawReuseAVX2(dst *int16, dstStride int, src *byte,
++//     srcStride, width, height int)
++TEXT ·mcVerRawReuseAVX2(SB), NOSPLIT, $0-48
++	MOVQ dst+0(FP), AX
++	MOVQ dstStride+8(FP), CX
++	MOVQ src+16(FP), DX
++	MOVQ srcStride+24(FP), BX
++	MOVQ width+32(FP), SI
++	MOVQ height+40(FP), DI
++	SHLQ $1, CX
++	MOVQ AX, R12
++	MOVQ DX, R13
++	MOVQ DI, R10
++	SUBQ BX, DX
++	SUBQ BX, DX
++	VPBROADCASTD ·mcPair01Coeff(SB), Y12
++	VPBROADCASTD ·mcPair23Coeff(SB), Y13
++	VPBROADCASTD ·mcPair45Coeff(SB), Y14
++	CMPQ SI, $16
++	JE mcverrawreuse_w16
++	CMPQ SI, $8
++	JE mcverrawreuse_w8
++	CMPQ SI, $9
++	JE mcverrawreuse_w9
++	CMPQ SI, $4
++	JE mcverrawreuse_w4
++	CMPQ SI, $5
++	JE mcverrawreuse_w5
++	CMPQ SI, $10
++	JE mcverrawreuse_w10
++	CMPQ SI, $13
++	JE mcverrawreuse_w13
++	CMPQ SI, $14
++	JE mcverrawreuse_w14
++	// Wider supported blocks use 16 columns, followed by the final eight.
++	JMP mcverrawreuse_w16
++
++mcverrawreuse_w4:
++	MC_VER_INIT(MC_VER_LOAD4)
++mcverrawreuse_w4_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD4, X5, Y5, Y6, Y0, MC_VER_RAW_STORE4, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD4, X6, Y6, Y5, Y1, MC_VER_RAW_STORE4, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD4, X5, Y5, Y6, Y2, MC_VER_RAW_STORE4, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD4, X6, Y6, Y5, Y3, MC_VER_RAW_STORE4, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD4, X5, Y5, Y6, Y4, MC_VER_RAW_STORE4, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w4_loop
++
++mcverrawreuse_w5:
++	MC_VER_INIT(MC_VER_LOAD5)
++mcverrawreuse_w5_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD5, X5, Y5, Y6, Y0, MC_VER_RAW_STORE5, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD5, X6, Y6, Y5, Y1, MC_VER_RAW_STORE5, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD5, X5, Y5, Y6, Y2, MC_VER_RAW_STORE5, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD5, X6, Y6, Y5, Y3, MC_VER_RAW_STORE5, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD5, X5, Y5, Y6, Y4, MC_VER_RAW_STORE5, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w5_loop
++
++mcverrawreuse_w8:
++	MC_VER_INIT(MC_VER_LOAD8)
++mcverrawreuse_w8_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD8, X5, Y5, Y6, Y0, MC_VER_RAW_STORE8, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD8, X6, Y6, Y5, Y1, MC_VER_RAW_STORE8, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD8, X5, Y5, Y6, Y2, MC_VER_RAW_STORE8, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD8, X6, Y6, Y5, Y3, MC_VER_RAW_STORE8, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD8, X5, Y5, Y6, Y4, MC_VER_RAW_STORE8, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w8_loop
++
++mcverrawreuse_w9:
++	MC_VER_INIT(MC_VER_LOAD9)
++mcverrawreuse_w9_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD9, X5, Y5, Y6, Y0, MC_VER_RAW_STORE9, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD9, X6, Y6, Y5, Y1, MC_VER_RAW_STORE9, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD9, X5, Y5, Y6, Y2, MC_VER_RAW_STORE9, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD9, X6, Y6, Y5, Y3, MC_VER_RAW_STORE9, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD9, X5, Y5, Y6, Y4, MC_VER_RAW_STORE9, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w9_loop
++
++mcverrawreuse_w10:
++	MC_VER_INIT(MC_VER_LOAD10)
++mcverrawreuse_w10_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD10, X5, Y5, Y6, Y0, MC_VER_RAW_STORE10, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD10, X6, Y6, Y5, Y1, MC_VER_RAW_STORE10, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD10, X5, Y5, Y6, Y2, MC_VER_RAW_STORE10, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD10, X6, Y6, Y5, Y3, MC_VER_RAW_STORE10, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD10, X5, Y5, Y6, Y4, MC_VER_RAW_STORE10, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w10_loop
++
++mcverrawreuse_w13:
++	MC_VER_INIT(MC_VER_LOAD13)
++mcverrawreuse_w13_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD13, X5, Y5, Y6, Y0, MC_VER_RAW_STORE13, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD13, X6, Y6, Y5, Y1, MC_VER_RAW_STORE13, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD13, X5, Y5, Y6, Y2, MC_VER_RAW_STORE13, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD13, X6, Y6, Y5, Y3, MC_VER_RAW_STORE13, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD13, X5, Y5, Y6, Y4, MC_VER_RAW_STORE13, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w13_loop
++
++mcverrawreuse_w14:
++	MC_VER_INIT(MC_VER_LOAD14)
++mcverrawreuse_w14_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD14, X5, Y5, Y6, Y0, MC_VER_RAW_STORE14, mcverrawreuse_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD14, X6, Y6, Y5, Y1, MC_VER_RAW_STORE14, mcverrawreuse_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD14, X5, Y5, Y6, Y2, MC_VER_RAW_STORE14, mcverrawreuse_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD14, X6, Y6, Y5, Y3, MC_VER_RAW_STORE14, mcverrawreuse_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD14, X5, Y5, Y6, Y4, MC_VER_RAW_STORE14, mcverrawreuse_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w14_loop
++
++mcverrawreuse_w16:
++	MC_VER_INIT(MC_VER_LOAD16)
++mcverrawreuse_w16_loop:
++	MC_VER_STEP(Y0, Y2, Y4, MC_VER_LOAD16, X5, Y5, Y6, Y0, MC_VER_RAW_STORE16, mcverrawreuse_wide_done)
++	MC_VER_STEP(Y1, Y3, Y0, MC_VER_LOAD16, X6, Y6, Y5, Y1, MC_VER_RAW_STORE16, mcverrawreuse_wide_done)
++	MC_VER_STEP(Y2, Y4, Y1, MC_VER_LOAD16, X5, Y5, Y6, Y2, MC_VER_RAW_STORE16, mcverrawreuse_wide_done)
++	MC_VER_STEP(Y3, Y0, Y2, MC_VER_LOAD16, X6, Y6, Y5, Y3, MC_VER_RAW_STORE16, mcverrawreuse_wide_done)
++	MC_VER_STEP(Y4, Y1, Y3, MC_VER_LOAD16, X5, Y5, Y6, Y4, MC_VER_RAW_STORE16, mcverrawreuse_wide_done)
++	VMOVDQA Y5, Y6
++	JMP mcverrawreuse_w16_loop
++
++mcverrawreuse_wide_done:
++	CMPQ SI, $16
++	JE mcverrawreuse_done
++	SUBQ $8, SI
++	LEAQ (R12)(SI*2), AX
++	LEAQ (R13)(SI*1), DX
++	SUBQ BX, DX
++	SUBQ BX, DX
++	MOVQ DI, R10
++	JMP mcverrawreuse_w8
++
++mcverrawreuse_done:
++	VZEROUPPER
++	RET
++
++
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_vertical_amd64_test.go
+@@ -0,0 +1,111 @@
++//go:build amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"slices"
++	"testing"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestMcVerReuseAVX2MatchesScalar(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, raw := range []bool{false, true} {
++		widths := []int{4, 5, 8, 9, 10, 13, 14, 16, 17, 21, 22, 24}
++		for _, width := range widths {
++			// Cross every exit of the five-row register ring, including
++			// multiple complete rotations beyond the usual 17-row blocks.
++			for _, height := range []int{1, 2, 3, 4, 5, 6, 9, 10, 11, 17, 18, 26, 31} {
++				t.Run(fmt.Sprintf("raw%v/%dx%d", raw, width, height), func(t *testing.T) {
++					for _, padding := range []int{0, 7} {
++						srcStride, dstStride := width+padding, width+padding
++						src := make([]byte, (height+4)*srcStride+width)
++						for pattern := 0; pattern < 5; pattern++ {
++							for i := range src {
++								switch pattern {
++								case 0:
++									src[i] = byte(i*73 + (i>>2)*29 + 19)
++								case 1:
++									src[i] = 0
++								case 2:
++									src[i] = 255
++								case 3:
++									// The first output reaches +10710.
++									if (0b101101>>((i/srcStride)%6))&1 != 0 {
++										src[i] = 255
++									} else {
++										src[i] = 0
++									}
++								case 4:
++									// The first output reaches -2550.
++									src[i] ^= 255
++								}
++							}
++							before := bytes.Clone(src)
++							dstLen := 1 + (height-1)*dstStride + width + 7
++							if raw {
++								want := make([]int16, dstLen)
++								for i := range want {
++									want[i] = 0x1357
++								}
++								got := slices.Clone(want)
++								for row := 0; row < height; row++ {
++									for col := 0; col < width; col++ {
++										want[1+row*dstStride+col] = int16(FilterInput8bitWithStride_c(
++											src, (row+2)*srcStride+col, int32(srcStride)))
++									}
++								}
++								mcVerRawReuseAVX2(&got[1], dstStride, &src[2*srcStride], srcStride, width, height)
++								if !slices.Equal(got, want) {
++									t.Fatalf("pattern %d padding %d: signed outputs or row canaries differ", pattern, padding)
++								}
++							} else {
++								want := bytes.Repeat([]byte{0xA5}, dstLen)
++								got := bytes.Clone(want)
++								McHorVer02_c(src, 2*srcStride, int32(srcStride), want, 1,
++									int32(dstStride), int32(width), int32(height))
++								mcVerReuseAVX2(&got[1], dstStride, &src[2*srcStride], srcStride, width, height)
++								if !bytes.Equal(got, want) {
++									t.Fatalf("pattern %d padding %d: clipped outputs or row canaries differ", pattern, padding)
++								}
++							}
++							if !bytes.Equal(src, before) {
++								t.Fatal("source changed")
++							}
++						}
++					}
++				})
++			}
++		}
++	}
++}
++
++func TestMcVerRawReuseAVX2BinaryTapPatterns(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	// Exhausting all binary six-tap inputs covers both signed extrema and
++	// rounding boundaries without relying on random data or the clipped pass.
++	for _, width := range []int{4, 5, 8, 9, 10, 13, 14, 16, 17, 21, 22, 24} {
++		src, got := make([]byte, 6*width), make([]int16, width)
++		for pattern := 0; pattern < 64; pattern++ {
++			for row := 0; row < 6; row++ {
++				for col := 0; col < width; col++ {
++					src[row*width+col] = byte(((pattern >> row) & 1) * 255)
++				}
++			}
++			mcVerRawReuseAVX2(&got[0], width, &src[2*width], width, width, 1)
++			want := int16(FilterInput8bitWithStride_c(src, 2*width, int32(width)))
++			for col, value := range got {
++				if value != want {
++					t.Fatalf("width %d pattern %06b col %d: got %d want %d", width, pattern, col, value, want)
++				}
++			}
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_vertical_guard_linux_amd64_test.go
+@@ -0,0 +1,57 @@
++//go:build linux && amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestMcVerReuseAVX2GuardPages(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, atEnd := range []bool{false, true} {
++		for _, raw := range []bool{false, true} {
++			widths := []int{4, 5, 8, 9, 10, 13, 14, 16, 17, 21, 22, 24}
++			for _, width := range widths {
++				for _, height := range []int{1, 2, 5, 6, 9, 17, 18, 31} {
++					t.Run(fmt.Sprintf("raw%v/%dx%d/end%v", raw, width, height, atEnd), func(t *testing.T) {
++						// A tightly packed block reaches both the last legal
++						// source row and the last legal column at the guard.
++						src := mcAVX2GuardedBuffer(t, (height+5)*width, atEnd)
++						for i := range src {
++							src[i] = byte(i*57 + 29)
++						}
++						if raw {
++							dstBytes := mcAVX2GuardedBuffer(t, 2*height*width, atEnd)
++							dst := unsafe.Slice((*int16)(unsafe.Pointer(unsafe.SliceData(dstBytes))), height*width)
++							mcVerRawReuseAVX2(&dst[0], width, &src[2*width], width, width, height)
++							for row := 0; row < height; row++ {
++								for col := 0; col < width; col++ {
++									want := int16(FilterInput8bitWithStride_c(src, (row+2)*width+col, int32(width)))
++									if got := dst[row*width+col]; got != want {
++										t.Fatalf("row %d col %d: got %d want %d", row, col, got, want)
++									}
++								}
++							}
++						} else {
++							dst := mcAVX2GuardedBuffer(t, height*width, atEnd)
++							want := make([]byte, len(dst))
++							McHorVer02_c(src, 2*width, int32(width), want, 0,
++								int32(width), int32(width), int32(height))
++							mcVerReuseAVX2(&dst[0], width, &src[2*width], width, width, height)
++							if !bytes.Equal(dst, want) {
++								t.Fatal("guarded clipped outputs differ")
++							}
++						}
++					})
++				}
++			}
++		}
++	}
++}

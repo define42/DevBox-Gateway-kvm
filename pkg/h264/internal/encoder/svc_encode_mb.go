@@ -166,17 +166,15 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
 	var masks [16]uint16
 	iNoneZeroCount := int32(0)
 
+	quantScanLuma(pRes, pBlock, pFF, pMF, aMax[:], masks[:])
+
 	iResOff := 0
 	iBlockOff := 0
 	for i := 0; i < 4; i++ {
-		WelsQuantFour4x4Max_sse2(pRes[iResOff:], pFF, pMF, aMax[i<<2:])
 		iSingleCtr8x8[i] = 0
 		for j := 0; j < 4; j++ {
-			if aMax[(i<<2)+j] == 0 {
-				clear(pBlock[iBlockOff : iBlockOff+16])
-			} else {
-				mask := coefficientScanMask(pBlock[iBlockOff:], pRes[iResOff:], false)
-				masks[(i<<2)+j] = mask
+			if aMax[(i<<2)+j] != 0 {
+				mask := masks[(i<<2)+j]
 				if aMax[(i<<2)+j] > 1 {
 					iSingleCtr8x8[i] += 9
 				} else if iSingleCtr8x8[i] < 6 {
@@ -242,16 +240,13 @@ func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, 
 
 	uiNoneZeroCountMbDc = uint8(WelsHadamardQuant2x2_c(pRes, int16(int32(pFF[0])<<1), pMF[0]>>1, aDct2x2[:], iChromaDc))
 
-	WelsQuantFour4x4Max_sse2(pRes, pFF, pMF, aMax[:])
+	quantScanFour4x4(pRes, pBlock, pFF, pMF, aMax[:], masks[:], true)
 
 	iResOff := 0
 	iBlockOff := 0
 	for j := 0; j < 4; j++ {
-		if aMax[j] == 0 {
-			clear(pBlock[iBlockOff : iBlockOff+16])
-		} else {
-			mask := coefficientScanMask(pBlock[iBlockOff:], pRes[iResOff:], true)
-			masks[j] = mask
+		if aMax[j] != 0 {
+			mask := masks[j]
 			if kiInterFlag != 0 {
 				if aMax[j] > 1 {
 					iSingleCtr8x8 += 9

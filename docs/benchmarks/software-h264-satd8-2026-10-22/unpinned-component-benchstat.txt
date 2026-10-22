@@ -1,0 +1,61 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                        │ /tmp/h264-satd8-20261022/component-before.txt │ /tmp/h264-satd8-20261022/component-after.txt │
+                                        │                    sec/op                     │        sec/op          vs base               │
+SampleSatd8Rows/plain/8x8/checked-4                                        24.94n ± 16%            18.41n ± 14%  -26.20% (p=0.002 n=6)
+SampleSatd8Rows/plain/8x8/raw-4                                            20.77n ± 14%            14.54n ± 39%  -30.00% (p=0.009 n=6)
+SampleSatd8Rows/plain/8x16/checked-4                                       38.27n ± 16%            26.03n ± 34%  -31.98% (p=0.002 n=6)
+SampleSatd8Rows/plain/8x16/raw-4                                           32.63n ± 41%            20.38n ± 59%  -37.53% (p=0.015 n=6)
+SampleSatd8Rows/plain/16x8/checked-4                                       22.70n ± 15%            23.02n ± 35%        ~ (p=0.818 n=6)
+SampleSatd8Rows/plain/16x8/raw-4                                           16.35n ± 41%            16.96n ± 37%        ~ (p=0.589 n=6)
+SampleSatd8Rows/plain/16x16/checked-4                                      33.64n ± 33%            33.54n ± 36%        ~ (p=0.818 n=6)
+SampleSatd8Rows/plain/16x16/raw-4                                          27.71n ± 40%            26.55n ± 21%        ~ (p=0.394 n=6)
+SampleSatd8Rows/average/8x4/checked-4                                      24.02n ± 33%            24.75n ± 24%        ~ (p=0.937 n=6)
+SampleSatd8Rows/average/8x8/checked-4                                      31.22n ± 35%            26.20n ± 19%        ~ (p=0.093 n=6)
+SampleSatd8Rows/average/8x12/checked-4                                     39.46n ± 15%            30.89n ± 27%  -21.70% (p=0.009 n=6)
+SampleSatd8Rows/average/8x16/checked-4                                     45.32n ± 17%            34.16n ± 15%  -24.61% (p=0.002 n=6)
+SampleSatd8Rows/average/16x8/checked-4                                     30.31n ± 13%            34.19n ± 15%        ~ (p=0.180 n=6)
+SampleSatd8Rows/average/16x16/checked-4                                    49.98n ± 18%            46.76n ± 26%        ~ (p=0.394 n=6)
+geomean                                                                    29.89n                  25.67n        -14.11%
+
+                                        │ /tmp/h264-satd8-20261022/component-before.txt │ /tmp/h264-satd8-20261022/component-after.txt │
+                                        │                     B/op                      │         B/op          vs base                │
+SampleSatd8Rows/plain/8x8/checked-4                                        0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x8/raw-4                                            0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/checked-4                                       0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/raw-4                                           0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/checked-4                                       0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/raw-4                                           0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/checked-4                                      0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/raw-4                                          0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x4/checked-4                                      0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x8/checked-4                                      0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x12/checked-4                                     0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x16/checked-4                                     0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x8/checked-4                                     0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x16/checked-4                                    0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                               ²                         +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                        │ /tmp/h264-satd8-20261022/component-before.txt │ /tmp/h264-satd8-20261022/component-after.txt │
+                                        │                   allocs/op                   │      allocs/op        vs base                │
+SampleSatd8Rows/plain/8x8/checked-4                                        0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x8/raw-4                                            0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/checked-4                                       0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/raw-4                                           0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/checked-4                                       0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/raw-4                                           0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/checked-4                                      0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/raw-4                                          0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x4/checked-4                                      0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x8/checked-4                                      0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x12/checked-4                                     0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x16/checked-4                                     0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x8/checked-4                                     0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x16/checked-4                                    0.000 ± 0%               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                               ²                         +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

@@ -1,0 +1,17 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                   │ /tmp/h264-round4-20261021/idct-component-before.txt │ /tmp/h264-round4-20261021/idct-component-after.txt │
+                   │                       sec/op                        │           sec/op             vs base               │
+IDctPairedKernel-4                                           59.62n ± 3%                   45.41n ± 7%  -23.84% (p=0.002 n=6)
+
+                   │ /tmp/h264-round4-20261021/idct-component-before.txt │ /tmp/h264-round4-20261021/idct-component-after.txt │
+                   │                        B/op                         │              B/op                vs base           │
+IDctPairedKernel-4                                            0.000 ± 0%                        0.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                   │ /tmp/h264-round4-20261021/idct-component-before.txt │ /tmp/h264-round4-20261021/idct-component-after.txt │
+                   │                      allocs/op                      │            allocs/op             vs base           │
+IDctPairedKernel-4                                            0.000 ± 0%                        0.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal

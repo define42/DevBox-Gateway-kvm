@@ -1,0 +1,109 @@
+package avc
+
+import (
+	"fmt"
+	"image"
+	"os"
+	"slices"
+	"strconv"
+	"testing"
+	"time"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"golang.org/x/sys/unix"
+)
+
+// This temporary overlay exercises the production codec constructor directly.
+func TestOpenH264ComparisonExport(t *testing.T) {
+	if os.Getenv("COMPARE_EXPORT") == "" {
+		t.Skip("export not requested")
+	}
+	rgba, err := os.ReadFile(os.Getenv("COMPARE_RGBA"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const width, height = 1920, 1080
+	frameBytes := width * height * 4
+	if len(rgba)%frameBytes != 0 {
+		t.Fatal("partial RGBA frame")
+	}
+	output := make([]byte, len(rgba)/frameBytes*width*height*3/2)
+	for i := 0; i < len(rgba)/frameBytes; i++ {
+		img := &image.RGBA{Pix: rgba[i*frameBytes : (i+1)*frameBytes], Stride: width * 4, Rect: image.Rect(0, 0, width, height)}
+		scaleI420(output[i*width*height*3/2:(i+1)*width*height*3/2], width, height, img)
+	}
+	if err := os.WriteFile(os.Getenv("COMPARE_I420"), output, 0600); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("exported %d frames\n", len(rgba)/frameBytes)
+}
+
+func TestOpenH264Comparison(t *testing.T) {
+	if os.Getenv("COMPARE_RUN") == "" {
+		t.Skip("comparison not requested")
+	}
+	data, err := os.ReadFile(os.Getenv("COMPARE_I420"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	threads, err := strconv.Atoi(os.Getenv("COMPARE_SLICES"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	count, err := strconv.Atoi(os.Getenv("COMPARE_FRAMES"))
+	if err != nil || count < 1 {
+		t.Fatal("invalid count")
+	}
+	const width, height, warmup = 1920, 1080, 16
+	frameBytes := width * height * 3 / 2
+	if len(data) == 0 || len(data)%frameBytes != 0 {
+		t.Fatal("invalid I420")
+	}
+	codec, actual, err := newCodecEncoder(width, height, threads, FrameRate, DefaultQP)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer codec.close()
+	var params api.SEncParamExt
+	if rv := codec.(*openH264Encoder).codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &params); rv != 0 {
+		t.Fatal(rv)
+	}
+	fmt.Printf("PARAMS %+v\n", params)
+	timings := make([]int64, 0, count)
+	var total, cpuTotal, bytes int64
+	var stream []byte
+	var cpuStart, cpuEnd unix.Timespec
+	for i := 0; i < warmup+count; i++ {
+		index := i % (len(data) / frameBytes)
+		frame := data[index*frameBytes : (index+1)*frameBytes]
+		if err := unix.ClockGettime(unix.CLOCK_PROCESS_CPUTIME_ID, &cpuStart); err != nil {
+			t.Fatal(err)
+		}
+		start := time.Now()
+		encoded, err := codec.encode(frame, i == 0, int64(i*1000/FrameRate))
+		elapsed := time.Since(start).Nanoseconds()
+		if clockErr := unix.ClockGettime(unix.CLOCK_PROCESS_CPUTIME_ID, &cpuEnd); clockErr != nil {
+			t.Fatal(clockErr)
+		}
+		if err != nil || len(encoded) == 0 {
+			t.Fatalf("frame %d: len=%d err=%v", i, len(encoded), err)
+		}
+		if i >= warmup {
+			total += elapsed
+			cpuTotal += cpuEnd.Nano() - cpuStart.Nano()
+			bytes += int64(len(encoded))
+			timings = append(timings, elapsed)
+		}
+		if os.Getenv("COMPARE_STREAM") != "" {
+			stream = append(stream, encoded...)
+		}
+	}
+	slices.Sort(timings)
+	p95 := timings[(count*95+99)/100-1]
+	fmt.Printf("BenchmarkOpenH264/1080p/%dSlices-4 %d %.3f ns/op %.3f cpu_ns/frame %.3f bytes/frame %d p95_ns/frame\n", actual, count, float64(total)/float64(count), float64(cpuTotal)/float64(count), float64(bytes)/float64(count), p95)
+	if name := os.Getenv("COMPARE_STREAM"); name != "" {
+		if err := os.WriteFile(name, stream, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

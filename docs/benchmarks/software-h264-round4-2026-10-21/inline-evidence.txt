@@ -1,0 +1,36 @@
+build-encoder.txt
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:40:6: can inline (*sCavlcBs).write with cost 80 as: method(*sCavlcBs) func(int32, int32) { if n < s.iLeftBits { s.uiCurBits = s.uiCurBits << n | uint32(v); s.iLeftBits -= n } else { (*sCavlcBs).flush(s, n, v) } }
+pkg/h264/internal/encoder/quant_scan_amd64.go:39:31: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:40:25: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:40:65: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:41:25: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:41:65: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:42:25: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:132:11: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:142:10: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:169:11: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:181:12: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:186:12: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:197:11: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/cavlc_flush_test.go:20:14: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/cavlc_flush_test.go:52:20: inlining call to (*sCavlcBs).write
+go126-inline.txt
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:40:6: can inline (*sCavlcBs).write with cost 80 as: method(*sCavlcBs) func(int32, int32) { if n < s.iLeftBits { s.uiCurBits = s.uiCurBits << n | uint32(v); s.iLeftBits -= n } else { (*sCavlcBs).flush(s, n, v) } }
+pkg/h264/internal/encoder/quant_scan_amd64.go:39:31: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:40:25: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:40:65: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:41:25: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:41:65: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/quant_scan_amd64.go:42:25: inlining call to quantScanRangesOverlap
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:132:11: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:142:10: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:169:11: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:181:12: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:186:12: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/set_mb_syn_cavlc.go:197:11: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/cavlc_flush_test.go:20:14: inlining call to (*sCavlcBs).write
+pkg/h264/internal/encoder/cavlc_flush_test.go:52:20: inlining call to (*sCavlcBs).write
+
+Shared span checks
+pkg/h264/internal/common/simd_bounds_amd64.go:7:6: can inline checkSIMDSpan with cost 16 as: func([]byte, int64, int64) { if first < int64(0) || last < first || last >= int64(len(buf)) { panic("h264: SIMD buffer span out of range") } }
+pkg/h264/internal/common/simd_bounds_amd64.go:15:6: can inline simdBlockSlice with cost 49 as: func([]byte, int, int32, int, int) []byte { if stride < int32(0) { panic("h264: SIMD buffer span out of range") }; end := off + (height - 1) * int(stride) + width; checkSIMDSpan(buf, int64(off), int64(end) - int64(1)); return buf[off:end] }

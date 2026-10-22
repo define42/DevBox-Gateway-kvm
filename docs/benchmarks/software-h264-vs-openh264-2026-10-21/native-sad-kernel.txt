@@ -1,0 +1,104 @@
+
+/tmp/openh264-comparison-20261021/native_bench:     file format elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .plt.got:
+
+Disassembly of section .text:
+
+0000000000063950 <WelsSampleSad16x16_sse2>:
+   63950:	48 63 f6             	movslq %esi,%rsi
+   63953:	48 63 c9             	movslq %ecx,%rcx
+   63956:	4c 8d 04 76          	lea    (%rsi,%rsi,2),%r8
+   6395a:	4c 8d 0c 49          	lea    (%rcx,%rcx,2),%r9
+   6395e:	66 0f ef ff          	pxor   %xmm7,%xmm7
+   63962:	f3 0f 6f 02          	movdqu (%rdx),%xmm0
+   63966:	66 0f 6f 17          	movdqa (%rdi),%xmm2
+   6396a:	66 0f f6 c2          	psadbw %xmm2,%xmm0
+   6396e:	66 0f fd f8          	paddw  %xmm0,%xmm7
+   63972:	f3 0f 6f 0c 0a       	movdqu (%rdx,%rcx,1),%xmm1
+   63977:	66 0f 6f 14 37       	movdqa (%rdi,%rsi,1),%xmm2
+   6397c:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63980:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63984:	f3 0f 6f 0c 4a       	movdqu (%rdx,%rcx,2),%xmm1
+   63989:	66 0f 6f 14 77       	movdqa (%rdi,%rsi,2),%xmm2
+   6398e:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63992:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63996:	f3 42 0f 6f 0c 0a    	movdqu (%rdx,%r9,1),%xmm1
+   6399c:	66 42 0f 6f 14 07    	movdqa (%rdi,%r8,1),%xmm2
+   639a2:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   639a6:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   639aa:	48 8d 3c b7          	lea    (%rdi,%rsi,4),%rdi
+   639ae:	48 8d 14 8a          	lea    (%rdx,%rcx,4),%rdx
+   639b2:	f3 0f 6f 02          	movdqu (%rdx),%xmm0
+   639b6:	66 0f 6f 17          	movdqa (%rdi),%xmm2
+   639ba:	66 0f f6 c2          	psadbw %xmm2,%xmm0
+   639be:	66 0f fd f8          	paddw  %xmm0,%xmm7
+   639c2:	f3 0f 6f 0c 0a       	movdqu (%rdx,%rcx,1),%xmm1
+   639c7:	66 0f 6f 14 37       	movdqa (%rdi,%rsi,1),%xmm2
+   639cc:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   639d0:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   639d4:	f3 0f 6f 0c 4a       	movdqu (%rdx,%rcx,2),%xmm1
+   639d9:	66 0f 6f 14 77       	movdqa (%rdi,%rsi,2),%xmm2
+   639de:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   639e2:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   639e6:	f3 42 0f 6f 0c 0a    	movdqu (%rdx,%r9,1),%xmm1
+   639ec:	66 42 0f 6f 14 07    	movdqa (%rdi,%r8,1),%xmm2
+   639f2:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   639f6:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   639fa:	48 8d 3c b7          	lea    (%rdi,%rsi,4),%rdi
+   639fe:	48 8d 14 8a          	lea    (%rdx,%rcx,4),%rdx
+   63a02:	f3 0f 6f 02          	movdqu (%rdx),%xmm0
+   63a06:	66 0f 6f 17          	movdqa (%rdi),%xmm2
+   63a0a:	66 0f f6 c2          	psadbw %xmm2,%xmm0
+   63a0e:	66 0f fd f8          	paddw  %xmm0,%xmm7
+   63a12:	f3 0f 6f 0c 0a       	movdqu (%rdx,%rcx,1),%xmm1
+   63a17:	66 0f 6f 14 37       	movdqa (%rdi,%rsi,1),%xmm2
+   63a1c:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63a20:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63a24:	f3 0f 6f 0c 4a       	movdqu (%rdx,%rcx,2),%xmm1
+   63a29:	66 0f 6f 14 77       	movdqa (%rdi,%rsi,2),%xmm2
+   63a2e:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63a32:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63a36:	f3 42 0f 6f 0c 0a    	movdqu (%rdx,%r9,1),%xmm1
+   63a3c:	66 42 0f 6f 14 07    	movdqa (%rdi,%r8,1),%xmm2
+   63a42:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63a46:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63a4a:	48 8d 3c b7          	lea    (%rdi,%rsi,4),%rdi
+   63a4e:	48 8d 14 8a          	lea    (%rdx,%rcx,4),%rdx
+   63a52:	f3 0f 6f 02          	movdqu (%rdx),%xmm0
+   63a56:	66 0f 6f 17          	movdqa (%rdi),%xmm2
+   63a5a:	66 0f f6 c2          	psadbw %xmm2,%xmm0
+   63a5e:	66 0f fd f8          	paddw  %xmm0,%xmm7
+   63a62:	f3 0f 6f 0c 0a       	movdqu (%rdx,%rcx,1),%xmm1
+   63a67:	66 0f 6f 14 37       	movdqa (%rdi,%rsi,1),%xmm2
+   63a6c:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63a70:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63a74:	f3 0f 6f 0c 4a       	movdqu (%rdx,%rcx,2),%xmm1
+   63a79:	66 0f 6f 14 77       	movdqa (%rdi,%rsi,2),%xmm2
+   63a7e:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63a82:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63a86:	f3 42 0f 6f 0c 0a    	movdqu (%rdx,%r9,1),%xmm1
+   63a8c:	66 42 0f 6f 14 07    	movdqa (%rdi,%r8,1),%xmm2
+   63a92:	66 0f f6 ca          	psadbw %xmm2,%xmm1
+   63a96:	66 0f fd f9          	paddw  %xmm1,%xmm7
+   63a9a:	0f 12 c7             	movhlps %xmm7,%xmm0
+   63a9d:	66 0f fd c7          	paddw  %xmm7,%xmm0
+   63aa1:	66 0f 7e c0          	movd   %xmm0,%eax
+   63aa5:	c3                   	ret
+   63aa6:	90                   	nop
+   63aa7:	90                   	nop
+   63aa8:	90                   	nop
+   63aa9:	90                   	nop
+   63aaa:	90                   	nop
+   63aab:	90                   	nop
+   63aac:	90                   	nop
+   63aad:	90                   	nop
+   63aae:	90                   	nop
+   63aaf:	90                   	nop
+
+Disassembly of section .fini:

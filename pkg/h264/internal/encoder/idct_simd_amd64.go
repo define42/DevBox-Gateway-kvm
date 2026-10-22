@@ -2,13 +2,20 @@
 
 package encoder
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"golang.org/x/sys/cpu"
+)
 
 //go:noescape
 func idctT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
 
 //go:noescape
 func idctFourT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
+
+//go:noescape
+func idctFourT4RecAVX2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
 
 // WelsIDctT4Rec_sse2 preserves the scalar transform's wrapping horizontal
 // int16 intermediates and its widened vertical arithmetic.
@@ -31,6 +38,10 @@ func WelsIDctFourT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte
 	checkSampleSIMDBlock(pred, predOff, predStride, 8, 8)
 	if idctNeedsScalarAlias(rec, recOff, recStride, pred, predOff, predStride, 8) {
 		WelsIDctFourT4Rec_c(rec, recOff, recStride, pred, predOff, predStride, coeff)
+		return
+	}
+	if cpu.X86.HasAVX2 {
+		idctFourT4RecAVX2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
 		return
 	}
 	idctFourT4RecSSE2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)

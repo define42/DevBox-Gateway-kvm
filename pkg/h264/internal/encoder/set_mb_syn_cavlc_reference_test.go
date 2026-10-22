@@ -18,7 +18,7 @@ func writeBlockResidualCavlcReference(pFuncList *SWelsFuncPtrList, pCoffLevel []
 	var n int32
 	var i int32
 
-	bs := cavlcBsInit(pBs)
+	bs := cavlcWriterReference{cavlcBsInit(pBs)}
 
 	/*Step 1: calculate iLevel and iRun and total */
 
@@ -142,4 +142,21 @@ func writeBlockResidualCavlcReference(pFuncList *SWelsFuncPtrList, pCoffLevel []
 
 	bs.uninit(pBs)
 	return ENC_RETURN_SUCCESS
+}
+
+// cavlcWriterReference preserves the unsplit bit writer for byte/state parity.
+type cavlcWriterReference struct{ sCavlcBs }
+
+func (s *cavlcWriterReference) write(n int32, v int32) {
+	if n < s.iLeftBits {
+		s.uiCurBits = (s.uiCurBits << uint(n)) | uint32(v)
+		s.iLeftBits -= n
+	} else {
+		n -= s.iLeftBits
+		s.uiCurBits = (s.uiCurBits << uint(s.iLeftBits)) | uint32(v>>uint(n))
+		common.WRITE_BE_32(s.pBuf, s.pBufPtr, s.uiCurBits)
+		s.pBufPtr += 4
+		s.uiCurBits = uint32(v & ((1 << uint(n)) - 1))
+		s.iLeftBits = 32 - n
+	}
 }

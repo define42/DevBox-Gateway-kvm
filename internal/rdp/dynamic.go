@@ -302,31 +302,39 @@ func (s *Session) writeStatic(channel uint16, data []byte) error {
 }
 
 func (s *Session) writeGraphics(data []byte) error {
-	return s.writeDynamic(graphicsChannelID, segmentGraphics(data))
+	return s.writeGraphicsParts([][]byte{data})
 }
 
 func (s *Session) writeDynamic(id uint32, data []byte) error {
+	return s.writeDynamicPayload(id, len(data), func(dst []byte) {
+		data = data[copy(dst, data):]
+	})
+}
+
+// writeDynamicPayload fills each fragment directly in the reusable transport
+// batch. fill must initialize all of dst and consume exactly len(dst) bytes.
+func (s *Session) writeDynamicPayload(id uint32, total int, fill func([]byte)) error {
 	d := s.dynamic
 	d.writeMu.Lock()
 	defer d.writeMu.Unlock()
-	total := len(data)
+	remaining := total
 	first := true
 	batch := d.writeBatch[:0]
-	if len(data) != 0 && cap(batch) < dynamicTransportBatchSize {
+	if remaining != 0 && cap(batch) < dynamicTransportBatchSize {
 		batch = make([]byte, 0, dynamicTransportBatchSize)
 	}
 	defer func() { d.writeBatch = batch[:0] }()
-	for len(data) > 0 {
+	for remaining > 0 {
 		var header [14]byte
 		headerLength := 10 // Static-channel header followed by DYNVC_DATA.
 		header[8], header[9] = 0x30, byte(id)
-		if first && len(data) > 1598 {
+		if first && remaining > 1598 {
 			headerLength = 14 // Static-channel header followed by DYNVC_DATA_FIRST.
 			header[8], header[9] = 0x28, byte(id)
 			binary.LittleEndian.PutUint32(header[10:], uint32(total))
 		}
 		dynamicHeaderLength := headerLength - 8
-		size := min(1600-dynamicHeaderLength, len(data))
+		size := min(1600-dynamicHeaderLength, remaining)
 		binary.LittleEndian.PutUint32(header[:4], uint32(dynamicHeaderLength+size))
 		binary.LittleEndian.PutUint32(header[4:8], 3)
 		packetSize := channelTPKTSize(headerLength + size)
@@ -337,11 +345,12 @@ func (s *Session) writeDynamic(id uint32, data []byte) error {
 			batch = batch[:0]
 		}
 		var err error
-		batch, err = appendChannelTPKT(batch, d.channel, header[:headerLength], data[:size])
+		batch, err = appendChannelTPKTHeader(batch, d.channel, header[:headerLength], size)
 		if err != nil {
 			return err
 		}
-		data = data[size:]
+		fill(batch[len(batch)-size:])
+		remaining -= size
 		first = false
 	}
 	if len(batch) == 0 {

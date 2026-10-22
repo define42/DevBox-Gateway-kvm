@@ -1,0 +1,79 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                        │ /tmp/h264-round4-20261021/sad-component-before.txt │ /tmp/h264-round4-20261021/sad-component-after.txt │
+                                        │                       sec/op                       │           sec/op            vs base               │
+SampleSadFourBatched/16x16/stride32-4                                           74.96n ±  6%                 39.40n ±  5%  -47.44% (p=0.002 n=6)
+SampleSadFourBatched/16x16/stride2048-4                                         98.81n ± 18%                 53.16n ± 11%  -46.20% (p=0.002 n=6)
+SampleSadFourBatched/16x8/stride32-4                                            58.04n ± 28%                 34.33n ± 16%  -40.86% (p=0.002 n=6)
+SampleSadFourBatched/16x8/stride2048-4                                          68.41n ± 24%                 28.35n ±  4%  -58.56% (p=0.002 n=6)
+SampleSadFourBatched/8x16/stride32-4                                            75.49n ±  6%                 38.25n ±  4%  -49.32% (p=0.002 n=6)
+SampleSadFourBatched/8x16/stride2048-4                                          91.36n ±  8%                 47.36n ±  3%  -48.16% (p=0.002 n=6)
+SampleSadFourBatched/8x8/stride32-4                                             57.10n ±  9%                 26.53n ±  3%  -53.54% (p=0.002 n=6)
+SampleSadFourBatched/8x8/stride2048-4                                           60.27n ± 37%                 43.85n ± 57%        ~ (p=0.180 n=6)
+SampleSadFourBatched/8x4/stride32-4                                             50.09n ± 23%                 24.32n ± 16%  -51.45% (p=0.002 n=6)
+SampleSadFourBatched/8x4/stride2048-4                                           57.31n ±  8%                 22.46n ± 27%  -60.80% (p=0.002 n=6)
+SampleSadFourBatched/4x8/stride32-4                                             67.12n ± 21%                 28.80n ± 77%  -57.09% (p=0.002 n=6)
+SampleSadFourBatched/4x8/stride2048-4                                           60.36n ± 16%                 27.38n ± 45%  -54.65% (p=0.002 n=6)
+SampleSadFourBatched/4x4/stride32-4                                             47.89n ±  4%                 20.33n ±  3%  -57.54% (p=0.002 n=6)
+SampleSadFourBatched/4x4/stride2048-4                                           46.65n ±  6%                 21.91n ± 12%  -53.03% (p=0.002 n=6)
+geomean                                                                         63.71n                       31.19n        -51.04%
+
+                                        │ /tmp/h264-round4-20261021/sad-component-before.txt │ /tmp/h264-round4-20261021/sad-component-after.txt │
+                                        │                        B/s                         │            B/s             vs base                │
+SampleSadFourBatched/16x16/stride32-4                                          15.90Gi ±  6%               30.25Gi ±  5%   +90.26% (p=0.002 n=6)
+SampleSadFourBatched/16x16/stride2048-4                                        12.07Gi ± 15%               22.43Gi ± 12%   +85.77% (p=0.002 n=6)
+SampleSadFourBatched/16x8/stride32-4                                           10.27Gi ± 22%               17.36Gi ± 19%   +69.07% (p=0.002 n=6)
+SampleSadFourBatched/16x8/stride2048-4                                         8.720Gi ± 19%              21.023Gi ±  4%  +141.09% (p=0.002 n=6)
+SampleSadFourBatched/8x16/stride32-4                                           7.896Gi ±  5%              15.582Gi ±  4%   +97.35% (p=0.002 n=6)
+SampleSadFourBatched/8x16/stride2048-4                                         6.524Gi ±  8%              12.584Gi ±  3%   +92.88% (p=0.002 n=6)
+SampleSadFourBatched/8x8/stride32-4                                            5.219Gi ±  8%              11.233Gi ±  3%  +115.24% (p=0.002 n=6)
+SampleSadFourBatched/8x8/stride2048-4                                          4.945Gi ± 27%               6.889Gi ± 44%         ~ (p=0.180 n=6)
+SampleSadFourBatched/8x4/stride32-4                                            2.975Gi ± 19%               6.128Gi ± 19%  +105.96% (p=0.002 n=6)
+SampleSadFourBatched/8x4/stride2048-4                                          2.600Gi ±  7%               6.633Gi ± 21%  +155.09% (p=0.002 n=6)
+SampleSadFourBatched/4x8/stride32-4                                            2.220Gi ± 18%               5.209Gi ± 44%  +134.59% (p=0.002 n=6)
+SampleSadFourBatched/4x8/stride2048-4                                          2.469Gi ± 14%               5.443Gi ± 31%  +120.48% (p=0.002 n=6)
+SampleSadFourBatched/4x4/stride32-4                                            1.556Gi ±  4%               3.665Gi ±  3%  +135.55% (p=0.002 n=6)
+SampleSadFourBatched/4x4/stride2048-4                                          1.597Gi ±  6%               3.401Gi ± 11%  +112.96% (p=0.002 n=6)
+geomean                                                                        4.679Gi                     9.569Gi        +104.53%
+
+                                        │ /tmp/h264-round4-20261021/sad-component-before.txt │ /tmp/h264-round4-20261021/sad-component-after.txt │
+                                        │                        B/op                        │           B/op             vs base                │
+SampleSadFourBatched/16x16/stride32-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/16x16/stride2048-4                                         0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/16x8/stride32-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/16x8/stride2048-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x16/stride32-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x16/stride2048-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x8/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x8/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x4/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x4/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x8/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x8/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x4/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x4/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                    ²                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                        │ /tmp/h264-round4-20261021/sad-component-before.txt │ /tmp/h264-round4-20261021/sad-component-after.txt │
+                                        │                     allocs/op                      │         allocs/op          vs base                │
+SampleSadFourBatched/16x16/stride32-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/16x16/stride2048-4                                         0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/16x8/stride32-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/16x8/stride2048-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x16/stride32-4                                            0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x16/stride2048-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x8/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x8/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x4/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/8x4/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x8/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x8/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x4/stride32-4                                             0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourBatched/4x4/stride2048-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                    ²                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

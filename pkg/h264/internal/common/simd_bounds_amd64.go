@@ -17,5 +17,6 @@ func simdBlockSlice(buf []byte, off int, stride int32, width, height int) []byte
 		panic(simdBoundsPanic)
 	}
 	end := off + (height-1)*int(stride) + width
+	checkSIMDSpan(buf, int64(off), int64(end)-1)
 	return buf[off:end]
 }

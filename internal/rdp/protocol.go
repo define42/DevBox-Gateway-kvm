@@ -502,12 +502,10 @@ func channelTPKTSize(payloadLength int) int {
 	return 4 + 3 + 6 + perLength + payloadLength
 }
 
-// appendChannelTPKT appends one complete server-to-client MCS channel packet.
-// header and payload remain caller-owned; their bytes are copied directly into
-// dst without constructing the intermediate static-channel, MCS, or TPKT
-// slices used by the general control-message path.
-func appendChannelTPKT(dst []byte, channel uint16, header, payload []byte) ([]byte, error) {
-	payloadLength := len(header) + len(payload)
+// appendChannelTPKTHeader reserves the complete packet and fills its headers.
+// The caller fills the final payloadLength bytes before the batch is written.
+func appendChannelTPKTHeader(dst []byte, channel uint16, header []byte, payloadLength int) ([]byte, error) {
+	payloadLength += len(header)
 	if payloadLength > maxUserData {
 		return dst, errors.New("rdp: MCS data exceeds PER limit")
 	}
@@ -534,8 +532,7 @@ func appendChannelTPKT(dst []byte, channel uint16, header, payload []byte) ([]by
 		packet[offset], packet[offset+1] = byte(payloadLength>>8)|0x80, byte(payloadLength)
 		offset += 2
 	}
-	offset += copy(packet[offset:], header)
-	copy(packet[offset:], payload)
+	copy(packet[offset:], header)
 
 	return dst, nil
 }

@@ -1,0 +1,27 @@
+goos: linux
+goarch: amd64
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                         │ /tmp/openh264-comparison-20261021/native.txt │ /tmp/openh264-comparison-20261021/go.txt │
+                         │                    sec/op                    │      sec/op       vs base                │
+OpenH264/1080p/1Slices-4                                   23.96m ± 18%       48.38m ± 11%  +101.89% (p=0.002 n=6)
+OpenH264/1080p/4Slices-4                                   10.56m ± 25%       17.77m ± 16%   +68.18% (p=0.002 n=6)
+geomean                                                    15.91m             29.32m         +84.27%
+
+                         │ /tmp/openh264-comparison-20261021/native.txt │ /tmp/openh264-comparison-20261021/go.txt │
+                         │                 cpu_ns/frame                 │   cpu_ns/frame    vs base                │
+OpenH264/1080p/1Slices-4                                   23.92M ± 18%       48.27M ± 11%  +101.77% (p=0.002 n=6)
+OpenH264/1080p/4Slices-4                                   32.77M ± 29%       54.84M ± 10%   +67.33% (p=0.002 n=6)
+geomean                                                    28.00M             51.45M         +83.75%
+
+                         │ /tmp/openh264-comparison-20261021/native.txt │ /tmp/openh264-comparison-20261021/go.txt │
+                         │                 bytes/frame                  │   bytes/frame     vs base                │
+OpenH264/1080p/1Slices-4                                   99.39Ki ± 0%       99.39Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/1080p/4Slices-4                                   99.66Ki ± 0%       99.66Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                    99.53Ki            99.53Ki       +0.00%
+¹ all samples are equal
+
+                         │ /tmp/openh264-comparison-20261021/native.txt │ /tmp/openh264-comparison-20261021/go.txt │
+                         │                 p95_ns/frame                 │   p95_ns/frame    vs base                │
+OpenH264/1080p/1Slices-4                                   28.98M ± 19%       59.73M ± 16%  +106.12% (p=0.002 n=6)
+OpenH264/1080p/4Slices-4                                   14.30M ± 59%       22.59M ± 20%   +57.92% (p=0.015 n=6)
+geomean                                                    20.36M             36.73M         +80.42%

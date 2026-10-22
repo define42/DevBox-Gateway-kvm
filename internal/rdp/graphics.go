@@ -219,8 +219,11 @@ func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (b
 	}
 	g.mu.Unlock()
 
-	frame := avc420FrameDamage(width, height, frameID, graphicsTimestamp(time.Now()), annexB, regions)
-	err := s.writeGraphics(frame)
+	var metadata [57 + 10*graphicsMaxRegions]byte
+	header, end := avc420FrameMetadata(metadata[:], width, height, frameID,
+		graphicsTimestamp(time.Now()), len(annexB), regions)
+	frameLength := len(header) + len(annexB) + len(end)
+	err := s.writeGraphicsParts([][]byte{header, annexB, end})
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	// Suspension and channel close invalidate the old ACK window, including
@@ -242,7 +245,7 @@ func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (b
 		break
 	}
 	if err == nil {
-		g.observeFrame(len(frame))
+		g.observeFrame(frameLength)
 	}
 
 	return err == nil, err
@@ -554,11 +557,24 @@ func avc420Frame(width, height int, frameID, timestamp uint32, annexB []byte) []
 func avc420FrameDamage(width, height int, frameID, timestamp uint32,
 	annexB []byte, regions []image.Rectangle,
 ) []byte {
-	// Allocate the complete START_FRAME, WIRE_TO_SURFACE_1 and END_FRAME
-	// sequence once. The encoded access unit is the only large copy.
+	metadata := make([]byte, 57+10*len(regions))
+	header, end := avc420FrameMetadata(metadata, width, height, frameID, timestamp, len(annexB), regions)
+	data := make([]byte, 0, len(metadata)+len(annexB))
+	data = append(data, header...)
+	data = append(data, annexB...)
+
+	return append(data, end...)
+}
+
+// avc420FrameMetadata fills only the small frame header and trailer. The
+// access unit remains separate until the transport fragments are assembled.
+func avc420FrameMetadata(data []byte, width, height int, frameID, timestamp uint32,
+	payloadLength int, regions []image.Rectangle,
+) ([]byte, []byte) {
 	metadataLength := 4 + 10*len(regions)
-	wireLength := 17 + metadataLength + len(annexB)
-	data := make([]byte, 16+8+wireLength+12)
+	wireLength := 17 + metadataLength
+	data = data[:16+8+wireLength+12]
+	clear(data)
 
 	start := data[:16]
 	binary.LittleEndian.PutUint16(start, 0x0b)
@@ -568,7 +584,7 @@ func avc420FrameDamage(width, height int, frameID, timestamp uint32,
 
 	wirePDU := data[16 : 16+8+wireLength]
 	binary.LittleEndian.PutUint16(wirePDU, 1)
-	binary.LittleEndian.PutUint32(wirePDU[4:], uint32(len(wirePDU)))
+	binary.LittleEndian.PutUint32(wirePDU[4:], uint32(len(wirePDU)+payloadLength))
 	// WIRE_TO_SURFACE_1 describes the complete coded desktop; its AVC420
 	// metadata mask tells the client which decoded regions to repaint.
 	wire := wirePDU[8:]
@@ -576,7 +592,7 @@ func avc420FrameDamage(width, height int, frameID, timestamp uint32,
 	wire[4] = 0x20
 	put16(wire, 9, width)
 	put16(wire, 11, height)
-	binary.LittleEndian.PutUint32(wire[13:], uint32(metadataLength+len(annexB)))
+	binary.LittleEndian.PutUint32(wire[13:], uint32(metadataLength+payloadLength))
 	binary.LittleEndian.PutUint32(wire[17:], uint32(len(regions)))
 	for index, rect := range regions {
 		offset := 21 + 8*index
@@ -590,12 +606,11 @@ func avc420FrameDamage(width, height int, frameID, timestamp uint32,
 		// Quantization and quality are advisory progressive-rendering metadata.
 		wire[offset], wire[offset+1] = 22, 100
 	}
-	copy(wire[17+metadataLength:], annexB)
 
 	end := data[len(data)-12:]
 	binary.LittleEndian.PutUint16(end, 0x0c)
 	binary.LittleEndian.PutUint32(end[4:], uint32(len(end)))
 	binary.LittleEndian.PutUint32(end[8:], frameID)
 
-	return data
+	return data[:len(data)-12], end
 }

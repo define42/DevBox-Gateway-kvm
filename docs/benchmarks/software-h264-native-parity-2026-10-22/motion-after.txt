@@ -1,0 +1,198 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSatdBlocks/8x8/scalar-4         	  821838	       150.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/sse41-4          	 2213854	        56.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/avx2-4           	 4877278	        26.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/scalar-4        	  400950	       313.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/sse41-4         	 1072004	       110.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/avx2-4          	 5084852	        23.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/scalar-4        	  346600	       326.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/sse41-4         	 1000000	       110.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/avx2-4          	 2834792	        41.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/scalar-4       	  190144	       614.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/sse41-4        	  519069	       228.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/avx2-4         	 3683288	        33.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=false-4       	 2301895	        52.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=true-4        	 4356805	        29.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=false-4      	 2211788	        53.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=true-4       	 4281313	        27.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=false-4      	 1422188	        82.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=true-4       	 2705335	        42.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=false-4     	 1305182	        91.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=true-4      	 2717024	        43.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=false-4      	  268460	       403.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=true-4       	  362024	       315.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcAVX2Halfpel/horizontal/16x16/AVX2-4         	 1700073	        71.10 ns/op	3600.71 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSatdBlocks/8x8/scalar-4         	  730131	       153.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/sse41-4          	 2266893	        52.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/avx2-4           	 4626422	        25.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/scalar-4        	  418393	       319.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/sse41-4         	 1000000	       108.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/avx2-4          	 5483955	        23.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/scalar-4        	  420300	       306.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/sse41-4         	 1092555	       110.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/avx2-4          	 3055483	        39.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/scalar-4       	  178227	       661.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/sse41-4        	  513662	       222.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/avx2-4         	 3697555	        34.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=false-4       	 2451262	        49.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=true-4        	 4145281	        29.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=false-4      	 2295441	        52.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=true-4       	 4342010	        28.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=false-4      	 1558130	        76.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=true-4       	 2897428	        41.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=false-4     	 1202588	        98.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=true-4      	 2655436	        49.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=false-4      	  325359	       469.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=true-4       	  443738	       324.9 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcAVX2Halfpel/horizontal/16x16/AVX2-4         	 1531680	        76.44 ns/op	3349.15 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSatdBlocks/8x8/scalar-4         	  823527	       156.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/sse41-4          	 2361393	        53.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/avx2-4           	 4753510	        26.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/scalar-4        	  381351	       332.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/sse41-4         	 1101399	       109.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/avx2-4          	 5292764	        22.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/scalar-4        	  417012	       334.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/sse41-4         	 1027148	       120.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/avx2-4          	 3146258	        38.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/scalar-4       	  166186	       665.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/sse41-4        	  548314	       233.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/avx2-4         	 3385633	        35.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=false-4       	 2154070	        52.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=true-4        	 4434202	        27.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=false-4      	 2313192	        51.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=true-4       	 4311070	        27.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=false-4      	 1489783	        81.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=true-4       	 2701597	        42.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=false-4     	 1386306	        88.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=true-4      	 2400076	        47.85 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=false-4      	  186361	       616.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=true-4       	  404209	       290.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcAVX2Halfpel/horizontal/16x16/AVX2-4         	 1522826	        75.43 ns/op	3393.78 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSatdBlocks/8x8/scalar-4         	  669060	       158.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/sse41-4          	 2209428	        53.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/avx2-4           	 4952223	        25.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/scalar-4        	  323605	       323.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/sse41-4         	 1000000	       109.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/avx2-4          	 4897497	        23.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/scalar-4        	  338698	       306.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/sse41-4         	 1000000	       122.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/avx2-4          	 3172832	        37.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/scalar-4       	  196658	       663.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/sse41-4        	  510854	       220.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/avx2-4         	 3887079	        32.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=false-4       	 2314162	        51.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=true-4        	 4433164	        28.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=false-4      	 2309446	        54.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=true-4       	 4437579	        27.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=false-4      	 1450609	        81.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=true-4       	 2641536	        45.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=false-4     	 1389512	        86.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=true-4      	 2265380	        47.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=false-4      	  280902	       413.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=true-4       	  410210	       303.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcAVX2Halfpel/horizontal/16x16/AVX2-4         	 1664592	        71.92 ns/op	3559.37 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSatdBlocks/8x8/scalar-4         	  753972	       157.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/sse41-4          	 2116353	        56.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/avx2-4           	 4164490	        26.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/scalar-4        	  317367	       331.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/sse41-4         	 1000000	       142.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/avx2-4          	 4354766	        26.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/scalar-4        	  343262	       347.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/sse41-4         	 1000000	       116.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/avx2-4          	 2759550	        43.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/scalar-4       	  166454	       674.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/sse41-4        	  516978	       254.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/avx2-4         	 2917717	        40.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=false-4       	 2214046	        52.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=true-4        	 4122297	        30.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=false-4      	 2216438	        54.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=true-4       	 4242086	        29.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=false-4      	 1393846	        84.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=true-4       	 2599021	        47.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=false-4     	 1274665	        93.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=true-4      	 2682442	        44.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=false-4      	  327873	       532.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=true-4       	  388850	       358.8 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcAVX2Halfpel/horizontal/16x16/AVX2-4         	 1373910	        83.80 ns/op	3054.79 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSatdBlocks/8x8/scalar-4         	  754092	       159.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/sse41-4          	 2194840	        59.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x8/avx2-4           	 4915564	        25.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/scalar-4        	  404203	       318.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/sse41-4         	 1065120	       116.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x8/avx2-4          	 5362615	        22.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/scalar-4        	  379917	       317.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/sse41-4         	 1000000	       115.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/8x16/avx2-4          	 2651908	        43.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/scalar-4       	  191835	       631.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/sse41-4        	  596814	       229.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSatdBlocks/16x16/avx2-4         	 3333727	        34.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=false-4       	 2251052	        53.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x8/fused=true-4        	 4328587	        28.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=false-4      	 2169218	        56.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x8/fused=true-4       	 3575040	        31.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=false-4      	 1489724	        82.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/8x16/fused=true-4       	 2793910	        43.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=false-4     	 1271612	        93.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleAvgSatd/16x16/fused=true-4      	 2599101	        45.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=false-4      	  322533	       447.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFused/fused=true-4       	  410808	       360.6 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcAVX2Halfpel/horizontal/16x16/AVX2-4         	 1727430	        70.22 ns/op	3645.77 MB/s	       0 B/op	       0 allocs/op
+PASS

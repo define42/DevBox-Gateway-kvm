@@ -1,0 +1,41 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                      sec/op                      │             sec/op              vs base         │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                       31.68m ± 21%                     31.12m ± 24%  ~ (p=0.699 n=6)
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                   bytes/frame                    │         bytes/frame           vs base           │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                       1.587Mi ± 0%                   1.587Mi ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                 convert_ns/frame                 │     convert_ns/frame      vs base               │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                      1524.5k ± 12%               752.0k ± 18%  -50.67% (p=0.002 n=6)
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                   cpu_ns/frame                   │          cpu_ns/frame           vs base         │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                       108.2M ± 15%                     109.1M ± 19%  ~ (p=0.485 n=6)
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                 encode_ns/frame                  │        encode_ns/frame          vs base         │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                       30.16M ± 21%                     30.37M ± 24%  ~ (p=0.699 n=6)
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                   p95_ns/frame                   │          p95_ns/frame           vs base         │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                       40.63M ± 21%                     41.57M ± 22%  ~ (p=1.000 n=6)
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                      slices                      │            slices             vs base           │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                         4.000 ± 0%                     4.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                       B/op                       │              B/op               vs base         │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                       1.592Mi ± 0%                     1.592Mi ± 0%  ~ (p=0.394 n=6)
+
+                                                 │ dense-before.txt │ dense-after.txt │
+                                                 │                    allocs/op                     │        allocs/op          vs base               │
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                         22.00 ± 5%                 30.00 ± 0%  +36.36% (p=0.002 n=6)

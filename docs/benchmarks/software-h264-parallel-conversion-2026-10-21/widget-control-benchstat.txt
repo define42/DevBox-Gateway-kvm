@@ -1,0 +1,35 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                     │ widget-control-before.txt │   widget-control-after.txt    │
+                                     │          sec/op           │   sec/op     vs base          │
+SlicedDesktop/1080p/Widget/1Slices-4                1.208m ± 10%   1.224m ± 4%  ~ (p=0.853 n=10)
+
+                                     │ widget-control-before.txt │    widget-control-after.txt     │
+                                     │        bytes/frame        │ bytes/frame  vs base            │
+SlicedDesktop/1080p/Widget/1Slices-4                  107.0 ± 0%    107.0 ± 0%  ~ (p=1.000 n=10) ¹
+¹ all samples are equal
+
+                                     │ widget-control-before.txt │      widget-control-after.txt      │
+                                     │     convert_ns/frame      │ convert_ns/frame  vs base          │
+SlicedDesktop/1080p/Widget/1Slices-4                 5.553k ± 6%       5.646k ± 10%  ~ (p=0.684 n=10)
+
+                                     │ widget-control-before.txt │     widget-control-after.txt      │
+                                     │      encode_ns/frame      │ encode_ns/frame  vs base          │
+SlicedDesktop/1080p/Widget/1Slices-4                1.202M ± 10%       1.219M ± 4%  ~ (p=0.796 n=10)
+
+                                     │ widget-control-before.txt │    widget-control-after.txt    │
+                                     │          slices           │   slices    vs base            │
+SlicedDesktop/1080p/Widget/1Slices-4                  1.000 ± 0%   1.000 ± 0%  ~ (p=1.000 n=10) ¹
+¹ all samples are equal
+
+                                     │ widget-control-before.txt │     widget-control-after.txt     │
+                                     │           B/op            │     B/op      vs base            │
+SlicedDesktop/1080p/Widget/1Slices-4                1.100Ki ± 0%   1.100Ki ± 0%  ~ (p=1.000 n=10) ¹
+¹ all samples are equal
+
+                                     │ widget-control-before.txt │    widget-control-after.txt    │
+                                     │         allocs/op         │ allocs/op   vs base            │
+SlicedDesktop/1080p/Widget/1Slices-4                  8.000 ± 0%   8.000 ± 0%  ~ (p=1.000 n=10) ¹
+¹ all samples are equal

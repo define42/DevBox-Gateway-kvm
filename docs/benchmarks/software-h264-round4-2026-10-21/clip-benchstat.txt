@@ -1,0 +1,69 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │                  sec/op                   │       sec/op        vs base              │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                21.62m ±  7%         20.19m ± 14%       ~ (p=0.065 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 21.89m ± 11%         22.07m ± 14%       ~ (p=0.818 n=6)
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                55.31m ± 15%         54.93m ± 15%       ~ (p=0.818 n=6)
+geomean                                                                        29.69m               29.04m        -2.21%
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │                bytes/frame                │   bytes/frame     vs base                │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                99.65Ki ± 0%       99.65Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 99.66Ki ± 0%       99.66Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                99.42Ki ± 0%       99.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                        99.58Ki            99.58Ki       +0.00%
+¹ all samples are equal
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │             convert_ns/frame              │  convert_ns/frame   vs base              │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                1.146M ± 25%         1.120M ± 20%       ~ (p=0.818 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 1.117M ± 32%         1.292M ± 24%       ~ (p=0.485 n=6)
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                1.974M ± 25%         2.076M ± 18%       ~ (p=0.699 n=6)
+geomean                                                                        1.362M               1.443M        +5.92%
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │               cpu_ns/frame                │    cpu_ns/frame     vs base              │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                66.65M ±  5%         62.45M ±  9%  -6.31% (p=0.026 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 68.15M ±  7%         66.09M ±  6%       ~ (p=0.132 n=6)
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                55.49M ± 15%         55.06M ± 15%       ~ (p=0.699 n=6)
+geomean                                                                        63.17M               61.02M        -3.39%
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │              encode_ns/frame              │  encode_ns/frame    vs base              │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                20.49M ±  6%         19.07M ± 14%  -6.95% (p=0.026 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 20.77M ± 10%         20.73M ± 15%       ~ (p=0.937 n=6)
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                53.33M ± 15%         52.88M ± 15%       ~ (p=0.818 n=6)
+geomean                                                                        28.32M               27.55M        -2.71%
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │               p95_ns/frame                │    p95_ns/frame     vs base              │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                27.26M ± 21%         25.03M ± 14%       ~ (p=0.240 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 28.20M ± 29%         27.17M ± 34%       ~ (p=0.937 n=6)
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                69.14M ± 13%         68.13M ± 22%       ~ (p=1.000 n=6)
+geomean                                                                        37.60M               35.91M        -4.48%
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │                  slices                   │      slices       vs base                │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                  4.000 ± 0%         4.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                   4.000 ± 0%         4.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                  1.000 ± 0%         1.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                          2.520              2.520       +0.00%
+¹ all samples are equal
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │                   B/op                    │        B/op         vs base              │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                103.7Ki ± 0%         103.7Ki ± 0%       ~ (p=0.180 n=6)
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                 103.8Ki ± 0%         103.8Ki ± 0%       ~ (p=0.180 n=6)
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                103.0Ki ± 0%         103.0Ki ± 0%       ~ (p=0.545 n=6)
+geomean                                                                        103.5Ki              103.5Ki       -0.01%
+
+                                                │ /tmp/h264-round4-20261021/clip-before.txt │ /tmp/h264-round4-20261021/clip-after.txt │
+                                                │                 allocs/op                 │    allocs/op      vs base                │
+FullscreenVideo/Clip/1080p/4Slices/FullDamage-4                                  27.00 ± 0%         27.00 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/4Slices/NilDamage-4                                   27.00 ± 0%         27.00 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Clip/1080p/1Slices/FullDamage-4                                  8.000 ± 0%         8.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                          18.00              18.00       +0.00%
+¹ all samples are equal

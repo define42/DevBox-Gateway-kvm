@@ -1,0 +1,24 @@
+                         │ /tmp/h264-native-parity-20261021/dct-old-SSE2.txt │ /tmp/h264-native-parity-20261021/dct-dispatch.txt │
+                         │                      sec/op                       │           sec/op            vs base               │
+DCTFourAVX2/stride8-4                                           37.31n ±  9%                  22.12n ± 5%  -40.72% (p=0.002 n=6)
+DCTFourAVX2/stride64-4                                          35.74n ±  4%                  21.86n ± 5%  -38.85% (p=0.002 n=6)
+DCTFourAVX2/stride2048-4                                        37.40n ± 10%                  21.95n ± 6%  -41.30% (p=0.002 n=6)
+geomean                                                         36.81n                        21.98n       -40.30%
+
+                         │ /tmp/h264-native-parity-20261021/dct-old-SSE2.txt │ /tmp/h264-native-parity-20261021/dct-dispatch.txt │
+                         │                       B/op                        │           B/op             vs base                │
+DCTFourAVX2/stride8-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DCTFourAVX2/stride64-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DCTFourAVX2/stride2048-4                                        0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                    ²                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                         │ /tmp/h264-native-parity-20261021/dct-old-SSE2.txt │ /tmp/h264-native-parity-20261021/dct-dispatch.txt │
+                         │                     allocs/op                     │         allocs/op          vs base                │
+DCTFourAVX2/stride8-4                                           0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DCTFourAVX2/stride64-4                                          0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DCTFourAVX2/stride2048-4                                        0.000 ± 0%                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                    ²                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

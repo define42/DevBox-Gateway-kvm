@@ -1,0 +1,25 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                             │ /tmp/h264-round4-20261021/cavlc-residual-before.txt │ /tmp/h264-round4-20261021/cavlc-residual-after.txt │
+                                             │                       sec/op                        │           sec/op             vs base               │
+CavlcResidual/sparse=true/reference=false-4                                            82.52n ± 6%                  74.86n ± 17%        ~ (p=0.065 n=6)
+CavlcResidual/sparse=false/reference=false-4                                           194.0n ± 9%                  160.6n ± 26%  -17.19% (p=0.039 n=6)
+geomean                                                                                126.5n                       109.7n        -13.32%
+
+                                             │ /tmp/h264-round4-20261021/cavlc-residual-before.txt │ /tmp/h264-round4-20261021/cavlc-residual-after.txt │
+                                             │                        B/op                         │            B/op             vs base                │
+CavlcResidual/sparse=true/reference=false-4                                           0.000 ± 0%                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=false/reference=false-4                                          0.000 ± 0%                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                          ²                               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                             │ /tmp/h264-round4-20261021/cavlc-residual-before.txt │ /tmp/h264-round4-20261021/cavlc-residual-after.txt │
+                                             │                      allocs/op                      │         allocs/op           vs base                │
+CavlcResidual/sparse=true/reference=false-4                                           0.000 ± 0%                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=false/reference=false-4                                          0.000 ± 0%                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                          ²                               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

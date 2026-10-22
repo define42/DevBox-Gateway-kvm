@@ -1,0 +1,180 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourBatched/16x16/stride32/Batched-4 	 4405020	        37.89 ns/op	33778.70 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x16/stride2048/Batched-4         	 3560486	        49.13 ns/op	26051.75 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride32/Batched-4            	 5298356	        37.73 ns/op	16961.49 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride2048/Batched-4          	 6300608	        29.16 ns/op	21950.77 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride32/Batched-4            	 4803516	        44.68 ns/op	14322.66 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride2048/Batched-4          	 3696679	        54.20 ns/op	11808.48 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride32/Batched-4             	 7286996	        27.46 ns/op	11653.45 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride2048/Batched-4           	 6023341	        27.55 ns/op	11615.79 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride32/Batched-4             	 7550907	        30.67 ns/op	5217.26 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride2048/Batched-4           	 7337014	        21.98 ns/op	7278.16 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride32/Batched-4             	 6909690	        32.32 ns/op	4949.90 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride2048/Batched-4           	 5500222	        34.59 ns/op	4625.30 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride32/Batched-4             	 8124415	        27.42 ns/op	2917.44 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride2048/Batched-4           	 8206365	        21.61 ns/op	3702.39 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuantScanFour4x4/Zero/ACfalse/Fusedtrue-4         	 3435310	        49.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Zero/ACtrue/Fusedtrue-4          	 3588508	        48.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACfalse/Fusedtrue-4       	 2847171	        56.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACtrue/Fusedtrue-4        	 2791911	        63.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACfalse/Fusedtrue-4        	 2767514	        60.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACtrue/Fusedtrue-4         	 3352644	        49.04 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourBatched/16x16/stride32/Batched-4 	 4849124	        36.95 ns/op	34640.24 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x16/stride2048/Batched-4         	 3789165	        52.49 ns/op	24385.49 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride32/Batched-4            	 7008158	        27.26 ns/op	23481.30 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride2048/Batched-4          	 7080822	        27.26 ns/op	23477.98 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride32/Batched-4            	 4816383	        37.87 ns/op	16900.96 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride2048/Batched-4          	 3400512	        53.87 ns/op	11881.27 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride32/Batched-4             	 7349462	        25.56 ns/op	12521.83 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride2048/Batched-4           	 6374617	        30.20 ns/op	10596.53 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride32/Batched-4             	 8895262	        22.42 ns/op	7135.70 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride2048/Batched-4           	 8082325	        23.33 ns/op	6858.92 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride32/Batched-4             	 7014492	        26.41 ns/op	6057.43 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride2048/Batched-4           	 6849960	        27.37 ns/op	5844.85 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride32/Batched-4             	 7648977	        24.66 ns/op	3243.91 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride2048/Batched-4           	 7881135	        21.08 ns/op	3795.94 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuantScanFour4x4/Zero/ACfalse/Fusedtrue-4         	 4752138	        37.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Zero/ACtrue/Fusedtrue-4          	 3981470	        50.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACfalse/Fusedtrue-4       	 3382536	        50.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACtrue/Fusedtrue-4        	 2718361	        59.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACfalse/Fusedtrue-4        	 3661233	        47.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACtrue/Fusedtrue-4         	 3975028	        46.43 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourBatched/16x16/stride32/Batched-4 	 4965649	        37.54 ns/op	34097.58 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x16/stride2048/Batched-4         	 3795326	        49.01 ns/op	26117.09 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride32/Batched-4            	 6841646	        25.11 ns/op	25483.18 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride2048/Batched-4          	 6575305	        28.43 ns/op	22509.89 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride32/Batched-4            	 5199030	        37.12 ns/op	17242.41 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride2048/Batched-4          	 4064857	        49.58 ns/op	12909.54 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride32/Batched-4             	 6808206	        28.59 ns/op	11191.32 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride2048/Batched-4           	 7585178	        24.89 ns/op	12855.14 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride32/Batched-4             	 9258655	        20.02 ns/op	7991.35 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride2048/Batched-4           	 9292441	        19.09 ns/op	8381.89 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride32/Batched-4             	 7178679	        26.78 ns/op	5975.02 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride2048/Batched-4           	 6535762	        28.04 ns/op	5706.53 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride32/Batched-4             	 8927088	        20.53 ns/op	3896.02 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride2048/Batched-4           	 8569141	        20.66 ns/op	3871.33 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuantScanFour4x4/Zero/ACfalse/Fusedtrue-4         	 4616084	        37.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Zero/ACtrue/Fusedtrue-4          	 4756141	        37.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACfalse/Fusedtrue-4       	 4110878	        44.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACtrue/Fusedtrue-4        	 4026634	        44.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACfalse/Fusedtrue-4        	 4023962	        44.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACtrue/Fusedtrue-4         	 3969430	        45.98 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourBatched/16x16/stride32/Batched-4 	 5024971	        36.35 ns/op	35216.62 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x16/stride2048/Batched-4         	 3701000	        47.12 ns/op	27167.34 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride32/Batched-4            	 7150274	        25.01 ns/op	25585.62 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride2048/Batched-4          	 7212600	        24.84 ns/op	25769.85 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride32/Batched-4            	 5032516	        35.45 ns/op	18055.09 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride2048/Batched-4          	 3676015	        48.39 ns/op	13226.98 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride32/Batched-4             	 6902757	        24.34 ns/op	13149.54 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride2048/Batched-4           	 7523673	        24.20 ns/op	13222.37 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride32/Batched-4             	 9682831	        18.92 ns/op	8457.48 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride2048/Batched-4           	 9350532	        20.11 ns/op	7957.28 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride32/Batched-4             	 7450465	        23.66 ns/op	6763.72 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride2048/Batched-4           	 6431458	        26.45 ns/op	6048.59 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride32/Batched-4             	 7922580	        19.35 ns/op	4134.65 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride2048/Batched-4           	 9723319	        18.86 ns/op	4242.80 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuantScanFour4x4/Zero/ACfalse/Fusedtrue-4         	 4913250	        38.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Zero/ACtrue/Fusedtrue-4          	 4367296	        41.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACfalse/Fusedtrue-4       	 3709984	        47.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACtrue/Fusedtrue-4        	 4149106	        46.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACfalse/Fusedtrue-4        	 3893618	        46.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACtrue/Fusedtrue-4         	 3529596	        48.25 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourBatched/16x16/stride32/Batched-4 	 3946266	        42.39 ns/op	30194.77 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x16/stride2048/Batched-4         	 3389004	        49.95 ns/op	25628.14 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride32/Batched-4            	 5793214	        28.11 ns/op	22764.91 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride2048/Batched-4          	 6302484	        27.85 ns/op	22979.03 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride32/Batched-4            	 4806727	        36.41 ns/op	17578.73 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride2048/Batched-4          	 3739857	        47.71 ns/op	13413.70 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride32/Batched-4             	 6429256	        26.91 ns/op	11891.45 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride2048/Batched-4           	 6619196	        26.09 ns/op	12266.79 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride32/Batched-4             	 8068718	        20.50 ns/op	7803.99 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride2048/Batched-4           	 8864684	        19.52 ns/op	8197.79 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride32/Batched-4             	 7567147	        24.75 ns/op	6465.55 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride2048/Batched-4           	 7286824	        25.51 ns/op	6271.23 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride32/Batched-4             	 9256530	        21.07 ns/op	3797.47 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride2048/Batched-4           	 8840377	        19.96 ns/op	4008.82 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuantScanFour4x4/Zero/ACfalse/Fusedtrue-4         	 4469593	        39.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Zero/ACtrue/Fusedtrue-4          	 4959115	        36.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACfalse/Fusedtrue-4       	 4026945	        46.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACtrue/Fusedtrue-4        	 4006863	        44.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACfalse/Fusedtrue-4        	 3956397	        45.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACtrue/Fusedtrue-4         	 3806764	        47.46 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourBatched/16x16/stride32/Batched-4 	 4785774	        36.16 ns/op	35396.20 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x16/stride2048/Batched-4         	 3773305	        46.34 ns/op	27621.19 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride32/Batched-4            	 6864834	        30.00 ns/op	21332.19 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/16x8/stride2048/Batched-4          	 6732871	        29.61 ns/op	21614.86 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride32/Batched-4            	 4664728	        40.84 ns/op	15672.49 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x16/stride2048/Batched-4          	 4113741	        46.33 ns/op	13814.53 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride32/Batched-4             	 7395632	        25.18 ns/op	12708.03 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x8/stride2048/Batched-4           	 6318688	        24.94 ns/op	12831.19 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride32/Batched-4             	 9068355	        19.18 ns/op	8343.11 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/8x4/stride2048/Batched-4           	 8781447	        21.33 ns/op	7502.14 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride32/Batched-4             	 6453124	        27.13 ns/op	5898.53 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x8/stride2048/Batched-4           	 7078885	        25.49 ns/op	6276.20 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride32/Batched-4             	 8038864	        21.40 ns/op	3737.57 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourBatched/4x4/stride2048/Batched-4           	 9196557	        20.43 ns/op	3915.69 MB/s	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuantScanFour4x4/Zero/ACfalse/Fusedtrue-4         	 4628116	        40.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Zero/ACtrue/Fusedtrue-4          	 4334569	        41.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACfalse/Fusedtrue-4       	 3899820	        47.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Sparse/ACtrue/Fusedtrue-4        	 3725466	        48.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACfalse/Fusedtrue-4        	 3990631	        45.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuantScanFour4x4/Dense/ACtrue/Fusedtrue-4         	 3877281	        46.33 ns/op	       0 B/op	       0 allocs/op
+PASS

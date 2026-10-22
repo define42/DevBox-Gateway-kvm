@@ -1,0 +1,37 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                  │ /tmp/h264-round4-20261021/quant-scan-component-before.txt │ /tmp/h264-round4-20261021/quant-scan-component-after.txt │
+                                  │                          sec/op                           │              sec/op                vs base               │
+QuantScanFour4x4/Zero/ACfalse-4                                                  45.39n ± 13%                        50.00n ± 39%        ~ (p=0.132 n=6)
+QuantScanFour4x4/Zero/ACtrue-4                                                   48.38n ± 20%                        59.44n ± 70%        ~ (p=0.132 n=6)
+QuantScanFour4x4/Sparse/ACfalse-4                                               115.20n ± 30%                        54.01n ±  7%  -53.12% (p=0.002 n=6)
+QuantScanFour4x4/Sparse/ACtrue-4                                                 80.98n ± 13%                        51.67n ±  4%  -36.20% (p=0.002 n=6)
+QuantScanFour4x4/Dense/ACfalse-4                                                 84.13n ±  3%                        52.04n ±  6%  -38.14% (p=0.002 n=6)
+QuantScanFour4x4/Dense/ACtrue-4                                                  83.61n ± 11%                        52.43n ±  8%  -37.29% (p=0.002 n=6)
+geomean                                                                          72.40n                              53.18n        -26.55%
+
+                                  │ /tmp/h264-round4-20261021/quant-scan-component-before.txt │ /tmp/h264-round4-20261021/quant-scan-component-after.txt │
+                                  │                           B/op                            │               B/op                vs base                │
+QuantScanFour4x4/Zero/ACfalse-4                                                  0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Zero/ACtrue-4                                                   0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Sparse/ACfalse-4                                                0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Sparse/ACtrue-4                                                 0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Dense/ACfalse-4                                                 0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Dense/ACtrue-4                                                  0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                     ²                                     +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                  │ /tmp/h264-round4-20261021/quant-scan-component-before.txt │ /tmp/h264-round4-20261021/quant-scan-component-after.txt │
+                                  │                         allocs/op                         │            allocs/op              vs base                │
+QuantScanFour4x4/Zero/ACfalse-4                                                  0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Zero/ACtrue-4                                                   0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Sparse/ACfalse-4                                                0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Sparse/ACtrue-4                                                 0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Dense/ACfalse-4                                                 0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanFour4x4/Dense/ACtrue-4                                                  0.000 ± 0%                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                     ²                                     +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

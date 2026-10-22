@@ -356,4 +356,5 @@ func InitMcFunc(pMcFuncs *SMcFunc, uiCpuFlag uint32) {
 		pMcFuncs.PMcLumaFunc = McLuma_sse2
 		pMcFuncs.PMcChromaFunc = McChroma_sse2
 	}
+	initMcAVX2(pMcFuncs, uiCpuFlag)
 }

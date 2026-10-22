@@ -1,0 +1,175 @@
+[
+  {
+    "name": "tests",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/...",
+      "./internal/rdp/..."
+    ],
+    "environment": {},
+    "exit_code": 0
+  },
+  {
+    "name": "race",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-race",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "CGO_ENABLED": "1"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "fallback-avx2",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.avx2=off"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "fallback-ssse3",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.ssse3=off"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "fallback-popcnt",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.popcnt=off"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "fallback-all",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.all=off"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "arm64-common",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-native-parity-20261021/arm64-common.test",
+      "./pkg/h264/internal/common"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "arm64-encoder",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-native-parity-20261021/arm64-encoder.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "arm64-avc",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-native-parity-20261021/arm64-avc.test",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "gopls",
+    "command": [
+      "/home/define42/go/bin/gopls",
+      "check",
+      "pkg/h264/internal/common/sad_simd_amd64.go",
+      "pkg/h264/internal/common/mc_avx2_amd64.go",
+      "pkg/h264/internal/encoder/dct_avx2_guard_linux_amd64_test.go",
+      "pkg/h264/internal/encoder/dct_avx2_amd64.go",
+      "pkg/h264/internal/encoder/dct_avx2_amd64_test.go",
+      "pkg/h264/internal/encoder/cavlc_extract_guard_linux_amd64_test.go",
+      "pkg/h264/internal/encoder/cavlc_extract_bench_test.go",
+      "pkg/h264/internal/encoder/cavlc_extract_amd64.go",
+      "pkg/h264/internal/encoder/cavlc_extract_test.go",
+      "pkg/h264/internal/encoder/cavlc_extract_reference_test.go",
+      "pkg/h264/internal/encoder/cavlc_extract_generic.go",
+      "pkg/h264/internal/encoder/quant_scan_luma_amd64.go",
+      "pkg/h264/internal/encoder/quant_scan_luma_test.go",
+      "pkg/h264/internal/encoder/quant_scan_luma.go",
+      "pkg/h264/internal/encoder/quant_scan_luma_guard_linux_amd64_test.go",
+      "pkg/h264/internal/encoder/quant_scan_luma_generic.go",
+      "pkg/h264/internal/encoder/dct_simd_amd64.go",
+      "pkg/h264/internal/encoder/set_mb_syn_cavlc.go",
+      "pkg/h264/internal/encoder/sample_simd_amd64.go",
+      "pkg/h264/internal/encoder/quant_scan_amd64.go",
+      "pkg/h264/internal/encoder/svc_encode_mb.go"
+    ],
+    "environment": {},
+    "exit_code": 0
+  },
+  {
+    "name": "lint",
+    "command": [
+      "./golangci-lint",
+      "run",
+      "./pkg/h264/...",
+      "./internal/rdp/avc/..."
+    ],
+    "environment": {
+      "GOTOOLCHAIN": "go1.26.9"
+    },
+    "exit_code": 0
+  }
+]

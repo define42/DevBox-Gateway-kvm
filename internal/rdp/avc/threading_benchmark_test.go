@@ -76,6 +76,7 @@ func BenchmarkCodecPolicy(b *testing.B) {
 				encoder := &Encoder{
 					codec: codec, frameRate: FrameRate, width: 1920, height: 1080,
 					i420: make([]byte, 1920*1080*3/2), threads: slices, measure: true,
+					backend: BackendSoftware,
 				}
 				defer encoder.Close()
 				if _, err := encoder.Encode(frames[0], true); err != nil {

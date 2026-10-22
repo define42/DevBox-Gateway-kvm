@@ -1,0 +1,24 @@
+                       │ /tmp/h264-native-parity-20261021/quant-luma-FourCalls.txt │ /tmp/h264-native-parity-20261021/quant-luma-Batched.txt │
+                       │                          sec/op                           │              sec/op               vs base               │
+QuantScanLuma/Zero-4                                                  162.05n ± 5%                       97.94n ± 11%  -39.56% (p=0.002 n=6)
+QuantScanLuma/Sparse-4                                                 197.7n ± 6%                       130.0n ± 10%  -34.24% (p=0.002 n=6)
+QuantScanLuma/Dense-4                                                  196.1n ± 4%                       130.0n ± 14%  -33.66% (p=0.002 n=6)
+geomean                                                                184.5n                            118.3n        -35.88%
+
+                       │ /tmp/h264-native-parity-20261021/quant-luma-FourCalls.txt │ /tmp/h264-native-parity-20261021/quant-luma-Batched.txt │
+                       │                           B/op                            │              B/op                vs base                │
+QuantScanLuma/Zero-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanLuma/Sparse-4                                                0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanLuma/Dense-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                          ²                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                       │ /tmp/h264-native-parity-20261021/quant-luma-FourCalls.txt │ /tmp/h264-native-parity-20261021/quant-luma-Batched.txt │
+                       │                         allocs/op                         │            allocs/op             vs base                │
+QuantScanLuma/Zero-4                                                  0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanLuma/Sparse-4                                                0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantScanLuma/Dense-4                                                 0.000 ± 0%                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                          ²                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

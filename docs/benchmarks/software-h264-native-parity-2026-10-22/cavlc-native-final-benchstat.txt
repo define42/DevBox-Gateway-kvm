@@ -1,0 +1,87 @@
+                                                  │ /tmp/h264-native-parity-20261021/cavlc-native-final-go-matched.txt │ /tmp/h264-native-parity-20261021/cavlc-native-final-native-matched.txt │
+                                                  │                               sec/op                               │                     sec/op                       vs base               │
+CavlcExtraction/end3/zero/scalar=false-4                                                                 6.778n ± 365%                                      2.946n ± 11%  -56.55% (p=0.002 n=6)
+CavlcExtraction/end3/dc/scalar=false-4                                                                   8.441n ± 324%                                      5.296n ±  4%  -37.26% (p=0.002 n=6)
+CavlcExtraction/end3/sparse-low/scalar=false-4                                                          10.280n ± 303%                                      5.327n ±  9%  -48.19% (p=0.002 n=6)
+CavlcExtraction/end3/sparse-wide/scalar=false-4                                                          9.502n ± 323%                                      5.524n ± 11%  -41.87% (p=0.002 n=6)
+CavlcExtraction/end3/medium/scalar=false-4                                                               9.330n ± 366%                                      5.420n ±  9%  -41.91% (p=0.002 n=6)
+CavlcExtraction/end3/nearly-dense/scalar=false-4                                                        10.300n ± 374%                                      5.334n ±  6%  -48.21% (p=0.002 n=6)
+CavlcExtraction/end3/one-zero/scalar=false-4                                                            10.415n ± 350%                                      5.408n ± 10%  -48.07% (p=0.002 n=6)
+CavlcExtraction/end3/dense/scalar=false-4                                                               10.780n ±  11%                                      5.299n ±  6%  -50.85% (p=0.002 n=6)
+CavlcExtraction/end14/zero/scalar=false-4                                                                6.615n ±   9%                                      3.463n ± 15%  -47.65% (p=0.002 n=6)
+CavlcExtraction/end14/dc/scalar=false-4                                                                  8.186n ±  24%                                      5.530n ±  9%  -32.44% (p=0.002 n=6)
+CavlcExtraction/end14/sparse-low/scalar=false-4                                                         10.095n ±  10%                                      5.169n ± 17%  -48.80% (p=0.002 n=6)
+CavlcExtraction/end14/sparse-wide/scalar=false-4                                                        11.695n ±   4%                                      7.797n ± 15%  -33.33% (p=0.002 n=6)
+CavlcExtraction/end14/medium/scalar=false-4                                                              18.69n ±   4%                                      10.20n ± 16%  -45.42% (p=0.002 n=6)
+CavlcExtraction/end14/nearly-dense/scalar=false-4                                                       23.700n ±   5%                                      9.936n ± 24%  -58.08% (p=0.002 n=6)
+CavlcExtraction/end14/one-zero/scalar=false-4                                                            26.97n ±   3%                                      10.08n ±  8%  -62.62% (p=0.002 n=6)
+CavlcExtraction/end14/dense/scalar=false-4                                                               8.831n ±   8%                                      9.768n ± 14%  +10.60% (p=0.009 n=6)
+CavlcExtraction/end15/zero/scalar=false-4                                                                6.617n ±   4%                                      3.158n ± 14%  -52.28% (p=0.002 n=6)
+CavlcExtraction/end15/dc/scalar=false-4                                                                  7.823n ±   9%                                      5.128n ± 10%  -34.46% (p=0.002 n=6)
+CavlcExtraction/end15/sparse-low/scalar=false-4                                                          9.981n ±  12%                                      5.115n ±  4%  -48.76% (p=0.002 n=6)
+CavlcExtraction/end15/sparse-wide/scalar=false-4                                                         12.81n ±  12%                                      10.19n ±  9%  -20.45% (p=0.002 n=6)
+CavlcExtraction/end15/medium/scalar=false-4                                                              18.77n ±   3%                                      10.12n ± 12%  -46.06% (p=0.002 n=6)
+CavlcExtraction/end15/nearly-dense/scalar=false-4                                                        23.80n ±   4%                                      10.08n ± 10%  -57.64% (p=0.002 n=6)
+CavlcExtraction/end15/one-zero/scalar=false-4                                                           10.055n ±   3%                                      9.710n ± 11%        ~ (p=0.310 n=6)
+CavlcExtraction/end15/dense/scalar=false-4                                                               6.987n ±   6%                                      9.612n ± 10%  +37.58% (p=0.002 n=6)
+geomean                                                                                                  10.93n                                             6.415n        -41.31%
+
+                                                  │ /tmp/h264-native-parity-20261021/cavlc-native-final-go-matched.txt │ /tmp/h264-native-parity-20261021/cavlc-native-final-native-matched.txt │
+                                                  │                                B/op                                │                      B/op                       vs base                │
+CavlcExtraction/end3/zero/scalar=false-4                                                                  0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/dc/scalar=false-4                                                                    0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/sparse-low/scalar=false-4                                                            0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/sparse-wide/scalar=false-4                                                           0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/medium/scalar=false-4                                                                0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/nearly-dense/scalar=false-4                                                          0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/one-zero/scalar=false-4                                                              0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/dense/scalar=false-4                                                                 0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/zero/scalar=false-4                                                                 0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/dc/scalar=false-4                                                                   0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/sparse-low/scalar=false-4                                                           0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/sparse-wide/scalar=false-4                                                          0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/medium/scalar=false-4                                                               0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/nearly-dense/scalar=false-4                                                         0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/one-zero/scalar=false-4                                                             0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/dense/scalar=false-4                                                                0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/zero/scalar=false-4                                                                 0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/dc/scalar=false-4                                                                   0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/sparse-low/scalar=false-4                                                           0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/sparse-wide/scalar=false-4                                                          0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/medium/scalar=false-4                                                               0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/nearly-dense/scalar=false-4                                                         0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/one-zero/scalar=false-4                                                             0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/dense/scalar=false-4                                                                0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                              ²                                                   +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                  │ /tmp/h264-native-parity-20261021/cavlc-native-final-go-matched.txt │ /tmp/h264-native-parity-20261021/cavlc-native-final-native-matched.txt │
+                                                  │                             allocs/op                              │                   allocs/op                     vs base                │
+CavlcExtraction/end3/zero/scalar=false-4                                                                  0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/dc/scalar=false-4                                                                    0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/sparse-low/scalar=false-4                                                            0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/sparse-wide/scalar=false-4                                                           0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/medium/scalar=false-4                                                                0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/nearly-dense/scalar=false-4                                                          0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/one-zero/scalar=false-4                                                              0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end3/dense/scalar=false-4                                                                 0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/zero/scalar=false-4                                                                 0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/dc/scalar=false-4                                                                   0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/sparse-low/scalar=false-4                                                           0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/sparse-wide/scalar=false-4                                                          0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/medium/scalar=false-4                                                               0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/nearly-dense/scalar=false-4                                                         0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/one-zero/scalar=false-4                                                             0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end14/dense/scalar=false-4                                                                0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/zero/scalar=false-4                                                                 0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/dc/scalar=false-4                                                                   0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/sparse-low/scalar=false-4                                                           0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/sparse-wide/scalar=false-4                                                          0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/medium/scalar=false-4                                                               0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/nearly-dense/scalar=false-4                                                         0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/one-zero/scalar=false-4                                                             0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtraction/end15/dense/scalar=false-4                                                                0.000 ± 0%                                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                              ²                                                   +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

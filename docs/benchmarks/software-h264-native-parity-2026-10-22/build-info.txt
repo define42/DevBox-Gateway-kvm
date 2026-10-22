@@ -1,0 +1,26 @@
+$ /snap/go/current/bin/go version
+go version go1.27.3 linux/amd64
+$ g++ --version
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+$ git rev-parse HEAD
+c5d6f239d3182f22ab3fdbf62f66b0285df1bef6
+$ git -C /home/define42/git/openh264 rev-parse HEAD
+4c8c5cdc0299407af14751a4c37449ff3d367745
+$ /snap/go/current/bin/go version -m /tmp/h264-native-parity-20261021/after-avc.test
+/tmp/h264-native-parity-20261021/after-avc.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)	
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=0
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+
+Benchmark Go builds: CGO_ENABLED=0; GOMAXPROCS=4 at execution. No CPU affinity; no global CPU settings changed.

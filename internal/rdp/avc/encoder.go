@@ -220,11 +220,11 @@ func (e *Encoder) EncodeDamage(img *image.RGBA, regions []image.Rectangle, force
 	output := image.Rect(0, 0, e.width, e.height)
 	fullConversion := force || regions == nil || !e.initialized || e.source != img.Rect
 	if fullConversion {
-		changed = scaleI420Region(e.i420, e.width, e.height, img, output) || changed
+		changed = e.convertI420Region(img, output) || changed
 	} else {
 		for _, region := range regions {
 			mapped := damage.Align(damage.Map(region, img.Rect, output), 2, output)
-			changed = scaleI420Region(e.i420, e.width, e.height, img, mapped) || changed
+			changed = e.convertI420Region(img, mapped) || changed
 		}
 	}
 	e.source, e.initialized = img.Rect, true

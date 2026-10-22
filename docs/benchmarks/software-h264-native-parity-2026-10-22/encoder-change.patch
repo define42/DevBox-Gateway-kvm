@@ -1,0 +1,2346 @@
+--- a/pkg/h264/internal/common/mc_avx2_amd64.go
++++ b/pkg/h264/internal/common/mc_avx2_amd64.go
+@@ -37,7 +37,7 @@
+ 		uintptr(unsafe.Pointer(unsafe.SliceData(b))) < uintptr(unsafe.Pointer(unsafe.SliceData(a)))+uintptr(len(a))
+ }
+ 
+-// McHorVer20_avx2 widens sixteen horizontal six-tap outputs at a time. The
++// McHorVer20_avx2 computes sixteen horizontal outputs with packed tap pairs. The
+ // existing SSE2 path remains preferable for blocks narrower than sixteen.
+ func McHorVer20_avx2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDstOff int,
+ 	iDstStride, iWidth, iHeight int32) {
+--- a/pkg/h264/internal/common/mc_avx2_amd64.s
++++ b/pkg/h264/internal/common/mc_avx2_amd64.s
+@@ -1,8 +1,9 @@
+ //go:build amd64
+ 
+ // Six-tap interpolation uses the H.264 coefficients [1, -5, 20, 20, -5, 1].
+-// The byte-input kernels widen sixteen samples at once; the second pass widens
+-// eight signed intermediate samples. Narrow tails never read beyond the halo.
++// Horizontal byte inputs use packed multiply-adds; vertical inputs widen
++// sixteen samples at once. The second pass widens eight signed intermediates.
++// Narrow tails never read beyond the halo.
+ #include "textflag.h"
+ // func mcHorVer20AVX2(dst []byte, dstStride int, src []byte,
+ //     srcStride, width, height int)
+@@ -18,28 +19,36 @@
+ 	VPSRLW $15, Y7, Y7
+ 	VPSLLW $4, Y7, Y7
+ 
++	// Three byte-pair dot products implement all six taps without widening
++	// six separate vectors. Each pair is in [-1275, 10200], so PMADDUBSW
++	// saturation cannot occur. Exact-width input loads preserve the halo.
++	VBROADCASTI128 ·mcPair01Mask(SB), Y8
++	VBROADCASTI128 ·mcPair23Mask(SB), Y9
++	VBROADCASTI128 ·mcPair45Mask(SB), Y10
++	VPBROADCASTD ·mcPair01Coeff(SB), Y11
++	VPBROADCASTD ·mcPair23Coeff(SB), Y12
++	VPBROADCASTD ·mcPair45Coeff(SB), Y13
++
+ mchorver20avx2_row:
+ 	MOVQ SI, R8
+ 
+ mchorver20avx2_16:
+ 	CMPQ R8, $16
+ 	JB mchorver20avx2_8
+-	VPMOVZXBW -2(DX), Y0
+-	VPMOVZXBW 3(DX), Y1
+-	VPMOVZXBW -1(DX), Y2
+-	VPMOVZXBW 2(DX), Y3
+-	VPMOVZXBW 0(DX), Y4
+-	VPMOVZXBW 1(DX), Y5
+-	VPADDW Y1, Y0, Y0
+-	VPADDW Y3, Y2, Y2
+-	VPADDW Y5, Y4, Y4
+-	VPSLLW $2, Y4, Y5
+-	VPADDW Y5, Y4, Y4
+-	VPSLLW $2, Y4, Y4
+-	VPSLLW $2, Y2, Y3
+-	VPADDW Y2, Y3, Y3
+-	VPADDW Y4, Y0, Y0
+-	VPSUBW Y3, Y0, Y0
++	VMOVDQU -2(DX), X0
++	VMOVDQU 3(DX), X1
++	// The second eight outputs need only thirteen bytes. Shift an overlapping
++	// exact-width load instead of reading three bytes beyond the right halo.
++	VPSRLDQ $3, X1, X1
++	VINSERTI128 $1, X1, Y0, Y0
++	VPSHUFB Y8, Y0, Y1
++	VPSHUFB Y9, Y0, Y2
++	VPSHUFB Y10, Y0, Y3
++	VPMADDUBSW Y11, Y1, Y1
++	VPMADDUBSW Y12, Y2, Y2
++	VPMADDUBSW Y13, Y3, Y3
++	VPADDW Y1, Y2, Y0
++	VPADDW Y3, Y0, Y0
+ 	VPADDW Y7, Y0, Y0
+ 	VPSRAW $5, Y0, Y0
+ 	VEXTRACTI128 $1, Y0, X1
+@@ -624,3 +633,21 @@
+ 	JNZ mchorizontalrawtou8avx2_row
+ 	VZEROUPPER
+ 	RET
++
++// Shuffle each horizontal tap pair into the unsigned byte operand of
++// VPMADDUBSW. Each 128-bit lane generates eight consecutive output samples.
++DATA ·mcPair01Mask+0(SB)/8, $0x0403030202010100
++DATA ·mcPair01Mask+8(SB)/8, $0x0807070606050504
++GLOBL ·mcPair01Mask(SB), RODATA|NOPTR, $16
++DATA ·mcPair23Mask+0(SB)/8, $0x0605050404030302
++DATA ·mcPair23Mask+8(SB)/8, $0x0a09090808070706
++GLOBL ·mcPair23Mask(SB), RODATA|NOPTR, $16
++DATA ·mcPair45Mask+0(SB)/8, $0x0807070606050504
++DATA ·mcPair45Mask+8(SB)/8, $0x0c0b0b0a0a090908
++GLOBL ·mcPair45Mask(SB), RODATA|NOPTR, $16
++DATA ·mcPair01Coeff+0(SB)/4, $0xfb01fb01
++GLOBL ·mcPair01Coeff(SB), RODATA|NOPTR, $4
++DATA ·mcPair23Coeff+0(SB)/4, $0x14141414
++GLOBL ·mcPair23Coeff(SB), RODATA|NOPTR, $4
++DATA ·mcPair45Coeff+0(SB)/4, $0x01fb01fb
++GLOBL ·mcPair45Coeff(SB), RODATA|NOPTR, $4
+--- a/pkg/h264/internal/common/mc_avx2_guard_linux_amd64_test.go
++++ b/pkg/h264/internal/common/mc_avx2_guard_linux_amd64_test.go
+@@ -106,3 +106,28 @@
+ 		}
+ 	}
+ }
++
++func TestMcAVX2HorizontalVectorTailsGuardPages(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, atEnd := range []bool{false, true} {
++		for _, width := range []int{15, 16, 17, 31, 32, 33, 47, 48, 49} {
++			t.Run(fmt.Sprintf("width%d/end%v", width, atEnd), func(t *testing.T) {
++				const height = 3
++				stride := width + 5
++				src := mcAVX2GuardedBuffer(t, stride*height, atEnd)
++				dst := mcAVX2GuardedBuffer(t, width*height, atEnd)
++				for i := range src {
++					src[i] = byte(i*73 + 23)
++				}
++				want := make([]byte, len(dst))
++				McHorVer20_c(src, 2, int32(stride), want, 0, int32(width), int32(width), height)
++				McHorVer20_avx2(src, 2, int32(stride), dst, 0, int32(width), int32(width), height)
++				if !bytes.Equal(dst, want) {
++					t.Fatal("horizontal vector blocks or their tail differ")
++				}
++			})
++		}
++	}
++}
+--- a/pkg/h264/internal/common/sad_simd_amd64.go
++++ b/pkg/h264/internal/common/sad_simd_amd64.go
+@@ -2,68 +2,68 @@
+ 
+ package common
+ 
+-// These assembly entry points use the Go slice ABI so the backing arrays stay
+-// live while the kernels run.
++// Checked wrappers pass tracked pointers to private assembly entry points.
++// This keeps backing arrays live without passing unused slice length/capacity.
+ 
+ //go:noescape
+-func sad16x16(src []byte, srcStride int, ref []byte, refStride int) int
++func sad16x16(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ //go:noescape
+-func sad16x8(src []byte, srcStride int, ref []byte, refStride int) int
++func sad16x8(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ //go:noescape
+-func sad8x16(src []byte, srcStride int, ref []byte, refStride int) int
++func sad8x16(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ //go:noescape
+-func sad8x8(src []byte, srcStride int, ref []byte, refStride int) int
++func sad8x8(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ //go:noescape
+-func sad8x4(src []byte, srcStride int, ref []byte, refStride int) int
++func sad8x4(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ //go:noescape
+-func sad4x8(src []byte, srcStride int, ref []byte, refStride int) int
++func sad4x8(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ //go:noescape
+-func sad4x4(src []byte, srcStride int, ref []byte, refStride int) int
++func sad4x4(src *byte, srcStride int, ref *byte, refStride int) int
+ 
+ func WelsSampleSad16x16_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 16, 16)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 16, 16)
+-	return int32(sad16x16(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad16x16(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+ 
+ func WelsSampleSad16x8_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 16, 8)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 16, 8)
+-	return int32(sad16x8(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad16x8(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+ 
+ func WelsSampleSad8x16_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 8, 16)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 8, 16)
+-	return int32(sad8x16(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad8x16(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+ 
+ func WelsSampleSad8x8_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 8, 8)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 8, 8)
+-	return int32(sad8x8(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad8x8(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+ 
+ func WelsSampleSad8x4_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 8, 4)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 8, 4)
+-	return int32(sad8x4(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad8x4(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+ 
+ func WelsSampleSad4x8_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 4, 8)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 4, 8)
+-	return int32(sad4x8(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad4x8(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+ 
+ func WelsSampleSad4x4_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+ 	aBlock := simdBlockSlice(a, aOff, aStride, 4, 4)
+ 	bBlock := simdBlockSlice(b, bOff, bStride, 4, 4)
+-	return int32(sad4x4(aBlock, int(aStride), bBlock, int(bStride)))
++	return int32(sad4x4(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
+ }
+--- a/pkg/h264/internal/common/sad_simd_amd64.s
++++ b/pkg/h264/internal/common/sad_simd_amd64.s
+@@ -4,13 +4,13 @@
+ // Copyright (c) 2026 Valery Chukalin. BSD-2-Clause; see LICENSE-go.264.
+ 
+ #include "textflag.h"
+-// func sad16x16(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad16x16(SB), NOSPLIT, $0-72
+-	MOVQ   src_base+0(FP), AX
+-	MOVQ   srcStride+24(FP), CX
+-	MOVQ   ref_base+32(FP), DX
+-	MOVQ   refStride+56(FP), BX
++// func sad16x16(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad16x16(SB), NOSPLIT, $0-40
++	MOVQ   src+0(FP), AX
++	MOVQ   srcStride+8(FP), CX
++	MOVQ   ref+16(FP), DX
++	MOVQ   refStride+24(FP), BX
+ 	PXOR   X0, X0
+ 	MOVOU  (AX), X1
+ 	MOVOU  (DX), X2
+@@ -110,16 +110,16 @@
+ 	PSRLDQ $0x08, X1
+ 	PADDD  X1, X0
+ 	MOVQ   X0, AX
+-	MOVQ   AX, ret+64(FP)
+-	RET
+-
+-// func sad16x8(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad16x8(SB), NOSPLIT, $0-72
+-	MOVQ   src_base+0(FP), AX
+-	MOVQ   srcStride+24(FP), CX
+-	MOVQ   ref_base+32(FP), DX
+-	MOVQ   refStride+56(FP), BX
++	MOVQ   AX, ret+32(FP)
++	RET
++
++// func sad16x8(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad16x8(SB), NOSPLIT, $0-40
++	MOVQ   src+0(FP), AX
++	MOVQ   srcStride+8(FP), CX
++	MOVQ   ref+16(FP), DX
++	MOVQ   refStride+24(FP), BX
+ 	PXOR   X0, X0
+ 	MOVOU  (AX), X1
+ 	MOVOU  (DX), X2
+@@ -171,16 +171,16 @@
+ 	PSRLDQ $0x08, X1
+ 	PADDD  X1, X0
+ 	MOVQ   X0, AX
+-	MOVQ   AX, ret+64(FP)
+-	RET
+-
+-// func sad8x16(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad8x16(SB), NOSPLIT, $0-72
+-	MOVQ   src_base+0(FP), AX
+-	MOVQ   srcStride+24(FP), CX
+-	MOVQ   ref_base+32(FP), DX
+-	MOVQ   refStride+56(FP), BX
++	MOVQ   AX, ret+32(FP)
++	RET
++
++// func sad8x16(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad8x16(SB), NOSPLIT, $0-40
++	MOVQ   src+0(FP), AX
++	MOVQ   srcStride+8(FP), CX
++	MOVQ   ref+16(FP), DX
++	MOVQ   refStride+24(FP), BX
+ 	PXOR   X0, X0
+ 	MOVQ   (AX), X1
+ 	MOVQ   (DX), X2
+@@ -277,16 +277,16 @@
+ 	PSADBW X2, X1
+ 	PADDD  X1, X0
+ 	MOVQ   X0, AX
+-	MOVQ   AX, ret+64(FP)
+-	RET
+-
+-// func sad8x8(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad8x8(SB), NOSPLIT, $0-72
+-	MOVQ   src_base+0(FP), AX
+-	MOVQ   srcStride+24(FP), CX
+-	MOVQ   ref_base+32(FP), DX
+-	MOVQ   refStride+56(FP), BX
++	MOVQ   AX, ret+32(FP)
++	RET
++
++// func sad8x8(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad8x8(SB), NOSPLIT, $0-40
++	MOVQ   src+0(FP), AX
++	MOVQ   srcStride+8(FP), CX
++	MOVQ   ref+16(FP), DX
++	MOVQ   refStride+24(FP), BX
+ 	PXOR   X0, X0
+ 	MOVQ   (AX), X1
+ 	MOVQ   (DX), X2
+@@ -335,16 +335,16 @@
+ 	PSADBW X2, X1
+ 	PADDD  X1, X0
+ 	MOVQ   X0, AX
+-	MOVQ   AX, ret+64(FP)
+-	RET
+-
+-// func sad8x4(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad8x4(SB), NOSPLIT, $0-72
+-	MOVQ   src_base+0(FP), AX
+-	MOVQ   srcStride+24(FP), CX
+-	MOVQ   ref_base+32(FP), DX
+-	MOVQ   refStride+56(FP), BX
++	MOVQ   AX, ret+32(FP)
++	RET
++
++// func sad8x4(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad8x4(SB), NOSPLIT, $0-40
++	MOVQ   src+0(FP), AX
++	MOVQ   srcStride+8(FP), CX
++	MOVQ   ref+16(FP), DX
++	MOVQ   refStride+24(FP), BX
+ 	PXOR   X0, X0
+ 	MOVQ   (AX), X1
+ 	MOVQ   (DX), X2
+@@ -369,16 +369,16 @@
+ 	PSADBW X2, X1
+ 	PADDD  X1, X0
+ 	MOVQ   X0, AX
+-	MOVQ   AX, ret+64(FP)
+-	RET
+-
+-// func sad4x8(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad4x8(SB), NOSPLIT, $0-72
+-	MOVQ      src_base+0(FP), AX
+-	MOVQ      srcStride+24(FP), CX
+-	MOVQ      ref_base+32(FP), DX
+-	MOVQ      refStride+56(FP), BX
++	MOVQ   AX, ret+32(FP)
++	RET
++
++// func sad4x8(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad4x8(SB), NOSPLIT, $0-40
++	MOVQ      src+0(FP), AX
++	MOVQ      srcStride+8(FP), CX
++	MOVQ      ref+16(FP), DX
++	MOVQ      refStride+24(FP), BX
+ 	PXOR      X0, X0
+ 	MOVL      (AX), X1
+ 	MOVL      (DX), X2
+@@ -427,16 +427,16 @@
+ 	PSADBW    X2, X1
+ 	PADDD     X1, X0
+ 	MOVQ      X0, AX
+-	MOVQ      AX, ret+64(FP)
+-	RET
+-
+-// func sad4x4(src []byte, srcStride int, ref []byte, refStride int) int
+-// Requires: SSE2
+-TEXT ·sad4x4(SB), NOSPLIT, $0-72
+-	MOVQ      src_base+0(FP), AX
+-	MOVQ      srcStride+24(FP), CX
+-	MOVQ      ref_base+32(FP), DX
+-	MOVQ      refStride+56(FP), BX
++	MOVQ      AX, ret+32(FP)
++	RET
++
++// func sad4x4(src *byte, srcStride int, ref *byte, refStride int) int
++// Requires: SSE2
++TEXT ·sad4x4(SB), NOSPLIT, $0-40
++	MOVQ      src+0(FP), AX
++	MOVQ      srcStride+8(FP), CX
++	MOVQ      ref+16(FP), DX
++	MOVQ      refStride+24(FP), BX
+ 	PXOR      X0, X0
+ 	MOVL      (AX), X1
+ 	MOVL      (DX), X2
+@@ -461,5 +461,5 @@
+ 	PSADBW    X2, X1
+ 	PADDD     X1, X0
+ 	MOVQ      X0, AX
+-	MOVQ      AX, ret+64(FP)
+-	RET
++	MOVQ      AX, ret+32(FP)
++	RET
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_amd64.go
+@@ -0,0 +1,16 @@
++//go:build amd64
++
++package encoder
++
++import "golang.org/x/sys/cpu"
++
++//go:noescape
++func cavlcExtractSSSE3(coeff *[16]int16, run *[16]uint8, level *[16]int16, total *int32, end int32) int32
++
++// The kernel uses writer-owned scratch arrays, disjoint from coeff and one
++// another. Keep CavlcParamCal_c for callers requiring sequential alias semantics.
++// Despite the native kernel's sse42 name, this kernel needs SSSE3 and POPCNT;
++// neither instruction set implies the other. It uses no SSE4.2 instructions.
++func cavlcExtractSupported(coeff []int16, end int32) bool {
++	return uint32(end-14) <= 1 && len(coeff) >= 16 && cpu.X86.HasSSSE3 && cpu.X86.HasPOPCNT
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_amd64.s
+@@ -0,0 +1,159 @@
++//go:build amd64
++
++#include "textflag.h"
++
++// Acquire a SIMD nonzero mask, then compact dense blocks with PSHUFB or
++// enumerate sparse coefficients inside the kernel without Go bounds checks.
++// Unlike the native kernel, exact-width stores preserve every unused output
++// element, the last run includes leading zeros, and end=14 masks word 15 even
++// when it is nonzero. All input loads stay inside the 16-word argument.
++TEXT ·cavlcExtractSSSE3(SB), NOSPLIT, $0-44
++	MOVQ coeff+0(FP), SI
++	MOVQ run+8(FP), DI
++	MOVQ level+16(FP), BX
++	MOVQ total+24(FP), DX
++	MOVOU (SI), X0
++	MOVOU 16(SI), X1
++	PACKSSWB X1, X0
++	PXOR X2, X2
++	PCMPEQB X2, X0
++	PMOVMSKB X0, AX
++	XORL $65535, AX
++	CMPL end+32(FP), $14
++	JNE cavlc_extract_masked
++	ANDL $32767, AX
++cavlc_extract_masked:
++	POPCNTL AX, R10
++	MOVL R10, (DX)
++	MOVL $0, ret+40(FP)
++	TESTL AX, AX
++	JZ cavlc_extract_done
++	CMPL AX, $65535
++	JE cavlc_extract_all16
++	CMPL AX, $32767
++	JE cavlc_extract_all15
++	BSRL AX, CX
++	INCL CX
++	SUBL R10, CX
++	MOVL CX, ret+40(FP)
++	CMPL R10, $15
++	JE cavlc_extract_one_zero
++	JMP cavlc_extract_sparse
++cavlc_extract_done:
++	RET
++
++// Fully populated blocks need only a reverse scan and zero runs.
++cavlc_extract_all16:
++	MOVOU (SI), X0
++	MOVOU 16(SI), X1
++	MOVOU cavlcExtractReverse<>(SB), X3
++	PSHUFB X3, X0
++	PSHUFB X3, X1
++	MOVOU X1, (BX)
++	MOVOU X0, 16(BX)
++	MOVOU X2, (DI)
++	RET
++cavlc_extract_all15:
++	MOVL $-1, R8
++	MOVOU (SI), X0
++	MOVOU 16(SI), X1
++	MOVOU cavlcExtractReverse<>(SB), X3
++	PSHUFB X3, X0
++	PSHUFB X3, X1
++	PSRLDQ $2, X1
++	JMP cavlc_extract_join15
++
++// With exactly one zero, compress its half with one shuffle. The other half
++// stays reversed; one byte identifies the sole nonzero run. This avoids four
++// nibble-group setups on the nearly full blocks.
++cavlc_extract_one_zero:
++	XORL $65535, AX
++	BSFL AX, CX
++	MOVL $14, R8
++	SUBL CX, R8
++	MOVOU (SI), X0
++	MOVOU 16(SI), X1
++	MOVOU cavlcExtractReverse<>(SB), X3
++	PSHUFB X3, X0
++	PSHUFB X3, X1
++	LEAQ cavlcExtractRemoveWord<>(SB), R9
++	CMPL CX, $8
++	JGE cavlc_extract_zero_high
++	MOVL $7, DX
++	SUBL CX, DX
++	SHLQ $4, DX
++	PSHUFB (R9)(DX*1), X0
++	MOVOU X1, (BX)
++	JMP cavlc_extract_store7
++cavlc_extract_zero_high:
++	MOVL $15, DX
++	SUBL CX, DX
++	SHLQ $4, DX
++	PSHUFB (R9)(DX*1), X1
++cavlc_extract_join15:
++	MOVOU X0, X4
++	PSLLDQ $14, X4
++	POR X4, X1
++	MOVOU X1, (BX)
++	PSRLDQ $2, X0
++cavlc_extract_store7:
++	MOVQ X0, 16(BX)
++	PSRLDQ $8, X0
++	MOVQ X0, DX
++	MOVL DX, 24(BX)
++	SHRQ $32, DX
++	MOVW DX, 28(BX)
++	MOVQ X2, (DI)
++	MOVL $0, 8(DI)
++	MOVW $0, 12(DI)
++	MOVB $0, 14(DI)
++	TESTL R8, R8
++	JS cavlc_extract_done
++	MOVB $1, (DI)(R8*1)
++	RET
++
++// Blocks with up to 14 nonzeros need fewer instructions when the acquired
++// SIMD mask drives exact scalar loads, rather than setting up four shuffles.
++// Keep this choice in the kernel: returning a mask to Go adds call/check costs.
++cavlc_extract_sparse:
++	BSRL AX, CX
++cavlc_extract_sparse_next:
++	MOVW (SI)(CX*2), DX
++	MOVW DX, (BX)
++	BTRL CX, AX
++	MOVL CX, R8
++	TESTL AX, AX
++	JZ cavlc_extract_sparse_last
++	BSRL AX, CX
++	SUBL CX, R8
++	DECL R8
++	MOVB R8, (DI)
++	ADDQ $2, BX
++	INCQ DI
++	JMP cavlc_extract_sparse_next
++cavlc_extract_sparse_last:
++	MOVB R8, (DI)
++	RET
++
++DATA cavlcExtractReverse<>+0(SB)/8, $0x09080b0a0d0c0f0e
++DATA cavlcExtractReverse<>+8(SB)/8, $0x0100030205040706
++GLOBL cavlcExtractReverse<>(SB), RODATA|NOPTR, $16
++
++// Remove one reversed coefficient while preserving the order of seven others.
++DATA cavlcExtractRemoveWord<>+0(SB)/8, $0x0908070605040302
++DATA cavlcExtractRemoveWord<>+8(SB)/8, $0x80800f0e0d0c0b0a
++DATA cavlcExtractRemoveWord<>+16(SB)/8, $0x0908070605040100
++DATA cavlcExtractRemoveWord<>+24(SB)/8, $0x80800f0e0d0c0b0a
++DATA cavlcExtractRemoveWord<>+32(SB)/8, $0x0908070603020100
++DATA cavlcExtractRemoveWord<>+40(SB)/8, $0x80800f0e0d0c0b0a
++DATA cavlcExtractRemoveWord<>+48(SB)/8, $0x0908050403020100
++DATA cavlcExtractRemoveWord<>+56(SB)/8, $0x80800f0e0d0c0b0a
++DATA cavlcExtractRemoveWord<>+64(SB)/8, $0x0706050403020100
++DATA cavlcExtractRemoveWord<>+72(SB)/8, $0x80800f0e0d0c0b0a
++DATA cavlcExtractRemoveWord<>+80(SB)/8, $0x0706050403020100
++DATA cavlcExtractRemoveWord<>+88(SB)/8, $0x80800f0e0d0c0908
++DATA cavlcExtractRemoveWord<>+96(SB)/8, $0x0706050403020100
++DATA cavlcExtractRemoveWord<>+104(SB)/8, $0x80800f0e0b0a0908
++DATA cavlcExtractRemoveWord<>+112(SB)/8, $0x0706050403020100
++DATA cavlcExtractRemoveWord<>+120(SB)/8, $0x80800d0c0b0a0908
++GLOBL cavlcExtractRemoveWord<>(SB), RODATA|NOPTR, $128
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_bench_test.go
+@@ -0,0 +1,81 @@
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++func cavlcExtractFixtures() []struct {
++	name  string
++	coeff [16]int16
++} {
++	return []struct {
++		name  string
++		coeff [16]int16
++	}{
++		{name: "zero"},
++		{name: "dc", coeff: [16]int16{7}},
++		{name: "sparse-low", coeff: [16]int16{7, 0, -2, 1}},
++		{name: "sparse-wide", coeff: [16]int16{7, 0, -2, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1}},
++		{name: "medium", coeff: [16]int16{4, 0, 1, 0, 9, 0, 2, 0, -5, 0, 1, 0, 2, 0, -1}},
++		{name: "nearly-dense", coeff: [16]int16{4, -2, 1, 0, 9, -3, 2, 0, -5, 7, 1, 0, 2, 3, -1}},
++		{name: "one-zero", coeff: [16]int16{4, -2, 1, -1, 9, -3, 2, 0, -5, 7, 1, 1, 2, 3, -1, 1}},
++		{name: "dense", coeff: [16]int16{4, -2, 1, -1, 9, -3, 2, 1, -5, 7, 1, 1, 2, 3, -1, 1}},
++	}
++}
++
++func BenchmarkCavlcExtraction(b *testing.B) {
++	for _, end := range []int32{3, 14, 15} {
++		for _, fixture := range cavlcExtractFixtures() {
++			for _, scalar := range []bool{true, false} {
++				b.Run(fmt.Sprintf("end%d/%s/scalar=%t", end, fixture.name, scalar), func(b *testing.B) {
++					var levels [16]int16
++					var runs [16]uint8
++					var count int32
++					b.ReportAllocs()
++					if scalar {
++						for b.Loop() {
++							CavlcParamCal_c(fixture.coeff[:], runs[:], levels[:], &count, end)
++						}
++					} else {
++						for b.Loop() {
++							cavlcExtract(fixture.coeff[:], &runs, &levels, &count, end)
++						}
++					}
++				})
++			}
++		}
++	}
++}
++
++func BenchmarkCavlcExtractionResidual(b *testing.B) {
++	for _, end := range []int32{3, 14, 15} {
++		for _, fixture := range cavlcExtractFixtures() {
++			for _, scalar := range []bool{true, false} {
++				b.Run(fmt.Sprintf("end%d/%s/scalar=%t", end, fixture.name, scalar), func(b *testing.B) {
++					var functions SWelsFuncPtrList
++					var buffer [512]byte
++					var bits common.SBitStringAux
++					property, nc := int32(LUMA_4x4), int8(3)
++					if end == 3 {
++						property, nc = int32(CHROMA_DC), CHROMA_DC_NC_OFFSET
++					}
++					b.ReportAllocs()
++					if scalar {
++						for b.Loop() {
++							common.InitBits(&bits, buffer[:], 0, int32(len(buffer)))
++							writeBlockResidualCavlcScalarExtraction(&functions, fixture.coeff[:], end, 1, property, nc, &bits)
++						}
++					} else {
++						for b.Loop() {
++							common.InitBits(&bits, buffer[:], 0, int32(len(buffer)))
++							WriteBlockResidualCavlc(&functions, fixture.coeff[:], end, 1, property, nc, &bits)
++						}
++					}
++				})
++			}
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_generic.go
+@@ -0,0 +1,10 @@
++//go:build !amd64
++
++package encoder
++
++func cavlcExtractSupported(_ []int16, _ int32) bool { return false }
++
++// The constant-false capability check removes this call on non-amd64 targets.
++func cavlcExtractSSSE3(coeff *[16]int16, run *[16]uint8, level *[16]int16, total *int32, end int32) int32 {
++	return CavlcParamCal_c(coeff[:], run[:], level[:], total, end)
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_guard_linux_amd64_test.go
+@@ -0,0 +1,35 @@
++//go:build linux && amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++	"unsafe"
++)
++
++func TestCavlcExtractGuardPages(t *testing.T) {
++	for _, end := range []int32{3, 14, 15} {
++		for _, length := range []int{int(end + 1), 16} {
++			t.Run(fmt.Sprintf("end%d/len%d", end, length), func(t *testing.T) {
++				input := idctGuardedBuffer(t, length*2)
++				coeff := unsafe.Slice((*int16)(unsafe.Pointer(&input[0])), length)
++				levelBytes := idctGuardedBuffer(t, 32)
++				levels := (*[16]int16)(unsafe.Pointer(&levelBytes[0]))
++				runBytes := idctGuardedBuffer(t, 16)
++				runs := (*[16]uint8)(runBytes)
++				for i := range coeff {
++					coeff[i] = int16(i*17 - 91)
++				}
++				var count, wantCount int32
++				var wantLevel [16]int16
++				var wantRun [16]uint8
++				wantZeros := cavlcParamCal_ref(coeff, wantRun[:], wantLevel[:], &wantCount, end)
++				zeros := cavlcExtract(coeff, runs, levels, &count, end)
++				if zeros != wantZeros || count != wantCount || *levels != wantLevel || *runs != wantRun {
++					t.Fatal("guarded extraction differs from scalar")
++				}
++			})
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_reference_test.go
+@@ -0,0 +1,123 @@
++package encoder
++
++import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++
++// Preserved pre-extraction writer: unlike the older full reference, this uses
++// the same fast symbol table and split bit writer to isolate extraction cost.
++func writeBlockResidualCavlcScalarExtraction(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
++	var iLevel [16]int16
++	var uiRun [16]uint8
++
++	iTotalCoeffs := int32(0)
++	iTrailingOnes := int32(0)
++	iTotalZeros, iZerosLeft := int32(0), int32(0)
++	uiSign := uint32(0)
++	var uiSuffixLength int32
++	var iValue, iZeroLeft int32
++	var n int32
++	var i int32
++
++	bs := cavlcBsInit(pBs)
++
++	/*Step 1: calculate iLevel and iRun and total */
++
++	if iCalRunLevelFlag != 0 {
++		iCount := int32(0)
++		// The direct call keeps these per-block run and level buffers on the
++		// stack. Scalar extraction is faster than mask enumeration here.
++		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
++		if iTotalCoeffs > 3 {
++			iCount = 3
++		} else {
++			iCount = iTotalCoeffs
++		}
++		for i = 0; i < iCount; i++ {
++			if common.WELS_ABS(int32(iLevel[i])) == 1 {
++				iTrailingOnes++
++				uiSign <<= 1
++				if iLevel[i] < 0 {
++					uiSign |= 1
++				}
++			} else {
++				break
++			}
++		}
++	}
++	/*Step 3: coeff token */
++	upCoeffToken := &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[iNC]][iTotalCoeffs][iTrailingOnes]
++	iValue = int32(upCoeffToken[0])
++	n = int32(upCoeffToken[1])
++
++	if iTotalCoeffs == 0 {
++		bs.write(n, iValue)
++
++		bs.uninit(pBs)
++		return ENC_RETURN_SUCCESS
++	}
++
++	/* Step 4: */
++	/*  trailing */
++	n += iTrailingOnes
++	iValue = int32(uint32(iValue<<uint(iTrailingOnes)) + uiSign)
++	bs.write(n, iValue)
++
++	/*  levels */
++	if iTotalCoeffs > 10 && iTrailingOnes < 3 {
++		uiSuffixLength = 1
++	} else {
++		uiSuffixLength = 0
++	}
++
++	// The first non-trailing level has a distinct code adjustment. Keeping
++	// both forms in the small table also supplies the next suffix length.
++	adjustment := 0
++	if iTrailingOnes < 3 {
++		adjustment = 1
++	}
++	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
++		value := int32(iLevel[i])
++		var symbol cavlcLevelSymbol
++		if index := uint32(value + cavlcLevelLimit); index < 2*cavlcLevelLimit {
++			symbol = cavlcLevelTable[adjustment][uiSuffixLength][index]
++		} else {
++			var ok bool
++			symbol, ok = cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
++			if !ok {
++				return ENC_RETURN_VLCOVERFLOWFOUND
++			}
++		}
++		bs.write(int32(symbol.length), int32(symbol.code))
++		uiSuffixLength = int32(symbol.nextSuffix)
++		adjustment = 0
++	}
++
++	/* Step 5: total zeros */
++
++	if iTotalCoeffs < iEndIdx+1 {
++		if int32(CHROMA_DC) != iResidualProperty {
++			upTotalZeros := &g_kuiVlcTotalZeros[iTotalCoeffs][iTotalZeros]
++			n = int32(upTotalZeros[1])
++			iValue = int32(upTotalZeros[0])
++			bs.write(n, iValue)
++		} else {
++			upTotalZeros := &g_kuiVlcTotalZerosChromaDc[iTotalCoeffs][iTotalZeros]
++			n = int32(upTotalZeros[1])
++			iValue = int32(upTotalZeros[0])
++			bs.write(n, iValue)
++		}
++	}
++
++	/* Step 6: pRun before */
++	iZerosLeft = iTotalZeros
++	for i = 0; i+1 < iTotalCoeffs && iZerosLeft > 0; i++ {
++		uirun := uiRun[i]
++		iZeroLeft = int32(g_kuiZeroLeftMap[iZerosLeft])
++		n = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][1])
++		iValue = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][0])
++		bs.write(n, iValue)
++		iZerosLeft -= int32(uirun)
++	}
++
++	bs.uninit(pBs)
++	return ENC_RETURN_SUCCESS
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/cavlc_extract_test.go
+@@ -0,0 +1,84 @@
++package encoder
++
++import (
++	"fmt"
++	"math/rand"
++	"testing"
++)
++
++func TestCavlcExtractMasks(t *testing.T) {
++	rng := rand.New(rand.NewSource(0x264e))
++	for _, end := range []int32{14, 15} {
++		t.Run(fmt.Sprintf("end%d", end), func(t *testing.T) {
++			for mask := 0; mask < 1<<16; mask++ {
++				// The odd word offset also exercises unaligned vector loads.
++				var storage [17]int16
++				coeff := storage[1:]
++				for i := range coeff {
++					if mask&(1<<i) != 0 {
++						coeff[i] = int16(rng.Uint32())
++						if coeff[i] == 0 {
++							coeff[i] = -32768
++						}
++					}
++				}
++				assertCavlcExtractParity(t, coeff, end)
++			}
++		})
++	}
++}
++
++func TestCavlcExtractLengthsAndEnds(t *testing.T) {
++	rng := rand.New(rand.NewSource(0x264ed))
++	for end := int32(-1); end <= 15; end++ {
++		t.Run(fmt.Sprintf("end%d", end), func(t *testing.T) {
++			for length := int(end + 1); length <= 16; length++ {
++				var coeff [16]int16
++				for repeat := 0; repeat < 64; repeat++ {
++					for i := range coeff {
++						coeff[i] = int16(rng.Uint32())
++						if rng.Intn(4) != 0 {
++							coeff[i] = 0
++						}
++					}
++					// A large capacity must never authorize wider input reads.
++					assertCavlcExtractParity(t, coeff[:length], end)
++				}
++			}
++		})
++	}
++}
++
++func TestCavlcExtractCoefficientDomain(t *testing.T) {
++	for value := -32768; value <= 32767; value++ {
++		var coeff [16]int16
++		coeff[0], coeff[7], coeff[15] = int16(value), int16(value), int16(value)
++		assertCavlcExtractParity(t, coeff[:], 15)
++	}
++}
++
++func assertCavlcExtractParity(t *testing.T, coeff []int16, end int32) {
++	t.Helper()
++	var gotLevel, wantLevel [16]int16
++	var gotRun, wantRun [16]uint8
++	for i := range gotLevel {
++		gotLevel[i], wantLevel[i] = int16(0x4321+i), int16(0x4321+i)
++		gotRun[i], wantRun[i] = uint8(0xa0+i), uint8(0xa0+i)
++	}
++	var gotCount, wantCount int32
++	wantZeros := cavlcParamCal_ref(coeff, wantRun[:], wantLevel[:], &wantCount, end)
++	gotZeros := cavlcExtract(coeff, &gotRun, &gotLevel, &gotCount, end)
++	if gotZeros != wantZeros || gotCount != wantCount || gotRun != wantRun || gotLevel != wantLevel {
++		t.Fatalf("end=%d coeff=%v: zeros %d/%d count %d/%d run %v/%v level %v/%v",
++			end, coeff, gotZeros, wantZeros, gotCount, wantCount, gotRun, wantRun, gotLevel, wantLevel)
++	}
++}
++
++// Exercise the same dispatch as the writer while keeping production's tiny
++// scalar fallback free of an additional Go call.
++func cavlcExtract(coeff []int16, run *[16]uint8, level *[16]int16, total *int32, end int32) int32 {
++	if cavlcExtractSupported(coeff, end) {
++		return cavlcExtractSSSE3((*[16]int16)(coeff), run, level, total, end)
++	}
++	return CavlcParamCal_c(coeff, run[:], level[:], total, end)
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_avx2_amd64.go
+@@ -0,0 +1,23 @@
++//go:build amd64
++
++package encoder
++
++import "unsafe"
++
++// welsDctFourT4AVX2 transforms four 4x4 blocks with one packed AVX2 pass.
++// Callers must validate the complete 8x8 input spans and exclude output aliases.
++//
++//go:noescape
++func welsDctFourT4AVX2(dct *[64]int16, pixel1 *byte, stride1 int, pixel2 *byte, stride2 int)
++
++// The previous SSE2 implementation stores the top two blocks before reading
++// the bottom two. Preserve that access order when differently typed buffers
++// alias. Pointer differences also reject a span that contains the other start.
++// The pointers stay tracked across any stack growth; uintptr values are used
++// only in the comparisons, never saved and later converted back into pointers.
++func dctFourT4Aliases(dct *[64]int16, pixel1 *byte, stride1 int, pixel2 *byte, stride2 int) bool {
++	return uintptr(unsafe.Pointer(dct))-uintptr(unsafe.Pointer(pixel1)) < uintptr(7*stride1+8) ||
++		uintptr(unsafe.Pointer(pixel1))-uintptr(unsafe.Pointer(dct)) < 128 ||
++		uintptr(unsafe.Pointer(dct))-uintptr(unsafe.Pointer(pixel2)) < uintptr(7*stride2+8) ||
++		uintptr(unsafe.Pointer(pixel2))-uintptr(unsafe.Pointer(dct)) < 128
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_avx2_amd64.s
+@@ -0,0 +1,139 @@
++// This forward transform follows OpenH264 2.6.0's AVX2 implementation in
++// codec/common/x86/dct.asm.
++// Copyright (c) 2009-2013, Cisco Systems.
++// All rights reserved.
++// BSD-2-Clause; see LICENSE-OpenH264 in the repository root.
++
++#include "textflag.h"
++
++DATA dctShufflePixels<>+0(SB)/8, $0x8002800180038000
++DATA dctShufflePixels<>+8(SB)/8, $0x8006800580078004
++GLOBL dctShufflePixels<>(SB), RODATA|NOPTR, $16
++
++DATA dctShufflePairs<>+0(SB)/8, $0x0504070601000302
++DATA dctShufflePairs<>+8(SB)/8, $0x0d0c0f0e09080b0a
++GLOBL dctShufflePairs<>(SB), RODATA|NOPTR, $16
++
++DATA dctHorizontalSigns<>+0(SB)/8, $0xffff0001ffff0001
++DATA dctHorizontalSigns<>+8(SB)/8, $0xffff0001ffff0001
++DATA dctHorizontalSigns<>+16(SB)/8, $0xffff0001ffff0001
++DATA dctHorizontalSigns<>+24(SB)/8, $0xffff0001ffff0001
++GLOBL dctHorizontalSigns<>(SB), RODATA|NOPTR, $32
++
++DATA dctHorizontalFactors<>+0(SB)/8, $0xfffeffff00020001
++DATA dctHorizontalFactors<>+8(SB)/8, $0xfffeffff00020001
++DATA dctHorizontalFactors<>+16(SB)/8, $0xfffeffff00020001
++DATA dctHorizontalFactors<>+24(SB)/8, $0xfffeffff00020001
++GLOBL dctHorizontalFactors<>(SB), RODATA|NOPTR, $32
++
++// func welsDctFourT4AVX2(dct *[64]int16, pixel1 *byte, stride1 int,
++//     pixel2 *byte, stride2 int)
++// Each 128-bit lane holds one horizontal pair; the upper lanes hold the
++// bottom pair. Eight-byte loads touch exactly the validated pixel columns.
++TEXT ·welsDctFourT4AVX2(SB), NOSPLIT, $0-40
++	MOVQ dct+0(FP), AX
++	MOVQ pixel1+8(FP), BX
++	MOVQ stride1+16(FP), CX
++	MOVQ pixel2+24(FP), DX
++	MOVQ stride2+32(FP), SI
++	VBROADCASTI128 dctShufflePixels<>(SB), Y6
++
++	VMOVQ (BX), X0
++	VPBROADCASTQ (BX)(CX*4), Y4
++	VPBLENDD $0xf0, Y4, Y0, Y0
++	VPSHUFB Y6, Y0, Y0
++	VMOVQ (DX), X4
++	VPBROADCASTQ (DX)(SI*4), Y5
++	VPBLENDD $0xf0, Y5, Y4, Y4
++	VPSHUFB Y6, Y4, Y4
++	VPSUBW Y4, Y0, Y0
++	ADDQ CX, BX
++	ADDQ SI, DX
++	VMOVQ (BX), X1
++	VPBROADCASTQ (BX)(CX*4), Y4
++	VPBLENDD $0xf0, Y4, Y1, Y1
++	VPSHUFB Y6, Y1, Y1
++	VMOVQ (DX), X4
++	VPBROADCASTQ (DX)(SI*4), Y5
++	VPBLENDD $0xf0, Y5, Y4, Y4
++	VPSHUFB Y6, Y4, Y4
++	VPSUBW Y4, Y1, Y1
++	ADDQ CX, BX
++	ADDQ SI, DX
++	VMOVQ (BX), X2
++	VPBROADCASTQ (BX)(CX*4), Y4
++	VPBLENDD $0xf0, Y4, Y2, Y2
++	VPSHUFB Y6, Y2, Y2
++	VMOVQ (DX), X4
++	VPBROADCASTQ (DX)(SI*4), Y5
++	VPBLENDD $0xf0, Y5, Y4, Y4
++	VPSHUFB Y6, Y4, Y4
++	VPSUBW Y4, Y2, Y2
++	ADDQ CX, BX
++	ADDQ SI, DX
++	VMOVQ (BX), X3
++	VPBROADCASTQ (BX)(CX*4), Y4
++	VPBLENDD $0xf0, Y4, Y3, Y3
++	VPSHUFB Y6, Y3, Y3
++	VMOVQ (DX), X4
++	VPBROADCASTQ (DX)(SI*4), Y5
++	VPBLENDD $0xf0, Y5, Y4, Y4
++	VPSHUFB Y6, Y4, Y4
++	VPSUBW Y4, Y3, Y3
++
++	// Vertical 4-point transform of all four blocks together.
++	VPSUBW Y3, Y0, Y5
++	VPADDW Y3, Y0, Y0
++	VPSUBW Y2, Y1, Y3
++	VPADDW Y2, Y1, Y1
++	VPSUBW Y1, Y0, Y2
++	VPADDW Y1, Y0, Y0
++	VPSLLW $1, Y5, Y1
++	VPADDW Y3, Y1, Y1
++	VPSLLW $1, Y3, Y3
++	VPSUBW Y3, Y5, Y3
++
++	// The byte shuffle loaded each row as [x0,x3,x1,x2], allowing each
++	// horizontal transform to use signs, a word multiply and two shuffles.
++	VBROADCASTI128 dctShufflePairs<>(SB), Y6
++	VPSIGNW dctHorizontalSigns<>(SB), Y0, Y5
++	VPSHUFB Y6, Y0, Y0
++	VPADDW Y5, Y0, Y0
++	VPMULLW dctHorizontalFactors<>(SB), Y0, Y5
++	VPSHUFD $0xb1, Y0, Y0
++	VPADDW Y5, Y0, Y0
++	VPSIGNW dctHorizontalSigns<>(SB), Y1, Y5
++	VPSHUFB Y6, Y1, Y1
++	VPADDW Y5, Y1, Y1
++	VPMULLW dctHorizontalFactors<>(SB), Y1, Y5
++	VPSHUFD $0xb1, Y1, Y1
++	VPADDW Y5, Y1, Y1
++	VPSIGNW dctHorizontalSigns<>(SB), Y2, Y5
++	VPSHUFB Y6, Y2, Y2
++	VPADDW Y5, Y2, Y2
++	VPMULLW dctHorizontalFactors<>(SB), Y2, Y5
++	VPSHUFD $0xb1, Y2, Y2
++	VPADDW Y5, Y2, Y2
++	VPSIGNW dctHorizontalSigns<>(SB), Y3, Y5
++	VPSHUFB Y6, Y3, Y3
++	VPADDW Y5, Y3, Y3
++	VPMULLW dctHorizontalFactors<>(SB), Y3, Y5
++	VPSHUFD $0xb1, Y3, Y3
++	VPADDW Y5, Y3, Y3
++
++	// Store row-major coefficients in TL, TR, BL, BR block order. Go does
++	// not guarantee vector alignment, so all output stores are unaligned.
++	VPUNPCKLQDQ Y1, Y0, Y5
++	VMOVDQU X5, 0(AX)
++	VEXTRACTI128 $1, Y5, 64(AX)
++	VPUNPCKHQDQ Y1, Y0, Y5
++	VMOVDQU X5, 32(AX)
++	VEXTRACTI128 $1, Y5, 96(AX)
++	VPUNPCKLQDQ Y3, Y2, Y5
++	VMOVDQU X5, 16(AX)
++	VEXTRACTI128 $1, Y5, 80(AX)
++	VPUNPCKHQDQ Y3, Y2, Y5
++	VMOVDQU X5, 48(AX)
++	VEXTRACTI128 $1, Y5, 112(AX)
++	VZEROUPPER
++	RET
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_avx2_amd64_test.go
+@@ -0,0 +1,189 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"math/rand"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestDCTFourAVX2MatchesScalar(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	t.Parallel()
++	rng := rand.New(rand.NewSource(0x264a))
++	for iteration := 0; iteration < 4000; iteration++ {
++		s1, s2 := rng.Intn(96), rng.Intn(96)
++		o1, o2 := rng.Intn(32), rng.Intn(32)
++		p1, p2 := make([]byte, o1+7*s1+8), make([]byte, o2+7*s2+8)
++		_, _ = rng.Read(p1)
++		_, _ = rng.Read(p2)
++		var want [64]int16
++		var backing [68]int16
++		for i := range backing {
++			backing[i] = -12345
++		}
++		got := (*[64]int16)(backing[2:66])
++		WelsDctFourT4_c(want[:], p1, o1, int32(s1), p2, o2, int32(s2))
++		welsDctFourT4AVX2(got, &p1[o1], s1, &p2[o2], s2)
++		if *got != want {
++			t.Fatalf("iteration %d strides %d/%d: got %v, want %v", iteration, s1, s2, *got, want)
++		}
++		if backing[0] != -12345 || backing[1] != -12345 || backing[66] != -12345 || backing[67] != -12345 {
++			t.Fatal("transform wrote outside coefficient output")
++		}
++	}
++}
++
++func TestDCTFourAVX2RetainsSSE2Aliases(t *testing.T) {
++	t.Parallel()
++	for _, stride := range []int{0, 1, 8, 19, -19} {
++		for _, outputOffset := range []int{0, 16, 32, 64, 128} {
++			for _, input := range []int{1, 2, 3} {
++				t.Run(fmt.Sprintf("stride%d/output%d/input%d", stride, outputOffset, input), func(t *testing.T) {
++					var actual, expected [256]int16
++					aBytes := unsafe.Slice((*byte)(unsafe.Pointer(&actual[0])), len(actual)*2)
++					eBytes := unsafe.Slice((*byte)(unsafe.Pointer(&expected[0])), len(expected)*2)
++					for i := range aBytes {
++						aBytes[i] = byte(i*71 + 29)
++					}
++					copy(eBytes, aBytes)
++					external := make([]byte, len(aBytes))
++					for i := range external {
++						external[i] = byte(i*43 + 17)
++					}
++					a1, a2, e1, e2 := external, external, external, external
++					if input&1 != 0 {
++						a1, e1 = aBytes, eBytes
++					}
++					if input&2 != 0 {
++						a2, e2 = aBytes, eBytes
++					}
++					offset := 32
++					if stride < 0 {
++						offset -= 7 * stride
++					}
++					oldDctFourT4SSE2(expected[outputOffset:], e1, offset, int32(stride), e2, offset, int32(stride))
++					WelsDctFourT4_sse2(actual[outputOffset:], a1, offset, int32(stride), a2, offset, int32(stride))
++					if actual != expected {
++						t.Fatal("output alias changed the previous SSE2 access order")
++					}
++				})
++			}
++		}
++	}
++}
++
++func TestDCTFourAVX2InputLength(t *testing.T) {
++	for _, input := range []int{1, 2} {
++		for _, stride := range []int32{8, 19, -19} {
++			t.Run(fmt.Sprintf("input%d/stride%d", input, stride), func(t *testing.T) {
++				span, offset := int(7*stride)+8, 0
++				if stride < 0 {
++					span, offset = int(-7*stride)+8, int(-7*stride)
++				}
++				p1, p2 := make([]byte, span), make([]byte, span)
++				if input == 1 {
++					p1 = p1[:len(p1)-1]
++				} else {
++					p2 = p2[:len(p2)-1]
++				}
++				var got [64]int16
++				defer func() {
++					if recover() == nil {
++						t.Fatal("input slice capacity authorized an out-of-length read")
++					}
++				}()
++				WelsDctFourT4_sse2(got[:], p1, offset, stride, p2, offset, stride)
++			})
++		}
++	}
++}
++
++// Keep the pre-AVX2 entry point as an independent old-path oracle and benchmark.
++func oldDctFourT4SSE2(dct []int16, p1 []byte, o1 int, s1 int32, p2 []byte, o2 int, s2 int32) {
++	_ = dct[63]
++	checkSampleSIMDBlock(p1, o1, s1, 8, 8)
++	checkSampleSIMDBlock(p2, o2, s2, 8, 8)
++	welsDctFourT4SSE2(dct, p1[o1:], int(s1), p2[o2:], int(s2))
++}
++
++func BenchmarkDCTFourAVX2(b *testing.B) {
++	for _, stride := range []int{8, 64, 2048} {
++		b.Run(fmt.Sprintf("stride%d", stride), func(b *testing.B) {
++			p1, p2 := make([]byte, 7*stride+8), make([]byte, 7*stride+8)
++			for i := range p1 {
++				p1[i], p2[i] = byte(i*29+17), byte(i*13+71)
++			}
++			var output [64]int16
++			b.Run("old-SSE2", func(b *testing.B) {
++				b.ReportAllocs()
++				for b.Loop() {
++					oldDctFourT4SSE2(output[:], p1, 0, int32(stride), p2, 0, int32(stride))
++				}
++				dctBenchmarkSink = output[0]
++			})
++			b.Run("dispatch", func(b *testing.B) {
++				b.ReportAllocs()
++				for b.Loop() {
++					WelsDctFourT4_sse2(output[:], p1, 0, int32(stride), p2, 0, int32(stride))
++				}
++				dctBenchmarkSink = output[0]
++			})
++			b.Run("raw-AVX2", func(b *testing.B) {
++				if !cpu.X86.HasAVX2 {
++					b.Skip("AVX2 unavailable")
++				}
++				b.ReportAllocs()
++				for b.Loop() {
++					welsDctFourT4AVX2(&output, &p1[0], stride, &p2[0], stride)
++				}
++				dctBenchmarkSink = output[0]
++			})
++		})
++	}
++}
++
++// Digests come from OpenH264 2.6.0 WelsDctFourT4_avx2. The native harness uses
++// the same xorshift32 corpus and hashes both bytes of every output coefficient.
++func TestDCTFourAVX2NativeCorpus(t *testing.T) {
++	for _, tc := range []struct {
++		stride int
++		want   uint64
++	}{
++		{8, 0xb30392e88e291ed2},
++		{64, 0x735fa3f800503c1b},
++		{2048, 0x7857315bf447fd23},
++	} {
++		t.Run(fmt.Sprintf("stride%d", tc.stride), func(t *testing.T) {
++			p1, p2 := make([]byte, 7*tc.stride+8), make([]byte, 7*tc.stride+8)
++			state := uint32(0x264ab)
++			next := func() byte {
++				state ^= state << 13
++				state ^= state >> 17
++				state ^= state << 5
++				return byte(state)
++			}
++			hash := uint64(14695981039346656037)
++			var output [64]int16
++			for iteration := 0; iteration < 1024; iteration++ {
++				for i := range p1 {
++					p1[i], p2[i] = next(), next()
++				}
++				WelsDctFourT4_sse2(output[:], p1, 0, int32(tc.stride), p2, 0, int32(tc.stride))
++				for _, coefficient := range output {
++					hash = (hash ^ uint64(byte(coefficient))) * 1099511628211
++					hash = (hash ^ uint64(byte(uint16(coefficient)>>8))) * 1099511628211
++				}
++			}
++			if hash != tc.want {
++				t.Fatalf("native DCT corpus digest: got %016x, want %016x", hash, tc.want)
++			}
++		})
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_avx2_guard_linux_amd64_test.go
+@@ -0,0 +1,42 @@
++//go:build linux && amd64
++
++package encoder
++
++import (
++	"fmt"
++	"runtime/debug"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestDCTFourAVX2ExactBufferGuards(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, stride := range []int{0, 1, 8, 19, 127} {
++		t.Run(fmt.Sprintf("stride%d", stride), func(t *testing.T) {
++			old := debug.SetPanicOnFault(true)
++			defer debug.SetPanicOnFault(old)
++			defer func() {
++				if r := recover(); r != nil {
++					t.Errorf("DCT faulted with valid exact buffers: %v", r)
++				}
++			}()
++			p1 := idctGuardedBuffer(t, 7*stride+8)
++			p2 := idctGuardedBuffer(t, 7*stride+8)
++			output := idctGuardedBuffer(t, 128)
++			got := (*[64]int16)(unsafe.Pointer(&output[0]))
++			for i := range p1 {
++				p1[i], p2[i] = byte(i*29+17), byte(i*13+71)
++			}
++			var want [64]int16
++			WelsDctFourT4_c(want[:], p1, 0, int32(stride), p2, 0, int32(stride))
++			welsDctFourT4AVX2(got, &p1[0], stride, &p2[0], stride)
++			if *got != want {
++				t.Fatal("guarded DCT coefficient mismatch")
++			}
++		})
++	}
++}
+--- a/pkg/h264/internal/encoder/dct_simd_amd64.go
++++ b/pkg/h264/internal/encoder/dct_simd_amd64.go
+@@ -1,6 +1,8 @@
+ //go:build amd64
+ 
+ package encoder
++
++import "golang.org/x/sys/cpu"
+ 
+ // welsDctT4SSE2 computes one 4x4 forward integer transform. All amd64
+ // processors supported by Go provide SSE2.
+@@ -30,6 +32,7 @@
+ }
+ 
+ // WelsDctFourT4_sse2 computes the four 4x4 transforms in an 8x8 block.
++// It uses AVX2 when available and retains SSE2 for aliases and backward rows.
+ // Coefficients use OpenH264's block order: top-left, top-right,
+ // bottom-left, bottom-right.
+ func WelsDctFourT4_sse2(
+@@ -46,5 +49,10 @@
+ 	_ = dct[63]
+ 	checkSampleSIMDBlock(pixel1, pixel1Off, stride1, 8, 8)
+ 	checkSampleSIMDBlock(pixel2, pixel2Off, stride2, 8, 8)
++	if cpu.X86.HasAVX2 && s1 >= 0 && s2 >= 0 &&
++		!dctFourT4Aliases((*[64]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2) {
++		welsDctFourT4AVX2((*[64]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2)
++		return
++	}
+ 	welsDctFourT4SSE2(dct, pixel1[pixel1Off:], s1, pixel2[pixel2Off:], s2)
+ }
+--- a/pkg/h264/internal/encoder/quant_scan_amd64.go
++++ b/pkg/h264/internal/encoder/quant_scan_amd64.go
+@@ -9,7 +9,7 @@
+ )
+ 
+ //go:noescape
+-func quantScanFour4x4SSSE3(dct, levels, ff, mf, maxima []int16, masks []uint16, ac int32)
++func quantScanFour4x4SSSE3(dct, levels *[64]int16, ff, mf *[8]int16, maxima *[4]int16, masks *[4]uint16, ac int32)
+ 
+ // Quantize each group once, then scan and extract masks while its coefficients
+ // are still in SIMD registers. Maxima retain the existing signed-word semantics.
+@@ -20,7 +20,7 @@
+ 	_ = mf[7]
+ 	_ = maxima[3]
+ 	_ = masks[3]
+-	if !cpu.X86.HasSSSE3 || quantScanOutputsOverlap(dct, levels, maxima, masks) {
++	if !cpu.X86.HasSSSE3 || quantScanOutputsOverlap(unsafe.Pointer(&dct[0]), unsafe.Pointer(&levels[0]), unsafe.Pointer(&maxima[0]), unsafe.Pointer(&masks[0])) {
+ 		quantScanFour4x4Separate(dct, levels, ff, mf, maxima, masks, ac)
+ 		return
+ 	}
+@@ -28,14 +28,10 @@
+ 	if ac {
+ 		acFlag = 1
+ 	}
+-	quantScanFour4x4SSSE3(dct, levels, ff, mf, maxima, masks, acFlag)
++	quantScanFour4x4SSSE3((*[64]int16)(dct), (*[64]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf), (*[4]int16)(maxima), (*[4]uint16)(masks), acFlag)
+ }
+ 
+-func quantScanOutputsOverlap(dct, levels, maxima []int16, masks []uint16) bool {
+-	d := unsafe.Pointer(&dct[0])
+-	l := unsafe.Pointer(&levels[0])
+-	x := unsafe.Pointer(&maxima[0])
+-	m := unsafe.Pointer(&masks[0])
++func quantScanOutputsOverlap(d, l, x, m unsafe.Pointer) bool {
+ 	return quantScanRangesOverlap(d, 128, l, 128) ||
+ 		quantScanRangesOverlap(d, 128, x, 8) || quantScanRangesOverlap(d, 128, m, 8) ||
+ 		quantScanRangesOverlap(l, 128, x, 8) || quantScanRangesOverlap(l, 128, m, 8) ||
+--- a/pkg/h264/internal/encoder/quant_scan_amd64.s
++++ b/pkg/h264/internal/encoder/quant_scan_amd64.s
+@@ -4,14 +4,33 @@
+ 
+ // The four blocks share FF/MF and zigzag vectors. Quantized raster coefficients,
+ // scanned entropy levels, maxima, and masks are all produced in the same pass.
+-TEXT ·quantScanFour4x4SSSE3(SB), NOSPLIT, $0-148
+-	MOVQ dct_base+0(FP), AX
+-	MOVQ levels_base+24(FP), BX
+-	MOVQ ff_base+48(FP), CX
+-	MOVQ mf_base+72(FP), DX
+-	MOVQ maxima_base+96(FP), DI
+-	MOVQ masks_base+120(FP), SI
+-	MOVL ac+144(FP), R9
++TEXT ·quantScanFour4x4SSSE3(SB), NOSPLIT, $0-52
++	MOVQ dct+0(FP), AX
++	MOVQ levels+8(FP), BX
++	MOVQ ff+16(FP), CX
++	MOVQ mf+24(FP), DX
++	MOVQ maxima+32(FP), DI
++	MOVQ masks+40(FP), SI
++	MOVL ac+48(FP), R9
++	MOVQ $4, R8
++	JMP quantScanBlocksSSSE3<>(SB)
++
++// Completed luma encoding shares the exact same block loop, with one table
++// snapshot and one Go/assembly boundary for sixteen blocks instead of four.
++TEXT ·quantScanLumaSSSE3(SB), NOSPLIT, $0-48
++	MOVQ dct+0(FP), AX
++	MOVQ levels+8(FP), BX
++	MOVQ ff+16(FP), CX
++	MOVQ mf+24(FP), DX
++	MOVQ maxima+32(FP), DI
++	MOVQ masks+40(FP), SI
++	XORL R9, R9
++	MOVQ $16, R8
++	JMP quantScanBlocksSSSE3<>(SB)
++
++// AX/BX raster/scanned coefficients; CX/DX FF/MF; DI/SI maxima/masks;
++// R8 block count; R9 AC-only flag. Entries validate all spans and alias rules.
++TEXT quantScanBlocksSSSE3<>(SB), NOSPLIT|NOFRAME, $0-0
+ 	SHLQ $6, R9
+ 	LEAQ quantScanShuffle<>(SB), R10
+ 	ADDQ R9, R10
+@@ -22,7 +41,6 @@
+ 	MOVOU 16(R10), X13
+ 	MOVOU 32(R10), X14
+ 	MOVOU 48(R10), X15
+-	MOVQ $4, R8
+ quant_scan_block:
+ 	MOVOU (AX), X0
+ 	MOVOU X10, X2
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_luma.go
+@@ -0,0 +1,16 @@
++package encoder
++
++// Preserve the original four-call ordering for unsupported CPUs and aliases.
++// In particular, each group snapshots FF/MF after previous groups have written.
++func quantScanLumaSeparate(dct, levels, ff, mf, maxima []int16, masks []uint16) {
++	_ = dct[255]
++	_ = levels[255]
++	_ = ff[7]
++	_ = mf[7]
++	_ = maxima[15]
++	_ = masks[15]
++	for group := 0; group < 4; group++ {
++		offset := group * 64
++		quantScanFour4x4(dct[offset:], levels[offset:], ff, mf, maxima[group*4:], masks[group*4:], false)
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_luma_amd64.go
+@@ -0,0 +1,45 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++//go:noescape
++func quantScanLumaSSSE3(dct, levels *[256]int16, ff, mf *[8]int16, maxima *[16]int16, masks *[16]uint16)
++
++// Completed inter-luma encoding consumes every group, so one checked call can
++// share the quantization and zigzag tables across all sixteen blocks. Lazy skip
++// attempts retain their four-block calls and early rejection behavior.
++func quantScanLuma(dct, levels, ff, mf, maxima []int16, masks []uint16) {
++	_ = dct[255]
++	_ = levels[255]
++	_ = ff[7]
++	_ = mf[7]
++	_ = maxima[15]
++	_ = masks[15]
++	if !cpu.X86.HasSSSE3 || quantScanLumaAliases(unsafe.Pointer(&dct[0]), unsafe.Pointer(&levels[0]),
++		unsafe.Pointer(&ff[0]), unsafe.Pointer(&mf[0]), unsafe.Pointer(&maxima[0]), unsafe.Pointer(&masks[0])) {
++		quantScanLumaSeparate(dct, levels, ff, mf, maxima, masks)
++		return
++	}
++	quantScanLumaSSSE3((*[256]int16)(dct), (*[256]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf),
++		(*[16]int16)(maxima), (*[16]uint16)(masks))
++}
++
++func quantScanLumaAliases(d, l, f, q, x, m unsafe.Pointer) bool {
++	// All outputs must be disjoint. FF/MF also cannot overlap any output:
++	// the old sequence reloads them before each group, whereas the batch
++	// snapshots them only once. FF and MF may overlap one another.
++	return quantScanRangesOverlap(d, 512, l, 512) ||
++		quantScanRangesOverlap(d, 512, x, 32) || quantScanRangesOverlap(d, 512, m, 32) ||
++		quantScanRangesOverlap(l, 512, x, 32) || quantScanRangesOverlap(l, 512, m, 32) ||
++		quantScanRangesOverlap(x, 32, m, 32) ||
++		quantScanRangesOverlap(f, 16, d, 512) || quantScanRangesOverlap(f, 16, l, 512) ||
++		quantScanRangesOverlap(f, 16, x, 32) || quantScanRangesOverlap(f, 16, m, 32) ||
++		quantScanRangesOverlap(q, 16, d, 512) || quantScanRangesOverlap(q, 16, l, 512) ||
++		quantScanRangesOverlap(q, 16, x, 32) || quantScanRangesOverlap(q, 16, m, 32)
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_luma_generic.go
+@@ -0,0 +1,7 @@
++//go:build !amd64
++
++package encoder
++
++func quantScanLuma(dct, levels, ff, mf, maxima []int16, masks []uint16) {
++	quantScanLumaSeparate(dct, levels, ff, mf, maxima, masks)
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_luma_guard_linux_amd64_test.go
+@@ -0,0 +1,34 @@
++//go:build linux && amd64
++
++package encoder
++
++import (
++	"slices"
++	"testing"
++	"unsafe"
++)
++
++func TestQuantScanLumaExactBufferGuards(t *testing.T) {
++	words := func(n int) []int16 {
++		buf := idctGuardedBuffer(t, n*2)
++		return unsafe.Slice((*int16)(unsafe.Pointer(&buf[0])), n)
++	}
++	dct, levels, ff, mf, maxima := words(256), words(256), words(8), words(8), words(16)
++	maskBytes := idctGuardedBuffer(t, 32)
++	masks := unsafe.Slice((*uint16)(unsafe.Pointer(&maskBytes[0])), 16)
++	for i := range dct {
++		dct[i] = int16(i*701 - 20000)
++	}
++	copy(ff, g_kiQuantInterFF[20][:])
++	copy(mf, g_kiQuantMF[20][:])
++	want := slices.Clone(dct)
++	var wantLevels [256]int16
++	var wantMax [16]int16
++	var wantMask [16]uint16
++	quantScanLumaFourCalls(want, wantLevels[:], ff, mf, wantMax[:], wantMask[:])
++	quantScanLuma(dct, levels, ff, mf, maxima, masks)
++	if !slices.Equal(dct, want) || !slices.Equal(levels, wantLevels[:]) ||
++		!slices.Equal(maxima, wantMax[:]) || !slices.Equal(masks, wantMask[:]) {
++		t.Fatal("guarded luma batch differs from four calls")
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_luma_test.go
+@@ -0,0 +1,179 @@
++package encoder
++
++import (
++	"fmt"
++	"math/rand"
++	"testing"
++	"unsafe"
++)
++
++// Independently preserve the previous completed-luma call sequence, including
++// each group's snapshot of potentially aliased FF/MF coefficients.
++func quantScanLumaFourCalls(dct, levels, ff, mf, maxima []int16, masks []uint16) {
++	for group := 0; group < 4; group++ {
++		quantScanFour4x4(dct[group*64:], levels[group*64:], ff, mf, maxima[group*4:], masks[group*4:], false)
++	}
++}
++
++func TestQuantScanLumaParity(t *testing.T) {
++	t.Parallel()
++	rng := rand.New(rand.NewSource(0x26416))
++	for qp := 0; qp <= 51; qp++ {
++		for fixture := 0; fixture < 32; fixture++ {
++			var gotDCT, wantDCT, gotLevels, wantLevels [260]int16
++			var gotMax, wantMax [20]int16
++			var gotMask, wantMask [20]uint16
++			for i := range gotDCT {
++				gotDCT[i] = -12345
++				gotLevels[i] = 23456
++			}
++			for i := 0; i < 256; i++ {
++				switch fixture % 5 {
++				case 0:
++					gotDCT[i+2] = 0
++				case 1:
++					gotDCT[i+2] = 0
++					if i%17 == 0 {
++						gotDCT[i+2] = int16(rng.Intn(129) - 64)
++					}
++				case 2:
++					gotDCT[i+2] = int16(rng.Uint32())
++				case 3:
++					gotDCT[i+2] = [...]int16{-32768, -32767, -1, 0, 1, 32766, 32767}[i%7]
++				default:
++					gotDCT[i+2] = int16(rng.Intn(8193) - 4096)
++				}
++			}
++			for i := range gotMax {
++				gotMax[i], gotMask[i] = -23456, 0xbeef
++			}
++			wantDCT, wantLevels, wantMax, wantMask = gotDCT, gotLevels, gotMax, gotMask
++			ff, mf := g_kiQuantInterFF[qp], g_kiQuantMF[qp]
++			if fixture >= 16 {
++				for i := range ff {
++					ff[i], mf[i] = int16(rng.Intn(32768)), int16(rng.Intn(32768))
++				}
++			}
++			for group := 0; group < 4; group++ {
++				offset := 2 + group*64
++				WelsQuantFour4x4Max_c(wantDCT[offset:], ff[:], mf[:], wantMax[2+group*4:])
++				for block := 0; block < 4; block++ {
++					start := offset + block*16
++					index := 2 + group*4 + block
++					if wantMax[index] == 0 {
++						clear(wantLevels[start : start+16])
++					} else {
++						WelsScan4x4DcAc_c(wantLevels[start:], wantDCT[start:])
++					}
++					wantMask[index] = coefficientNonzeroMask16Scalar(wantLevels[start:])
++				}
++			}
++			quantScanLuma(gotDCT[2:258], gotLevels[2:258], ff[:], mf[:], gotMax[2:18], gotMask[2:18])
++			if gotDCT != wantDCT || gotLevels != wantLevels || gotMax != wantMax || gotMask != wantMask {
++				t.Fatalf("QP=%d fixture=%d: raster, levels, maxima, masks or canaries differ", qp, fixture)
++			}
++		}
++	}
++}
++
++func TestQuantScanLumaAliasedGroups(t *testing.T) {
++	t.Parallel()
++	// dct, levels, FF, MF, maxima, masks are word offsets in one backing array.
++	base := [6]int{0, 320, 640, 648, 608, 624}
++	offsets := [][6]int{base}
++	for _, pair := range [][2]int{{0, 1}, {0, 4}, {0, 5}, {1, 4}, {1, 5}, {4, 5}} {
++		for _, shift := range []int{0, 4, 64, 128, 192} {
++			candidate := base
++			candidate[pair[1]] = candidate[pair[0]] + shift
++			offsets = append(offsets, candidate)
++		}
++	}
++	// Tables may be overwritten by earlier groups; every output/table pairing
++	// and all four raster/level groups must retain the old reload ordering.
++	for _, table := range []int{2, 3} {
++		for _, output := range []int{0, 1, 4, 5} {
++			shifts := []int{0, 8}
++			if output < 2 {
++				shifts = []int{0, 64, 128, 192}
++			}
++			for _, shift := range shifts {
++				candidate := base
++				candidate[table] = candidate[output] + shift
++				offsets = append(offsets, candidate)
++			}
++		}
++	}
++	sharedTables := base
++	sharedTables[3] = sharedTables[2] + 4
++	offsets = append(offsets, sharedTables)
++	for _, positions := range offsets {
++		t.Run(fmt.Sprint(positions), func(t *testing.T) {
++			var got [1024]int16
++			for i := range got {
++				got[i] = int16(i*1701 + 13)
++			}
++			copy(got[positions[2]:], g_kiQuantInterFF[20][:])
++			copy(got[positions[3]:], g_kiQuantMF[20][:])
++			want := got
++			run := func(buffer []int16, fn func([]int16, []int16, []int16, []int16, []int16, []uint16)) {
++				masks := unsafe.Slice((*uint16)(unsafe.Pointer(&buffer[positions[5]])), 16)
++				fn(buffer[positions[0]:], buffer[positions[1]:], buffer[positions[2]:], buffer[positions[3]:], buffer[positions[4]:], masks)
++			}
++			run(want[:], quantScanLumaFourCalls)
++			run(got[:], quantScanLuma)
++			if got != want {
++				t.Fatal("batch changed sequential group alias semantics")
++			}
++		})
++	}
++}
++
++func TestQuantScanLumaBounds(t *testing.T) {
++	t.Parallel()
++	for field := 0; field < 6; field++ {
++		t.Run(fmt.Sprint(field), func(t *testing.T) {
++			t.Parallel()
++			inputs := [][]int16{make([]int16, 256), make([]int16, 256), make([]int16, 8), make([]int16, 8), make([]int16, 16)}
++			masks := make([]uint16, 16)
++			if field == 5 {
++				masks = masks[:15]
++			} else {
++				inputs[field] = inputs[field][:len(inputs[field])-1]
++			}
++			defer func() {
++				if recover() == nil {
++					t.Fatal("slice capacity authorized an out-of-length access")
++				}
++			}()
++			quantScanLuma(inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], masks)
++		})
++	}
++}
++
++func BenchmarkQuantScanLuma(b *testing.B) {
++	for _, density := range []string{"Zero", "Sparse", "Dense"} {
++		b.Run(density, func(b *testing.B) {
++			var input, dct, levels [256]int16
++			for i := range input {
++				if density == "Dense" || (density == "Sparse" && i%17 == 0) {
++					input[i] = int16(i*71 - 9000)
++				}
++			}
++			var maxima [16]int16
++			var masks [16]uint16
++			ff, mf := g_kiQuantInterFF[20][:], g_kiQuantMF[20][:]
++			for _, candidate := range []struct {
++				name string
++				fn   func([]int16, []int16, []int16, []int16, []int16, []uint16)
++			}{{"FourCalls", quantScanLumaFourCalls}, {"Batched", quantScanLuma}} {
++				b.Run(candidate.name, func(b *testing.B) {
++					b.ReportAllocs()
++					for b.Loop() {
++						copy(dct[:], input[:])
++						candidate.fn(dct[:], levels[:], ff, mf, maxima[:], masks[:])
++					}
++				})
++			}
++		})
++	}
++}
+--- a/pkg/h264/internal/encoder/sample_simd_amd64.go
++++ b/pkg/h264/internal/encoder/sample_simd_amd64.go
+@@ -42,16 +42,20 @@
+ 	return int32(satd8x8(aBlock, int(aStride), refBlock, int(refStride)))
+ }
+ 
++// The private assembly entries receive only pointers after every input span
++// has been checked against its actual slice length. This avoids marshaling
++// unused slice lengths and capacities for every candidate.
++//
+ //go:noescape
+-func satdBlockAVX2(src []byte, srcStride int, ref []byte, refStride int, width, height int) int
++func satdBlockAVX2(src *byte, srcStride int, ref *byte, refStride int, width, height int) int
+ 
+ //go:noescape
+-func satdAvgBlockAVX2(src []byte, srcStride int, a []byte, aStride int, b []byte, bStride int, width, height int) int
++func satdAvgBlockAVX2(src *byte, srcStride int, a *byte, aStride int, b *byte, bStride int, width, height int) int
+ 
+ func sampleSatdBlockAVX2(a []byte, aOff int, aStride int32, ref []byte, refOff int, refStride int32, width, height int) int32 {
+ 	checkSampleSIMDBlock(a, aOff, aStride, width, height)
+ 	checkSampleSIMDBlock(ref, refOff, refStride, width, height)
+-	return int32(satdBlockAVX2(a[aOff:], int(aStride), ref[refOff:], int(refStride), width, height))
++	return int32(satdBlockAVX2(&a[aOff], int(aStride), &ref[refOff], int(refStride), width, height))
+ }
+ 
+ func WelsSampleSatd8x8_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
+@@ -79,7 +83,7 @@
+ 	checkSampleSIMDBlock(enc, encOff, encStride, int(width), int(height))
+ 	checkSampleSIMDBlock(a, aOff, aStride, int(width), int(height))
+ 	checkSampleSIMDBlock(b, bOff, bStride, int(width), int(height))
+-	return int32(satdAvgBlockAVX2(enc[encOff:], int(encStride), a[aOff:], int(aStride), b[bOff:], int(bStride), int(width), int(height)))
++	return int32(satdAvgBlockAVX2(&enc[encOff], int(encStride), &a[aOff], int(aStride), &b[bOff], int(bStride), int(width), int(height)))
+ }
+ 
+ func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
+--- a/pkg/h264/internal/encoder/sample_simd_batch_amd64.s
++++ b/pkg/h264/internal/encoder/sample_simd_batch_amd64.s
+@@ -1,30 +1,35 @@
+ //go:build amd64
++
++// The packed sum/difference SATD reduction follows OpenH264's AVX2
++// implementation in codec/common/x86/satd_sad.asm.
++// Copyright (c) 2009-2013, Cisco Systems. All rights reserved.
++// BSD-2-Clause; see LICENSE-OpenH264 in the repository root.
+ 
+ #include "textflag.h"
+ 
+ // Process four rows at a time. Each independent group of four columns is
+ // a 4x4 Hadamard transform: larger blocks retain their sum-of-4x4 metric.
+-TEXT ·satdBlockAVX2(SB), NOSPLIT, $0-88
+-    MOVQ src_base+0(FP), AX
+-    MOVQ srcStride+24(FP), CX
+-    MOVQ ref_base+32(FP), BX
+-    MOVQ refStride+56(FP), DX
+-    MOVQ width+64(FP), R8
+-    MOVQ height+72(FP), R9
+-    LEAQ ret+80(FP), R13
++TEXT ·satdBlockAVX2(SB), NOSPLIT, $0-56
++    MOVQ src+0(FP), AX
++    MOVQ srcStride+8(FP), CX
++    MOVQ ref+16(FP), BX
++    MOVQ refStride+24(FP), DX
++    MOVQ width+32(FP), R8
++    MOVQ height+40(FP), R9
++    LEAQ ret+48(FP), R13
+     XORQ R15, R15
+     JMP satdRowsAVX2<>(SB)
+ 
+-TEXT ·satdAvgBlockAVX2(SB), NOSPLIT, $0-120
+-    MOVQ src_base+0(FP), AX
+-    MOVQ srcStride+24(FP), CX
+-    MOVQ a_base+32(FP), BX
+-    MOVQ aStride+56(FP), DX
+-    MOVQ b_base+64(FP), SI
+-    MOVQ bStride+88(FP), DI
+-    MOVQ width+96(FP), R8
+-    MOVQ height+104(FP), R9
+-    LEAQ ret+112(FP), R13
++TEXT ·satdAvgBlockAVX2(SB), NOSPLIT, $0-72
++    MOVQ src+0(FP), AX
++    MOVQ srcStride+8(FP), CX
++    MOVQ a+16(FP), BX
++    MOVQ aStride+24(FP), DX
++    MOVQ b+32(FP), SI
++    MOVQ bStride+40(FP), DI
++    MOVQ width+48(FP), R8
++    MOVQ height+56(FP), R9
++    LEAQ ret+64(FP), R13
+     MOVQ $1, R15
+     JMP satdRowsAVX2<>(SB)
+ 
+@@ -33,6 +38,9 @@
+ // R9 is a positive multiple of 4. All input spans are checked in Go.
+ TEXT satdRowsAVX2<>(SB), NOSPLIT|NOFRAME, $0-0
+     VPXOR Y14, Y14, Y14
++    // Each byte pair becomes a horizontal sum in the low lane and a
++    // difference in the high lane. The products fit exactly in int16.
++    VMOVDQU ·satdPairSigns(SB), Y13
+     MOVL $0x00010001, R10
+     VMOVD R10, X15
+     VPBROADCASTD X15, Y15
+@@ -50,60 +58,68 @@
+ satd_load8:
+     VMOVQ (AX), X0
+     VMOVQ (BX), X4
+-    VPMOVZXBW X0, Y0
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X0, Y0, Y0
++    VPMADDUBSW Y13, Y0, Y0
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y0, Y0
+     ADDQ CX, AX
+     ADDQ DX, BX
+     VMOVQ (AX), X1
+     VMOVQ (BX), X4
+-    VPMOVZXBW X1, Y1
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X1, Y1, Y1
++    VPMADDUBSW Y13, Y1, Y1
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y1, Y1
+     ADDQ CX, AX
+     ADDQ DX, BX
+     VMOVQ (AX), X2
+     VMOVQ (BX), X4
+-    VPMOVZXBW X2, Y2
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X2, Y2, Y2
++    VPMADDUBSW Y13, Y2, Y2
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y2, Y2
+     ADDQ CX, AX
+     ADDQ DX, BX
+     VMOVQ (AX), X3
+     VMOVQ (BX), X4
+-    VPMOVZXBW X3, Y3
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X3, Y3, Y3
++    VPMADDUBSW Y13, Y3, Y3
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y3, Y3
+     ADDQ CX, AX
+     ADDQ DX, BX
+     JMP satd_transform
+ 
+ satd_load16:
+-    VMOVDQU (AX), X0
+-    VMOVDQU (BX), X4
+-    VPMOVZXBW X0, Y0
+-    VPMOVZXBW X4, Y4
+-    VPSUBW Y4, Y0, Y0
+-    ADDQ CX, AX
+-    ADDQ DX, BX
+-    VMOVDQU (AX), X1
+-    VMOVDQU (BX), X4
+-    VPMOVZXBW X1, Y1
+-    VPMOVZXBW X4, Y4
+-    VPSUBW Y4, Y1, Y1
+-    ADDQ CX, AX
+-    ADDQ DX, BX
+-    VMOVDQU (AX), X2
+-    VMOVDQU (BX), X4
+-    VPMOVZXBW X2, Y2
+-    VPMOVZXBW X4, Y4
+-    VPSUBW Y4, Y2, Y2
+-    ADDQ CX, AX
+-    ADDQ DX, BX
+-    VMOVDQU (AX), X3
+-    VMOVDQU (BX), X4
+-    VPMOVZXBW X3, Y3
+-    VPMOVZXBW X4, Y4
++    VBROADCASTI128 (AX), Y0
++    VBROADCASTI128 (BX), Y4
++    VPMADDUBSW Y13, Y0, Y0
++    VPMADDUBSW Y13, Y4, Y4
++    VPSUBW Y4, Y0, Y0
++    ADDQ CX, AX
++    ADDQ DX, BX
++    VBROADCASTI128 (AX), Y1
++    VBROADCASTI128 (BX), Y4
++    VPMADDUBSW Y13, Y1, Y1
++    VPMADDUBSW Y13, Y4, Y4
++    VPSUBW Y4, Y1, Y1
++    ADDQ CX, AX
++    ADDQ DX, BX
++    VBROADCASTI128 (AX), Y2
++    VBROADCASTI128 (BX), Y4
++    VPMADDUBSW Y13, Y2, Y2
++    VPMADDUBSW Y13, Y4, Y4
++    VPSUBW Y4, Y2, Y2
++    ADDQ CX, AX
++    ADDQ DX, BX
++    VBROADCASTI128 (AX), Y3
++    VBROADCASTI128 (BX), Y4
++    VPMADDUBSW Y13, Y3, Y3
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y3, Y3
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -115,8 +131,10 @@
+     VMOVQ (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X0, Y0
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X0, Y0, Y0
++    VPMADDUBSW Y13, Y0, Y0
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y0, Y0
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -125,8 +143,10 @@
+     VMOVQ (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X1, Y1
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X1, Y1, Y1
++    VPMADDUBSW Y13, Y1, Y1
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y1, Y1
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -135,8 +155,10 @@
+     VMOVQ (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X2, Y2
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X2, Y2, Y2
++    VPMADDUBSW Y13, Y2, Y2
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y2, Y2
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -145,8 +167,10 @@
+     VMOVQ (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X3, Y3
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X3, Y3, Y3
++    VPMADDUBSW Y13, Y3, Y3
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y3, Y3
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -158,8 +182,10 @@
+     VMOVDQU (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X0, Y0
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X0, Y0, Y0
++    VPMADDUBSW Y13, Y0, Y0
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y0, Y0
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -168,8 +194,10 @@
+     VMOVDQU (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X1, Y1
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X1, Y1, Y1
++    VPMADDUBSW Y13, Y1, Y1
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y1, Y1
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -178,8 +206,10 @@
+     VMOVDQU (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X2, Y2
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X2, Y2, Y2
++    VPMADDUBSW Y13, Y2, Y2
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y2, Y2
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -188,8 +218,10 @@
+     VMOVDQU (SI), X5
+     VPAVGB X5, X4, X4
+     ADDQ DI, SI
+-    VPMOVZXBW X3, Y3
+-    VPMOVZXBW X4, Y4
++    VINSERTI128 $1, X3, Y3, Y3
++    VPMADDUBSW Y13, Y3, Y3
++    VINSERTI128 $1, X4, Y4, Y4
++    VPMADDUBSW Y13, Y4, Y4
+     VPSUBW Y4, Y3, Y3
+     ADDQ CX, AX
+     ADDQ DX, BX
+@@ -206,76 +238,43 @@
+     VPSUBW Y7, Y6, Y2
+     VPSUBW Y5, Y4, Y3
+ 
+-    // Horizontal butterflies within each four-word group. Signs/order of
+-    // the AC coefficients may differ, but their absolute values are exact.
+-    VPSHUFLW $0xb1, Y0, Y4
+-    VPSHUFHW $0xb1, Y4, Y4
+-    VPADDW Y4, Y0, Y5
+-    VPSUBW Y4, Y0, Y6
+-    VPBLENDW $0xaa, Y6, Y5, Y0
+-    VPSHUFD $0xb1, Y0, Y4
+-    VPADDW Y4, Y0, Y5
+-    VPSUBW Y4, Y0, Y6
+-    VPBLENDW $0xcc, Y6, Y5, Y0
++    // Complete the horizontal transform without forming its last sum and
++    // difference: |a+b| + |a-b| = 2*max(|a|, |b|). The factor two cancels
++    // SATD normalization exactly; each 4x4 sum is even. Interleave rows so
++    // both words of every dword carry a useful maximum.
+     VPABSW Y0, Y0
+-
+-    // Horizontal butterflies within each four-word group. Signs/order of
+-    // the AC coefficients may differ, but their absolute values are exact.
+-    VPSHUFLW $0xb1, Y1, Y4
+-    VPSHUFHW $0xb1, Y4, Y4
+-    VPADDW Y4, Y1, Y5
+-    VPSUBW Y4, Y1, Y6
+-    VPBLENDW $0xaa, Y6, Y5, Y1
+-    VPSHUFD $0xb1, Y1, Y4
+-    VPADDW Y4, Y1, Y5
+-    VPSUBW Y4, Y1, Y6
+-    VPBLENDW $0xcc, Y6, Y5, Y1
+     VPABSW Y1, Y1
+-
+-    // Horizontal butterflies within each four-word group. Signs/order of
+-    // the AC coefficients may differ, but their absolute values are exact.
+-    VPSHUFLW $0xb1, Y2, Y4
+-    VPSHUFHW $0xb1, Y4, Y4
+-    VPADDW Y4, Y2, Y5
+-    VPSUBW Y4, Y2, Y6
+-    VPBLENDW $0xaa, Y6, Y5, Y2
+-    VPSHUFD $0xb1, Y2, Y4
+-    VPADDW Y4, Y2, Y5
+-    VPSUBW Y4, Y2, Y6
+-    VPBLENDW $0xcc, Y6, Y5, Y2
+     VPABSW Y2, Y2
+-
+-    // Horizontal butterflies within each four-word group. Signs/order of
+-    // the AC coefficients may differ, but their absolute values are exact.
+-    VPSHUFLW $0xb1, Y3, Y4
+-    VPSHUFHW $0xb1, Y4, Y4
+-    VPADDW Y4, Y3, Y5
+-    VPSUBW Y4, Y3, Y6
+-    VPBLENDW $0xaa, Y6, Y5, Y3
+-    VPSHUFD $0xb1, Y3, Y4
+-    VPADDW Y4, Y3, Y5
+-    VPSUBW Y4, Y3, Y6
+-    VPBLENDW $0xcc, Y6, Y5, Y3
+     VPABSW Y3, Y3
+-
+-    VPADDW Y1, Y0, Y0
+-    VPADDW Y3, Y2, Y2
+-    VPADDW Y2, Y0, Y0
++    VPBLENDW $0xaa, Y1, Y0, Y4
++    VPSLLD $16, Y1, Y1
++    VPSRLD $16, Y0, Y0
++    VPOR Y0, Y1, Y1
++    VPMAXUW Y4, Y1, Y1
++    VPBLENDW $0xaa, Y3, Y2, Y4
++    VPSLLD $16, Y3, Y3
++    VPSRLD $16, Y2, Y2
++    VPOR Y2, Y3, Y3
++    VPMAXUW Y4, Y3, Y3
++    VPADDW Y3, Y1, Y0
+     VPMADDWD Y15, Y0, Y0
+-    VPHADDD Y0, Y0, Y0
+-    // Normalize each 4x4 independently with (sum + 1) >> 1. Each lane
+-    // contains two duplicated block sums; only the first two are reduced.
+-    VPSRLD $16, Y15, Y4
+-    VPADDD Y4, Y0, Y0
+-    VPSRLD $1, Y0, Y0
+     VPADDD Y0, Y14, Y14
+     SUBQ $4, R9
+     JNZ satd_rows
+     VEXTRACTI128 $1, Y14, X0
+     VPADDD X14, X0, X0
++    VPSHUFD $0x4e, X0, X1
++    VPADDD X1, X0, X0
+     VPSHUFD $0xb1, X0, X1
+     VPADDD X1, X0, X0
+     VMOVD X0, AX
+     VZEROUPPER
+     MOVQ AX, (R13)
+     RET
++
++// Pairwise sum coefficients in the low lane, differences in the high lane.
++DATA ·satdPairSigns+0(SB)/8, $0x0101010101010101
++DATA ·satdPairSigns+8(SB)/8, $0x0101010101010101
++DATA ·satdPairSigns+16(SB)/8, $0xff01ff01ff01ff01
++DATA ·satdPairSigns+24(SB)/8, $0xff01ff01ff01ff01
++GLOBL ·satdPairSigns(SB), RODATA|NOPTR, $32
+--- /dev/null
++++ b/pkg/h264/internal/encoder/sample_simd_batch_native_amd64_test.go
+@@ -0,0 +1,63 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// The companion native harness runs this same deterministic input corpus
++// against OpenH264's AVX2 SATD and horizontal half-pixel functions.
++func TestMotionNativeCorpus(t *testing.T) {
++	if common.WelsCPUFeatureDetect(nil)&common.WELS_CPU_AVX2 == 0 {
++		t.Skip("AVX2 required")
++	}
++	var a [32*16 + 3]byte
++	var b [32*16 + 7]byte
++	var src [48 * 32]byte
++	var dst [32 * 17]byte
++	cases := []PSampleSadSatdCostFunc{
++		WelsSampleSatd8x8_avx2, WelsSampleSatd16x8_avx2,
++		WelsSampleSatd8x16_avx2, WelsSampleSatd16x16_avx2,
++	}
++	state := uint32(0x2645ad)
++	next := func() byte {
++		state ^= state << 13
++		state ^= state >> 17
++		state ^= state << 5
++		return byte(state)
++	}
++	hash := uint64(14695981039346656037)
++	add := func(value byte) { hash = (hash ^ uint64(value)) * 1099511628211 }
++	for range 1024 {
++		for i := range a {
++			a[i] = next()
++		}
++		for i := range b {
++			b[i] = next()
++		}
++		for _, fn := range cases {
++			value := uint32(fn(a[:], 3, 32, b[:], 7, 32))
++			for i := range 4 {
++				add(byte(value >> (8 * i)))
++			}
++		}
++		for i := range src {
++			src[i] = next()
++		}
++		common.McHorVer20_avx2(src[:], 3*48+3, 48, dst[:], 0, 32, 16, 16)
++		for y := range 16 {
++			for x := range 16 {
++				add(dst[y*32+x])
++			}
++		}
++	}
++	// OpenH264 2.6.0, codec/common/x86 SATD and luma interpolation kernels.
++	const nativeHash = uint64(0x928d2228b8537ee8)
++	if hash != nativeHash {
++		t.Fatalf("motion corpus: got %016x, native OpenH264 produced %016x", hash, nativeHash)
++	}
++	t.Logf("motion-corpus fnv64=%016x", hash)
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/sample_simd_batch_pair_amd64_test.go
+@@ -0,0 +1,75 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Evaluate the full two-dimensional matrix rather than sharing the SIMD
++// butterfly or its max-absolute-value reduction.
++func satdMatrix4x4(src, ref []byte, off, stride int) int32 {
++	basis := [4][4]int32{
++		{1, 1, 1, 1},
++		{1, 1, -1, -1},
++		{1, -1, -1, 1},
++		{1, -1, 1, -1},
++	}
++	var sum int32
++	for v := range 4 {
++		for u := range 4 {
++			var coefficient int32
++			for y := range 4 {
++				for x := range 4 {
++					coefficient += basis[v][y] * basis[u][x] *
++						(int32(src[off+y*stride+x]) - int32(ref[off+y*stride+x]))
++				}
++			}
++			if coefficient < 0 {
++				coefficient = -coefficient
++			}
++			sum += coefficient
++		}
++	}
++	return (sum + 1) >> 1
++}
++
++func TestSATDPairReductionAllBinaryBlocks(t *testing.T) {
++	if common.WelsCPUFeatureDetect(nil)&common.WELS_CPU_AVX2 == 0 {
++		t.Skip("AVX2 required")
++	}
++	const stride = 16
++	var src, ref [stride * 4]byte
++	for pattern := range 1 << 16 {
++		for y := range 4 {
++			for x := range 4 {
++				value := byte((pattern >> (y*4 + x) & 1) * 255)
++				src[y*stride+x], ref[y*stride+x] = value, 255-value
++			}
++		}
++		want := satdMatrix4x4(src[:], ref[:], 0, stride)
++		got := sampleSatdBlockAVX2(src[:], 0, stride, ref[:], 0, stride, 16, 4)
++		if got != want {
++			t.Fatalf("binary pattern %#x: got %d, want %d", pattern, got, want)
++		}
++	}
++}
++
++func TestSATDPairReductionEveryLane(t *testing.T) {
++	if common.WelsCPUFeatureDetect(nil)&common.WELS_CPU_AVX2 == 0 {
++		t.Skip("AVX2 required")
++	}
++	var src, ref [16 * 16]byte
++	for pixel := range src {
++		for value := 1; value <= 255; value++ {
++			src[pixel] = byte(value)
++			got := sampleSatdBlockAVX2(src[:], 0, 16, ref[:], 0, 16, 16, 16)
++			if want := int32(8 * value); got != want {
++				t.Fatalf("pixel %d value %d: got %d, want %d", pixel, value, got, want)
++			}
++		}
++		src[pixel] = 0
++	}
++}
+--- a/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
++++ b/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+@@ -103,9 +103,13 @@
+ 
+ 	if iCalRunLevelFlag != 0 {
+ 		iCount := int32(0)
+-		// The direct call keeps these per-block run and level buffers on the
+-		// stack. Scalar extraction is faster than mask enumeration here.
+-		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
++		// The scratch arrays are private to this call. A direct, noescape
++		// SIMD call keeps them on the stack and extracts four levels at once.
++		if cavlcExtractSupported(pCoffLevel, iEndIdx) {
++			iTotalZeros = cavlcExtractSSSE3((*[16]int16)(pCoffLevel), &uiRun, &iLevel, &iTotalCoeffs, iEndIdx)
++		} else {
++			iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
++		}
+ 		if iTotalCoeffs > 3 {
+ 			iCount = 3
+ 		} else {
+--- a/pkg/h264/internal/encoder/svc_encode_mb.go
++++ b/pkg/h264/internal/encoder/svc_encode_mb.go
+@@ -166,10 +166,11 @@
+ 	var masks [16]uint16
+ 	iNoneZeroCount := int32(0)
+ 
++	quantScanLuma(pRes, pBlock, pFF, pMF, aMax[:], masks[:])
++
+ 	iResOff := 0
+ 	iBlockOff := 0
+ 	for i := 0; i < 4; i++ {
+-		quantScanFour4x4(pRes[iResOff:], pBlock[iBlockOff:], pFF, pMF, aMax[i<<2:], masks[i<<2:], false)
+ 		iSingleCtr8x8[i] = 0
+ 		for j := 0; j < 4; j++ {
+ 			if aMax[(i<<2)+j] != 0 {

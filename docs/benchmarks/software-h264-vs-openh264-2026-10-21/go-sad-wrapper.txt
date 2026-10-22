@@ -1,0 +1,107 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSad16x16_sse2(SB) /home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/common/sad_simd_amd64.go
+  sad_simd_amd64.go:29		0x563c60		493b6610		CMPQ SP, 0x10(R14)										
+  sad_simd_amd64.go:29		0x563c64		0f865c010000		JBE 0x563dc6											
+  sad_simd_amd64.go:29		0x563c6a		55			PUSHQ BP											
+  sad_simd_amd64.go:29		0x563c6b		4889e5			MOVQ SP, BP											
+  sad_simd_amd64.go:29		0x563c6e		4883ec48		SUBQ $0x48, SP											
+  sad_simd_amd64.go:29		0x563c72		4889442460		MOVQ AX, 0x60(SP)										
+  sad_simd_amd64.go:29		0x563c77		4c89842488000000	MOVQ R8, 0x88(SP)										
+  sad_simd_amd64.go:30		0x563c7f		90			NOPL												
+  simd_bounds_amd64.go:16	0x563c80		85f6			TESTL SI, SI											
+  simd_bounds_amd64.go:16	0x563c82		0f8c28010000		JL 0x563db0											
+  simd_bounds_amd64.go:19	0x563c88		4863d6			MOVSXD SI, DX											
+  simd_bounds_amd64.go:19	0x563c8b		488d3452		LEAQ 0(DX)(DX*2), SI										
+  simd_bounds_amd64.go:19	0x563c8f		4c8d24b6		LEAQ 0(SI)(SI*4), R12										
+  simd_bounds_amd64.go:19	0x563c93		4e8d2c27		LEAQ 0(DI)(R12*1), R13										
+  simd_bounds_amd64.go:19	0x563c97		4d8d6d10		LEAQ 0x10(R13), R13										
+  simd_bounds_amd64.go:20	0x563c9b		4e8d2427		LEAQ 0(DI)(R12*1), R12										
+  simd_bounds_amd64.go:20	0x563c9f		4d8d64240f		LEAQ 0xf(R12), R12										
+  simd_bounds_amd64.go:8	0x563ca4		4885ff			TESTQ DI, DI											
+  simd_bounds_amd64.go:8	0x563ca7		0f8cf0000000		JL 0x563d9d											
+  simd_bounds_amd64.go:8	0x563cad		4c39e7			CMPQ DI, R12											
+  simd_bounds_amd64.go:8	0x563cb0		0f8fe7000000		JG 0x563d9d											
+  simd_bounds_amd64.go:8	0x563cb6		4c39e3			CMPQ BX, R12											
+  simd_bounds_amd64.go:8	0x563cb9		0f8ede000000		JLE 0x563d9d											
+  simd_bounds_amd64.go:8	0x563cbf		90			NOPL												
+  simd_bounds_amd64.go:21	0x563cc0		4c39ef			CMPQ DI, R13											
+  simd_bounds_amd64.go:21	0x563cc3		0f87cf000000		JA 0x563d98											
+  sad_simd_amd64.go:31		0x563cc9		90			NOPL												
+  simd_bounds_amd64.go:21	0x563cca		4829f9			SUBQ DI, CX											
+  simd_bounds_amd64.go:21	0x563ccd		4801c7			ADDQ AX, DI											
+  simd_bounds_amd64.go:16	0x563cd0		448b642458		MOVL 0x58(SP), R12										
+  simd_bounds_amd64.go:16	0x563cd5		4585e4			TESTL R12, R12											
+  simd_bounds_amd64.go:16	0x563cd8		0f8ca7000000		JL 0x563d85											
+  simd_bounds_amd64.go:19	0x563cde		4d63e4			MOVSXD R12, R12											
+  simd_bounds_amd64.go:19	0x563ce1		4f8d2c64		LEAQ 0(R12)(R12*2), R13										
+  simd_bounds_amd64.go:19	0x563ce5		4f8d7cad00		LEAQ 0(R13)(R13*4), R15										
+  simd_bounds_amd64.go:19	0x563cea		4b8d043b		LEAQ 0(R11)(R15*1), AX										
+  simd_bounds_amd64.go:19	0x563cee		488d4010		LEAQ 0x10(AX), AX										
+  simd_bounds_amd64.go:20	0x563cf2		4f8d3c3b		LEAQ 0(R11)(R15*1), R15										
+  simd_bounds_amd64.go:20	0x563cf6		4d8d7f0f		LEAQ 0xf(R15), R15										
+  simd_bounds_amd64.go:8	0x563cfa		4d85db			TESTQ R11, R11											
+  simd_bounds_amd64.go:8	0x563cfd		7c71			JL 0x563d70											
+  simd_bounds_amd64.go:8	0x563cff		90			NOPL												
+  simd_bounds_amd64.go:8	0x563d00		4d39fb			CMPQ R11, R15											
+  simd_bounds_amd64.go:8	0x563d03		7f6b			JG 0x563d70											
+  simd_bounds_amd64.go:8	0x563d05		4d39f9			CMPQ R9, R15											
+  simd_bounds_amd64.go:8	0x563d08		7e66			JLE 0x563d70											
+  simd_bounds_amd64.go:21	0x563d0a		4939c3			CMPQ R11, AX											
+  simd_bounds_amd64.go:21	0x563d0d		775c			JA 0x563d6b											
+  sad_simd_amd64.go:32		0x563d0f		48893c24		MOVQ DI, 0(SP)											
+  simd_bounds_amd64.go:21	0x563d13		488d04b6		LEAQ 0(SI)(SI*4), AX										
+  simd_bounds_amd64.go:21	0x563d17		488d4010		LEAQ 0x10(AX), AX										
+  sad_simd_amd64.go:32		0x563d1b		4889442408		MOVQ AX, 0x8(SP)										
+  sad_simd_amd64.go:32		0x563d20		48894c2410		MOVQ CX, 0x10(SP)										
+  sad_simd_amd64.go:32		0x563d25		4889542418		MOVQ DX, 0x18(SP)										
+  simd_bounds_amd64.go:21	0x563d2a		4d29da			SUBQ R11, R10											
+  simd_bounds_amd64.go:21	0x563d2d		4b8d0418		LEAQ 0(R8)(R11*1), AX										
+  sad_simd_amd64.go:32		0x563d31		4889442420		MOVQ AX, 0x20(SP)										
+  simd_bounds_amd64.go:21	0x563d36		4b8d44ad00		LEAQ 0(R13)(R13*4), AX										
+  simd_bounds_amd64.go:21	0x563d3b		488d4010		LEAQ 0x10(AX), AX										
+  sad_simd_amd64.go:32		0x563d3f		4889442428		MOVQ AX, 0x28(SP)										
+  sad_simd_amd64.go:32		0x563d44		4c89542430		MOVQ R10, 0x30(SP)										
+  sad_simd_amd64.go:32		0x563d49		4c89642438		MOVQ R12, 0x38(SP)										
+  sad_simd_amd64.go:32		0x563d4e		e88d290000		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sad16x16.abi0(SB)		
+  sad_simd_amd64.go:32		0x563d53		450f57ff		XORPS X15, X15											
+  sad_simd_amd64.go:32		0x563d57		644c8b3425f8ffffff	MOVQ FS:0xfffffff8, R14										
+  sad_simd_amd64.go:32		0x563d60		488b442440		MOVQ 0x40(SP), AX										
+  sad_simd_amd64.go:32		0x563d65		4883c448		ADDQ $0x48, SP											
+  sad_simd_amd64.go:32		0x563d69		5d			POPQ BP												
+  sad_simd_amd64.go:32		0x563d6a		c3			RET												
+  simd_bounds_amd64.go:21	0x563d6b		e8d095f2ff		CALL runtime.panicBounds(SB)									
+  simd_bounds_amd64.go:9	0x563d70		488d05913b3800		LEAQ 0x383b91(IP), AX										
+  simd_bounds_amd64.go:9	0x563d77		488d1d92c11300		LEAQ 0x13c192(IP), BX										
+  simd_bounds_amd64.go:9	0x563d7e		6690			NOPW												
+  simd_bounds_amd64.go:9	0x563d80		e81b24f2ff		CALL runtime.gopanic(SB)									
+  simd_bounds_amd64.go:17	0x563d85		488d057c3b3800		LEAQ 0x383b7c(IP), AX										
+  simd_bounds_amd64.go:17	0x563d8c		488d1d7dc11300		LEAQ 0x13c17d(IP), BX										
+  simd_bounds_amd64.go:17	0x563d93		e80824f2ff		CALL runtime.gopanic(SB)									
+  simd_bounds_amd64.go:21	0x563d98		e8a395f2ff		CALL runtime.panicBounds(SB)									
+  simd_bounds_amd64.go:9	0x563d9d		488d05643b3800		LEAQ 0x383b64(IP), AX										
+  simd_bounds_amd64.go:9	0x563da4		488d1d65c11300		LEAQ 0x13c165(IP), BX										
+  simd_bounds_amd64.go:9	0x563dab		e8f023f2ff		CALL runtime.gopanic(SB)									
+  simd_bounds_amd64.go:17	0x563db0		488d05513b3800		LEAQ 0x383b51(IP), AX										
+  simd_bounds_amd64.go:17	0x563db7		488d1d52c11300		LEAQ 0x13c152(IP), BX										
+  simd_bounds_amd64.go:17	0x563dbe		6690			NOPW												
+  simd_bounds_amd64.go:17	0x563dc0		e8db23f2ff		CALL runtime.gopanic(SB)									
+  simd_bounds_amd64.go:17	0x563dc5		90			NOPL												
+  sad_simd_amd64.go:29		0x563dc6		4889442410		MOVQ AX, 0x10(SP)										
+  sad_simd_amd64.go:29		0x563dcb		48895c2418		MOVQ BX, 0x18(SP)										
+  sad_simd_amd64.go:29		0x563dd0		48894c2420		MOVQ CX, 0x20(SP)										
+  sad_simd_amd64.go:29		0x563dd5		48897c2428		MOVQ DI, 0x28(SP)										
+  sad_simd_amd64.go:29		0x563dda		89742430		MOVL SI, 0x30(SP)										
+  sad_simd_amd64.go:29		0x563dde		4c89442438		MOVQ R8, 0x38(SP)										
+  sad_simd_amd64.go:29		0x563de3		4c894c2440		MOVQ R9, 0x40(SP)										
+  sad_simd_amd64.go:29		0x563de8		4c89542448		MOVQ R10, 0x48(SP)										
+  sad_simd_amd64.go:29		0x563ded		4c895c2450		MOVQ R11, 0x50(SP)										
+  sad_simd_amd64.go:29		0x563df2		e80979f2ff		CALL runtime.morestack_noctxt.abi0(SB)								
+  sad_simd_amd64.go:29		0x563df7		488b442410		MOVQ 0x10(SP), AX										
+  sad_simd_amd64.go:29		0x563dfc		488b5c2418		MOVQ 0x18(SP), BX										
+  sad_simd_amd64.go:29		0x563e01		488b4c2420		MOVQ 0x20(SP), CX										
+  sad_simd_amd64.go:29		0x563e06		488b7c2428		MOVQ 0x28(SP), DI										
+  sad_simd_amd64.go:29		0x563e0b		8b742430		MOVL 0x30(SP), SI										
+  sad_simd_amd64.go:29		0x563e0f		4c8b442438		MOVQ 0x38(SP), R8										
+  sad_simd_amd64.go:29		0x563e14		4c8b4c2440		MOVQ 0x40(SP), R9										
+  sad_simd_amd64.go:29		0x563e19		4c8b542448		MOVQ 0x48(SP), R10										
+  sad_simd_amd64.go:29		0x563e1e		4c8b5c2450		MOVQ 0x50(SP), R11										
+  sad_simd_amd64.go:29		0x563e23		e938feffff		JMP github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSad16x16_sse2(SB)	

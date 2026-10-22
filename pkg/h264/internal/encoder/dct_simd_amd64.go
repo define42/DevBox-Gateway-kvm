@@ -2,6 +2,8 @@
 
 package encoder
 
+import "golang.org/x/sys/cpu"
+
 // welsDctT4SSE2 computes one 4x4 forward integer transform. All amd64
 // processors supported by Go provide SSE2.
 //
@@ -30,6 +32,7 @@ func WelsDctT4_sse2(
 }
 
 // WelsDctFourT4_sse2 computes the four 4x4 transforms in an 8x8 block.
+// It uses AVX2 when available and retains SSE2 for aliases and backward rows.
 // Coefficients use OpenH264's block order: top-left, top-right,
 // bottom-left, bottom-right.
 func WelsDctFourT4_sse2(
@@ -46,5 +49,10 @@ func WelsDctFourT4_sse2(
 	_ = dct[63]
 	checkSampleSIMDBlock(pixel1, pixel1Off, stride1, 8, 8)
 	checkSampleSIMDBlock(pixel2, pixel2Off, stride2, 8, 8)
+	if cpu.X86.HasAVX2 && s1 >= 0 && s2 >= 0 &&
+		!dctFourT4Aliases((*[64]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2) {
+		welsDctFourT4AVX2((*[64]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2)
+		return
+	}
 	welsDctFourT4SSE2(dct, pixel1[pixel1Off:], s1, pixel2[pixel2Off:], s2)
 }
