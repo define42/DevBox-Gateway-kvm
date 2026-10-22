@@ -10,7 +10,10 @@ bitstream:
   - reconstruction reuse for those macroblocks;
   - VAA SADs that skip certified macroblocks (vaacalculation.cpp);
   - source copies limited to the damage since each buffer's last refresh
-    (wels_preprocess_unchanged.cpp).
+    (wels_preprocess_unchanged.cpp);
+  - runs of such macroblocks coded without per-macroblock mode decision
+    bookkeeping, and multi-slice pictures with few other macroblocks coded
+    on the calling thread instead of the thread pool.
 Pictures without hints encode exactly as upstream.
 
 diff --git a/codec/api/wels/codec_app_def.h b/codec/api/wels/codec_app_def.h
@@ -31,11 +34,104 @@ index 823d38d..ca01c62 100644
  } SSourcePicture;
  
  /**
+diff --git a/codec/build/iOS/enc/welsenc/welsenc.xcodeproj/project.pbxproj b/codec/build/iOS/enc/welsenc/welsenc.xcodeproj/project.pbxproj
+index ad2dd7f..f24d82b 100644
+--- a/codec/build/iOS/enc/welsenc/welsenc.xcodeproj/project.pbxproj
++++ b/codec/build/iOS/enc/welsenc/welsenc.xcodeproj/project.pbxproj
+@@ -44,6 +44,8 @@
+ 		4CE4472718BC605C0017DF25 /* svc_mode_decision.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CE446F618BC605C0017DF25 /* svc_mode_decision.cpp */; };
+ 		4CE4472818BC605C0017DF25 /* svc_motion_estimate.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CE446F718BC605C0017DF25 /* svc_motion_estimate.cpp */; };
+ 		4CE4472918BC605C0017DF25 /* svc_set_mb_syn_cavlc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CE446F818BC605C0017DF25 /* svc_set_mb_syn_cavlc.cpp */; };
++		D3B0A1022F00000100A1B2C3 /* unchanged.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D3B0A1012F00000100A1B2C3 /* unchanged.cpp */; };
++		D3B0A1052F00000100A1B2C3 /* wels_preprocess_unchanged.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D3B0A1042F00000100A1B2C3 /* wels_preprocess_unchanged.cpp */; };
+ 		4CE4472B18BC605C0017DF25 /* wels_preprocess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CE446FA18BC605C0017DF25 /* wels_preprocess.cpp */; };
+ 		4CE4472E18BC605C0017DF25 /* welsEncoderExt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CE4470618BC605C0017DF25 /* welsEncoderExt.cpp */; };
+ 		6CA38DA31991CACE003EAAE0 /* svc_motion_estimation.S in Sources */ = {isa = PBXBuildFile; fileRef = 6CA38DA21991CACE003EAAE0 /* svc_motion_estimation.S */; };
+@@ -126,6 +128,7 @@
+ 		4CE446D318BC605C0017DF25 /* svc_mode_decision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = svc_mode_decision.h; sourceTree = "<group>"; };
+ 		4CE446D418BC605C0017DF25 /* svc_motion_estimate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = svc_motion_estimate.h; sourceTree = "<group>"; };
+ 		4CE446D518BC605C0017DF25 /* svc_set_mb_syn_cavlc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = svc_set_mb_syn_cavlc.h; sourceTree = "<group>"; };
++		D3B0A1032F00000100A1B2C3 /* unchanged.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unchanged.h; sourceTree = "<group>"; };
+ 		4CE446D718BC605C0017DF25 /* vlc_encoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vlc_encoder.h; sourceTree = "<group>"; };
+ 		4CE446D818BC605C0017DF25 /* wels_common_basis.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wels_common_basis.h; sourceTree = "<group>"; };
+ 		4CE446D918BC605C0017DF25 /* wels_const.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wels_const.h; sourceTree = "<group>"; };
+@@ -155,6 +158,8 @@
+ 		4CE446F618BC605C0017DF25 /* svc_mode_decision.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = svc_mode_decision.cpp; sourceTree = "<group>"; };
+ 		4CE446F718BC605C0017DF25 /* svc_motion_estimate.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = svc_motion_estimate.cpp; sourceTree = "<group>"; };
+ 		4CE446F818BC605C0017DF25 /* svc_set_mb_syn_cavlc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = svc_set_mb_syn_cavlc.cpp; sourceTree = "<group>"; };
++		D3B0A1012F00000100A1B2C3 /* unchanged.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = unchanged.cpp; sourceTree = "<group>"; };
++		D3B0A1042F00000100A1B2C3 /* wels_preprocess_unchanged.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = wels_preprocess_unchanged.cpp; sourceTree = "<group>"; };
+ 		4CE446FA18BC605C0017DF25 /* wels_preprocess.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = wels_preprocess.cpp; sourceTree = "<group>"; };
+ 		4CE446FE18BC605C0017DF25 /* welsEncoderExt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = welsEncoderExt.h; sourceTree = "<group>"; };
+ 		4CE4470418BC605C0017DF25 /* wels_enc_export.def */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = wels_enc_export.def; sourceTree = "<group>"; };
+@@ -304,6 +309,7 @@
+ 				4CE446D318BC605C0017DF25 /* svc_mode_decision.h */,
+ 				4CE446D418BC605C0017DF25 /* svc_motion_estimate.h */,
+ 				4CE446D518BC605C0017DF25 /* svc_set_mb_syn_cavlc.h */,
++				D3B0A1032F00000100A1B2C3 /* unchanged.h */,
+ 				4CE446D718BC605C0017DF25 /* vlc_encoder.h */,
+ 				4CE446D818BC605C0017DF25 /* wels_common_basis.h */,
+ 				4CE446D918BC605C0017DF25 /* wels_const.h */,
+@@ -347,6 +353,8 @@
+ 				4CE446F618BC605C0017DF25 /* svc_mode_decision.cpp */,
+ 				4CE446F718BC605C0017DF25 /* svc_motion_estimate.cpp */,
+ 				4CE446F818BC605C0017DF25 /* svc_set_mb_syn_cavlc.cpp */,
++				D3B0A1012F00000100A1B2C3 /* unchanged.cpp */,
++				D3B0A1042F00000100A1B2C3 /* wels_preprocess_unchanged.cpp */,
+ 				4CE446FA18BC605C0017DF25 /* wels_preprocess.cpp */,
+ 				0DD32A951B4A478B009181A1 /* wels_task_base.cpp */,
+ 				0DD32A9B1B4A4E8F009181A1 /* wels_task_encoder.cpp */,
+@@ -461,6 +469,8 @@
+ 				F7E9994519EBD1E9009B1021 /* svc_set_mb_syn_cabac.cpp in Sources */,
+ 				F5617A50196A833A006E2B20 /* reconstruct_aarch64_neon.S in Sources */,
+ 				4CE4472918BC605C0017DF25 /* svc_set_mb_syn_cavlc.cpp in Sources */,
++				D3B0A1022F00000100A1B2C3 /* unchanged.cpp in Sources */,
++				D3B0A1052F00000100A1B2C3 /* wels_preprocess_unchanged.cpp in Sources */,
+ 				4CE4471818BC605C0017DF25 /* md.cpp in Sources */,
+ 				4CE4471B18BC605C0017DF25 /* nal_encap.cpp in Sources */,
+ 				4CE4472418BC605C0017DF25 /* svc_enc_slice_segment.cpp in Sources */,
+diff --git a/codec/build/win32/enc/WelsEncCore.vcproj b/codec/build/win32/enc/WelsEncCore.vcproj
+index 4bbef8c..f2bdb31 100644
+--- a/codec/build/win32/enc/WelsEncCore.vcproj
++++ b/codec/build/win32/enc/WelsEncCore.vcproj
+@@ -473,6 +473,10 @@
+ 				RelativePath="..\..\..\encoder\core\src\svc_set_mb_syn_cavlc.cpp"
+ 				>
+ 			</File>
++			<File
++				RelativePath="..\..\..\encoder\core\src\unchanged.cpp"
++				>
++			</File>
+ 			<File
+ 				RelativePath="..\..\..\common\src\utils.cpp"
+ 				>
+@@ -714,6 +718,10 @@
+ 				RelativePath="..\..\..\encoder\core\inc\svc_set_mb_syn_cavlc.h"
+ 				>
+ 			</File>
++			<File
++				RelativePath="..\..\..\encoder\core\inc\unchanged.h"
++				>
++			</File>
+ 			<File
+ 				RelativePath="..\..\..\common\inc\typedefs.h"
+ 				>
+@@ -1487,6 +1495,10 @@
+ 				RelativePath="..\..\..\encoder\core\src\wels_preprocess.cpp"
+ 				>
+ 			</File>
++			<File
++				RelativePath="..\..\..\encoder\core\src\wels_preprocess_unchanged.cpp"
++				>
++			</File>
+ 			<File
+ 				RelativePath="..\..\..\encoder\core\inc\wels_preprocess.h"
+ 				>
 diff --git a/codec/encoder/core/inc/encoder_context.h b/codec/encoder/core/inc/encoder_context.h
-index 90a909e..6da2ba8 100644
+index 90a909e..aa3409d 100644
 --- a/codec/encoder/core/inc/encoder_context.h
 +++ b/codec/encoder/core/inc/encoder_context.h
-@@ -113,6 +113,40 @@ typedef struct TagStrideTables {
+@@ -113,6 +113,49 @@ typedef struct TagStrideTables {
    int16_t*      pMbIndexY[MAX_DEPENDENCY_LAYER];                // [iDid][iMbY]: map for iMbY in each spatial layer coding
  } SStrideTables;
  
@@ -57,6 +153,7 @@ index 90a909e..6da2ba8 100644
 +typedef struct TagUnchangedFrameState {
 +  const unsigned char* pMacroblocks;
 +  int32_t   iMacroblockCount;
++  int32_t   iChangedMacroblockCount; // entries of pMacroblocks that are zero
 +  SPicture* pReference;
 +  int32_t   iFrameNum;
 +  int32_t   iPoc;
@@ -68,15 +165,23 @@ index 90a909e..6da2ba8 100644
 +  SReconstructedPictureVersion sPictures[2];
 +  SReconstructedPictureVersion sSource;
 +  SPicture* pReuseDestination;
++  // Macroblocks coded as zero-motion P_SKIP carry the stamp of their picture
++  // in uiZeroSkipStamp, written as each one is finished; others get 0. Those
++  // of the last successful picture, below iFinalZeroSkipCount, match
++  // uiFinalStamp.
++  uint32_t  uiCodingStamp;
++  uint32_t  uiFinalStamp;
 +  int32_t   iFinalZeroSkipCount;
-+  // Final coded zero-motion P_SKIPs of the last frame, not search heuristics.
-+  bool      bFinalZeroSkip[UNCHANGED_MAX_MB_COUNT];
++
++  // Not reset: stamps must never repeat while uiZeroSkipStamp holds them.
++  uint32_t  uiStampCounter;
++  uint32_t  uiZeroSkipStamp[UNCHANGED_MAX_MB_COUNT];
 +} SUnchangedFrameState;
 +
  typedef struct TagWelsEncCtx {
    SLogContext sLogCtx;
  // Input
-@@ -227,6 +261,7 @@ typedef struct TagWelsEncCtx {
+@@ -227,6 +270,7 @@ typedef struct TagWelsEncCtx {
    int64_t            iLastStatisticsLogTs;
  
    int32_t iEncoderError;
@@ -108,10 +213,10 @@ index c600f77..e71f902 100644
  /*static*/ void WelsMdInterFinePartitionVaaOnScreen (sWelsEncCtx* pEnc, SWelsMD* pMd, SSlice* pSlice, SMB* pCurMb,
 diff --git a/codec/encoder/core/inc/unchanged.h b/codec/encoder/core/inc/unchanged.h
 new file mode 100644
-index 0000000..71fe6e6
+index 0000000..389cb88
 --- /dev/null
 +++ b/codec/encoder/core/inc/unchanged.h
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,60 @@
 +/*!
 + * \copy
 + *     Copyright (c)  2009-2013, Cisco Systems
@@ -152,6 +257,22 @@ index 0000000..71fe6e6
 +bool TryUnchangedMacroblockEarly (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
 +// Inside inter mode decision, with the full median skip predictor.
 +bool TryUnchangedMacroblock (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, TagMB* pCurMb);
++
++// Where WelsMdInterMbLoop records each finished macroblock: *pStamp when it
++// is a zero-motion P_SKIP, else 0. NULL when this picture records nothing.
++uint32_t* UnchangedZeroSkipStamps (TagWelsEncCtx* pCtx, uint32_t* pStamp);
++// Whether WelsMdInterMbLoop may code runs of early-skipped macroblocks with
++// EncodeUnchangedRun; constant for the current picture.
++bool UnchangedRunsEnabled (TagWelsEncCtx* pCtx);
++// Codes the run of macroblocks from iMbIdx that TryUnchangedMacroblockEarly
++// would skip, at most iMaxCount, leaving the same macroblock, picture, slice
++// and cache state as the per-macroblock path. Returns the run length; when it
++// is positive, *pNextMbIdx receives the slice's next macroblock or -1.
++int32_t EncodeUnchangedRun (TagWelsEncCtx* pCtx, TagWelsMD* pMd, TagSlice* pSlice, int32_t iMbIdx,
++                            int32_t iMaxCount, int32_t* pNextMbIdx);
++// Whether this picture has so few changed macroblocks that its slices are
++// cheaper to code on the calling thread than to hand to the thread pool.
++bool UnchangedPreferCallerThread (TagWelsEncCtx* pCtx);
 +
 +}
 +
@@ -230,6 +351,67 @@ index 7d4db94..40b7224 100644
   private:
    Scaled_Picture   m_sScaledPicture;
    SPicture*        m_pLastSpatialPicture[MAX_DEPENDENCY_LAYER][2];
+diff --git a/codec/encoder/core/inc/wels_task_management.h b/codec/encoder/core/inc/wels_task_management.h
+index acd6126..36c7901 100644
+--- a/codec/encoder/core/inc/wels_task_management.h
++++ b/codec/encoder/core/inc/wels_task_management.h
+@@ -58,6 +58,12 @@ class IWelsTaskManage {
+   virtual void            InitFrame (const int32_t kiCurDid) {}
+   virtual WelsErrorType   ExecuteTasks (const CWelsBaseTask::ETaskType iTaskType = CWelsBaseTask::WELS_ENC_TASK_ENCODING)
+     = 0;
++  // Runs the same tasks one after another on the calling thread, for work too
++  // small to repay the thread pool's dispatch.
++  virtual WelsErrorType   ExecuteTasksInCallerThread (const CWelsBaseTask::ETaskType iTaskType =
++        CWelsBaseTask::WELS_ENC_TASK_ENCODING) {
++    return ExecuteTasks (iTaskType);
++  }
+ 
+   static IWelsTaskManage* CreateTaskManage (sWelsEncCtx* pCtx, const int32_t iSpatialLayer, const bool bNeedLock);
+ 
+@@ -78,6 +84,8 @@ class  CWelsTaskManageBase : public IWelsTaskManage, public WelsCommon::IWelsTas
+   virtual void           InitFrame (const int32_t kiCurDid = 0);
+ 
+   virtual WelsErrorType  ExecuteTasks (const CWelsBaseTask::ETaskType iTaskType = CWelsBaseTask::WELS_ENC_TASK_ENCODING);
++  virtual WelsErrorType  ExecuteTasksInCallerThread (const CWelsBaseTask::ETaskType iTaskType =
++        CWelsBaseTask::WELS_ENC_TASK_ENCODING);
+ 
+   //IWelsTaskSink
+   virtual WelsErrorType OnTaskExecuted();
+@@ -126,6 +134,10 @@ class  CWelsTaskManageOne : public CWelsTaskManageBase {
+ 
+   WelsErrorType   Init (sWelsEncCtx* pEncCtx);
+   virtual WelsErrorType  ExecuteTasks(const CWelsBaseTask::ETaskType iTaskType = CWelsBaseTask::WELS_ENC_TASK_ENCODING);
++  virtual WelsErrorType  ExecuteTasksInCallerThread (const CWelsBaseTask::ETaskType iTaskType =
++        CWelsBaseTask::WELS_ENC_TASK_ENCODING) {
++    return ExecuteTasks (iTaskType);
++  }
+ 
+   int32_t  GetThreadPoolThreadNum() {return 1;};
+ };
+diff --git a/codec/encoder/core/src/encoder_ext.cpp b/codec/encoder/core/src/encoder_ext.cpp
+index a3d9d8b..373dffb 100644
+--- a/codec/encoder/core/src/encoder_ext.cpp
++++ b/codec/encoder/core/src/encoder_ext.cpp
+@@ -39,6 +39,7 @@
+  */
+ 
+ #include "encoder.h"
++#include "unchanged.h"
+ #include "cpu.h"
+ #include "utils.h"
+ #include "svc_enc_golomb.h"
+@@ -3738,7 +3739,10 @@ int32_t WelsEncoderEncodeExt (sWelsEncCtx* pCtx, SFrameBSInfo* pFbi, const SSour
+         pLayerBsInfo->eFrameType    = eFrameType;
+         pLayerBsInfo->iSubSeqId = GetSubSequenceId (pCtx, eFrameType);
+ 
+-        pCtx->pTaskManage->ExecuteTasks();
++        if (UnchangedPreferCallerThread (pCtx))
++          pCtx->pTaskManage->ExecuteTasksInCallerThread();
++        else
++          pCtx->pTaskManage->ExecuteTasks();
+         if (pCtx->iEncoderError) {
+           WelsLog (pLogCtx, WELS_LOG_ERROR,
+                    "WelsEncoderEncodeExt(), multi-slice (mode %d) encoding error!",
 diff --git a/codec/encoder/core/src/svc_base_layer_md.cpp b/codec/encoder/core/src/svc_base_layer_md.cpp
 index 5acc2d9..895c754 100644
 --- a/codec/encoder/core/src/svc_base_layer_md.cpp
@@ -330,7 +512,7 @@ index 5acc2d9..895c754 100644
    SMbCache* pMbCache                = &pSlice->sMbCacheInfo;
    const uint32_t kuiNeighborAvail   = pCurMb->uiNeighborAvail;
 diff --git a/codec/encoder/core/src/svc_encode_slice.cpp b/codec/encoder/core/src/svc_encode_slice.cpp
-index 1fd7d46..8ce8925 100644
+index 1fd7d46..8d84738 100644
 --- a/codec/encoder/core/src/svc_encode_slice.cpp
 +++ b/codec/encoder/core/src/svc_encode_slice.cpp
 @@ -40,6 +40,7 @@
@@ -341,7 +523,26 @@ index 1fd7d46..8ce8925 100644
  #include "svc_enc_golomb.h"
  #include "svc_base_layer_md.h"
  #include "svc_encode_mb.h"
-@@ -1843,12 +1844,19 @@ int32_t WelsMdInterMbLoop (sWelsEncCtx* pEncCtx, SSlice* pSlice, void* pWelsMd,
+@@ -1831,7 +1832,18 @@ int32_t WelsMdInterMbLoop (sWelsEncCtx* pEncCtx, SSlice* pSlice, void* pWelsMd,
+     sDss.iStartPos = sDss.iCurrentPos = 0;
+   }
+   pSlice->iMbSkipRun = 0;
++  const bool kbUnchangedRuns = UnchangedRunsEnabled (pEncCtx);
++  uint32_t uiZeroSkipStamp = 0;
++  uint32_t* pZeroSkipStamps = UnchangedZeroSkipStamps (pEncCtx, &uiZeroSkipStamp);
+   for (;;) {
++    if (kbUnchangedRuns) {
++      // Skips write no bits, so the run needs no dynamic slicing stash.
++      const int32_t kiRun = EncodeUnchangedRun (pEncCtx, pMd, pSlice, iNextMbIdx, kiTotalNumMb - iNumMbCoded,
++                            &iNextMbIdx);
++      iNumMbCoded += kiRun;
++      if (kiRun > 0 && (iNextMbIdx == -1 || iNextMbIdx >= kiTotalNumMb || iNumMbCoded >= kiTotalNumMb))
++        break;
++    }
+     if (!pEncCtx->pSvcParam->iEntropyCodingModeFlag)
+       pEncCtx->pFuncList->pfStashMBStatus (&sDss, pSlice, pSlice->iMbSkipRun);
+     //point to current pMb
+@@ -1843,12 +1855,19 @@ int32_t WelsMdInterMbLoop (sWelsEncCtx* pEncCtx, SSlice* pSlice, void* pWelsMd,
      pEncCtx->pFuncList->pfRc.pfWelsRcMbInit (pEncCtx, pCurMb, pSlice);
  
      //step (2). save some vale for future use, initial pWelsMd
@@ -365,7 +566,7 @@ index 1fd7d46..8ce8925 100644
      //mb_qp
  
      //step (4): save from the MD process from future use
-@@ -1867,6 +1875,11 @@ TRY_REENCODING:
+@@ -1867,6 +1886,11 @@ TRY_REENCODING:
        if (iEncReturn == ENC_RETURN_VLCOVERFLOWFOUND && (pCurMb->uiLumaQp < 50)) {
          pSlice->iMbSkipRun = pEncCtx->pFuncList->pfStashPopMBStatus (&sDss, pSlice);
          UpdateQpForOverflow (pCurMb, kuiChromaQpIndexOffset);
@@ -377,12 +578,21 @@ index 1fd7d46..8ce8925 100644
          goto TRY_REENCODING;
        }
      }
+@@ -1877,6 +1901,8 @@ TRY_REENCODING:
+     //step (7): reconstruct current MB
+     pCurMb->uiSliceIdc = kiSliceIdx;
+     OutputPMbWithoutConstructCsRsNoCopy (pEncCtx, pCurLayer, pSlice, pCurMb);
++    if (pZeroSkipStamps != NULL)
++      pZeroSkipStamps[iCurMbIdx] = (pCurMb->uiMbType == MB_TYPE_SKIP && LD32 (&pCurMb->sMv[0]) == 0) ? uiZeroSkipStamp : 0;
+ 
+ #if defined(MB_TYPES_CHECK)
+     WelsCountMbType (pEncCtx->sPerInfo.iMbCount, P_SLICE, pCurMb);
 diff --git a/codec/encoder/core/src/unchanged.cpp b/codec/encoder/core/src/unchanged.cpp
 new file mode 100644
-index 0000000..707729b
+index 0000000..30d78a0
 --- /dev/null
 +++ b/codec/encoder/core/src/unchanged.cpp
-@@ -0,0 +1,281 @@
+@@ -0,0 +1,453 @@
 +/*!
 + * \copy
 + *     Copyright (c)  2009-2013, Cisco Systems
@@ -402,6 +612,8 @@ index 0000000..707729b
 +#include "mv_pred.h"
 +#include "svc_base_layer_md.h"
 +#include "svc_enc_slice_segment.h"
++#include "svc_encode_slice.h"
++#include "svc_mode_decision.h"
 +
 +namespace WelsEnc {
 +
@@ -420,8 +632,8 @@ index 0000000..707729b
 +}
 +
 +void UnchangedFrameReset (sWelsEncCtx* pCtx) {
-+  // bFinalZeroSkip is read only below iFinalZeroSkipCount; leave it as is.
-+  memset (&pCtx->sUnchanged, 0, offsetof (SUnchangedFrameState, bFinalZeroSkip));
++  // The stamps are read only below iFinalZeroSkipCount; leave them as is.
++  memset (&pCtx->sUnchanged, 0, offsetof (SUnchangedFrameState, uiStampCounter));
 +}
 +
 +static SReconstructedPictureVersion PictureVersion (SPicture* pPicture, uint64_t uiGeneration) {
@@ -466,15 +678,14 @@ index 0000000..707729b
 +
 +static void CaptureFinalSkipMotion (SUnchangedFrameState* pState, const SDqLayer* kpLayer, bool bValidSource) {
 +  const int32_t kiCount = kpLayer->iMbWidth * kpLayer->iMbHeight;
-+  if (!bValidSource || kiCount < 1 || kiCount > UNCHANGED_MAX_MB_COUNT) {
++  // Called after a successful frame, after every slice thread finished. A
++  // macroblock coded outside WelsMdInterMbLoop keeps an older stamp, which
++  // only forgoes reuse.
++  if (!bValidSource || pState->uiCodingStamp == 0 || kiCount < 1 || kiCount > UNCHANGED_MAX_MB_COUNT) {
 +    pState->iFinalZeroSkipCount = 0;
 +    return;
 +  }
-+  // Called after a successful frame, after every slice thread finished.
-+  for (int32_t i = 0; i < kiCount; ++i) {
-+    const SMB* kpMb = &kpLayer->sMbDataP[i];
-+    pState->bFinalZeroSkip[i] = kpMb->uiMbType == MB_TYPE_SKIP && kpMb->sMv[0].iMvX == 0 && kpMb->sMv[0].iMvY == 0;
-+  }
++  pState->uiFinalStamp = pState->uiCodingStamp;
 +  pState->iFinalZeroSkipCount = kiCount;
 +}
 +
@@ -518,9 +729,17 @@ index 0000000..707729b
 +  SUnchangedFrameState* pState = &pCtx->sUnchanged;
 +  pState->pMacroblocks = NULL;
 +  pState->iMacroblockCount = 0;
++  pState->iChangedMacroblockCount = 0;
 +  pState->pReuseDestination = NULL;
++  pState->uiCodingStamp = 0;
 +  if (pSrc == NULL || !UnchangedConfiguration (pCtx->pSvcParam))
 +    return;
++  if (++pState->uiStampCounter == 0) {
++    memset (pState->uiZeroSkipStamp, 0, sizeof (pState->uiZeroSkipStamp));
++    pState->iFinalZeroSkipCount = 0;
++    pState->uiStampCounter = 1;
++  }
++  pState->uiCodingStamp = pState->uiStampCounter;
 +  const SWelsSvcCodingParam* kpParam = pCtx->pSvcParam;
 +  const bool kbMatchingGeometry = pSrc->iPicWidth == kpParam->iPicWidth && pSrc->iPicHeight == kpParam->iPicHeight &&
 +                                  pSrc->iPicWidth == kpParam->sDependencyLayers[0].iActualWidth &&
@@ -533,6 +752,10 @@ index 0000000..707729b
 +  if (kbValidPrevious && pSrc->pUnchangedMacroblocks != NULL && (int64_t)pSrc->iUnchangedMacroblockCount == kiCount) {
 +    pState->pMacroblocks = pSrc->pUnchangedMacroblocks;
 +    pState->iMacroblockCount = pSrc->iUnchangedMacroblockCount;
++    int32_t iChanged = 0;
++    for (int32_t i = 0; i < pState->iMacroblockCount; ++i)
++      iChanged += pState->pMacroblocks[i] == 0;
++    pState->iChangedMacroblockCount = iChanged;
 +    pState->pReuseDestination = ReusableSource (pState);
 +  }
 +}
@@ -541,6 +764,7 @@ index 0000000..707729b
 +  SUnchangedFrameState* pState = &pCtx->sUnchanged;
 +  pState->pMacroblocks = NULL;
 +  pState->iMacroblockCount = 0;
++  pState->iChangedMacroblockCount = 0;
 +  pState->pReuseDestination = NULL;
 +  if (!bSuccess || pSrc == NULL || pBsInfo == NULL || !UnchangedConfiguration (pCtx->pSvcParam)) {
 +    UnchangedFrameReset (pCtx);
@@ -620,7 +844,8 @@ index 0000000..707729b
 +  // from, its samples are already identical.
 +  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
 +  const bool kbResident = kpState->pReuseDestination != NULL && pLayer->pDecPic == kpState->pReuseDestination &&
-+                          kiIndex < kpState->iFinalZeroSkipCount && kpState->bFinalZeroSkip[kiIndex];
++                          kiIndex < kpState->iFinalZeroSkipCount &&
++                          kpState->uiZeroSkipStamp[kiIndex] == kpState->uiFinalStamp;
 +  if (!kbResident) {
 +    CopyBlock (pMbCache->SPicData.pCsMb[0], pLayer->iCsStride[0], pMbCache->SPicData.pRefMb[0],
 +               pReference->iLineSize[0], 16);
@@ -649,6 +874,163 @@ index 0000000..707729b
 +  if (!UnchangedMacroblockEligible (pCtx, pCurMb) || !UnchangedSkipPredictorIsZero (pCurMb, pCtx->pCurDqLayer->iMbWidth))
 +    return false;
 +  EncodeUnchangedMacroblock (pCtx, pMd, pSlice, pCurMb);
++  return true;
++}
++
++// Not declared in a header; the run path requires fixed-QP rate control.
++void WelsRcMbInitDisable (sWelsEncCtx* pEncCtx, SMB* pCurMb, SSlice* pSlice);
++void WelsRcMbInfoUpdateDisable (sWelsEncCtx* pEncCtx, SMB* pCurMb, int32_t iCostLuma, SSlice* pSlice);
++
++// The picture-wide half of UnchangedMacroblockEligible, plus the per-macroblock
++// steps of WelsMdInterMbLoop the run path replaces with their known effects:
++// fixed-QP rate control (WelsRcMbInitDisable sets this QP), background update
++// without detection, and CAVLC, whose skips write no bits.
++uint32_t* UnchangedZeroSkipStamps (sWelsEncCtx* pCtx, uint32_t* pStamp) {
++  SUnchangedFrameState* pState = &pCtx->sUnchanged;
++  const SDqLayer* kpLayer = pCtx->pCurDqLayer;
++  *pStamp = pState->uiCodingStamp;
++  if (pState->uiCodingStamp == 0 || kpLayer->iMbWidth * kpLayer->iMbHeight > UNCHANGED_MAX_MB_COUNT)
++    return NULL;
++  return pState->uiZeroSkipStamp;
++}
++
++bool UnchangedRunsEnabled (sWelsEncCtx* pCtx) {
++  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
++  const SSliceCtx* kpSliceCtx = &pCtx->pCurDqLayer->sSliceEncCtx;
++  if (kpState->pMacroblocks == NULL || !UnchangedConfiguration (pCtx->pSvcParam) ||
++      (kpSliceCtx->uiSliceMode != SM_SINGLE_SLICE && kpSliceCtx->uiSliceMode != SM_FIXEDSLCNUM_SLICE))
++    return false;
++  const SWelsFuncPtrList* kpFunc = pCtx->pFuncList;
++  if (kpFunc->pfRc.pfWelsRcMbInit != WelsRcMbInitDisable ||
++      kpFunc->pfRc.pfWelsRcMbInfoUpdate != WelsRcMbInfoUpdateDisable ||
++      (kpFunc->pfMdBackgroundInfoUpdate != WelsMdUpdateBGDInfo &&
++       kpFunc->pfMdBackgroundInfoUpdate != WelsMdUpdateBGDInfoNULL) ||
++      pCtx->pSvcParam->iEntropyCodingModeFlag != 0 || pCtx->pSvcParam->bEnableAdaptiveQuant)
++    return false;
++  const SDqLayer* kpLayer = pCtx->pCurDqLayer;
++  const SPicture* kpReference = kpLayer->pRefPic;
++  const bool kbValidReference = pCtx->eSliceType == P_SLICE && pCtx->iNumRef0 == 1 &&
++                                kpReference != NULL && kpReference == kpState->pReference && kpReference == pCtx->pRefList0[0] &&
++                                kpReference->iFrameNum == kpState->iFrameNum && kpReference->iFramePoc == kpState->iPoc;
++  return kbValidReference && kpLayer->iLoopFilterDisableIdc == 1 && kpReference->iPictureType == P_SLICE &&
++         pCtx->pRefPic != NULL && WELS_CLIP3 (pCtx->iGlobalQp, 0, 51) == kpState->iQp &&
++         kpState->iMacroblockCount == kpLayer->iMbWidth * kpLayer->iMbHeight;
++}
++
++int32_t EncodeUnchangedRun (sWelsEncCtx* pCtx, SWelsMD* pMd, SSlice* pSlice, int32_t iMbIdx, int32_t iMaxCount,
++                            int32_t* pNextMbIdx) {
++  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
++  SDqLayer* pLayer = pCtx->pCurDqLayer;
++  SPicture* pReference = pLayer->pRefPic;
++  SPicture* pDecPic = pLayer->pDecPic;
++  SMB* pMbList = pLayer->sMbDataP;
++  const int32_t kiTotal = pLayer->iMbWidth * pLayer->iMbHeight;
++  const int32_t kiSliceIdx = pSlice->iSliceIdx;
++  // Skips take the slice's last QP (WelsMdInterUpdatePskip, WelsSpatialWriteMbSyn).
++  const uint8_t kuiLumaQp = pSlice->uiLastMbQp;
++  const uint8_t kuiChromaQp = g_kuiChromaQpTable[CLIP3_QP_0_51 (kuiLumaQp +
++                              pLayer->sLayerInfo.pPpsP->uiChromaQpIndexOffset)];
++  // WelsMdUpdateBGDInfo with zero CBP and zero motion keeps the reference QP
++  // unless the encoder's reference picture is intra.
++  const bool kbIntraReference = pCtx->pRefPic->iPictureType == I_SLICE;
++  const bool kbReuse = kpState->pReuseDestination != NULL && pDecPic == kpState->pReuseDestination &&
++                       iMbIdx >= 0 && kiTotal <= kpState->iFinalZeroSkipCount;
++  const uint32_t kuiFinalStamp = kpState->uiFinalStamp;
++  uint32_t* pStamps = pCtx->sUnchanged.uiCodingStamp != 0 ? pCtx->sUnchanged.uiZeroSkipStamp : NULL;
++  const uint32_t kuiCodingStamp = pCtx->sUnchanged.uiCodingStamp;
++  // WelsGetNextMbOfSlice, unrolled for the fixed slice modes.
++  const SSliceCtx* kpSliceCtx = &pLayer->sSliceEncCtx;
++  const bool kbSingleSlice = kpSliceCtx->uiSliceMode == SM_SINGLE_SLICE;
++  const uint16_t* kpMbMap = kpSliceCtx->pOverallMbMap;
++  const int32_t kiMbNum = kpSliceCtx->iMbNumInFrame;
++  const int32_t kiCsStrideY = pLayer->iCsStride[0], kiCsStrideUV = pLayer->iCsStride[1];
++  const int32_t kiRefStrideY = pReference->iLineSize[0], kiRefStrideUV = pReference->iLineSize[1];
++
++  int32_t iCount = 0, iLast = -1;
++  while (iCount < iMaxCount && iMbIdx >= 0 && iMbIdx < kiTotal) {
++    SMB* pMb = &pMbList[iMbIdx];
++    if (!kpState->pMacroblocks[iMbIdx] || pReference->uiRefMbType[iMbIdx] != MB_TYPE_SKIP ||
++        pReference->sMvList[iMbIdx].iMvX != 0 || pReference->sMvList[iMbIdx].iMvY != 0 ||
++        !UnchangedSkipPredictorIsZero (pMb, pLayer->iMbWidth))
++      break;
++    // EncodeUnchangedMacroblock
++    if (! (kbReuse && kpState->uiZeroSkipStamp[iMbIdx] == kuiFinalStamp)) {
++      const int32_t kiX = pMb->iMbX, kiY = pMb->iMbY;
++      CopyBlock (pLayer->pCsData[0] + ((kiX + kiY * kiCsStrideY) << 4), kiCsStrideY,
++                 pReference->pData[0] + ((kiX + kiY * kiRefStrideY) << 4), pReference->iLineSize[0], 16);
++      for (int32_t iPlane = 1; iPlane < 3; ++iPlane) {
++        CopyBlock (pLayer->pCsData[iPlane] + ((kiX + kiY * kiCsStrideUV) << 3), pLayer->iCsStride[iPlane],
++                   pReference->pData[iPlane] + ((kiX + kiY * kiRefStrideUV) << 3), pReference->iLineSize[iPlane], 8);
++      }
++    }
++    pMb->uiMbType = MB_TYPE_SKIP;
++    pMb->uiCbp = 0;
++    pMb->pRefIndex[0] = pMb->pRefIndex[1] = pMb->pRefIndex[2] = pMb->pRefIndex[3] = 0;
++    memset (pMb->sMv, 0, 16 * sizeof (SMVUnitXY));
++    pMb->sP16x16Mv.iMvX = pMb->sP16x16Mv.iMvY = 0;
++    pDecPic->sMvList[iMbIdx].iMvX = pDecPic->sMvList[iMbIdx].iMvY = 0;
++    memset (pMb->pNonZeroCount, 0, 24);
++    pMb->uiLumaQp = kuiLumaQp;
++    pMb->uiChromaQp = kuiChromaQp;
++    // WelsMdInterSaveSadAndRefMbType and WelsMdUpdateBGDInfo
++    pDecPic->pMbSkipSad[iMbIdx] = pReference->pMbSkipSad[iMbIdx];
++    pDecPic->uiRefMbType[iMbIdx] = MB_TYPE_SKIP;
++    pDecPic->pRefMbQp[iMbIdx] = kbIntraReference ? kuiLumaQp : pReference->pRefMbQp[iMbIdx];
++    // WelsSpatialWriteMbSyn and WelsMdInterMbLoop
++    ++pSlice->iMbSkipRun;
++    pMb->uiSliceIdc = kiSliceIdx;
++    if (pStamps != NULL)
++      pStamps[iMbIdx] = kuiCodingStamp;
++    ++iCount;
++    iLast = iMbIdx;
++    const int32_t kiNext = iMbIdx + 1;
++    if (kiNext >= kiMbNum || (!kbSingleSlice && (kpMbMap == NULL || kpMbMap[kiNext] != kpMbMap[iMbIdx])))
++      iMbIdx = -1;
++    else
++      iMbIdx = kiNext;
++  }
++  if (iCount == 0)
++    return 0;
++
++  // Leave the per-slice cache and mode decision state as the last skipped
++  // macroblock would have: later macroblocks advance its picture pointers.
++  const SMB* kpLast = &pMbList[iLast];
++  SMbCache* pMbCache = &pSlice->sMbCacheInfo;
++  const int32_t kiX = kpLast->iMbX, kiY = kpLast->iMbY;
++  for (int32_t iPlane = 0; iPlane < 3; ++iPlane) {
++    const int32_t kiShift = iPlane == 0 ? 4 : 3;
++    const int32_t kiStride = iPlane == 0 ? 0 : 1;
++    pMbCache->SPicData.pEncMb[iPlane] = pLayer->pEncData[iPlane] + ((kiX + kiY * pLayer->iEncStride[kiStride]) << kiShift);
++    pMbCache->SPicData.pCsMb[iPlane] = pLayer->pCsData[iPlane] + ((kiX + kiY * pLayer->iCsStride[kiStride]) << kiShift);
++    pMbCache->SPicData.pDecMb[iPlane] = pDecPic->pData[iPlane] + ((kiX + kiY * pDecPic->iLineSize[kiStride]) << kiShift);
++    pMbCache->SPicData.pRefMb[iPlane] = pReference->pData[iPlane] + ((kiX + kiY * pReference->iLineSize[kiStride]) <<
++                                        kiShift);
++  }
++  pMbCache->pEncSad = &pDecPic->pMbSkipSad[iLast];
++  pMbCache->uiRefMbType = pReference->uiRefMbType[iLast];
++  pMbCache->bCollocatedPredFlag = true;
++  UpdateNonZeroCountCache (const_cast<SMB*> (kpLast), pMbCache);
++  pMd->iCostLuma = *kpLast->pSadCost;
++  pMd->iCostSkipMb = pReference->pMbSkipSad[iLast];
++  *pNextMbIdx = iMbIdx;
++  return iCount;
++}
++
++bool UnchangedPreferCallerThread (sWelsEncCtx* pCtx) {
++  const SUnchangedFrameState* kpState = &pCtx->sUnchanged;
++  // Thread pool dispatch costs more than coding a few macroblocks outside
++  // unchanged runs. Only certified blocks over zero-motion skips can join one.
++  const int32_t kiLimit = kpState->iMacroblockCount / 32;
++  if (kpState->iChangedMacroblockCount > kiLimit || !UnchangedRunsEnabled (pCtx))
++    return false;
++  const SPicture* kpReference = pCtx->pCurDqLayer->pRefPic;
++  int32_t iFull = 0;
++  for (int32_t i = 0; i < kpState->iMacroblockCount; ++i) {
++    iFull += !kpState->pMacroblocks[i] || kpReference->uiRefMbType[i] != MB_TYPE_SKIP ||
++             kpReference->sMvList[i].iMvX != 0 || kpReference->sMvList[i].iMvY != 0;
++    if (iFull > kiLimit)
++      return false;
++  }
 +  return true;
 +}
 +
@@ -755,10 +1137,10 @@ index da7ff9e..15fb13f 100644
      if (kiTargetWidth > iSrcWidth || kiTargetHeight > iSrcHeight) {
 diff --git a/codec/encoder/core/src/wels_preprocess_unchanged.cpp b/codec/encoder/core/src/wels_preprocess_unchanged.cpp
 new file mode 100644
-index 0000000..32a96c8
+index 0000000..04ed4d4
 --- /dev/null
 +++ b/codec/encoder/core/src/wels_preprocess_unchanged.cpp
-@@ -0,0 +1,270 @@
+@@ -0,0 +1,297 @@
 +/*!
 + * \copy
 + *     Copyright (c)  2009-2013, Cisco Systems
@@ -894,15 +1276,41 @@ index 0000000..32a96c8
 +  pState->pCurrent = NULL;
 +}
 +
++// Sparse damage leaves long stretches of equal bytes; test eight at a time.
++static inline uint64_t LoadBytes8 (const void* kpData) {
++  uint64_t uiWord;
++  memcpy (&uiWord, kpData, sizeof (uiWord));
++  return uiWord;
++}
++
++// Index of the first zero byte in kpBytes[iFrom, iEnd), or iEnd.
++static int32_t NextZeroByte (const unsigned char* kpBytes, int32_t iFrom, int32_t iEnd) {
++  const uint64_t kuiOnes = 0x0101010101010101ULL, kuiHighs = 0x8080808080808080ULL;
++  while (iFrom + 8 <= iEnd) {
++    const uint64_t kuiWord = LoadBytes8 (kpBytes + iFrom);
++    if (((kuiWord - kuiOnes) & ~kuiWord & kuiHighs) != 0)
++      break;
++    iFrom += 8;
++  }
++  while (iFrom < iEnd && kpBytes[iFrom] != 0)
++    ++iFrom;
++  return iFrom;
++}
++
++// Index of the first true entry in kpFlags[iFrom, iEnd), or iEnd.
++static int32_t NextTrue (const bool* kpFlags, int32_t iFrom, int32_t iEnd) {
++  while (iFrom + 8 <= iEnd && LoadBytes8 (kpFlags + iFrom) == 0)
++    iFrom += 8;
++  while (iFrom < iEnd && !kpFlags[iFrom])
++    ++iFrom;
++  return iFrom;
++}
++
 +static void CopySourceDirtyRuns (SPicture* pDst, const SSourcePicture* kpSrc, const bool* kpDirty, int32_t iCols,
 +                                 int32_t iRows) {
 +  for (int32_t iMbY = 0; iMbY < iRows; ++iMbY) {
 +    const bool* kpRow = kpDirty + iMbY * iCols;
-+    for (int32_t iMbX = 0; iMbX < iCols;) {
-+      if (!kpRow[iMbX]) {
-+        ++iMbX;
-+        continue;
-+      }
++    for (int32_t iMbX = NextTrue (kpRow, 0, iCols); iMbX < iCols; iMbX = NextTrue (kpRow, iMbX, iCols)) {
 +      const int32_t kiStart = iMbX;
 +      while (iMbX < iCols && kpRow[iMbX])
 +        ++iMbX;
@@ -1004,21 +1412,22 @@ index 0000000..32a96c8
 +    pBuffer->iDirtyCount = kiCount;
 +  }
 +  if (kbValidChain) {
-+    for (int32_t i = 0; i < 3; ++i) {
-+      SSourceCopyBuffer* pResident = &pState->sBuffers[i];
-+      if (!pResident->bValid)
-+        continue;
-+      for (int32_t iMb = 0; iMb < kiCount; ++iMb) {
-+        if (!kpMask[iMb])
-+          pResident->bDirty[iMb] = true;
++    for (int32_t iMb = NextZeroByte (kpMask, 0, kiCount); iMb < kiCount; iMb = NextZeroByte (kpMask, iMb + 1, kiCount)) {
++      for (int32_t i = 0; i < 3; ++i) {
++        if (pState->sBuffers[i].bValid)
++          pState->sBuffers[i].bDirty[iMb] = true;
 +      }
 +    }
 +  }
 +  if (pBuffer->bValid) {
-+    int32_t iDirtyCount = 0;
-+    for (int32_t iMb = 0; iMb < kiCount; ++iMb)
-+      iDirtyCount += pBuffer->bDirty[iMb] ? 1 : 0;
-+    if (iDirtyCount < kiCount) {
++    // Some macroblock is still clean: copy only the dirty ones.
++    const bool* kpDirty = pBuffer->bDirty;
++    int32_t iClean = 0;
++    while (iClean + 8 <= kiCount && LoadBytes8 (kpDirty + iClean) == 0x0101010101010101ULL)
++      iClean += 8;
++    while (iClean < kiCount && kpDirty[iClean])
++      ++iClean;
++    if (iClean < kiCount) {
 +      CopySourceDirtyRuns (pDst, kpSrc, pBuffer->bDirty, kiCols, kiRows);
 +      pState->bPartial = true;
 +    }
@@ -1029,6 +1438,41 @@ index 0000000..32a96c8
 +}
 +
 +}
+diff --git a/codec/encoder/core/src/wels_task_management.cpp b/codec/encoder/core/src/wels_task_management.cpp
+index cc53d8d..9a17cef 100644
+--- a/codec/encoder/core/src/wels_task_management.cpp
++++ b/codec/encoder/core/src/wels_task_management.cpp
+@@ -254,6 +254,16 @@ WelsErrorType  CWelsTaskManageBase::ExecuteTasks (const CWelsBaseTask::ETaskType
+   return ExecuteTaskList (m_pcAllTaskList[iTaskType]);
+ }
+ 
++// Each task still takes and returns a thread bitstream buffer and records its
++// error; only the pool's completion signal, which nobody waits for, is skipped.
++WelsErrorType  CWelsTaskManageBase::ExecuteTasksInCallerThread (const CWelsBaseTask::ETaskType iTaskType) {
++  TASKLIST_TYPE* pTargetTaskList = m_pcAllTaskList[iTaskType][m_iCurDid];
++  const int32_t kiTaskCount = m_iTaskNum[m_iCurDid];
++  for (int32_t iIdx = 0; iIdx < kiTaskCount; ++iIdx)
++    pTargetTaskList->getNode (iIdx)->Execute();
++  return ENC_RETURN_SUCCESS;
++}
++
+ int32_t  CWelsTaskManageBase::GetThreadPoolThreadNum() {
+   return m_pThreadPool->GetThreadNum();
+ }
+diff --git a/codec/encoder/meson.build b/codec/encoder/meson.build
+index bebb74c..f44f85b 100644
+--- a/codec/encoder/meson.build
++++ b/codec/encoder/meson.build
+@@ -26,7 +26,9 @@ cpp_sources = [
+   'core/src/svc_motion_estimate.cpp',
+   'core/src/svc_set_mb_syn_cabac.cpp',
+   'core/src/svc_set_mb_syn_cavlc.cpp',
++  'core/src/unchanged.cpp',
+   'core/src/wels_preprocess.cpp',
++  'core/src/wels_preprocess_unchanged.cpp',
+   'core/src/wels_task_base.cpp',
+   'core/src/wels_task_encoder.cpp',
+   'core/src/wels_task_management.cpp',
 diff --git a/codec/encoder/plus/inc/welsEncoderExt.h b/codec/encoder/plus/inc/welsEncoderExt.h
 index b281f8f..a05afaa 100644
 --- a/codec/encoder/plus/inc/welsEncoderExt.h
@@ -1089,20 +1533,14 @@ index aca94ec..9d7e833 100644
      WelsLog (&m_pWelsTrace->m_sLogCtx, WELS_LOG_ERROR, "CWelsH264SVCEncoder::EncodeFrame(), cmInitParaError.");
      return cmInitParaError;
 diff --git a/codec/encoder/targets.mk b/codec/encoder/targets.mk
-index d6cbe01..8f02d67 100644
+index d6cbe01..6545f61 100644
 --- a/codec/encoder/targets.mk
 +++ b/codec/encoder/targets.mk
-@@ -23,6 +23,7 @@ ENCODER_CPP_SRCS=\
- 	$(ENCODER_SRCDIR)/core/src/set_mb_syn_cavlc.cpp\
- 	$(ENCODER_SRCDIR)/core/src/slice_multi_threading.cpp\
- 	$(ENCODER_SRCDIR)/core/src/svc_base_layer_md.cpp\
-+	$(ENCODER_SRCDIR)/core/src/unchanged.cpp\
- 	$(ENCODER_SRCDIR)/core/src/svc_enc_slice_segment.cpp\
- 	$(ENCODER_SRCDIR)/core/src/svc_encode_mb.cpp\
- 	$(ENCODER_SRCDIR)/core/src/svc_encode_slice.cpp\
-@@ -31,6 +32,7 @@ ENCODER_CPP_SRCS=\
+@@ -30,7 +30,9 @@ ENCODER_CPP_SRCS=\
+ 	$(ENCODER_SRCDIR)/core/src/svc_motion_estimate.cpp\
  	$(ENCODER_SRCDIR)/core/src/svc_set_mb_syn_cabac.cpp\
  	$(ENCODER_SRCDIR)/core/src/svc_set_mb_syn_cavlc.cpp\
++	$(ENCODER_SRCDIR)/core/src/unchanged.cpp\
  	$(ENCODER_SRCDIR)/core/src/wels_preprocess.cpp\
 +	$(ENCODER_SRCDIR)/core/src/wels_preprocess_unchanged.cpp\
  	$(ENCODER_SRCDIR)/core/src/wels_task_base.cpp\

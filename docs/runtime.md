@@ -556,8 +556,8 @@ CGO_ENABLED=0 go build -o devbox-kvm .
 Both backends produce identical streams. The patch ports the pure-Go encoder's
 damage hints, which skip unchanged macroblocks, to native OpenH264; upstream
 OpenH264 analyzes every picture completely. Native is about 1.5x faster for
-full-screen video, 1.4-1.6x faster for scrolling and 1.1-1.5x faster for small
-desktop updates such as a changing widget (about 0.6-0.75 ms instead of
+full-screen video, 1.4-1.6x faster for scrolling and 3-4x faster for small
+desktop updates such as a changing widget (about 0.22 ms instead of
 0.75-0.9 ms per 1080p frame).
 
 Follow the [software-only gateway setup](gateway.md#build-without-nvenc) and set
