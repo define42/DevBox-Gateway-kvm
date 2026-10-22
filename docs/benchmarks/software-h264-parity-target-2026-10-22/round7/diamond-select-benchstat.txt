@@ -1,0 +1,37 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                  │ /tmp/h264-parity-target-20261022/diamond-select-component-round7-base.txt │ /tmp/h264-parity-target-20261022/diamond-select-diamond-select-next.txt │
+                                  │                                  sec/op                                   │                      sec/op                       vs base               │
+DiamondCostSelect/NoImprovement-4                                                                 8.159n ± 1%                                        7.795n ± 2%   -4.47% (p=0.002 n=6)
+DiamondCostSelect/Top-4                                                                           8.660n ± 3%                                        8.079n ± 5%   -6.71% (p=0.002 n=6)
+DiamondCostSelect/Bottom-4                                                                        9.018n ± 7%                                        8.568n ± 3%   -4.98% (p=0.009 n=6)
+DiamondCostSelect/Left-4                                                                          9.497n ± 3%                                        8.331n ± 1%  -12.27% (p=0.002 n=6)
+DiamondCostSelect/Right-4                                                                         9.760n ± 4%                                        8.518n ± 2%  -12.72% (p=0.002 n=6)
+DiamondCostSelect/Descending-4                                                                   10.275n ± 3%                                        8.814n ± 4%  -14.22% (p=0.002 n=6)
+geomean                                                                                           9.201n                                             8.344n        -9.32%
+
+                                  │ /tmp/h264-parity-target-20261022/diamond-select-component-round7-base.txt │ /tmp/h264-parity-target-20261022/diamond-select-diamond-select-next.txt │
+                                  │                                   B/op                                    │                      B/op                        vs base                │
+DiamondCostSelect/NoImprovement-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Top-4                                                                          0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Bottom-4                                                                       0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Left-4                                                                         0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Right-4                                                                        0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Descending-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                  │ /tmp/h264-parity-target-20261022/diamond-select-component-round7-base.txt │ /tmp/h264-parity-target-20261022/diamond-select-diamond-select-next.txt │
+                                  │                                 allocs/op                                 │                    allocs/op                     vs base                │
+DiamondCostSelect/NoImprovement-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Top-4                                                                          0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Bottom-4                                                                       0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Left-4                                                                         0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Right-4                                                                        0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondCostSelect/Descending-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

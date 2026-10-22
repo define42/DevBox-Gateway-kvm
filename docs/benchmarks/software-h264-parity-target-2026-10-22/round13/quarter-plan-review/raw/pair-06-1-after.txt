@@ -1,0 +1,52 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterPlanFallbackCaller/8x8/stride32/batch-off-4         	  385099	       723.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/8x8/stride32/validated-off-4     	  455826	       541.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/8x8/stride32/scalar-4            	   57463	      4007 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/8x8/stride2048/batch-off-4       	  473386	       511.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/8x8/stride2048/validated-off-4   	  438842	       545.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/8x8/stride2048/scalar-4          	   57614	      4273 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/16x16/stride32/batch-off-4       	  218128	      1147 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/16x16/stride32/validated-off-4   	  232580	      1005 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/16x16/stride32/scalar-4          	   16455	     14121 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/16x16/stride2048/batch-off-4     	  271002	       895.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/16x16/stride2048/validated-off-4 	  243951	       926.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterPlanFallbackCaller/16x16/stride2048/scalar-4        	   17522	     13925 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/16x16-4                           	  798301	       290.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/16x8-4                            	 1311079	       183.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/8x16-4                            	 1000000	       258.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/8x8-4                             	 1395620	       166.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/8x4-4                             	 1685196	       142.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/4x4-4                             	 1214918	       196.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineLocalParams/4x8-4                             	  767701	       314.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4       	  475819	       525.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4        	  281902	       808.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4     	  455066	       523.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4      	  305114	       873.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4        	  698654	       341.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4         	  504236	       526.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4      	  718562	       354.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4       	  434886	       545.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4        	  483744	       425.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4         	  453854	       601.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4      	  467931	       495.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4       	  403977	       641.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4         	  948232	       285.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4          	  429264	       528.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4       	  913762	       299.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4        	  616926	       438.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4         	  644329	       400.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4          	  543718	       487.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4       	  554942	       388.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4        	  427633	       500.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4         	  599359	       406.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4          	  589891	       464.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4       	  681658	       393.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4        	  525092	       479.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4         	  341556	       664.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4          	  330416	       711.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4       	  310760	       666.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4        	  302605	       743.5 ns/op	       0 B/op	       0 allocs/op
+PASS

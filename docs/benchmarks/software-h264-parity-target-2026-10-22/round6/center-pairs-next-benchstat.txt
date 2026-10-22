@@ -1,0 +1,79 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                              │ /tmp/h264-parity-target-20261022/center-pairs-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/center-pairs-next-center-pairs-next.txt │
+                              │                                    sec/op                                    │                      sec/op                        vs base               │
+McCenterPairs/checked/5x5-4                                                                     65.78n ±  5%                                        56.83n ±  1%  -13.61% (p=0.002 n=6)
+McCenterPairs/raw/5x5-4                                                                         28.83n ±  5%                                        20.00n ±  6%  -30.61% (p=0.002 n=6)
+McCenterPairs/checked/9x9-4                                                                     97.55n ±  2%                                        82.18n ±  4%  -15.75% (p=0.002 n=6)
+McCenterPairs/raw/9x9-4                                                                         52.44n ±  2%                                        38.03n ±  3%  -27.48% (p=0.002 n=6)
+McCenterPairs/checked/17x17-4                                                                   213.4n ±  6%                                        171.3n ±  4%  -19.73% (p=0.002 n=6)
+McCenterPairs/raw/17x17-4                                                                       144.8n ± 18%                                        103.5n ±  3%  -28.56% (p=0.002 n=6)
+McCenterPairs/checked/5x9-4                                                                     89.92n ±  4%                                        75.87n ±  3%  -15.62% (p=0.002 n=6)
+McCenterPairs/raw/5x9-4                                                                         48.07n ±  5%                                        32.31n ± 10%  -32.78% (p=0.002 n=6)
+McCenterPairs/checked/9x5-4                                                                     71.50n ±  2%                                        63.30n ±  2%  -11.46% (p=0.002 n=6)
+McCenterPairs/raw/9x5-4                                                                         30.74n ±  3%                                        23.09n ±  2%  -24.89% (p=0.002 n=6)
+McCenterPairs/checked/9x17-4                                                                    153.2n ±  3%                                        127.0n ±  2%  -17.07% (p=0.002 n=6)
+McCenterPairs/raw/9x17-4                                                                        96.41n ±  4%                                        67.55n ±  6%  -29.93% (p=0.002 n=6)
+McCenterPairs/checked/17x9-4                                                                    129.1n ±  5%                                        108.5n ±  4%  -16.00% (p=0.002 n=6)
+McCenterPairs/raw/17x9-4                                                                        78.14n ± 32%                                        57.22n ±  3%  -26.78% (p=0.002 n=6)
+McCenterPairs/checked/4x4-4                                                                     60.50n ± 20%                                        60.34n ±  3%        ~ (p=0.699 n=6)
+McCenterPairs/raw/4x4-4                                                                         22.96n ±  6%                                        23.05n ±  1%        ~ (p=0.699 n=6)
+McCenterPairs/checked/8x8-4                                                                     82.72n ±  2%                                        83.26n ±  1%        ~ (p=0.485 n=6)
+McCenterPairs/raw/8x8-4                                                                         36.21n ±  4%                                        36.43n ±  2%        ~ (p=0.699 n=6)
+McCenterPairs/checked/16x16-4                                                                   182.0n ±  2%                                        187.5n ±  3%   +3.02% (p=0.015 n=6)
+McCenterPairs/raw/16x16-4                                                                       115.6n ±  3%                                        115.5n ±  4%        ~ (p=1.000 n=6)
+geomean                                                                                         75.59n                                              63.39n        -16.14%
+
+                              │ /tmp/h264-parity-target-20261022/center-pairs-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/center-pairs-next-center-pairs-next.txt │
+                              │                                     B/op                                     │                       B/op                        vs base                │
+McCenterPairs/checked/5x5-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/5x5-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/9x9-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/9x9-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/17x17-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/17x17-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/5x9-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/5x9-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/9x5-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/9x5-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/9x17-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/9x17-4                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/17x9-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/17x9-4                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/4x4-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/4x4-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/8x8-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/8x8-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/16x16-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/16x16-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                    ²                                                     +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                              │ /tmp/h264-parity-target-20261022/center-pairs-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/center-pairs-next-center-pairs-next.txt │
+                              │                                  allocs/op                                   │                    allocs/op                      vs base                │
+McCenterPairs/checked/5x5-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/5x5-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/9x9-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/9x9-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/17x17-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/17x17-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/5x9-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/5x9-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/9x5-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/9x5-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/9x17-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/9x17-4                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/17x9-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/17x9-4                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/4x4-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/4x4-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/8x8-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/8x8-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/checked/16x16-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+McCenterPairs/raw/16x16-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                    ²                                                     +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

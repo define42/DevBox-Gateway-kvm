@@ -1,0 +1,61 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                    │ /tmp/h264-parity-target-20261022/skip-control-component-round5-base.txt │ /tmp/h264-parity-target-20261022/skip-control-skip-control-next.txt │
+                                    │                                 sec/op                                  │                    sec/op                      vs base              │
+SkipControl/Direct/SAD-4                                                                         127.6n ±  4%                                    125.0n ±  1%  -2.08% (p=0.006 n=6)
+SkipControl/Direct/SATD-4                                                                        161.5n ± 10%                                    159.5n ±  1%  -1.24% (p=0.026 n=6)
+SkipControl/PredThreshold/SAD-4                                                                  125.3n ±  5%                                    126.0n ±  3%       ~ (p=0.699 n=6)
+SkipControl/PredThreshold/SATD-4                                                                 160.9n ±  2%                                    162.4n ±  6%       ~ (p=0.786 n=6)
+SkipControl/RefThreshold/SAD-4                                                                   126.7n ±  1%                                    129.2n ±  3%  +1.97% (p=0.026 n=6)
+SkipControl/RefThreshold/SATD-4                                                                  169.3n ± 32%                                    162.0n ±  2%  -4.37% (p=0.002 n=6)
+SkipControl/RejectLuma/SAD-4                                                                     164.6n ±  2%                                    162.2n ±  4%       ~ (p=0.167 n=6)
+SkipControl/RejectLuma/SATD-4                                                                    163.1n ±  3%                                    160.3n ±  3%       ~ (p=0.621 n=6)
+SkipControl/RejectU/SAD-4                                                                        383.4n ±  5%                                    379.0n ±  2%       ~ (p=0.485 n=6)
+SkipControl/RejectU/SATD-4                                                                       376.9n ±  2%                                    378.6n ±  3%       ~ (p=0.310 n=6)
+SkipControl/RejectV/SAD-4                                                                        450.9n ±  1%                                    458.4n ±  3%       ~ (p=0.216 n=6)
+SkipControl/RejectV/SATD-4                                                                       452.2n ± 14%                                    451.1n ±  4%       ~ (p=0.937 n=6)
+SkipControl/TransformSuccess/SAD-4                                                               507.6n ±  3%                                    499.9n ±  7%       ~ (p=0.734 n=6)
+SkipControl/TransformSuccess/SATD-4                                                              547.6n ±  2%                                    546.6n ± 27%       ~ (p=0.937 n=6)
+geomean                                                                                          238.8n                                          237.3n        -0.62%
+
+                                    │ /tmp/h264-parity-target-20261022/skip-control-component-round5-base.txt │ /tmp/h264-parity-target-20261022/skip-control-skip-control-next.txt │
+                                    │                                  B/op                                   │                    B/op                      vs base                │
+SkipControl/Direct/SAD-4                                                                         0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/Direct/SATD-4                                                                        0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/PredThreshold/SAD-4                                                                  0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/PredThreshold/SATD-4                                                                 0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RefThreshold/SAD-4                                                                   0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RefThreshold/SATD-4                                                                  0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectLuma/SAD-4                                                                     0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectLuma/SATD-4                                                                    0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectU/SAD-4                                                                        0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectU/SATD-4                                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectV/SAD-4                                                                        0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectV/SATD-4                                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/TransformSuccess/SAD-4                                                               0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/TransformSuccess/SATD-4                                                              0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                                +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                    │ /tmp/h264-parity-target-20261022/skip-control-component-round5-base.txt │ /tmp/h264-parity-target-20261022/skip-control-skip-control-next.txt │
+                                    │                                allocs/op                                │                  allocs/op                   vs base                │
+SkipControl/Direct/SAD-4                                                                         0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/Direct/SATD-4                                                                        0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/PredThreshold/SAD-4                                                                  0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/PredThreshold/SATD-4                                                                 0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RefThreshold/SAD-4                                                                   0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RefThreshold/SATD-4                                                                  0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectLuma/SAD-4                                                                     0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectLuma/SATD-4                                                                    0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectU/SAD-4                                                                        0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectU/SATD-4                                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectV/SAD-4                                                                        0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/RejectV/SATD-4                                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/TransformSuccess/SAD-4                                                               0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipControl/TransformSuccess/SATD-4                                                              0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                                +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

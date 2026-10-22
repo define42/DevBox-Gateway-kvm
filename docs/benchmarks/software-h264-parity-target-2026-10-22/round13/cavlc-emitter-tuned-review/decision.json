@@ -1,0 +1,450 @@
+{
+  "status": "held",
+  "rationale": "The one predeclared density-gated tune still regresses zero/chroma public callers and complete residual callers at meaningful densities. In particular InterAll/Zero slows 3.19%; trailing-three density cases regress 5.79\u20137.80%, including counts6 and8, and public end14 extracted-zero slows7.01%. Dense/mixed gains do not clear these stop gates. All correctness/native447/race/CPU-off checks passed, but no production merge or full-frame/native timing claim is warranted. Preserve both attempts without another cutoff search or significance-seeking repeat.",
+  "cases": 87,
+  "pairs": 6,
+  "counts": {
+    "significant_reductions": 22,
+    "significant_regressions": 9,
+    "inconclusive": 56
+  },
+  "rows": [
+    {
+      "name": "CavlcLevelWriter/end14/medium/small",
+      "significant_change_percent": null,
+      "p": 0.9
+    },
+    {
+      "name": "CavlcLevelWriter/end14/medium/boundary",
+      "significant_change_percent": -14.48,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcLevelWriter/end14/medium/mixed",
+      "significant_change_percent": -7.89,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcLevelWriter/end14/dense/small",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "CavlcLevelWriter/end14/dense/boundary",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "CavlcLevelWriter/end14/dense/mixed",
+      "significant_change_percent": -16.56,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcLevelWriter/end15/medium/small",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcLevelWriter/end15/medium/boundary",
+      "significant_change_percent": -12.88,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcLevelWriter/end15/medium/mixed",
+      "significant_change_percent": -9.66,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcLevelWriter/end15/dense/small",
+      "significant_change_percent": -6.26,
+      "p": 0.039
+    },
+    {
+      "name": "CavlcLevelWriter/end15/dense/boundary",
+      "significant_change_percent": -25.0,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcLevelWriter/end15/dense/mixed",
+      "significant_change_percent": -19.61,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcMacroblock/NoResidual/Zero",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "CavlcMacroblock/NoResidual/Sparse",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "CavlcMacroblock/NoResidual/Dense",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "CavlcMacroblock/NoResidual/Mixed",
+      "significant_change_percent": null,
+      "p": 0.784
+    },
+    {
+      "name": "CavlcMacroblock/I16DC/Zero",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "CavlcMacroblock/I16DC/Sparse",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "CavlcMacroblock/I16DC/Dense",
+      "significant_change_percent": -6.52,
+      "p": 0.004
+    },
+    {
+      "name": "CavlcMacroblock/I16DC/Mixed",
+      "significant_change_percent": -7.8,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcMacroblock/ChromaDC/Zero",
+      "significant_change_percent": null,
+      "p": 0.093
+    },
+    {
+      "name": "CavlcMacroblock/ChromaDC/Sparse",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "CavlcMacroblock/ChromaDC/Dense",
+      "significant_change_percent": null,
+      "p": 0.197
+    },
+    {
+      "name": "CavlcMacroblock/ChromaDC/Mixed",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "CavlcMacroblock/InterOne/Zero",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "CavlcMacroblock/InterOne/Sparse",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "CavlcMacroblock/InterOne/Dense",
+      "significant_change_percent": -8.75,
+      "p": 0.009
+    },
+    {
+      "name": "CavlcMacroblock/InterOne/Mixed",
+      "significant_change_percent": null,
+      "p": 0.093
+    },
+    {
+      "name": "CavlcMacroblock/InterOneChromaDC/Zero",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcMacroblock/InterOneChromaDC/Sparse",
+      "significant_change_percent": null,
+      "p": 0.084
+    },
+    {
+      "name": "CavlcMacroblock/InterOneChromaDC/Dense",
+      "significant_change_percent": -4.9,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcMacroblock/InterOneChromaDC/Mixed",
+      "significant_change_percent": null,
+      "p": 0.589
+    },
+    {
+      "name": "CavlcMacroblock/ChromaAll/Zero",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "CavlcMacroblock/ChromaAll/Sparse",
+      "significant_change_percent": null,
+      "p": 0.818
+    },
+    {
+      "name": "CavlcMacroblock/ChromaAll/Dense",
+      "significant_change_percent": -6.15,
+      "p": 0.015
+    },
+    {
+      "name": "CavlcMacroblock/ChromaAll/Mixed",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcMacroblock/InterLuma/Zero",
+      "significant_change_percent": null,
+      "p": 0.42
+    },
+    {
+      "name": "CavlcMacroblock/InterLuma/Sparse",
+      "significant_change_percent": null,
+      "p": 0.589
+    },
+    {
+      "name": "CavlcMacroblock/InterLuma/Dense",
+      "significant_change_percent": -7.6,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcMacroblock/InterLuma/Mixed",
+      "significant_change_percent": null,
+      "p": 0.18
+    },
+    {
+      "name": "CavlcMacroblock/I16Luma/Zero",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "CavlcMacroblock/I16Luma/Sparse",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "CavlcMacroblock/I16Luma/Dense",
+      "significant_change_percent": -3.62,
+      "p": 0.022
+    },
+    {
+      "name": "CavlcMacroblock/I16Luma/Mixed",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcMacroblock/InterAll/Zero",
+      "significant_change_percent": 3.19,
+      "p": 0.041
+    },
+    {
+      "name": "CavlcMacroblock/InterAll/Sparse",
+      "significant_change_percent": null,
+      "p": 0.372
+    },
+    {
+      "name": "CavlcMacroblock/InterAll/Dense",
+      "significant_change_percent": -7.58,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcMacroblock/InterAll/Mixed",
+      "significant_change_percent": null,
+      "p": 0.126
+    },
+    {
+      "name": "CavlcMacroblock/I16All/Zero",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "CavlcMacroblock/I16All/Sparse",
+      "significant_change_percent": null,
+      "p": 0.327
+    },
+    {
+      "name": "CavlcMacroblock/I16All/Dense",
+      "significant_change_percent": -3.39,
+      "p": 0.015
+    },
+    {
+      "name": "CavlcMacroblock/I16All/Mixed",
+      "significant_change_percent": -5.02,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcNativeFull/end3/zero/prefix17",
+      "significant_change_percent": 4.84,
+      "p": 0.041
+    },
+    {
+      "name": "CavlcNativeFull/end3/known-zero/prefix17",
+      "significant_change_percent": null,
+      "p": 0.31
+    },
+    {
+      "name": "CavlcNativeFull/end3/sparse/prefix17",
+      "significant_change_percent": 4.33,
+      "p": 0.037
+    },
+    {
+      "name": "CavlcNativeFull/end3/dense/prefix17",
+      "significant_change_percent": 3.46,
+      "p": 0.041
+    },
+    {
+      "name": "CavlcNativeFull/end3/mixed/prefix17",
+      "significant_change_percent": 6.18,
+      "p": 0.006
+    },
+    {
+      "name": "CavlcNativeFull/end14/zero/prefix17",
+      "significant_change_percent": 7.01,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcNativeFull/end14/known-zero/prefix17",
+      "significant_change_percent": null,
+      "p": 0.485
+    },
+    {
+      "name": "CavlcNativeFull/end14/sparse/prefix17",
+      "significant_change_percent": null,
+      "p": 0.818
+    },
+    {
+      "name": "CavlcNativeFull/end14/dense/prefix17",
+      "significant_change_percent": -9.66,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcNativeFull/end14/mixed/prefix17",
+      "significant_change_percent": -17.79,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcNativeFull/end15/zero/prefix17",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "CavlcNativeFull/end15/known-zero/prefix17",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "CavlcNativeFull/end15/sparse/prefix17",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "CavlcNativeFull/end15/dense/prefix17",
+      "significant_change_percent": -10.1,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcNativeFull/end15/mixed/prefix17",
+      "significant_change_percent": -18.56,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count3/Small",
+      "significant_change_percent": null,
+      "p": 0.97
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count3/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count4/Small",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count4/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count5/Small",
+      "significant_change_percent": null,
+      "p": 0.288
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count5/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count6/Small",
+      "significant_change_percent": null,
+      "p": 0.31
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count6/Trailing3",
+      "significant_change_percent": 7.8,
+      "p": 0.004
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count8/Small",
+      "significant_change_percent": null,
+      "p": 0.082
+    },
+    {
+      "name": "CavlcEmitterDensity/InterAll/count8/Trailing3",
+      "significant_change_percent": 7.53,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count3/Small",
+      "significant_change_percent": null,
+      "p": 0.457
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count3/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.333
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count4/Small",
+      "significant_change_percent": null,
+      "p": 0.093
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count4/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count5/Small",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count5/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count6/Small",
+      "significant_change_percent": null,
+      "p": 0.485
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count6/Trailing3",
+      "significant_change_percent": 5.79,
+      "p": 0.002
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count8/Small",
+      "significant_change_percent": null,
+      "p": 0.524
+    },
+    {
+      "name": "CavlcEmitterDensity/I16All/count8/Trailing3",
+      "significant_change_percent": null,
+      "p": 0.065
+    }
+  ],
+  "candidate_merged": false,
+  "full_frame_or_native_timing_performed": false
+}

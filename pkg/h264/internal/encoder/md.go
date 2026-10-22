@@ -370,12 +370,12 @@ func AnalysisVaaInfoIntra_c(pDataY []uint8, iDataYOff int, kiLineSize int32) int
 	return /*variance =*/ iSumSqr - ((iSumAvg * iSumAvg) >> 4)
 }
 
-// InitIntraAnalysisVaaInfo sets pfGetVarianceFromIntraVaa & co. (only the C
-// implementations).
+// InitIntraAnalysisVaaInfo installs VAA analysis and motion-vector helpers.
 func InitIntraAnalysisVaaInfo(pFuncList *SWelsFuncPtrList, kuiCpuFlag uint32) {
 	pFuncList.pfGetVarianceFromIntraVaa = AnalysisVaaInfoIntra_c
 	pFuncList.pfGetMbSignFromInterVaa = MdInterAnalysisVaaInfo_c
 	pFuncList.pfUpdateMbMv = UpdateMbMv_c
+	initIntraVaaSIMD(pFuncList, kuiCpuFlag)
 }
 
 func MdIntraAnalysisVaaInfo(pEncCtx *sWelsEncCtx, pEncMb []uint8, iEncMbOff int) bool {
@@ -517,14 +517,30 @@ func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredIn
 			COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)
 	}
 
+	// Keep each pair between its filter and the next filter: the horizontal
+	// callback may change pixels read by the earlier vertical pair.
+	// The four supported block IDs are contiguous. Keep narrow blocks out of
+	// the capability/shape helper before inspecting the function tables.
+	useHalfPair := pMe.uiBlockSize <= BLOCK_8x8 &&
+		sampleHalfSatdPairEnabled(&pFunc.sSampleDealingFuncs, pMe.uiBlockSize, iWidth, iHeight)
+	var firstHalfCost, secondHalfCost int32
+	halfPairOK := false
+
 	iBestHalfPix = REFINE_ME_NO_BEST_HALF_PIXEL
 
 	pFunc.sMcFuncs.PfLumaHalfpelVer(pRef, iRefOff-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE, iWidth,
 		iHeight+1)
 
 	//step 1: get [iWidth][iHeight+1] half pixel from vertical filter
+	if useHalfPair {
+		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
+			pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, iWidth, iHeight)
+	}
 	//===========================(0, -2)==============================//
-	iCurCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE) +
+	if !halfPairOK {
+		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = firstHalfCost +
 		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-2-iMvpY)
 	if iCurCost < iBestCost {
 		iBestCost = iCurCost
@@ -533,7 +549,10 @@ func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredIn
 		iBestPredInterOff = 0
 	}
 	//===========================(0, 2)==============================//
-	iCurCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE) +
+	if !halfPairOK {
+		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = secondHalfCost +
 		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)+2-iMvpY)
 	if iCurCost < iBestCost {
 		iBestCost = iCurCost
@@ -544,9 +563,17 @@ func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredIn
 	pFunc.sMcFuncs.PfLumaHalfpelHor(pRef, iRefOff-1, kiStrideRef, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE, iWidth+1,
 		iHeight)
 	//step 2: get [iWidth][iHeight+1] half pixel from horizon filter
+	halfPairOK = false
+	if useHalfPair {
+		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
+			pMeRefine.pHalfPixH, 1, iWidth, iHeight)
+	}
 
 	//===========================(-2, 0)==============================//
-	iCurCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE) +
+	if !halfPairOK {
+		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = firstHalfCost +
 		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-2-iMvpX, int32(iMvy)-iMvpY)
 	if iCurCost < iBestCost {
 		iBestCost = iCurCost
@@ -555,7 +582,10 @@ func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredIn
 		iBestPredInterOff = 0
 	}
 	//===========================(2, 0)===============================//
-	iCurCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 1, ME_REFINE_BUF_STRIDE) +
+	if !halfPairOK {
+		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 1, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = secondHalfCost +
 		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)+2-iMvpX, int32(iMvy)-iMvpY)
 	if iCurCost < iBestCost {
 		iBestCost = iCurCost

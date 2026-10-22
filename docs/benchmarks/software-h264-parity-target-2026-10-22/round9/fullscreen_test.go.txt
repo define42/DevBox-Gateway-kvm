@@ -1,0 +1,147 @@
+//go:build linux
+
+package avc
+
+import (
+	"fmt"
+	"image"
+	"os"
+	"slices"
+	"testing"
+	"time"
+
+	"golang.org/x/sys/unix"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+)
+
+const videoReviewWidth, videoReviewHeight = 1920, 1080
+const videoReviewWarmup = 16
+
+// All source generation and the initial IDR/predicted-frame warmup are outside
+// timing. FullDamage exercises RDP's all-false macroblock hints; NilDamage
+// exercises a full conversion with no hints. Neither certifies clean blocks.
+func BenchmarkFullscreenVideo(b *testing.B) {
+	for _, fixture := range []string{"Clip", "Dense"} {
+		b.Run(fixture, func(b *testing.B) {
+			frames := videoReviewFrames(b, fixture)
+			for _, threads := range []int{1, 4} {
+				for _, fullDamage := range []bool{true, false} {
+					mode := "NilDamage"
+					if fullDamage {
+						mode = "FullDamage"
+					}
+					b.Run(fmt.Sprintf("1080p/%dSlices/%s", threads, mode), func(b *testing.B) {
+						enc, err := NewEncoderWithOptions(videoReviewWidth, videoReviewHeight,
+							Options{Backend: BackendSoftware, Threads: threads, FrameRate: 30, Measure: true})
+						if err != nil {
+							b.Fatal(err)
+						}
+						defer enc.Close()
+						// Suppress diagnostics consistently in both versions; the
+						// high-entropy stress fixture can exceed level size hints.
+						var trace uint32
+						if result := enc.codec.(*openH264Encoder).codec.Raw().SetOption(api.ENCODER_OPTION_TRACE_LEVEL, &trace); result != 0 {
+							b.Fatalf("trace option: %d", result)
+						}
+						var regions []image.Rectangle
+						if fullDamage {
+							regions = []image.Rectangle{frames[0].Rect}
+						}
+						for frame := range videoReviewWarmup {
+							if _, err := enc.EncodeDamage(frames[frame%len(frames)], regions, frame == 0); err != nil {
+								b.Fatal(err)
+							}
+						}
+						var elapsed [2048]int64
+						var conversion, encoding time.Duration
+						var bytes, frame int
+						var start, finish unix.Rusage
+						if err := unix.Getrusage(unix.RUSAGE_SELF, &start); err != nil {
+							b.Fatal(err)
+						}
+						b.ReportAllocs()
+						for b.Loop() {
+							begin := time.Now()
+							data, err := enc.EncodeDamage(frames[(frame+videoReviewWarmup)%len(frames)], regions, false)
+							elapsed[frame%len(elapsed)] = time.Since(begin).Nanoseconds()
+							if err != nil || len(data) == 0 {
+								b.Fatalf("frame %d returned %d bytes: %v", frame, len(data), err)
+							}
+							bytes += len(data)
+							stats := enc.LastStats()
+							conversion += stats.Conversion
+							encoding += stats.Encoding
+							frame++
+						}
+						if err := unix.Getrusage(unix.RUSAGE_SELF, &finish); err != nil {
+							b.Fatal(err)
+						}
+						timings := elapsed[:min(frame, len(elapsed))]
+						slices.Sort(timings)
+						b.ReportMetric(float64(timings[(len(timings)-1)*95/100]), "p95_ns/frame")
+						b.ReportMetric(float64(conversion.Nanoseconds())/float64(frame), "convert_ns/frame")
+						b.ReportMetric(float64(encoding.Nanoseconds())/float64(frame), "encode_ns/frame")
+						cpu := finish.Utime.Nano() + finish.Stime.Nano() - start.Utime.Nano() - start.Stime.Nano()
+						b.ReportMetric(float64(cpu)/float64(frame), "cpu_ns/frame")
+						b.ReportMetric(float64(bytes)/float64(frame), "bytes/frame")
+						b.ReportMetric(float64(enc.Threads()), "slices")
+					})
+				}
+			}
+		})
+	}
+}
+
+func videoReviewFrames(t testing.TB, name string) []*image.RGBA {
+	t.Helper()
+	const frameBytes = videoReviewWidth * videoReviewHeight * 4
+	rect := image.Rect(0, 0, videoReviewWidth, videoReviewHeight)
+	if name == "Clip" {
+		file := os.Getenv("H264_VIDEO_RGBA")
+		if file == "" {
+			t.Skip("H264_VIDEO_RGBA must name 1920x1080 RGBA frames")
+		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(data)%frameBytes != 0 || len(data)/frameBytes < 2 {
+			t.Fatal("invalid RGBA sequence")
+		}
+		frames := make([]*image.RGBA, len(data)/frameBytes)
+		for i := range frames {
+			frames[i] = &image.RGBA{Pix: data[i*frameBytes : (i+1)*frameBytes], Stride: videoReviewWidth * 4, Rect: rect}
+		}
+		return frames
+	}
+	frames := make([]*image.RGBA, 8)
+	for frame := range frames {
+		img := image.NewRGBA(rect)
+		for y := range videoReviewHeight {
+			for x := range videoReviewWidth {
+				sx, sy := x+frame/2, y+frame/3
+				a := videoReviewTexture(sx, sy)
+				z := videoReviewTexture(sx+1, sy)
+				off := y*img.Stride + x*4
+				for channel := range 3 {
+					value := int(a >> (channel * 8) & 255)
+					if frame&1 != 0 {
+						value = (value + int(z>>(channel*8)&255) + 1) / 2
+					}
+					img.Pix[off+channel] = byte(value)
+				}
+				img.Pix[off+3] = 255
+			}
+		}
+		frames[frame] = img
+	}
+	return frames
+}
+
+func videoReviewTexture(x, y int) uint32 {
+	value := uint32(x)*0x9e3779b1 ^ uint32(y)*0x85ebca6b
+	value ^= value >> 16
+	value *= 0x7feb352d
+	return value ^ value>>15
+}

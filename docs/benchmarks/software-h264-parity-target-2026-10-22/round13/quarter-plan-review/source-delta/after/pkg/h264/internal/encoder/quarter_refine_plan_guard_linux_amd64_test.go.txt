@@ -1,0 +1,47 @@
+//go:build linux && amd64
+
+package encoder
+
+import (
+	"bytes"
+	"fmt"
+	"math"
+	"testing"
+)
+
+func TestQuarterPlanExactUnionGuards(t *testing.T) {
+	requireSampleAVX2(t)
+	for _, shape := range [][3]int32{{16, 16, BLOCK_16x16}, {16, 8, BLOCK_16x8}, {8, 16, BLOCK_8x16}, {8, 8, BLOCK_8x8}, {8, 4, BLOCK_8x4}} {
+		for _, half := range []int32{REFINE_ME_NO_BEST_HALF_PIXEL, REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM, REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT} {
+			for _, atEnd := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%dx%d/half%d/end%v", shape[0], shape[1], half, atEnd), func(t *testing.T) {
+					got, want := newQuarterPlanDirectFixture(shape, half, false), newQuarterPlanDirectFixture(shape, half, false)
+					protect := func(buf []byte, readonly bool) []byte {
+						if len(buf) == 0 {
+							return buf
+						}
+						guarded, readOnly := intraDCGuardedBuffer(t, len(buf), atEnd)
+						copy(guarded, buf)
+						if readonly {
+							readOnly()
+						}
+						return guarded
+					}
+					got.me.pEncMb = protect(got.me.pEncMb, true)
+					got.me.pRefMb = protect(got.me.pRefMb, true)
+					got.refine.pHalfPixV = protect(got.refine.pHalfPixV, true)
+					got.refine.pHalfPixH = protect(got.refine.pHalfPixH, true)
+					got.refine.pHalfPixHV = protect(got.refine.pHalfPixHV, true)
+					got.refine.pQuarPixBest = protect(got.refine.pQuarPixBest, false)
+					got.refine.pQuarPixTmp = protect(got.refine.pQuarPixTmp, false)
+					lms := [4]int32{17, 9, 1, -7}
+					cost, mode, ok := meRefineQuarterPlan(&got.funcs, &got.me, &got.refine, shape[0], shape[1], got.me.pRefMb, got.me.iRefMbOff, 32, 32, half, math.MaxInt32, lms)
+					wantCost, wantMode := meRefineQuarterPlanLegacy(&want.funcs, &want.me, &want.refine, shape[0], shape[1], want.me.pRefMb, want.me.iRefMbOff, 32, 32, half, math.MaxInt32, lms)
+					if !ok || cost != wantCost || mode != wantMode || !bytes.Equal(got.refine.pQuarPixBest, want.refine.pQuarPixBest) || !bytes.Equal(got.refine.pQuarPixTmp, want.refine.pQuarPixTmp) {
+						t.Fatalf("guarded plan differs: (%d,%d,%v) want(%d,%d)", cost, mode, ok, wantCost, wantMode)
+					}
+				})
+			}
+		}
+	}
+}

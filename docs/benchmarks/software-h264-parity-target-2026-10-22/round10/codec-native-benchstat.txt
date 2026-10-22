@@ -1,0 +1,56 @@
+                                            │ /tmp/h264-parity-target-20261022/measure/after.txt │ /tmp/h264-parity-target-20261022/measure/native.txt │
+                                            │                       sec/op                       │            sec/op             vs base               │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                        29.10m ±   1%                  19.53m ±   2%  -32.88% (p=0.002 n=6)
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4                                        10.39m ±  84%                  24.09m ±  65%        ~ (p=0.093 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4                                             29.36m ±   4%                  19.44m ±   2%  -33.80% (p=0.002 n=6)
+OpenH264/Road/1920x1080/QP20/4Slices-4                                             17.39m ±  30%                  11.11m ±  64%        ~ (p=0.065 n=6)
+OpenH264/Road/1920x1080/QP32/1Slices-4                                             21.10m ±  11%                  13.29m ±  14%  -37.03% (p=0.002 n=6)
+OpenH264/Road/1920x1080/QP32/4Slices-4                                            18.200m ±  57%                  7.100m ±  83%  -60.99% (p=0.002 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                             10.977m ±  39%                  7.605m ±  12%  -30.72% (p=0.002 n=6)
+OpenH264/PDF/1920x1080/QP20/4Slices-4                                              9.755m ±  65%                  4.407m ± 206%        ~ (p=0.093 n=6)
+OpenH264/Road/1280x720/QP20/1Slices-4                                             12.735m ±  18%                  8.364m ±  30%  -34.32% (p=0.002 n=6)
+OpenH264/Road/1280x720/QP20/4Slices-4                                              9.080m ± 107%                  5.373m ± 168%        ~ (p=0.132 n=6)
+geomean                                                                            15.37m                         10.37m         -32.49%
+
+                                            │ /tmp/h264-parity-target-20261022/measure/after.txt │ /tmp/h264-parity-target-20261022/measure/native.txt │
+                                            │                    cpu_ns/frame                    │         cpu_ns/frame          vs base               │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                        29.10M ±   1%                  19.53M ±   2%  -32.87% (p=0.002 n=6)
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4                                        32.75M ±  89%                  68.89M ±  71%        ~ (p=0.132 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4                                             29.36M ±   4%                  19.43M ±   2%  -33.82% (p=0.002 n=6)
+OpenH264/Road/1920x1080/QP20/4Slices-4                                             48.16M ±  36%                  24.69M ±  81%  -48.74% (p=0.009 n=6)
+OpenH264/Road/1920x1080/QP32/1Slices-4                                             21.10M ±  10%                  13.28M ±  14%  -37.07% (p=0.002 n=6)
+OpenH264/Road/1920x1080/QP32/4Slices-4                                             49.58M ±  54%                  14.17M ± 105%  -71.42% (p=0.002 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                             10.978M ±  39%                  7.597M ±  12%  -30.80% (p=0.002 n=6)
+OpenH264/PDF/1920x1080/QP20/4Slices-4                                             25.291M ±  69%                  8.934M ± 213%  -64.67% (p=0.041 n=6)
+OpenH264/Road/1280x720/QP20/1Slices-4                                             12.737M ±  18%                  8.364M ±  30%  -34.33% (p=0.002 n=6)
+OpenH264/Road/1280x720/QP20/4Slices-4                                              25.37M ± 108%                  10.84M ± 199%        ~ (p=0.065 n=6)
+geomean                                                                            25.72M                         15.39M         -40.14%
+
+                                            │ /tmp/h264-parity-target-20261022/measure/after.txt │ /tmp/h264-parity-target-20261022/measure/native.txt │
+                                            │                    bytes/frame                     │         bytes/frame          vs base                │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                         99.42Ki ± 0%                  99.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4                                         99.65Ki ± 0%                  99.65Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP20/1Slices-4                                              118.4Ki ± 0%                  118.4Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP20/4Slices-4                                              119.9Ki ± 0%                  119.9Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP32/1Slices-4                                              32.47Ki ± 0%                  32.47Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP32/4Slices-4                                              33.30Ki ± 0%                  33.30Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                               52.76Ki ± 0%                  52.76Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/PDF/1920x1080/QP20/4Slices-4                                               52.96Ki ± 0%                  52.96Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1280x720/QP20/1Slices-4                                               57.59Ki ± 0%                  57.59Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1280x720/QP20/4Slices-4                                               58.43Ki ± 0%                  58.43Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                             65.39Ki                       65.39Ki       +0.00%
+¹ all samples are equal
+
+                                            │ /tmp/h264-parity-target-20261022/measure/after.txt │ /tmp/h264-parity-target-20261022/measure/native.txt │
+                                            │                    p95_ns/frame                    │        p95_ns/frame          vs base                │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                        32.32M ±   5%                 22.14M ±   8%   -31.52% (p=0.002 n=6)
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4                                        14.80M ± 119%                 35.75M ±  70%  +141.61% (p=0.041 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4                                             34.87M ±  11%                 23.34M ±  16%   -33.07% (p=0.002 n=6)
+OpenH264/Road/1920x1080/QP20/4Slices-4                                             30.66M ±  31%                 20.71M ±  74%         ~ (p=0.310 n=6)
+OpenH264/Road/1920x1080/QP32/1Slices-4                                             25.81M ±  13%                 16.35M ±  22%   -36.65% (p=0.002 n=6)
+OpenH264/Road/1920x1080/QP32/4Slices-4                                            34.037M ±  25%                 9.207M ± 204%   -72.95% (p=0.002 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                              37.24M ±  57%                 26.39M ±   9%   -29.12% (p=0.002 n=6)
+OpenH264/PDF/1920x1080/QP20/4Slices-4                                              49.17M ±  71%                 13.04M ± 205%   -73.49% (p=0.026 n=6)
+OpenH264/Road/1280x720/QP20/1Slices-4                                              15.21M ±  21%                 10.27M ±  38%   -32.47% (p=0.002 n=6)
+OpenH264/Road/1280x720/QP20/4Slices-4                                             17.426M ±  48%                 7.368M ± 172%         ~ (p=0.132 n=6)
+geomean                                                                            27.15M                        16.50M          -39.22%

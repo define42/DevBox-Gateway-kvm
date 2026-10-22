@@ -1,0 +1,234 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Dense-4         	 1983194	       150.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Motion-4        	 2013526	       149.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Sparse-4        	 2220968	       135.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Zero-4          	 2793564	       108.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Dense-4          	 2093281	       143.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Motion-4         	 1790084	       156.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Sparse-4         	 2062198	       181.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Zero-4           	 2918413	       102.5 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Dense-4         	 2010274	       149.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Motion-4        	 1994114	       149.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Sparse-4        	 2794086	       105.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Zero-4          	 2572898	       118.5 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Dense-4          	 1723657	       166.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Motion-4         	 1951321	       154.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Sparse-4         	 2695588	       110.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Zero-4           	 2731263	       111.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=false-4                  	14436472	        20.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=true-4                   	24708373	        11.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=false-4                 	14349019	        21.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=true-4                  	25304851	        11.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=false-4              	14623641	        20.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=true-4               	26838019	        11.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=false-4                 	14229651	        20.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=true-4                  	27274033	        11.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=false-4                	14750854	        22.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=true-4                 	27017859	        11.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=false-4             	14280244	        20.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=true-4              	22170172	        11.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=false-4                 	14330349	        20.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=true-4                  	27049070	        11.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=false-4                	14448757	        21.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=true-4                 	27723172	        11.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=false-4             	14296312	        20.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=true-4              	28787247	        11.27 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Dense-4         	 1977442	       149.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Motion-4        	 2002584	       150.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Sparse-4        	 2188753	       138.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Zero-4          	 2723959	       110.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Dense-4          	 2122866	       140.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Motion-4         	 2053675	       147.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Sparse-4         	 2164426	       136.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Zero-4           	 2907902	       105.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Dense-4         	 2005880	       152.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Motion-4        	 1941807	       155.2 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Sparse-4        	 2792128	       106.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Zero-4          	 2870916	       105.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Dense-4          	 1977163	       152.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Motion-4         	 1965986	       152.2 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Sparse-4         	 2744766	       110.5 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Zero-4           	 2584346	       112.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=false-4                  	14198079	        21.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=true-4                   	25442983	        11.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=false-4                 	14093533	        21.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=true-4                  	26980382	        11.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=false-4              	14674837	        21.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=true-4               	27095994	        11.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=false-4                 	13772148	        21.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=true-4                  	25341884	        11.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=false-4                	14421225	        20.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=true-4                 	26948330	        11.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=false-4             	14562384	        20.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=true-4              	27244046	        11.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=false-4                 	14191034	        21.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=true-4                  	26306726	        11.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=false-4                	14088942	        20.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=true-4                 	26021682	        11.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=false-4             	13994962	        20.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=true-4              	27656725	        11.45 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Dense-4         	 1999696	       151.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Motion-4        	 1909666	       153.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Sparse-4        	 2149446	       139.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Zero-4          	 2891432	       105.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Dense-4          	 2107978	       143.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Motion-4         	 2032510	       152.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Sparse-4         	 2139060	       137.5 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Zero-4           	 3006578	       105.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Dense-4         	 1960124	       150.2 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Motion-4        	 2027672	       152.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Sparse-4        	 2363301	       116.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Zero-4          	 2744301	       108.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Dense-4          	 1992301	       150.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Motion-4         	 1973114	       154.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Sparse-4         	 2634567	       116.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Zero-4           	 2718361	       110.2 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=false-4                  	14749669	        20.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=true-4                   	28333606	        11.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=false-4                 	14470551	        20.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=true-4                  	27072322	        11.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=false-4              	14519128	        20.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=true-4               	24640940	        11.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=false-4                 	15100990	        20.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=true-4                  	26814620	        11.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=false-4                	14459895	        20.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=true-4                 	27562405	        11.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=false-4             	14943412	        20.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=true-4              	27933717	        11.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=false-4                 	14305246	        20.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=true-4                  	27132439	        11.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=false-4                	14427840	        21.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=true-4                 	26336115	        11.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=false-4             	14505956	        21.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=true-4              	26404134	        11.31 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Dense-4         	 1968704	       149.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Motion-4        	 2009806	       151.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Sparse-4        	 2207671	       136.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Zero-4          	 2898097	       104.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Dense-4          	 2122406	       145.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Motion-4         	 2106265	       144.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Sparse-4         	 2244018	       134.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Zero-4           	 2939001	       104.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Dense-4         	 2017857	       148.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Motion-4        	 2011359	       149.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Sparse-4        	 2849356	       106.0 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Zero-4          	 2727621	       109.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Dense-4          	 1940594	       155.5 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Motion-4         	 1991433	       150.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Sparse-4         	 2707848	       112.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Zero-4           	 2677783	       110.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=false-4                  	14347170	        20.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=true-4                   	28560550	        11.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=false-4                 	14675584	        20.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=true-4                  	27934328	        11.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=false-4              	14358205	        20.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=true-4               	27606979	        11.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=false-4                 	14254924	        21.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=true-4                  	27629470	        11.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=false-4                	13879442	        20.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=true-4                 	26744730	        11.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=false-4             	14263120	        22.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=true-4              	25605608	        11.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=false-4                 	13286686	        22.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=true-4                  	25608858	        11.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=false-4                	14714284	        21.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=true-4                 	21251902	        13.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=false-4             	14913032	        21.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=true-4              	27170610	        11.54 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Dense-4         	 2002654	       151.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Motion-4        	 2022217	       148.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Sparse-4        	 2230171	       165.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Zero-4          	 2768484	       108.2 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Dense-4          	 2143545	       139.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Motion-4         	 1923465	       149.5 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Sparse-4         	 2301950	       129.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Zero-4           	 2721709	       103.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Dense-4         	 2059818	       147.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Motion-4        	 1995525	       152.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Sparse-4        	 2760777	       108.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Zero-4          	 2770160	       107.6 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Dense-4          	 2005280	       151.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Motion-4         	 1981052	       153.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Sparse-4         	 2770874	       112.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Zero-4           	 2737120	       112.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=false-4                  	13912990	        21.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=true-4                   	23035468	        11.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=false-4                 	14383358	        21.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=true-4                  	24704863	        11.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=false-4              	14664492	        20.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=true-4               	27648902	        11.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=false-4                 	14343272	        21.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=true-4                  	26005240	        11.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=false-4                	14681774	        20.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=true-4                 	26261349	        11.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=false-4             	13403850	        20.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=true-4              	24556356	        11.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=false-4                 	14540365	        20.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=true-4                  	27627417	        11.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=false-4                	14560015	        21.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=true-4                 	26814204	        11.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=false-4             	14710946	        20.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=true-4              	24365542	        11.38 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Dense-4         	 1954256	       154.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Motion-4        	 1995273	       151.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Sparse-4        	 2224125	       135.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=false/Zero-4          	 2561707	       110.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Dense-4          	 2104122	       143.4 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Motion-4         	 2045664	       144.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Sparse-4         	 2249912	       132.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP20/intra=true/Zero-4           	 2770336	       106.1 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Dense-4         	 2021160	       149.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Motion-4        	 1994916	       150.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Sparse-4        	 2823267	       106.7 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=false/Zero-4          	 2659002	       111.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Dense-4          	 1951586	       152.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Motion-4         	 1913695	       154.3 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Sparse-4         	 2654377	       113.8 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkChromaCoefficientEncoding/QP32/intra=true/Zero-4           	 2717751	       109.9 ns/op	         2.000 planes/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=false-4                  	14734173	        21.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Zero/checked=true-4                   	25705102	        11.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=false-4                 	14449068	        20.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Dense/checked=true-4                  	25651590	        12.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=false-4              	14221965	        20.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP0/Extremes/checked=true-4               	27090163	        11.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=false-4                 	15134037	        20.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Zero/checked=true-4                  	26520588	        11.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=false-4                	13934943	        22.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Dense/checked=true-4                 	23379224	        11.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=false-4             	14124128	        21.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP26/Extremes/checked=true-4              	23788542	        11.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=false-4                 	13905309	        20.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Zero/checked=true-4                  	27162579	        11.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=false-4                	14694038	        20.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Dense/checked=true-4                 	25326634	        11.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=false-4             	14309594	        20.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkHadamardQuant2x2/QP51/Extremes/checked=true-4              	24422365	        11.94 ns/op	       0 B/op	       0 allocs/op
+PASS

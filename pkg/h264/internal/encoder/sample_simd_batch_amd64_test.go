@@ -112,6 +112,12 @@ func TestSampleAvgSatdDispatch(t *testing.T) {
 		if got, want := funcs.sSampleDealingFuncs.pfSampleAvgSatd != nil, flags&common.WELS_CPU_AVX2 != 0; got != want {
 			t.Fatalf("flags=%x fused=%v want=%v", flags, got, want)
 		}
+		if got, want := funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated != nil, flags&common.WELS_CPU_AVX2 != 0; got != want {
+			t.Fatalf("flags=%x validated=%v want=%v", flags, got, want)
+		}
+		if got, want := funcs.sSampleDealingFuncs.bSampleAvgSatdFour, flags&common.WELS_CPU_AVX2 != 0; got != want {
+			t.Fatalf("flags=%x four=%v want=%v", flags, got, want)
+		}
 	}
 }
 
@@ -137,6 +143,10 @@ func TestQuarterRefineFusedMatchesSequential(t *testing.T) {
 					}
 					calls := 0
 					if fused {
+						// Exercise the checked callback route independently of
+						// the validated production callback.
+						funcs.sSampleDealingFuncs.bSampleAvgSatdFour = false
+						funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated = nil
 						funcs.sSampleDealingFuncs.pfSampleAvgSatd = func(enc []byte, encOff int, encStride int32, a []byte, aOff int, aStride int32, b []byte, bOff int, bStride int32, w, h int32) int32 {
 							calls++
 							return sampleAvgSatdAVX2(enc, encOff, encStride, a, aOff, aStride, b, bOff, bStride, w, h)

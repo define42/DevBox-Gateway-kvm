@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/tmp/h264-parity-target-20261022/measure_cavlc_emitter.py", line 290, in <module>
+    main()
+  File "/tmp/h264-parity-target-20261022/measure_cavlc_emitter.py", line 232, in main
+    log = run(kind + '-full-encoder-tests', [GO, 'test', '-json', './' + str(PACKAGE), '-count=1'], tree, env)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/h264-parity-target-20261022/measure_cavlc_emitter.py", line 91, in run
+    raise RuntimeError(f'{name} exited {process.returncode}; see {log}')
+RuntimeError: after-full-encoder-tests exited 1; see /tmp/h264-parity-target-20261022/cavlc-emitter-review/after-full-encoder-tests.txt

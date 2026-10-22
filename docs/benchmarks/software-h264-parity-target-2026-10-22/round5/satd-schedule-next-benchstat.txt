@@ -1,0 +1,61 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                        │ /tmp/h264-parity-target-20261022/satd-schedule-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/satd-schedule-next-satd-schedule-next.txt │
+                                        │                                    sec/op                                     │                        sec/op                         vs base              │
+SampleSatd8Rows/plain/8x8/checked-4                                                                        16.07n ±  4%                                           16.53n ±  3%  +2.80% (p=0.022 n=6)
+SampleSatd8Rows/plain/8x8/raw-4                                                                            10.80n ±  2%                                           11.53n ± 23%  +6.71% (p=0.002 n=6)
+SampleSatd8Rows/plain/8x16/checked-4                                                                       22.23n ± 12%                                           22.45n ±  7%       ~ (p=0.589 n=6)
+SampleSatd8Rows/plain/8x16/raw-4                                                                           17.37n ±  1%                                           17.70n ±  3%  +1.93% (p=0.004 n=6)
+SampleSatd8Rows/plain/16x8/checked-4                                                                       20.00n ±  2%                                           19.24n ±  2%  -3.78% (p=0.002 n=6)
+SampleSatd8Rows/plain/16x8/raw-4                                                                           14.43n ±  4%                                           14.08n ±  2%  -2.36% (p=0.011 n=6)
+SampleSatd8Rows/plain/16x16/checked-4                                                                      30.41n ±  3%                                           29.69n ±  6%       ~ (p=0.240 n=6)
+SampleSatd8Rows/plain/16x16/raw-4                                                                          24.95n ±  6%                                           24.16n ±  1%  -3.17% (p=0.002 n=6)
+SampleSatd8Rows/average/8x4/checked-4                                                                      19.97n ±  5%                                           19.43n ±  4%       ~ (p=0.331 n=6)
+SampleSatd8Rows/average/8x8/checked-4                                                                      21.41n ±  5%                                           21.23n ±  4%       ~ (p=0.394 n=6)
+SampleSatd8Rows/average/8x12/checked-4                                                                     28.43n ±  7%                                           28.38n ±  1%       ~ (p=1.000 n=6)
+SampleSatd8Rows/average/8x16/checked-4                                                                     28.75n ±  7%                                           28.75n ±  5%       ~ (p=0.818 n=6)
+SampleSatd8Rows/average/16x8/checked-4                                                                     27.30n ± 30%                                           27.12n ±  6%       ~ (p=0.699 n=6)
+SampleSatd8Rows/average/16x16/checked-4                                                                    42.33n ± 36%                                           41.76n ±  4%       ~ (p=0.461 n=6)
+geomean                                                                                                    21.92n                                                 21.84n        -0.39%
+
+                                        │ /tmp/h264-parity-target-20261022/satd-schedule-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/satd-schedule-next-satd-schedule-next.txt │
+                                        │                                     B/op                                      │                        B/op                         vs base                │
+SampleSatd8Rows/plain/8x8/checked-4                                                                        0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x8/raw-4                                                                            0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/checked-4                                                                       0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/raw-4                                                                           0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/checked-4                                                                       0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/raw-4                                                                           0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/checked-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/raw-4                                                                          0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x4/checked-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x8/checked-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x12/checked-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x16/checked-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x8/checked-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x16/checked-4                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                               ²                                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                        │ /tmp/h264-parity-target-20261022/satd-schedule-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/satd-schedule-next-satd-schedule-next.txt │
+                                        │                                   allocs/op                                   │                     allocs/op                       vs base                │
+SampleSatd8Rows/plain/8x8/checked-4                                                                        0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x8/raw-4                                                                            0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/checked-4                                                                       0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/8x16/raw-4                                                                           0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/checked-4                                                                       0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x8/raw-4                                                                           0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/checked-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/plain/16x16/raw-4                                                                          0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x4/checked-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x8/checked-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x12/checked-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/8x16/checked-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x8/checked-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSatd8Rows/average/16x16/checked-4                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                               ²                                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

@@ -27,6 +27,9 @@ func initIntraPredSIMD(f *SWelsFuncPtrList, flags uint32) {
 	if flags&common.WELS_CPU_SSE2 == 0 {
 		return
 	}
+	f.pfGetLumaI4x4Pred[common.I4_PRED_HD] = WelsI4x4LumaPredHD_sse2
+	f.pfGetLumaI4x4Pred[common.I4_PRED_HU] = WelsI4x4LumaPredHU_sse2
+	f.pfGetLumaI4x4Pred[common.I4_PRED_VR] = WelsI4x4LumaPredVR_sse2
 	f.pfGetLumaI16x16Pred[common.I16_PRED_H] = intra16Horizontal
 	f.pfGetLumaI16x16Pred[common.I16_PRED_P] = intra16Plane
 	f.pfGetLumaI16x16Pred[common.I16_PRED_DC] = intra16DC
@@ -80,11 +83,21 @@ func intraPlaneCoefficients(ref []byte, off int, stride int32, size int) (int32,
 }
 
 func intra16Plane(dst []byte, dstOff int, ref []byte, refOff int, stride int32) {
+	if intraPlaneReferencesFit(ref, refOff, stride, 16) {
+		block := dst[dstOff : dstOff+256]
+		intraPredPlane16FullSSE2(&block[0], &ref[refOff-int(stride)-1], int(stride))
+		return
+	}
 	base, h, v := intraPlaneCoefficients(ref, refOff, stride, 16)
 	intraPredPlaneSSE2(dst[dstOff:dstOff+256], base, h, v, 16)
 }
 
 func intra8Plane(dst []byte, dstOff int, ref []byte, refOff int, stride int32) {
+	if intraPlaneReferencesFit(ref, refOff, stride, 8) {
+		block := dst[dstOff : dstOff+64]
+		intraPredPlane8FullSSE2(&block[0], &ref[refOff-int(stride)-1], int(stride))
+		return
+	}
 	base, h, v := intraPlaneCoefficients(ref, refOff, stride, 8)
 	intraPredPlaneSSE2(dst[dstOff:dstOff+64], base, h, v, 8)
 }

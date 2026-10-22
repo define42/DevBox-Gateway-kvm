@@ -1,0 +1,103 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                          │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-candidate.txt │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-native.txt │
+                                          │                                 sec/op                                  │                    sec/op                      vs base               │
+CavlcNativeFull/end3/zero/prefix17                                                                      676.1n ± 4%                                     388.3n ± 8%  -42.56% (p=0.002 n=6)
+CavlcNativeFull/end3/known-zero/prefix17                                                                456.1n ± 2%                                     203.0n ± 3%  -55.49% (p=0.002 n=6)
+CavlcNativeFull/end3/sparse/prefix17                                                                   1332.0n ± 2%                                     883.5n ± 4%  -33.67% (p=0.002 n=6)
+CavlcNativeFull/end3/dense/prefix17                                                                    1390.0n ± 2%                                     974.0n ± 3%  -29.93% (p=0.002 n=6)
+CavlcNativeFull/end3/mixed/prefix17                                                                     1.634µ ± 2%                                     1.068µ ± 2%  -34.61% (p=0.002 n=6)
+CavlcNativeFull/end14/zero/prefix17                                                                     694.4n ± 2%                                     361.1n ± 4%  -48.01% (p=0.002 n=6)
+CavlcNativeFull/end14/known-zero/prefix17                                                               459.9n ± 2%                                     203.7n ± 6%  -55.69% (p=0.002 n=6)
+CavlcNativeFull/end14/sparse/prefix17                                                                   1.651µ ± 5%                                     1.164µ ± 3%  -29.52% (p=0.002 n=6)
+CavlcNativeFull/end14/dense/prefix17                                                                    3.128µ ± 3%                                     2.948µ ± 8%   -5.73% (p=0.041 n=6)
+CavlcNativeFull/end14/mixed/prefix17                                                                    4.087µ ± 4%                                     3.154µ ± 2%  -22.83% (p=0.002 n=6)
+CavlcNativeFull/end15/zero/prefix17                                                                     687.4n ± 3%                                     356.7n ± 6%  -48.11% (p=0.002 n=6)
+CavlcNativeFull/end15/known-zero/prefix17                                                               457.7n ± 2%                                     201.1n ± 2%  -56.06% (p=0.002 n=6)
+CavlcNativeFull/end15/sparse/prefix17                                                                   1.639µ ± 2%                                     1.139µ ± 4%  -30.52% (p=0.002 n=6)
+CavlcNativeFull/end15/dense/prefix17                                                                    3.249µ ± 1%                                     3.136µ ± 3%   -3.48% (p=0.009 n=6)
+CavlcNativeFull/end15/mixed/prefix17                                                                    4.252µ ± 1%                                     3.318µ ± 1%  -21.96% (p=0.002 n=6)
+geomean                                                                                                 1.288µ                                          817.9n       -36.52%
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-candidate.txt │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-native.txt │
+                                          │                                blocks/op                                │                  blocks/op                    vs base                │
+CavlcNativeFull/end3/zero/prefix17                                                                       32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/known-zero/prefix17                                                                 32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/sparse/prefix17                                                                     32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/dense/prefix17                                                                      32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/mixed/prefix17                                                                      32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/zero/prefix17                                                                      32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/known-zero/prefix17                                                                32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/sparse/prefix17                                                                    32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/dense/prefix17                                                                     32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/mixed/prefix17                                                                     32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/zero/prefix17                                                                      32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/known-zero/prefix17                                                                32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/sparse/prefix17                                                                    32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/dense/prefix17                                                                     32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/mixed/prefix17                                                                     32.00 ± 0%                                     32.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  32.00                                          32.00       +0.00%
+¹ all samples are equal
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-candidate.txt │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-native.txt │
+                                          │                                sec/block                                │                   sec/block                    vs base               │
+CavlcNativeFull/end3/zero/prefix17                                                                      21.13n ± 4%                                     12.14n ± 8%  -42.57% (p=0.002 n=6)
+CavlcNativeFull/end3/known-zero/prefix17                                                               14.250n ± 2%                                     6.343n ± 3%  -55.48% (p=0.002 n=6)
+CavlcNativeFull/end3/sparse/prefix17                                                                    41.62n ± 2%                                     27.61n ± 4%  -33.66% (p=0.002 n=6)
+CavlcNativeFull/end3/dense/prefix17                                                                     43.43n ± 2%                                     30.44n ± 3%  -29.92% (p=0.002 n=6)
+CavlcNativeFull/end3/mixed/prefix17                                                                     51.05n ± 2%                                     33.38n ± 2%  -34.61% (p=0.002 n=6)
+CavlcNativeFull/end14/zero/prefix17                                                                     21.70n ± 2%                                     11.28n ± 4%  -48.00% (p=0.002 n=6)
+CavlcNativeFull/end14/known-zero/prefix17                                                              14.370n ± 2%                                     6.367n ± 6%  -55.69% (p=0.002 n=6)
+CavlcNativeFull/end14/sparse/prefix17                                                                   51.59n ± 5%                                     36.36n ± 3%  -29.52% (p=0.002 n=6)
+CavlcNativeFull/end14/dense/prefix17                                                                    97.72n ± 3%                                     92.13n ± 8%   -5.72% (p=0.041 n=6)
+CavlcNativeFull/end14/mixed/prefix17                                                                   127.70n ± 4%                                     98.55n ± 2%  -22.83% (p=0.002 n=6)
+CavlcNativeFull/end15/zero/prefix17                                                                     21.48n ± 3%                                     11.15n ± 6%  -48.11% (p=0.002 n=6)
+CavlcNativeFull/end15/known-zero/prefix17                                                              14.305n ± 2%                                     6.285n ± 2%  -56.06% (p=0.002 n=6)
+CavlcNativeFull/end15/sparse/prefix17                                                                   51.22n ± 2%                                     35.59n ± 4%  -30.52% (p=0.002 n=6)
+CavlcNativeFull/end15/dense/prefix17                                                                   101.55n ± 1%                                     98.00n ± 3%   -3.50% (p=0.009 n=6)
+CavlcNativeFull/end15/mixed/prefix17                                                                    132.9n ± 1%                                     103.7n ± 1%  -21.98% (p=0.002 n=6)
+geomean                                                                                                 40.26n                                          25.56n       -36.52%
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-candidate.txt │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-native.txt │
+                                          │                                  B/op                                   │                     B/op                      vs base                │
+CavlcNativeFull/end3/zero/prefix17                                                                     0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/known-zero/prefix17                                                               0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/sparse/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/dense/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/mixed/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/zero/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/known-zero/prefix17                                                              0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/sparse/prefix17                                                                  0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/dense/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/mixed/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/zero/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/known-zero/prefix17                                                              0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/sparse/prefix17                                                                  0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/dense/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/mixed/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                           ²                                                 +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-candidate.txt │ /tmp/h264-parity-target-20261022/cavlc-native-review/zero-native.txt │
+                                          │                                allocs/op                                │                  allocs/op                    vs base                │
+CavlcNativeFull/end3/zero/prefix17                                                                     0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/known-zero/prefix17                                                               0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/sparse/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/dense/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/mixed/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/zero/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/known-zero/prefix17                                                              0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/sparse/prefix17                                                                  0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/dense/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/mixed/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/zero/prefix17                                                                    0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/known-zero/prefix17                                                              0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/sparse/prefix17                                                                  0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/dense/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/mixed/prefix17                                                                   0.000 ± 0%                                       0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                           ²                                                 +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

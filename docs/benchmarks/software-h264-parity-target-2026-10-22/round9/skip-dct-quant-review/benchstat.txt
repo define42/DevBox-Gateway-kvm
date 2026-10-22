@@ -1,0 +1,118 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                            │ /tmp/h264-parity-target-20261022/skip-dct-quant-review/base.txt │ /tmp/h264-parity-target-20261022/skip-dct-quant-review/after.txt │
+                                            │                             sec/op                              │                  sec/op                    vs base               │
+SkipDctQuantPixels/Zero/stride32-4                                                               200.5n ±  4%                                116.4n ±  3%  -41.95% (p=0.002 n=6)
+SkipDctQuantPixels/Reject0/stride32-4                                                            48.00n ±  3%                                38.65n ±  2%  -19.48% (p=0.002 n=6)
+SkipDctQuantPixels/Reject1/stride32-4                                                            95.44n ±  3%                                62.80n ±  3%  -34.20% (p=0.002 n=6)
+SkipDctQuantPixels/Reject2/stride32-4                                                           146.10n ±  4%                                87.68n ±  6%  -39.99% (p=0.002 n=6)
+SkipDctQuantPixels/Reject3/stride32-4                                                            195.0n ±  3%                                114.8n ± 24%  -41.10% (p=0.002 n=6)
+SkipDctQuantPixels/Sparse/stride32-4                                                             197.0n ±  6%                                117.0n ± 23%  -40.63% (p=0.002 n=6)
+SkipDctQuantPixels/Dense/stride32-4                                                              202.3n ±  4%                                116.4n ±  8%  -42.48% (p=0.002 n=6)
+SkipDctQuantPixels/FullRange/stride32-4                                                          48.36n ±  3%                                38.84n ±  9%  -19.69% (p=0.002 n=6)
+SkipDctQuantPixels/WrappedZero/stride32-4                                                        206.3n ±  3%                                211.3n ± 21%        ~ (p=0.132 n=6)
+SkipDctQuantPixels/Zero/stride1984-4                                                             204.3n ± 13%                                118.0n ± 17%  -42.24% (p=0.002 n=6)
+SkipDctQuantPixels/Reject0/stride1984-4                                                          48.15n ±  2%                                38.09n ±  5%  -20.88% (p=0.002 n=6)
+SkipDctQuantPixels/Reject1/stride1984-4                                                          94.95n ± 10%                                62.58n ±  3%  -34.09% (p=0.002 n=6)
+SkipDctQuantPixels/Reject2/stride1984-4                                                         148.85n ±  3%                                88.72n ±  2%  -40.40% (p=0.002 n=6)
+SkipDctQuantPixels/Reject3/stride1984-4                                                          200.0n ±  4%                                116.5n ±  2%  -41.77% (p=0.002 n=6)
+SkipDctQuantPixels/Sparse/stride1984-4                                                           199.8n ±  3%                                118.9n ± 10%  -40.45% (p=0.002 n=6)
+SkipDctQuantPixels/Dense/stride1984-4                                                            206.0n ±  8%                                117.4n ±  4%  -43.01% (p=0.002 n=6)
+SkipDctQuantPixels/FullRange/stride1984-4                                                        48.45n ± 24%                                38.43n ±  3%  -20.67% (p=0.002 n=6)
+SkipDctQuantPixels/WrappedZero/stride1984-4                                                      207.0n ±  4%                                209.7n ±  9%        ~ (p=0.818 n=6)
+SkipDctQuantPixels/BackwardZero-4                                                                251.4n ±  2%                                259.6n ±  8%   +3.26% (p=0.004 n=6)
+SkipDctQuantCaller/Direct/SAD-4                                                                  123.9n ±  3%                                129.5n ±  6%        ~ (p=0.065 n=6)
+SkipDctQuantCaller/Direct/SATD-4                                                                 169.6n ±  8%                                161.0n ± 28%        ~ (p=0.288 n=6)
+SkipDctQuantCaller/PredThreshold/SAD-4                                                           123.0n ±  5%                                127.4n ± 13%        ~ (p=0.065 n=6)
+SkipDctQuantCaller/PredThreshold/SATD-4                                                          164.0n ±  2%                                163.5n ± 12%        ~ (p=0.937 n=6)
+SkipDctQuantCaller/RefThreshold/SAD-4                                                            125.9n ±  5%                                127.6n ±  4%        ~ (p=0.626 n=6)
+SkipDctQuantCaller/RefThreshold/SATD-4                                                           164.1n ±  2%                                161.3n ±  4%        ~ (p=0.240 n=6)
+SkipDctQuantCaller/RejectLuma/SAD-4                                                              163.9n ±  5%                                154.6n ±  3%   -5.67% (p=0.002 n=6)
+SkipDctQuantCaller/RejectLuma/SATD-4                                                             164.2n ±  5%                                155.6n ±  4%   -5.27% (p=0.002 n=6)
+SkipDctQuantCaller/RejectU/SAD-4                                                                 374.3n ± 10%                                280.4n ±  2%  -25.07% (p=0.002 n=6)
+SkipDctQuantCaller/RejectU/SATD-4                                                                369.2n ±  2%                                279.6n ±  1%  -24.28% (p=0.002 n=6)
+SkipDctQuantCaller/RejectV/SAD-4                                                                 431.6n ±  3%                                351.1n ±  4%  -18.65% (p=0.002 n=6)
+SkipDctQuantCaller/RejectV/SATD-4                                                                428.6n ±  2%                                351.4n ±  9%  -18.02% (p=0.002 n=6)
+SkipDctQuantCaller/TransformSuccess/SAD-4                                                        479.1n ±  3%                                399.6n ± 20%  -16.58% (p=0.015 n=6)
+SkipDctQuantCaller/TransformSuccess/SATD-4                                                       517.0n ±  4%                                432.1n ±  6%  -16.42% (p=0.002 n=6)
+geomean                                                                                          170.6n                                      132.1n        -22.57%
+
+                                            │ /tmp/h264-parity-target-20261022/skip-dct-quant-review/base.txt │ /tmp/h264-parity-target-20261022/skip-dct-quant-review/after.txt │
+                                            │                              B/op                               │                   B/op                    vs base                │
+SkipDctQuantPixels/Zero/stride32-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject0/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject1/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject2/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject3/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Sparse/stride32-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Dense/stride32-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/FullRange/stride32-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/WrappedZero/stride32-4                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Zero/stride1984-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject0/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject1/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject2/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject3/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Sparse/stride1984-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Dense/stride1984-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/FullRange/stride1984-4                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/WrappedZero/stride1984-4                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/BackwardZero-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/Direct/SAD-4                                                                  0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/Direct/SATD-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/PredThreshold/SAD-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/PredThreshold/SATD-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RefThreshold/SAD-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RefThreshold/SATD-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectLuma/SAD-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectLuma/SATD-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectU/SAD-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectU/SATD-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectV/SAD-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectV/SATD-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/TransformSuccess/SAD-4                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/TransformSuccess/SATD-4                                                       0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                             +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                            │ /tmp/h264-parity-target-20261022/skip-dct-quant-review/base.txt │ /tmp/h264-parity-target-20261022/skip-dct-quant-review/after.txt │
+                                            │                            allocs/op                            │                allocs/op                  vs base                │
+SkipDctQuantPixels/Zero/stride32-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject0/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject1/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject2/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject3/stride32-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Sparse/stride32-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Dense/stride32-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/FullRange/stride32-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/WrappedZero/stride32-4                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Zero/stride1984-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject0/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject1/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject2/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Reject3/stride1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Sparse/stride1984-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/Dense/stride1984-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/FullRange/stride1984-4                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/WrappedZero/stride1984-4                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantPixels/BackwardZero-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/Direct/SAD-4                                                                  0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/Direct/SATD-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/PredThreshold/SAD-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/PredThreshold/SATD-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RefThreshold/SAD-4                                                            0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RefThreshold/SATD-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectLuma/SAD-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectLuma/SATD-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectU/SAD-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectU/SATD-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectV/SAD-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/RejectV/SATD-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/TransformSuccess/SAD-4                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SkipDctQuantCaller/TransformSuccess/SATD-4                                                       0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                             +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

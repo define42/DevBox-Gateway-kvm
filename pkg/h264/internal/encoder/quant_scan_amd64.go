@@ -11,6 +11,9 @@ import (
 //go:noescape
 func quantScanFour4x4SSSE3(dct, levels *[64]int16, ff, mf *[8]int16, maxima *[4]int16, masks *[4]uint16, ac int32)
 
+//go:noescape
+func quantScanFour4x4AVX2(dct, levels *[64]int16, ff, mf *[8]int16, maxima *[4]int16, masks *[4]uint16, ac int32)
+
 // Quantize each group once, then scan and extract masks while its coefficients
 // are still in SIMD registers. Maxima retain the existing signed-word semantics.
 func quantScanFour4x4(dct, levels, ff, mf, maxima []int16, masks []uint16, ac bool) {
@@ -27,6 +30,10 @@ func quantScanFour4x4(dct, levels, ff, mf, maxima []int16, masks []uint16, ac bo
 	acFlag := int32(0)
 	if ac {
 		acFlag = 1
+	}
+	if cpu.X86.HasAVX2 {
+		quantScanFour4x4AVX2((*[64]int16)(dct), (*[64]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf), (*[4]int16)(maxima), (*[4]uint16)(masks), acFlag)
+		return
 	}
 	quantScanFour4x4SSSE3((*[64]int16)(dct), (*[64]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf), (*[4]int16)(maxima), (*[4]uint16)(masks), acFlag)
 }

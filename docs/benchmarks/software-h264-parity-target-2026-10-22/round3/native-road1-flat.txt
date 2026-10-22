@@ -1,0 +1,181 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+ 12.26      1.42     1.42                             WelsEnc::WriteBlockResidualCavlc(WelsEnc::TagWelsFuncPointerList*, short*, int, int, int, signed char, WelsCommon::TagBitStringAux*)
+  5.27      2.03     0.61                             WelsSampleSatd16x4N_avx2
+  4.40      2.54     0.51                             WelsSampleSad16x16_sse2
+  3.45      2.94     0.40                             WelsEnc::WelsEncInterY(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  3.20      3.31     0.37                             WelsDctFourT4_avx2
+  2.94      3.65     0.34                             CavlcParamCal_sse42
+  2.59      3.95     0.30                             WelsSampleSad8x8_sse21
+  2.50      4.24     0.29                             WelsEnc::WelsMotionEstimateInitialPoint(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagWelsME*, WelsEnc::TagSlice*, int, int)
+  2.33      4.51     0.27                             WelsIDctFourT4Rec_avx2
+  2.33      4.78     0.27                             WelsQuantFour4x4Max_avx2
+  1.90      5.00     0.22                             WelsSampleSadFour16x16_sse2
+  1.73      5.20     0.20                             WelsEnc::PredMv(WelsEnc::TagMVComponentUnit const*, signed char, signed char, int, WelsEnc::SMVUnitXY*)
+  1.55      5.38     0.18                             WelsEnc::WelsWriteMbResidual(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagMbCache*, WelsEnc::TagMB*, WelsCommon::TagBitStringAux*)
+  1.47      5.55     0.17                             WelsEnc::WelsMdI4x4Fast(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  1.47      5.72     0.17                             WelsEnc::MeRefineFracPixel(WelsEnc::TagWelsEncCtx*, unsigned char*, WelsEnc::TagWelsME*, WelsEnc::TagMeRefinePointer*, int, int)
+  1.47      5.89     0.17                             WelsEnc::FillNeighborCacheInterWithoutBGD(WelsEnc::TagMbCache*, WelsEnc::TagMB*, int, signed char*)
+  1.38      6.05     0.16                             WelsSampleSad4x4_mmx
+  1.38      6.21     0.16                             WelsEnc::WelsMeSadCostSelect(int*, unsigned short const*, int*, int, int, int*, int*)
+  1.30      6.36     0.15                             VAACalcSad_avx2
+  1.30      6.51     0.15                             WelsIntra16x16Combined3Sad_ssse3
+  1.30      6.66     0.15                             WelsScan4x4DcAc_ssse3
+  1.30      6.81     0.15                             WelsEnc::WelsEncRecUV(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, short*, int)
+  1.30      6.96     0.15                             WelsEnc::WelsSpatialWriteMbPred(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  1.12      7.09     0.13                             McChromaWidthEq8_ssse3
+  1.12      7.22     0.13                             McHorVer20Width5Or9Or17_avx2
+  1.12      7.35     0.13                             WelsSetMemZeroSize64_mmx
+  1.04      7.47     0.12                             WelsSampleSatd8x8N_avx2
+  0.95      7.58     0.11                             WelsHadamardQuant2x2_mmx
+  0.95      7.69     0.11                             WelsIChromaPredPlane_sse2
+  0.95      7.80     0.11                             WelsScan4x4Ac_sse2
+  0.95      7.91     0.11                             WelsEnc::WelsSpatialWriteMbSyn(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  0.86      8.01     0.10                             McHorVer20Width17U8ToS16_avx2
+  0.86      8.11     0.10                             PixelAvgWidthEq16_sse2
+  0.86      8.21     0.10                             WelsEnc::WelsMdI16x16(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagMbCache*, int)
+  0.86      8.31     0.10                             WelsEnc::WelsMotionEstimateSearch(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagWelsME*, WelsEnc::TagSlice*)
+  0.78      8.40     0.09                             MdInterAnalysisVaaInfo_sse41
+  0.78      8.49     0.09                             WelsSampleSadFour16x8_sse2
+  0.78      8.58     0.09                             WelsEnc::WelsMdP16x16(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  0.78      8.67     0.09                             WelsEnc::WelsMdInterInit(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*, int)
+  0.78      8.76     0.09                             WelsEnc::WelsDiamondSearch(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagWelsME*, WelsEnc::TagSlice*, int, int)
+  0.78      8.85     0.09                             WelsEnc::FillNeighborCacheIntra(WelsEnc::TagMbCache*, WelsEnc::TagMB*, int)
+  0.69      8.93     0.08                             McHorVer02_avx2
+  0.69      9.01     0.08                             PixelAvgWidthEq8_mmx
+  0.69      9.09     0.08                             WelsCalculateSingleCtr4x4_sse2
+  0.69      9.17     0.08                             WelsEnc::WelsMdPSkipEnc(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.69      9.25     0.08                             WelsEnc::WelsMdInterMbLoop(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, void*, int)
+  0.69      9.33     0.08                             WelsEnc::WelsMdInterMbRefinement(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.69      9.41     0.08                             get_i16x16_luma_pred_plane_sse2_1
+  0.60      9.48     0.07                             WelsDctT4_avx2
+  0.60      9.55     0.07                             WelsGetNoneZeroCount_sse42
+  0.52      9.61     0.06                             McCopyWidthEq16_sse3
+  0.52      9.67     0.06                             McHorVer02Width16Or17S16ToU8_avx2
+  0.52      9.73     0.06                             WelsI16x16LumaPredPlane_sse2
+  0.52      9.79     0.06                             WelsSampleSadFour8x16_sse2
+  0.52      9.85     0.06                             WelsSampleSadFour8x8_sse2
+  0.52      9.91     0.06                             WelsEnc::WelsEncRecI4x4Y(WelsEnc::TagWelsEncCtx*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, unsigned char)
+  0.52      9.97     0.06                             WelsEnc::WelsEncRecI16x16Y(WelsEnc::TagWelsEncCtx*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.52     10.03     0.06                             WelsEnc::WelsRcMbInitDisable(WelsEnc::TagWelsEncCtx*, WelsEnc::TagMB*, WelsEnc::TagSlice*)
+  0.43     10.08     0.05                             WelsCopy8x8_mmx
+  0.43     10.13     0.05                             WelsIChromaPredDc_sse2
+  0.43     10.18     0.05                             (anonymous namespace)::McChroma_ssse3(unsigned char const*, int, unsigned char*, int, short, short, int, int)
+  0.43     10.23     0.05                             WelsEnc::WelsEncodeNal(WelsEnc::TagWelsNalRaw*, void*, int, void*, int*)
+  0.43     10.28     0.05                             WelsEnc::WelsMdInterMb(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.43     10.33     0.05                             WelsEnc::WelsMdInterJudgePskip(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, bool)
+  0.35     10.37     0.04                             McChromaWidthEq4_mmx
+  0.35     10.41     0.04                             WelsSampleSad8x16_sse2
+  0.35     10.45     0.04                             WelsEnc::WelsMdP8x8(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*)
+  0.35     10.49     0.04                             WelsEnc::WelsMdIntraInit(WelsEnc::TagWelsEncCtx*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, int)
+  0.26     10.52     0.03                             AnalysisVaaInfoIntra_ssse3
+  0.26     10.55     0.03                             WelsDequant4x4_sse2
+  0.26     10.58     0.03                             WelsDequantFour4x4_sse2
+  0.26     10.61     0.03                             WelsI16x16LumaPredDc_sse2
+  0.26     10.64     0.03                             WelsSampleSad16x8_sse2
+  0.26     10.67     0.03                             WelsSampleSatd8x8_avx2
+  0.26     10.70     0.03                             WelsEnc::WelsTryPUVskip(WelsEnc::TagWelsEncCtx*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, int)
+  0.26     10.73     0.03                             WelsEnc::UpdateNonZeroCountCache(WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.26     10.76     0.03                             WelsEnc::UpdateP16x8Motion2Cache(WelsEnc::TagMbCache*, int, signed char, WelsEnc::SMVUnitXY*)
+  0.26     10.79     0.03                             WelsEnc::WelsMdInterFinePartitionVaa(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*, WelsEnc::TagMB*, int)
+  0.26     10.82     0.03                             WelsEnc::OutputPMbWithoutConstructCsRsNoCopy(WelsEnc::TagWelsEncCtx*, WelsEnc::TagDqLayer*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  0.26     10.85     0.03                             WelsEnc::WelsDctMb(short*, unsigned char*, int, unsigned char*, void (*)(short*, unsigned char*, int, unsigned char*, int))
+  0.17     10.87     0.02                             McHorVer02Width9S16ToU8_avx2
+  0.17     10.89     0.02                             WelsCopy16x16NotAligned_sse2
+  0.17     10.91     0.02                             WelsCopy16x16_sse2
+  0.17     10.93     0.02                             WelsI16x16LumaPredH_sse2
+  0.17     10.95     0.02                             WelsIChromaPredH_mmx
+  0.17     10.97     0.02                             WelsIDctT4Rec_avx2
+  0.17     10.99     0.02                             WelsEnc::PredictSad(signed char*, int*, int, int*)
+  0.17     11.01     0.02                             WelsEnc::WelsMdP16x8(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*)
+  0.17     11.03     0.02                             WelsEnc::WelsMdP8x16(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*)
+  0.17     11.05     0.02                             WelsEnc::WelsIDctT4RecOnMb(unsigned char*, int, unsigned char*, int, short*, void (*)(unsigned char*, int, unsigned char*, int, short*))
+  0.17     11.07     0.02                             WelsEnc::WelsMdInterEncode(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.17     11.09     0.02                             WelsEnc::WelsMdIntraChroma(WelsEnc::TagWelsFuncPointerList*, WelsEnc::TagDqLayer*, WelsEnc::TagMbCache*, int)
+  0.17     11.11     0.02                             WelsEnc::WelsPMbChromaEncode(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  0.17     11.13     0.02                             WelsEnc::CheckBitstreamBuffer(unsigned int, WelsEnc::TagWelsEncCtx*, WelsCommon::TagBitStringAux*)
+  0.17     11.15     0.02                             WelsEnc::WelsMdFirstIntraMode(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.17     11.17     0.02                             WelsEnc::UpdateP16x16MotionInfo(WelsEnc::TagMbCache*, WelsEnc::TagMB*, signed char, WelsEnc::SMVUnitXY*)
+  0.17     11.19     0.02                             WelsEnc::UpdateP8x8Motion2Cache(WelsEnc::TagMbCache*, int, signed char, WelsEnc::SMVUnitXY*)
+  0.17     11.21     0.02                             WelsEnc::WelsMdInterSecondaryModesEnc(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, bool)
+  0.09     11.22     0.01                             ExpandPictureChromaAlign_sse2
+  0.09     11.23     0.01                             McHorVer20Width16U8ToS16_avx2
+  0.09     11.24     0.01                             McHorVer20_avx2
+  0.09     11.25     0.01                             WelsDequantIHadamard4x4_sse2
+  0.09     11.26     0.01                             WelsHadamardQuant2x2Skip_mmx
+  0.09     11.27     0.01                             WelsHadamardT4Dc_sse2
+  0.09     11.28     0.01                             WelsI4x4LumaPredDDR_mmx
+  0.09     11.29     0.01                             WelsI4x4LumaPredHD_mmx
+  0.09     11.30     0.01                             WelsI4x4LumaPredHU_mmx
+  0.09     11.31     0.01                             WelsI4x4LumaPredH_sse2
+  0.09     11.32     0.01                             WelsI4x4LumaPredV_sse2
+  0.09     11.33     0.01                             WelsIChromaPredV_sse2
+  0.09     11.34     0.01                             WelsQuant4x4Dc_avx2
+  0.09     11.35     0.01                             WelsQuant4x4_avx2
+  0.09     11.36     0.01                             WelsQuantFour4x4_avx2
+  0.09     11.37     0.01                             WelsSampleSatd16x16_avx2
+  0.09     11.38     0.01                             (anonymous namespace)::McCopy_sse3(unsigned char const*, int, unsigned char*, int, int, int)
+  0.09     11.39     0.01                             (anonymous namespace)::McLuma_avx2(unsigned char const*, int, unsigned char*, int, short, short, int, int)
+  0.09     11.40     0.01                             (anonymous namespace)::McHorVer23_avx2(unsigned char const*, int, unsigned char*, int, int, int)
+  0.09     11.41     0.01                             (anonymous namespace)::McHorVer22Width5Or9Or17_avx2(unsigned char const*, int, unsigned char*, int, int, int)
+  0.09     11.42     0.01                             WelsVP::CVpFrameWork::Set(int, void*)
+  0.09     11.43     0.01                             WelsEnc::PredSkipMv(WelsEnc::TagMbCache*, WelsEnc::SMVUnitXY*)
+  0.09     11.44     0.01                             WelsEnc::WelsTryPYskip(WelsEnc::TagWelsEncCtx*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.09     11.45     0.01                             WelsEnc::PredictSadSkip(signed char*, bool*, int*, int, int*)
+  0.09     11.46     0.01                             WelsEnc::CWelsPreProcess::AnalyzeSpatialPic(WelsEnc::TagWelsEncCtx*, int)
+  0.09     11.47     0.01                             WelsEnc::PredInter8x16Mv(WelsEnc::TagMbCache*, int, signed char, WelsEnc::SMVUnitXY*)
+  0.09     11.48     0.01                             WelsEnc::WelsInterMbEncode(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  0.09     11.49     0.01                             WelsEnc::WelsMdUpdateBGDInfo(WelsEnc::TagDqLayer*, WelsEnc::TagMB*, bool, int)
+  0.09     11.50     0.01                             WelsEnc::MdIntraAnalysisVaaInfo(WelsEnc::TagWelsEncCtx*, unsigned char*)
+  0.09     11.51     0.01                             WelsEnc::CheckDirectionalMvFalse(int (*)(unsigned char*, int, unsigned char*, int), WelsEnc::TagWelsME*, WelsEnc::SMVUnitXY, WelsEnc::SMVUnitXY, int, int, int&)
+  0.09     11.52     0.01                             WelsEnc::UpdateP8x16Motion2Cache(WelsEnc::TagMbCache*, int, signed char, WelsEnc::SMVUnitXY*)
+  0.09     11.53     0.01                             WelsEnc::update_P8x16_motion_info(WelsEnc::TagMbCache*, WelsEnc::TagMB*, int, signed char, WelsEnc::SMVUnitXY*)
+  0.09     11.54     0.01                             WelsEnc::WelsSpatialWriteSubMbPred(WelsEnc::TagWelsEncCtx*, WelsEnc::TagSlice*, WelsEnc::TagMB*)
+  0.09     11.55     0.01                             WelsEnc::WelsMdInterDoubleCheckPskip(WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.09     11.56     0.01                             WelsEnc::WelsMdIntraFinePartitionVaa(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagMB*, WelsEnc::TagMbCache*)
+  0.09     11.57     0.01                             WelsEnc::WelsMdInterJudgeBGDPskipFalse(WelsEnc::TagWelsEncCtx*, WelsEnc::TagWelsMD*, WelsEnc::TagSlice*, WelsEnc::TagMB*, WelsEnc::TagMbCache*, bool*)
+  0.09     11.58     0.01                             not_dc_h_16x16_sad
+  0.00     11.58     0.00      623     0.00     0.00  check(int, char const*)
+  0.00     11.58     0.00      616     0.00     0.00  encode(ISVCEncoder*, unsigned char*, int)
+  0.00     11.58     0.00        5     0.00     0.00  int __gnu_cxx::__stoa<long, int, char, int>(long (*)(char const*, char**, int), char const*, char const*, unsigned long*, int)
+  0.00     11.58     0.00        5     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(char const*, std::allocator<char> const&)
+  0.00     11.58     0.00        2     0.00     0.00  frame_dummy
+  0.00     11.58     0.00        1     0.00     0.00  std::vector<std::vector<unsigned char, std::allocator<unsigned char> >, std::allocator<std::vector<unsigned char, std::allocator<unsigned char> > > >::~vector()
+  0.00     11.58     0.00        1     0.00     0.00  std::vector<unsigned char, std::allocator<unsigned char> >::~vector()
+  0.00     11.58     0.00        1     0.00     0.00  std::vector<long, std::allocator<long> >::~vector()
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2024 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

@@ -1,0 +1,64 @@
+package encoder
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// Baseline-compatible complete-MB fixture. Counts around the emitter cutoff
+// include short symbol sequences with three trailing ones, not just dense
+// escapes that favor the assembly body. Chroma DC stays clamped to four.
+func newCavlcEmitterDensityFixture(intra bool, count int, trailing bool) *cavlcScratchMbFixture {
+	shape := cavlcScratchMbCases[8]
+	if intra { shape = cavlcScratchMbCases[9] }
+	f := newCavlcScratchMbFixture(shape, "Zero")
+	fill := func(block []int16, end, id int) int8 {
+		clear(block)
+		n := min(count, end+1)
+		for i := 0; i < n; i++ {
+			value := int16(2 + (id+i)%6)
+			if i&1 != 0 { value = -value }
+			if trailing && i < 3 { value = int16(1 - 2*(i&1)) }
+			block[end-i] = value
+		}
+		return int8(n)
+	}
+	end := 15
+	if intra { end = 14 }
+	for block := 0; block < 16; block++ {
+		actual := fill(f.dct.iLumaBlock[block*16:block*16+16], end, block)
+		f.cache.iNonZeroCoeffCount[common.G_kuiCache48CountScan4Idx[block]] = actual
+	}
+	fill(f.dct.iLumaI16x16Dc[:], 15, 16)
+	for block := 0; block < 8; block++ {
+		actual := fill(f.dct.iChromaBlock[block*16:block*16+16], 14, block+17)
+		f.cache.iNonZeroCoeffCount[common.G_kuiCache48CountScan4Idx[block+16]] = actual
+	}
+	for plane := range 2 { fill(f.dct.iChromaDc[plane][:], 3, plane+25) }
+	return f
+}
+
+func BenchmarkCavlcEmitterDensity(b *testing.B) {
+	for _, intra := range []bool{false, true} {
+		name, blocks := "InterAll", 26
+		if intra { name, blocks = "I16All", 27 }
+		for _, count := range []int{3, 4, 5, 6, 8} {
+			for _, trailing := range []bool{false, true} {
+				pattern := "Small"
+				if trailing { pattern = "Trailing3" }
+				b.Run(fmt.Sprintf("%s/count%d/%s", name, count, pattern), func(b *testing.B) {
+					f := newCavlcEmitterDensityFixture(intra, count, trailing)
+					if result := WelsWriteMbResidual(&f.funcs, &f.cache, &f.mb, &f.bits); result != 0 { b.Fatal(result) }
+					b.ReportAllocs()
+					for b.Loop() {
+						f.reset(17)
+						cavlcScratchMbBenchmarkSink = WelsWriteMbResidual(&f.funcs, &f.cache, &f.mb, &f.bits)
+					}
+					b.ReportMetric(float64(blocks), "blocks/op")
+				})
+			}
+		}
+	}
+}

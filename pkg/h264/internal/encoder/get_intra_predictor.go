@@ -2,7 +2,10 @@
 
 package encoder
 
-import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+import (
+	"encoding/binary"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
 
 const (
 	I4x4_COUNT   = 4
@@ -29,7 +32,10 @@ func WelsFillingPred8x2to16_c(pPred []uint8, iPredOff int, pSrc []uint8) {
 
 // WelsFillingPred1to16_c: 16 copies of kuiSrc.
 func WelsFillingPred1to16_c(pPred []uint8, iPredOff int, kuiSrc uint8) {
-	intraPredFillBytes(pPred[iPredOff:iPredOff+16], kuiSrc)
+	dst := pPred[iPredOff : iPredOff+16]
+	row := uint64(kuiSrc) * 0x0101010101010101
+	binary.LittleEndian.PutUint64(dst[:8], row)
+	binary.LittleEndian.PutUint64(dst[8:], row)
 }
 
 func intraPredFillBytes(p []uint8, v uint8) {
@@ -39,28 +45,28 @@ func intraPredFillBytes(p []uint8, v uint8) {
 }
 
 func WelsI4x4LumaPredV_c(pPred []uint8, iPredOff int, pRef []uint8, iRefOff int, kiStride int32) {
-	var uiSrcx2 [8]uint8
 	top := iRefOff - int(kiStride)
-	copy(uiSrcx2[0:4], pRef[top:top+4])
-	copy(uiSrcx2[4:8], pRef[top:top+4])
-
-	WelsFillingPred8to16_c(pPred, iPredOff, uiSrcx2[:])
+	row := uint64(binary.LittleEndian.Uint32(pRef[top : top+4]))
+	pair := row | row<<32
+	dst := pPred[iPredOff : iPredOff+16]
+	binary.LittleEndian.PutUint64(dst[:8], pair)
+	binary.LittleEndian.PutUint64(dst[8:], pair)
 }
 
 func WelsI4x4LumaPredH_c(pPred []uint8, iPredOff int, pRef []uint8, iRefOff int, kiStride int32) {
+	// Gather every left pixel before writing so aliased prediction buffers keep
+	// the scalar predictor's original read-before-write behavior.
 	kiStridex2Left := int((kiStride << 1) - 1)
 	kiStridex3Left := int(kiStride) + kiStridex2Left
-	kuiHor1 := pRef[iRefOff-1]
-	kuiHor2 := pRef[iRefOff+int(kiStride)-1]
-	kuiHor3 := pRef[iRefOff+kiStridex2Left]
-	kuiHor4 := pRef[iRefOff+kiStridex3Left]
-	var uiSrc [16]uint8
-	intraPredFillBytes(uiSrc[0:4], kuiHor1)
-	intraPredFillBytes(uiSrc[4:8], kuiHor2)
-	intraPredFillBytes(uiSrc[8:12], kuiHor3)
-	intraPredFillBytes(uiSrc[12:16], kuiHor4)
-
-	WelsFillingPred8x2to16_c(pPred, iPredOff, uiSrc[:])
+	a := uint32(pRef[iRefOff-1]) * 0x01010101
+	b := uint32(pRef[iRefOff+int(kiStride)-1]) * 0x01010101
+	c := uint32(pRef[iRefOff+kiStridex2Left]) * 0x01010101
+	d := uint32(pRef[iRefOff+kiStridex3Left]) * 0x01010101
+	dst := pPred[iPredOff : iPredOff+16]
+	binary.LittleEndian.PutUint32(dst[:4], a)
+	binary.LittleEndian.PutUint32(dst[4:8], b)
+	binary.LittleEndian.PutUint32(dst[8:12], c)
+	binary.LittleEndian.PutUint32(dst[12:], d)
 }
 
 func WelsI4x4LumaPredDc_c(pPred []uint8, iPredOff int, pRef []uint8, iRefOff int, kiStride int32) {

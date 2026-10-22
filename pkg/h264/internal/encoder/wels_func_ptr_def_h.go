@@ -146,10 +146,18 @@ const MAX_BLOCK_TYPE = BLOCK_SIZE_ALL
 
 // SSampleDealingFunc is the SAD / SATD function table.
 type SSampleDealingFunc struct {
-	pfSampleSad     [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
-	pfSampleSatd    [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
-	pfSample4Sad    [MAX_BLOCK_TYPE]PSample4SadCostFunc
-	pfSampleAvgSatd sampleAvgSatdFunc
+	pfSampleSad              [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
+	pfSampleSatd             [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
+	pfSample4Sad             [MAX_BLOCK_TYPE]PSample4SadCostFunc
+	pfSampleAvgSatd          sampleAvgSatdFunc
+	pfSampleAvgSatdValidated sampleAvgSatdValidatedFunc
+	// Disable this capability to instrument the original per-candidate
+	// checked/validated callbacks. A direct helper keeps local params on stack.
+	bSampleAvgSatdFour bool
+	// Disable when replacing half-refinement SATD callbacks for instrumentation.
+	bSampleHalfSatdPair bool
+	// Disable when replacing SAD callbacks to retain per-candidate instrumentation.
+	bSampleSadTwo bool
 
 	pfIntra4x4Combined3Satd   PIntraPred4x4Combined3Func
 	pfIntra16x16Combined3Satd PIntraPred16x16Combined3Func

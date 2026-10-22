@@ -1,0 +1,803 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McHorVer22_avx2(SB) /tmp/h264-parity-target-20261022/center-filter-stack-next/pkg/h264/internal/common/mc_avx2_amd64.go
+  mc_avx2_amd64.go:118		0x550400		493b6610		CMPQ SP, 0x10(R14)											
+  mc_avx2_amd64.go:118		0x550404		0f8674020000		JBE 0x55067e												
+  mc_avx2_amd64.go:118		0x55040a		55			PUSHQ BP												
+  mc_avx2_amd64.go:118		0x55040b		4889e5			MOVQ SP, BP												
+  mc_avx2_amd64.go:118		0x55040e		4883ec78		SUBQ $0x78, SP												
+  mc_avx2_amd64.go:118		0x550412		4889842498000000	MOVQ AX, 0x98(SP)											
+  mc_avx2_amd64.go:118		0x55041a		4c898424c0000000	MOVQ R8, 0xc0(SP)											
+  mc_avx2_amd64.go:120		0x550422		8b94248c000000		MOVL 0x8c(SP), DX											
+  mc_avx2_amd64.go:120		0x550429		85d2			TESTL DX, DX												
+  mc_avx2_amd64.go:120		0x55042b		7e0d			JLE 0x55043a												
+  mc_avx2_amd64.go:120		0x55042d		448ba42490000000	MOVL 0x90(SP), R12											
+  mc_avx2_amd64.go:120		0x550435		4585e4			TESTL R12, R12												
+  mc_avx2_amd64.go:120		0x550438		7f07			JG 0x550441												
+  mc_avx2_amd64.go:121		0x55043a		4883c478		ADDQ $0x78, SP												
+  mc_avx2_amd64.go:121		0x55043e		5d			POPQ BP													
+  mc_avx2_amd64.go:121		0x55043f		90			NOPL													
+  mc_avx2_amd64.go:121		0x550440		c3			RET													
+  mc_avx2_amd64.go:123		0x550441		85f6			TESTL SI, SI												
+  mc_avx2_amd64.go:123		0x550443		7d0a			JGE 0x55044f												
+  mc_avx2_amd64.go:124		0x550445		448bac2488000000	MOVL 0x88(SP), R13											
+  mc_avx2_amd64.go:123		0x55044d		eb0d			JMP 0x55045c												
+  mc_avx2_amd64.go:123		0x55044f		448bac2488000000	MOVL 0x88(SP), R13											
+  mc_avx2_amd64.go:123		0x550457		4585ed			TESTL R13, R13												
+  mc_avx2_amd64.go:123		0x55045a		7d18			JGE 0x550474												
+  mc_avx2_amd64.go:124		0x55045c		44892c24		MOVL R13, 0(SP)												
+  mc_avx2_amd64.go:124		0x550460		89542404		MOVL DX, 0x4(SP)											
+  mc_avx2_amd64.go:124		0x550464		4489642408		MOVL R12, 0x8(SP)											
+  mc_avx2_amd64.go:124		0x550469		e832d4ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McHorVer22_c(SB)			
+  mc_avx2_amd64.go:125		0x55046e		4883c478		ADDQ $0x78, SP												
+  mc_avx2_amd64.go:125		0x550472		5d			POPQ BP													
+  mc_avx2_amd64.go:125		0x550473		c3			RET													
+  mc_avx2_amd64.go:127		0x550474		83fa11			CMPL DX, $0x11												
+  mc_avx2_amd64.go:127		0x550477		0f8fa7010000		JG 0x550624												
+  mc_avx2_amd64.go:127		0x55047d		0f1f00			NOPL 0(AX)												
+  mc_avx2_amd64.go:127		0x550480		4183fc11		CMPL R12, $0x11												
+  mc_avx2_amd64.go:127		0x550484		0f8f9a010000		JG 0x550624												
+  mc_avx2_amd64.go:127		0x55048a		803dd223250000		CMPB golang.org/x/sys/cpu.X86+67(SB), $0x0								
+  mc_avx2_amd64.go:127		0x550491		0f848d010000		JE 0x550624												
+  mc_avx2_amd64.go:131		0x550497		4863d2			MOVSXD DX, DX												
+  mc_avx2_amd64.go:131		0x55049a		4d63e4			MOVSXD R12, R12												
+  simd_bounds_amd64.go:19	0x55049d		4d8d7c24ff		LEAQ -0x1(R12), R15											
+  simd_bounds_amd64.go:19	0x5504a2		4d63ed			MOVSXD R13, R13												
+  simd_bounds_amd64.go:19	0x5504a5		4c896c2470		MOVQ R13, 0x70(SP)											
+  simd_bounds_amd64.go:19	0x5504aa		4d0faffd		IMULQ R13, R15												
+  simd_bounds_amd64.go:19	0x5504ae		4d01df			ADDQ R11, R15												
+  mc_avx2_amd64.go:132		0x5504b1		90			NOPL													
+  simd_bounds_amd64.go:19	0x5504b2		4d8d2c17		LEAQ 0(R15)(DX*1), R13											
+  simd_bounds_amd64.go:20	0x5504b6		4d8d3c17		LEAQ 0(R15)(DX*1), R15											
+  simd_bounds_amd64.go:20	0x5504ba		4d8d7fff		LEAQ -0x1(R15), R15											
+  simd_bounds_amd64.go:20	0x5504be		6690			NOPW													
+  simd_bounds_amd64.go:8	0x5504c0		4d85db			TESTQ R11, R11												
+  simd_bounds_amd64.go:8	0x5504c3		0f8ca1010000		JL 0x55066a												
+  simd_bounds_amd64.go:8	0x5504c9		4d39fb			CMPQ R11, R15												
+  simd_bounds_amd64.go:8	0x5504cc		0f8f98010000		JG 0x55066a												
+  simd_bounds_amd64.go:8	0x5504d2		4d39f9			CMPQ R9, R15												
+  simd_bounds_amd64.go:8	0x5504d5		0f8e8f010000		JLE 0x55066a												
+  simd_bounds_amd64.go:8	0x5504db		0f1f440000		NOPL 0(AX)(AX*1)											
+  simd_bounds_amd64.go:21	0x5504e0		4d39eb			CMPQ R11, R13												
+  simd_bounds_amd64.go:21	0x5504e3		0f877c010000		JA 0x550665												
+  mc_avx2_amd64.go:131		0x5504e9		4c89642460		MOVQ R12, 0x60(SP)											
+  mc_avx2_amd64.go:131		0x5504ee		4c63fe			MOVSXD SI, R15												
+  mc_avx2_amd64.go:131		0x5504f1		4c897c2458		MOVQ R15, 0x58(SP)											
+  mc_avx2_amd64.go:133		0x5504f6		4b8d343f		LEAQ 0(R15)(R15*1), SI											
+  mc_avx2_amd64.go:133		0x5504fa		4889742468		MOVQ SI, 0x68(SP)											
+  mc_avx2_amd64.go:133		0x5504ff		4989f9			MOVQ DI, R9												
+  mc_avx2_amd64.go:133		0x550502		4829f7			SUBQ SI, DI												
+  mc_avx2_amd64.go:133		0x550505		488d77fe		LEAQ -0x2(DI), SI											
+  mc_avx2_amd64.go:133		0x550509		4983c402		ADDQ $0x2, R12												
+  mc_avx2_amd64.go:133		0x55050d		4d0fafe7		IMULQ R15, R12												
+  mc_avx2_amd64.go:133		0x550511		4d01cc			ADDQ R9, R12												
+  mc_avx2_amd64.go:133		0x550514		4d8d0c14		LEAQ 0(R12)(DX*1), R9											
+  mc_avx2_amd64.go:133		0x550518		4d8d3c14		LEAQ 0(R12)(DX*1), R15											
+  mc_avx2_amd64.go:133		0x55051c		4d8d7f03		LEAQ 0x3(R15), R15											
+  mc_avx2_amd64.go:134		0x550520		4d8d2414		LEAQ 0(R12)(DX*1), R12											
+  mc_avx2_amd64.go:134		0x550524		4d8d642402		LEAQ 0x2(R12), R12											
+  simd_bounds_amd64.go:21	0x550529		4d29dd			SUBQ R11, R13												
+  simd_bounds_amd64.go:21	0x55052c		4d01d8			ADDQ R11, R8												
+  simd_bounds_amd64.go:21	0x55052f		4d29da			SUBQ R11, R10												
+  simd_bounds_amd64.go:8	0x550532		4885f6			TESTQ SI, SI												
+  simd_bounds_amd64.go:8	0x550535		0f8c14010000		JL 0x55064f												
+  simd_bounds_amd64.go:8	0x55053b		0f1f440000		NOPL 0(AX)(AX*1)											
+  simd_bounds_amd64.go:8	0x550540		4939f4			CMPQ R12, SI												
+  simd_bounds_amd64.go:8	0x550543		0f8c06010000		JL 0x55064f												
+  simd_bounds_amd64.go:8	0x550549		4c39e3			CMPQ BX, R12												
+  simd_bounds_amd64.go:8	0x55054c		0f8efd000000		JLE 0x55064f												
+  mc_avx2_amd64.go:135		0x550552		4939f7			CMPQ R15, SI												
+  mc_avx2_amd64.go:135		0x550555		0f82ef000000		JB 0x55064a												
+  mc_avx2_amd64.go:135		0x55055b		4829f9			SUBQ DI, CX												
+  mc_avx2_amd64.go:135		0x55055e		4929f9			SUBQ DI, R9												
+  mc_avx2_amd64.go:135		0x550561		4c8d6102		LEAQ 0x2(CX), R12											
+  mc_avx2_amd64.go:135		0x550565		4d89e7			MOVQ R12, R15												
+  mc_avx2_amd64.go:135		0x550568		49f7dc			NEGQ R12												
+  mc_avx2_amd64.go:135		0x55056b		49c1fc3f		SARQ $0x3f, R12												
+  mc_avx2_amd64.go:135		0x55056f		4921f4			ANDQ SI, R12												
+  mc_avx2_amd64.go:135		0x550572		498d3404		LEAQ 0(R12)(AX*1), SI											
+  mc_avx2_amd64.go:135		0x550576		4d8d6105		LEAQ 0x5(R9), R12											
+  mc_avx2_amd64.go:135		0x55057a		660f1f440000		NOPW 0(AX)(AX*1)											
+  mc_avx2_amd64.go:136		0x550580		4883fa05		CMPQ DX, $0x5												
+  mc_avx2_amd64.go:136		0x550584		740c			JE 0x550592												
+  mc_avx2_amd64.go:136		0x550586		4883fa09		CMPQ DX, $0x9												
+  mc_avx2_amd64.go:136		0x55058a		7406			JE 0x550592												
+  mc_avx2_amd64.go:136		0x55058c		4883fa11		CMPQ DX, $0x11												
+  mc_avx2_amd64.go:136		0x550590		755f			JNE 0x5505f1												
+  mc_avx2_amd64.go:139		0x550592		4d85ed			TESTQ R13, R13												
+  mc_avx2_amd64.go:139		0x550595		0f86aa000000		JBE 0x550645												
+  mc_avx2_amd64.go:139		0x55059b		488b442468		MOVQ 0x68(SP), AX											
+  mc_avx2_amd64.go:139		0x5505a0		4939c4			CMPQ R12, AX												
+  mc_avx2_amd64.go:139		0x5505a3		0f8693000000		JBE 0x55063c												
+  mc_avx2_amd64.go:139		0x5505a9		4c890424		MOVQ R8, 0(SP)												
+  mc_avx2_amd64.go:139		0x5505ad		488b442470		MOVQ 0x70(SP), AX											
+  mc_avx2_amd64.go:139		0x5505b2		4889442408		MOVQ AX, 0x8(SP)											
+  mc_avx2_amd64.go:139		0x5505b7		488b442458		MOVQ 0x58(SP), AX											
+  mc_avx2_amd64.go:139		0x5505bc		488d0c46		LEAQ 0(SI)(AX*2), CX											
+  mc_avx2_amd64.go:139		0x5505c0		48894c2410		MOVQ CX, 0x10(SP)											
+  mc_avx2_amd64.go:139		0x5505c5		4889442418		MOVQ AX, 0x18(SP)											
+  mc_avx2_amd64.go:139		0x5505ca		4889542420		MOVQ DX, 0x20(SP)											
+  mc_avx2_amd64.go:139		0x5505cf		488b442460		MOVQ 0x60(SP), AX											
+  mc_avx2_amd64.go:139		0x5505d4		4889442428		MOVQ AX, 0x28(SP)											
+  mc_avx2_amd64.go:139		0x5505d9		e802820300		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.mcCenterRefineAVX2.abi0(SB)	
+  mc_avx2_amd64.go:139		0x5505de		450f57ff		XORPS X15, X15												
+  mc_avx2_amd64.go:139		0x5505e2		644c8b3425f8ffffff	MOVQ FS:0xfffffff8, R14											
+  mc_avx2_amd64.go:140		0x5505eb		4883c478		ADDQ $0x78, SP												
+  mc_avx2_amd64.go:140		0x5505ef		5d			POPQ BP													
+  mc_avx2_amd64.go:140		0x5505f0		c3			RET													
+  mc_avx2_amd64.go:131		0x5505f1		4889d0			MOVQ DX, AX												
+  mc_avx2_amd64.go:142		0x5505f4		488b542460		MOVQ 0x60(SP), DX											
+  mc_avx2_amd64.go:142		0x5505f9		48891424		MOVQ DX, 0(SP)												
+  mc_avx2_amd64.go:142		0x5505fd		4c89eb			MOVQ R13, BX												
+  mc_avx2_amd64.go:142		0x550600		4c89d1			MOVQ R10, CX												
+  mc_avx2_amd64.go:142		0x550603		488b7c2470		MOVQ 0x70(SP), DI											
+  mc_avx2_amd64.go:142		0x550608		4d89f9			MOVQ R15, R9												
+  mc_avx2_amd64.go:142		0x55060b		4c8b542458		MOVQ 0x58(SP), R10											
+  mc_avx2_amd64.go:142		0x550610		4989c3			MOVQ AX, R11												
+  mc_avx2_amd64.go:142		0x550613		4c89c0			MOVQ R8, AX												
+  mc_avx2_amd64.go:142		0x550616		4d89e0			MOVQ R12, R8												
+  mc_avx2_amd64.go:142		0x550619		e8e2000000		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.mcCenterLegacyAVX2(SB)		
+  mc_avx2_amd64.go:143		0x55061e		4883c478		ADDQ $0x78, SP												
+  mc_avx2_amd64.go:143		0x550622		5d			POPQ BP													
+  mc_avx2_amd64.go:143		0x550623		c3			RET													
+  mc_avx2_amd64.go:128		0x550624		44892c24		MOVL R13, 0(SP)												
+  mc_avx2_amd64.go:128		0x550628		89542404		MOVL DX, 0x4(SP)											
+  mc_avx2_amd64.go:128		0x55062c		4489642408		MOVL R12, 0x8(SP)											
+  mc_avx2_amd64.go:128		0x550631		e8aa320000		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McHorVer22_sse2(SB)		
+  mc_avx2_amd64.go:129		0x550636		4883c478		ADDQ $0x78, SP												
+  mc_avx2_amd64.go:129		0x55063a		5d			POPQ BP													
+  mc_avx2_amd64.go:129		0x55063b		c3			RET													
+  mc_avx2_amd64.go:139		0x55063c		0f1f4000		NOPL 0(AX)												
+  mc_avx2_amd64.go:139		0x550640		e89bc7f3ff		CALL runtime.panicBounds(SB)										
+  mc_avx2_amd64.go:139		0x550645		e896c7f3ff		CALL runtime.panicBounds(SB)										
+  mc_avx2_amd64.go:135		0x55064a		e891c7f3ff		CALL runtime.panicBounds(SB)										
+  simd_bounds_amd64.go:9	0x55064f		488d053a461e00		LEAQ 0x1e463a(IP), AX											
+  simd_bounds_amd64.go:9	0x550656		488d1d73f90500		LEAQ 0x5f973(IP), BX											
+  simd_bounds_amd64.go:9	0x55065d		0f1f00			NOPL 0(AX)												
+  simd_bounds_amd64.go:9	0x550660		e89b58f3ff		CALL runtime.gopanic(SB)										
+  simd_bounds_amd64.go:21	0x550665		e876c7f3ff		CALL runtime.panicBounds(SB)										
+  simd_bounds_amd64.go:9	0x55066a		488d051f461e00		LEAQ 0x1e461f(IP), AX											
+  simd_bounds_amd64.go:9	0x550671		488d1d58f90500		LEAQ 0x5f958(IP), BX											
+  simd_bounds_amd64.go:9	0x550678		e88358f3ff		CALL runtime.gopanic(SB)										
+  simd_bounds_amd64.go:9	0x55067d		90			NOPL													
+  mc_avx2_amd64.go:118		0x55067e		4889442418		MOVQ AX, 0x18(SP)											
+  mc_avx2_amd64.go:118		0x550683		48895c2420		MOVQ BX, 0x20(SP)											
+  mc_avx2_amd64.go:118		0x550688		48894c2428		MOVQ CX, 0x28(SP)											
+  mc_avx2_amd64.go:118		0x55068d		48897c2430		MOVQ DI, 0x30(SP)											
+  mc_avx2_amd64.go:118		0x550692		89742438		MOVL SI, 0x38(SP)											
+  mc_avx2_amd64.go:118		0x550696		4c89442440		MOVQ R8, 0x40(SP)											
+  mc_avx2_amd64.go:118		0x55069b		4c894c2448		MOVQ R9, 0x48(SP)											
+  mc_avx2_amd64.go:118		0x5506a0		4c89542450		MOVQ R10, 0x50(SP)											
+  mc_avx2_amd64.go:118		0x5506a5		4c895c2458		MOVQ R11, 0x58(SP)											
+  mc_avx2_amd64.go:118		0x5506aa		e8f1aaf3ff		CALL runtime.morestack_noctxt.abi0(SB)									
+  mc_avx2_amd64.go:118		0x5506af		488b442418		MOVQ 0x18(SP), AX											
+  mc_avx2_amd64.go:118		0x5506b4		488b5c2420		MOVQ 0x20(SP), BX											
+  mc_avx2_amd64.go:118		0x5506b9		488b4c2428		MOVQ 0x28(SP), CX											
+  mc_avx2_amd64.go:118		0x5506be		488b7c2430		MOVQ 0x30(SP), DI											
+  mc_avx2_amd64.go:118		0x5506c3		8b742438		MOVL 0x38(SP), SI											
+  mc_avx2_amd64.go:118		0x5506c7		4c8b442440		MOVQ 0x40(SP), R8											
+  mc_avx2_amd64.go:118		0x5506cc		4c8b4c2448		MOVQ 0x48(SP), R9											
+  mc_avx2_amd64.go:118		0x5506d1		4c8b542450		MOVQ 0x50(SP), R10											
+  mc_avx2_amd64.go:118		0x5506d6		4c8b5c2458		MOVQ 0x58(SP), R11											
+  mc_avx2_amd64.go:118		0x5506db		0f1f440000		NOPL 0(AX)(AX*1)											
+  mc_avx2_amd64.go:118		0x5506e0		e91bfdffff		JMP github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McHorVer22_avx2(SB)			
+
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.mcCenterRefineAVX2.abi0(SB) /tmp/h264-parity-target-20261022/center-filter-stack-next/pkg/h264/internal/common/mc_center_stack_amd64.s
+  mc_center_stack_amd64.s:83	0x5887e0		55			PUSHQ BP				
+  mc_center_stack_amd64.s:83	0x5887e1		4889e5			MOVQ SP, BP				
+  mc_center_stack_amd64.s:83	0x5887e4		4881ecf0020000		SUBQ $0x2f0, SP				
+  mc_center_stack_amd64.s:84	0x5887eb		488d0424		LEAQ 0(SP), AX				
+  mc_center_stack_amd64.s:85	0x5887ef		b92c000000		MOVL $0x2c, CX				
+  mc_center_stack_amd64.s:86	0x5887f4		488b942410030000	MOVQ 0x310(SP), DX			
+  mc_center_stack_amd64.s:87	0x5887fc		488b9c2418030000	MOVQ 0x318(SP), BX			
+  mc_center_stack_amd64.s:88	0x588804		488bb42420030000	MOVQ 0x320(SP), SI			
+  mc_center_stack_amd64.s:89	0x58880c		4883c605		ADDQ $0x5, SI				
+  mc_center_stack_amd64.s:90	0x588810		488bbc2428030000	MOVQ 0x328(SP), DI			
+  mc_center_stack_amd64.s:91	0x588818		4989c4			MOVQ AX, R12				
+  mc_center_stack_amd64.s:92	0x58881b		4989d5			MOVQ DX, R13				
+  mc_center_stack_amd64.s:93	0x58881e		4989fa			MOVQ DI, R10				
+  mc_center_stack_amd64.s:94	0x588821		4829da			SUBQ BX, DX				
+  mc_center_stack_amd64.s:95	0x588824		4829da			SUBQ BX, DX				
+  mc_center_stack_amd64.s:96	0x588827		c4627d58256c700200	VPBROADCASTD 0x2706c, Y12		
+  mc_center_stack_amd64.s:97	0x588830		c4627d582d67700200	VPBROADCASTD 0x27067, Y13		
+  mc_center_stack_amd64.s:98	0x588839		c4627d583562700200	VPBROADCASTD 0x27062, Y14		
+  mc_center_stack_amd64.s:99	0x588842		4883fe0a		CMPQ SI, $0xa				
+  mc_center_stack_amd64.s:100	0x588846		740f			JE 0x588857				
+  mc_center_stack_amd64.s:101	0x588848		4883fe0e		CMPQ SI, $0xe				
+  mc_center_stack_amd64.s:102	0x58884c		0f8442020000		JE 0x588a94				
+  mc_center_stack_amd64.s:103	0x588852		e9c1040000		JMP 0x588d18				
+  mc_center_stack_amd64.s:106	0x588857		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:106	0x58885c		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:106	0x588861		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:106	0x588866		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:106	0x58886c		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:106	0x58886f		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:106	0x588874		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:106	0x588879		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:106	0x58887e		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:106	0x588884		c5d560c6		VPUNPCKLBW Y6, Y5, Y0			
+  mc_center_stack_amd64.s:106	0x588888		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:106	0x58888b		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:106	0x588890		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:106	0x588895		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:106	0x58889a		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:106	0x5888a0		c5cd60cd		VPUNPCKLBW Y5, Y6, Y1			
+  mc_center_stack_amd64.s:106	0x5888a4		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:106	0x5888a7		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:106	0x5888ac		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:106	0x5888b1		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:106	0x5888b6		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:106	0x5888bc		c5d560d6		VPUNPCKLBW Y6, Y5, Y2			
+  mc_center_stack_amd64.s:106	0x5888c0		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:106	0x5888c3		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:106	0x5888c8		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:106	0x5888cd		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:106	0x5888d2		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:106	0x5888d8		c5cd60dd		VPUNPCKLBW Y5, Y6, Y3			
+  mc_center_stack_amd64.s:106	0x5888dc		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:106	0x5888df		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:106	0x5888e4		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:106	0x5888e9		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:106	0x5888ee		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:106	0x5888f4		c5d560e6		VPUNPCKLBW Y6, Y5, Y4			
+  mc_center_stack_amd64.s:106	0x5888f8		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:108	0x5888fb		c4427d04c4		VPMADDUBSW Y12, Y0, Y8			
+  mc_center_stack_amd64.s:108	0x588900		c4426d04cd		VPMADDUBSW Y13, Y2, Y9			
+  mc_center_stack_amd64.s:108	0x588905		c4425d04d6		VPMADDUBSW Y14, Y4, Y10			
+  mc_center_stack_amd64.s:108	0x58890a		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:108	0x58890f		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:108	0x588914		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:108	0x588918		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:108	0x58891e		c5797e4810		VMOVD X9, 0x10(AX)			
+  mc_center_stack_amd64.s:108	0x588923		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:108	0x588926		0f8415070000		JE 0x589041				
+  mc_center_stack_amd64.s:108	0x58892c		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:108	0x58892f		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:108	0x588934		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:108	0x588939		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:108	0x58893e		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:108	0x588944		c5cd60c5		VPUNPCKLBW Y5, Y6, Y0			
+  mc_center_stack_amd64.s:108	0x588948		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:109	0x58894b		c4427504c4		VPMADDUBSW Y12, Y1, Y8			
+  mc_center_stack_amd64.s:109	0x588950		c4426504cd		VPMADDUBSW Y13, Y3, Y9			
+  mc_center_stack_amd64.s:109	0x588955		c4427d04d6		VPMADDUBSW Y14, Y0, Y10			
+  mc_center_stack_amd64.s:109	0x58895a		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:109	0x58895f		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:109	0x588964		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:109	0x588968		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:109	0x58896e		c5797e4810		VMOVD X9, 0x10(AX)			
+  mc_center_stack_amd64.s:109	0x588973		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:109	0x588976		0f84c5060000		JE 0x589041				
+  mc_center_stack_amd64.s:109	0x58897c		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:109	0x58897f		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:109	0x588984		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:109	0x588989		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:109	0x58898e		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:109	0x588994		c5d560ce		VPUNPCKLBW Y6, Y5, Y1			
+  mc_center_stack_amd64.s:109	0x588998		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:110	0x58899b		c4426d04c4		VPMADDUBSW Y12, Y2, Y8			
+  mc_center_stack_amd64.s:110	0x5889a0		c4425d04cd		VPMADDUBSW Y13, Y4, Y9			
+  mc_center_stack_amd64.s:110	0x5889a5		c4427504d6		VPMADDUBSW Y14, Y1, Y10			
+  mc_center_stack_amd64.s:110	0x5889aa		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:110	0x5889af		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:110	0x5889b4		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:110	0x5889b8		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:110	0x5889be		c5797e4810		VMOVD X9, 0x10(AX)			
+  mc_center_stack_amd64.s:110	0x5889c3		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:110	0x5889c6		0f8475060000		JE 0x589041				
+  mc_center_stack_amd64.s:110	0x5889cc		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:110	0x5889cf		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:110	0x5889d4		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:110	0x5889d9		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:110	0x5889de		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:110	0x5889e4		c5cd60d5		VPUNPCKLBW Y5, Y6, Y2			
+  mc_center_stack_amd64.s:110	0x5889e8		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:111	0x5889eb		c4426504c4		VPMADDUBSW Y12, Y3, Y8			
+  mc_center_stack_amd64.s:111	0x5889f0		c4427d04cd		VPMADDUBSW Y13, Y0, Y9			
+  mc_center_stack_amd64.s:111	0x5889f5		c4426d04d6		VPMADDUBSW Y14, Y2, Y10			
+  mc_center_stack_amd64.s:111	0x5889fa		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:111	0x5889ff		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:111	0x588a04		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:111	0x588a08		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:111	0x588a0e		c5797e4810		VMOVD X9, 0x10(AX)			
+  mc_center_stack_amd64.s:111	0x588a13		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:111	0x588a16		0f8425060000		JE 0x589041				
+  mc_center_stack_amd64.s:111	0x588a1c		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:111	0x588a1f		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:111	0x588a24		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:111	0x588a29		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:111	0x588a2e		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:111	0x588a34		c5d560de		VPUNPCKLBW Y6, Y5, Y3			
+  mc_center_stack_amd64.s:111	0x588a38		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:112	0x588a3b		c4425d04c4		VPMADDUBSW Y12, Y4, Y8			
+  mc_center_stack_amd64.s:112	0x588a40		c4427504cd		VPMADDUBSW Y13, Y1, Y9			
+  mc_center_stack_amd64.s:112	0x588a45		c4426504d6		VPMADDUBSW Y14, Y3, Y10			
+  mc_center_stack_amd64.s:112	0x588a4a		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:112	0x588a4f		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:112	0x588a54		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:112	0x588a58		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:112	0x588a5e		c5797e4810		VMOVD X9, 0x10(AX)			
+  mc_center_stack_amd64.s:112	0x588a63		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:112	0x588a66		0f84d5050000		JE 0x589041				
+  mc_center_stack_amd64.s:112	0x588a6c		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:112	0x588a6f		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:112	0x588a74		c5f96e7a06		VMOVD 0x6(DX), X7			
+  mc_center_stack_amd64.s:112	0x588a79		c5c173df02		VPSRLDQ $0x2, X7, X7			
+  mc_center_stack_amd64.s:112	0x588a7e		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:112	0x588a84		c5cd60e5		VPUNPCKLBW Y5, Y6, Y4			
+  mc_center_stack_amd64.s:112	0x588a88		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:113	0x588a8b		c5fd7fee		VMOVDQA Y5, Y6				
+  mc_center_stack_amd64.s:114	0x588a8f		e967feffff		JMP 0x5888fb				
+  mc_center_stack_amd64.s:117	0x588a94		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:117	0x588a99		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:117	0x588a9e		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:117	0x588aa4		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:117	0x588aaa		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:117	0x588aad		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:117	0x588ab2		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:117	0x588ab7		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:117	0x588abd		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:117	0x588ac3		c5d560c6		VPUNPCKLBW Y6, Y5, Y0			
+  mc_center_stack_amd64.s:117	0x588ac7		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:117	0x588aca		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:117	0x588acf		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:117	0x588ad4		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:117	0x588ada		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:117	0x588ae0		c5cd60cd		VPUNPCKLBW Y5, Y6, Y1			
+  mc_center_stack_amd64.s:117	0x588ae4		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:117	0x588ae7		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:117	0x588aec		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:117	0x588af1		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:117	0x588af7		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:117	0x588afd		c5d560d6		VPUNPCKLBW Y6, Y5, Y2			
+  mc_center_stack_amd64.s:117	0x588b01		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:117	0x588b04		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:117	0x588b09		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:117	0x588b0e		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:117	0x588b14		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:117	0x588b1a		c5cd60dd		VPUNPCKLBW Y5, Y6, Y3			
+  mc_center_stack_amd64.s:117	0x588b1e		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:117	0x588b21		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:117	0x588b26		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:117	0x588b2b		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:117	0x588b31		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:117	0x588b37		c5d560e6		VPUNPCKLBW Y6, Y5, Y4			
+  mc_center_stack_amd64.s:117	0x588b3b		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:119	0x588b3e		c4427d04c4		VPMADDUBSW Y12, Y0, Y8			
+  mc_center_stack_amd64.s:119	0x588b43		c4426d04cd		VPMADDUBSW Y13, Y2, Y9			
+  mc_center_stack_amd64.s:119	0x588b48		c4425d04d6		VPMADDUBSW Y14, Y4, Y10			
+  mc_center_stack_amd64.s:119	0x588b4d		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:119	0x588b52		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:119	0x588b57		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:119	0x588b5b		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:119	0x588b61		c461f97e4810		VMOVQ X9, 0x10(AX)			
+  mc_center_stack_amd64.s:119	0x588b67		c4c13173d908		VPSRLDQ $0x8, X9, X9			
+  mc_center_stack_amd64.s:119	0x588b6d		c5797e4818		VMOVD X9, 0x18(AX)			
+  mc_center_stack_amd64.s:119	0x588b72		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:119	0x588b75		0f84c6040000		JE 0x589041				
+  mc_center_stack_amd64.s:119	0x588b7b		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:119	0x588b7e		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:119	0x588b83		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:119	0x588b88		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:119	0x588b8e		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:119	0x588b94		c5cd60c5		VPUNPCKLBW Y5, Y6, Y0			
+  mc_center_stack_amd64.s:119	0x588b98		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:120	0x588b9b		c4427504c4		VPMADDUBSW Y12, Y1, Y8			
+  mc_center_stack_amd64.s:120	0x588ba0		c4426504cd		VPMADDUBSW Y13, Y3, Y9			
+  mc_center_stack_amd64.s:120	0x588ba5		c4427d04d6		VPMADDUBSW Y14, Y0, Y10			
+  mc_center_stack_amd64.s:120	0x588baa		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:120	0x588baf		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:120	0x588bb4		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:120	0x588bb8		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:120	0x588bbe		c461f97e4810		VMOVQ X9, 0x10(AX)			
+  mc_center_stack_amd64.s:120	0x588bc4		c4c13173d908		VPSRLDQ $0x8, X9, X9			
+  mc_center_stack_amd64.s:120	0x588bca		c5797e4818		VMOVD X9, 0x18(AX)			
+  mc_center_stack_amd64.s:120	0x588bcf		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:120	0x588bd2		0f8469040000		JE 0x589041				
+  mc_center_stack_amd64.s:120	0x588bd8		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:120	0x588bdb		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:120	0x588be0		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:120	0x588be5		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:120	0x588beb		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:120	0x588bf1		c5d560ce		VPUNPCKLBW Y6, Y5, Y1			
+  mc_center_stack_amd64.s:120	0x588bf5		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:121	0x588bf8		c4426d04c4		VPMADDUBSW Y12, Y2, Y8			
+  mc_center_stack_amd64.s:121	0x588bfd		c4425d04cd		VPMADDUBSW Y13, Y4, Y9			
+  mc_center_stack_amd64.s:121	0x588c02		c4427504d6		VPMADDUBSW Y14, Y1, Y10			
+  mc_center_stack_amd64.s:121	0x588c07		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:121	0x588c0c		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:121	0x588c11		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:121	0x588c15		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:121	0x588c1b		c461f97e4810		VMOVQ X9, 0x10(AX)			
+  mc_center_stack_amd64.s:121	0x588c21		c4c13173d908		VPSRLDQ $0x8, X9, X9			
+  mc_center_stack_amd64.s:121	0x588c27		c5797e4818		VMOVD X9, 0x18(AX)			
+  mc_center_stack_amd64.s:121	0x588c2c		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:121	0x588c2f		0f840c040000		JE 0x589041				
+  mc_center_stack_amd64.s:121	0x588c35		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:121	0x588c38		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:121	0x588c3d		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:121	0x588c42		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:121	0x588c48		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:121	0x588c4e		c5cd60d5		VPUNPCKLBW Y5, Y6, Y2			
+  mc_center_stack_amd64.s:121	0x588c52		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:122	0x588c55		c4426504c4		VPMADDUBSW Y12, Y3, Y8			
+  mc_center_stack_amd64.s:122	0x588c5a		c4427d04cd		VPMADDUBSW Y13, Y0, Y9			
+  mc_center_stack_amd64.s:122	0x588c5f		c4426d04d6		VPMADDUBSW Y14, Y2, Y10			
+  mc_center_stack_amd64.s:122	0x588c64		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:122	0x588c69		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:122	0x588c6e		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:122	0x588c72		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:122	0x588c78		c461f97e4810		VMOVQ X9, 0x10(AX)			
+  mc_center_stack_amd64.s:122	0x588c7e		c4c13173d908		VPSRLDQ $0x8, X9, X9			
+  mc_center_stack_amd64.s:122	0x588c84		c5797e4818		VMOVD X9, 0x18(AX)			
+  mc_center_stack_amd64.s:122	0x588c89		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:122	0x588c8c		0f84af030000		JE 0x589041				
+  mc_center_stack_amd64.s:122	0x588c92		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:122	0x588c95		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:122	0x588c9a		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:122	0x588c9f		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:122	0x588ca5		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:122	0x588cab		c5d560de		VPUNPCKLBW Y6, Y5, Y3			
+  mc_center_stack_amd64.s:122	0x588caf		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:123	0x588cb2		c4425d04c4		VPMADDUBSW Y12, Y4, Y8			
+  mc_center_stack_amd64.s:123	0x588cb7		c4427504cd		VPMADDUBSW Y13, Y1, Y9			
+  mc_center_stack_amd64.s:123	0x588cbc		c4426504d6		VPMADDUBSW Y14, Y3, Y10			
+  mc_center_stack_amd64.s:123	0x588cc1		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:123	0x588cc6		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:123	0x588ccb		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:123	0x588ccf		c4437d39c101		VEXTRACTI128 $0x1, Y8, X9		
+  mc_center_stack_amd64.s:123	0x588cd5		c461f97e4810		VMOVQ X9, 0x10(AX)			
+  mc_center_stack_amd64.s:123	0x588cdb		c4c13173d908		VPSRLDQ $0x8, X9, X9			
+  mc_center_stack_amd64.s:123	0x588ce1		c5797e4818		VMOVD X9, 0x18(AX)			
+  mc_center_stack_amd64.s:123	0x588ce6		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:123	0x588ce9		0f8452030000		JE 0x589041				
+  mc_center_stack_amd64.s:123	0x588cef		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:123	0x588cf2		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:123	0x588cf7		c5f96e7a08		VMOVD 0x8(DX), X7			
+  mc_center_stack_amd64.s:123	0x588cfc		c5c1c47a0c02		VPINSRW $0x2, 0xc(DX), X7, X7		
+  mc_center_stack_amd64.s:123	0x588d02		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:123	0x588d08		c5cd60e5		VPUNPCKLBW Y5, Y6, Y4			
+  mc_center_stack_amd64.s:123	0x588d0c		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:124	0x588d0f		c5fd7fee		VMOVDQA Y5, Y6				
+  mc_center_stack_amd64.s:125	0x588d13		e926feffff		JMP 0x588b3e				
+  mc_center_stack_amd64.s:128	0x588d18		c5fa6f2a		VMOVDQU 0(DX), X5			
+  mc_center_stack_amd64.s:128	0x588d1c		c5c173dd08		VPSRLDQ $0x8, X5, X7			
+  mc_center_stack_amd64.s:128	0x588d21		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:128	0x588d27		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:128	0x588d2a		c5fa6f32		VMOVDQU 0(DX), X6			
+  mc_center_stack_amd64.s:128	0x588d2e		c5c173de08		VPSRLDQ $0x8, X6, X7			
+  mc_center_stack_amd64.s:128	0x588d33		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:128	0x588d39		c5d560c6		VPUNPCKLBW Y6, Y5, Y0			
+  mc_center_stack_amd64.s:128	0x588d3d		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:128	0x588d40		c5fa6f2a		VMOVDQU 0(DX), X5			
+  mc_center_stack_amd64.s:128	0x588d44		c5c173dd08		VPSRLDQ $0x8, X5, X7			
+  mc_center_stack_amd64.s:128	0x588d49		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:128	0x588d4f		c5cd60cd		VPUNPCKLBW Y5, Y6, Y1			
+  mc_center_stack_amd64.s:128	0x588d53		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:128	0x588d56		c5fa6f32		VMOVDQU 0(DX), X6			
+  mc_center_stack_amd64.s:128	0x588d5a		c5c173de08		VPSRLDQ $0x8, X6, X7			
+  mc_center_stack_amd64.s:128	0x588d5f		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:128	0x588d65		c5d560d6		VPUNPCKLBW Y6, Y5, Y2			
+  mc_center_stack_amd64.s:128	0x588d69		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:128	0x588d6c		c5fa6f2a		VMOVDQU 0(DX), X5			
+  mc_center_stack_amd64.s:128	0x588d70		c5c173dd08		VPSRLDQ $0x8, X5, X7			
+  mc_center_stack_amd64.s:128	0x588d75		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:128	0x588d7b		c5cd60dd		VPUNPCKLBW Y5, Y6, Y3			
+  mc_center_stack_amd64.s:128	0x588d7f		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:128	0x588d82		c5fa6f32		VMOVDQU 0(DX), X6			
+  mc_center_stack_amd64.s:128	0x588d86		c5c173de08		VPSRLDQ $0x8, X6, X7			
+  mc_center_stack_amd64.s:128	0x588d8b		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:128	0x588d91		c5d560e6		VPUNPCKLBW Y6, Y5, Y4			
+  mc_center_stack_amd64.s:128	0x588d95		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:130	0x588d98		c4427d04c4		VPMADDUBSW Y12, Y0, Y8			
+  mc_center_stack_amd64.s:130	0x588d9d		c4426d04cd		VPMADDUBSW Y13, Y2, Y9			
+  mc_center_stack_amd64.s:130	0x588da2		c4425d04d6		VPMADDUBSW Y14, Y4, Y10			
+  mc_center_stack_amd64.s:130	0x588da7		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:130	0x588dac		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:130	0x588db1		c57e7f00		VMOVDQU Y8, 0(AX)			
+  mc_center_stack_amd64.s:130	0x588db5		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:130	0x588db8		0f846c020000		JE 0x58902a				
+  mc_center_stack_amd64.s:130	0x588dbe		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:130	0x588dc1		c5fa6f2a		VMOVDQU 0(DX), X5			
+  mc_center_stack_amd64.s:130	0x588dc5		c5c173dd08		VPSRLDQ $0x8, X5, X7			
+  mc_center_stack_amd64.s:130	0x588dca		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:130	0x588dd0		c5cd60c5		VPUNPCKLBW Y5, Y6, Y0			
+  mc_center_stack_amd64.s:130	0x588dd4		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:131	0x588dd7		c4427504c4		VPMADDUBSW Y12, Y1, Y8			
+  mc_center_stack_amd64.s:131	0x588ddc		c4426504cd		VPMADDUBSW Y13, Y3, Y9			
+  mc_center_stack_amd64.s:131	0x588de1		c4427d04d6		VPMADDUBSW Y14, Y0, Y10			
+  mc_center_stack_amd64.s:131	0x588de6		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:131	0x588deb		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:131	0x588df0		c57e7f00		VMOVDQU Y8, 0(AX)			
+  mc_center_stack_amd64.s:131	0x588df4		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:131	0x588df7		0f842d020000		JE 0x58902a				
+  mc_center_stack_amd64.s:131	0x588dfd		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:131	0x588e00		c5fa6f32		VMOVDQU 0(DX), X6			
+  mc_center_stack_amd64.s:131	0x588e04		c5c173de08		VPSRLDQ $0x8, X6, X7			
+  mc_center_stack_amd64.s:131	0x588e09		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:131	0x588e0f		c5d560ce		VPUNPCKLBW Y6, Y5, Y1			
+  mc_center_stack_amd64.s:131	0x588e13		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:132	0x588e16		c4426d04c4		VPMADDUBSW Y12, Y2, Y8			
+  mc_center_stack_amd64.s:132	0x588e1b		c4425d04cd		VPMADDUBSW Y13, Y4, Y9			
+  mc_center_stack_amd64.s:132	0x588e20		c4427504d6		VPMADDUBSW Y14, Y1, Y10			
+  mc_center_stack_amd64.s:132	0x588e25		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:132	0x588e2a		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:132	0x588e2f		c57e7f00		VMOVDQU Y8, 0(AX)			
+  mc_center_stack_amd64.s:132	0x588e33		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:132	0x588e36		0f84ee010000		JE 0x58902a				
+  mc_center_stack_amd64.s:132	0x588e3c		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:132	0x588e3f		c5fa6f2a		VMOVDQU 0(DX), X5			
+  mc_center_stack_amd64.s:132	0x588e43		c5c173dd08		VPSRLDQ $0x8, X5, X7			
+  mc_center_stack_amd64.s:132	0x588e48		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:132	0x588e4e		c5cd60d5		VPUNPCKLBW Y5, Y6, Y2			
+  mc_center_stack_amd64.s:132	0x588e52		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:133	0x588e55		c4426504c4		VPMADDUBSW Y12, Y3, Y8			
+  mc_center_stack_amd64.s:133	0x588e5a		c4427d04cd		VPMADDUBSW Y13, Y0, Y9			
+  mc_center_stack_amd64.s:133	0x588e5f		c4426d04d6		VPMADDUBSW Y14, Y2, Y10			
+  mc_center_stack_amd64.s:133	0x588e64		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:133	0x588e69		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:133	0x588e6e		c57e7f00		VMOVDQU Y8, 0(AX)			
+  mc_center_stack_amd64.s:133	0x588e72		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:133	0x588e75		0f84af010000		JE 0x58902a				
+  mc_center_stack_amd64.s:133	0x588e7b		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:133	0x588e7e		c5fa6f32		VMOVDQU 0(DX), X6			
+  mc_center_stack_amd64.s:133	0x588e82		c5c173de08		VPSRLDQ $0x8, X6, X7			
+  mc_center_stack_amd64.s:133	0x588e87		c4e34d38f701		VINSERTI128 $0x1, X7, Y6, Y6		
+  mc_center_stack_amd64.s:133	0x588e8d		c5d560de		VPUNPCKLBW Y6, Y5, Y3			
+  mc_center_stack_amd64.s:133	0x588e91		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:134	0x588e94		c4425d04c4		VPMADDUBSW Y12, Y4, Y8			
+  mc_center_stack_amd64.s:134	0x588e99		c4427504cd		VPMADDUBSW Y13, Y1, Y9			
+  mc_center_stack_amd64.s:134	0x588e9e		c4426504d6		VPMADDUBSW Y14, Y3, Y10			
+  mc_center_stack_amd64.s:134	0x588ea3		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:134	0x588ea8		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:134	0x588ead		c57e7f00		VMOVDQU Y8, 0(AX)			
+  mc_center_stack_amd64.s:134	0x588eb1		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:134	0x588eb4		0f8470010000		JE 0x58902a				
+  mc_center_stack_amd64.s:134	0x588eba		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:134	0x588ebd		c5fa6f2a		VMOVDQU 0(DX), X5			
+  mc_center_stack_amd64.s:134	0x588ec1		c5c173dd08		VPSRLDQ $0x8, X5, X7			
+  mc_center_stack_amd64.s:134	0x588ec6		c4e35538ef01		VINSERTI128 $0x1, X7, Y5, Y5		
+  mc_center_stack_amd64.s:134	0x588ecc		c5cd60e5		VPUNPCKLBW Y5, Y6, Y4			
+  mc_center_stack_amd64.s:134	0x588ed0		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:135	0x588ed3		c5fd7fee		VMOVDQA Y5, Y6				
+  mc_center_stack_amd64.s:136	0x588ed7		e9bcfeffff		JMP 0x588d98				
+  mc_center_stack_amd64.s:139	0x588edc		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:139	0x588ee1		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:139	0x588ee4		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:139	0x588ee9		c5d560c6		VPUNPCKLBW Y6, Y5, Y0			
+  mc_center_stack_amd64.s:139	0x588eed		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:139	0x588ef0		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:139	0x588ef5		c5cd60cd		VPUNPCKLBW Y5, Y6, Y1			
+  mc_center_stack_amd64.s:139	0x588ef9		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:139	0x588efc		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:139	0x588f01		c5d560d6		VPUNPCKLBW Y6, Y5, Y2			
+  mc_center_stack_amd64.s:139	0x588f05		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:139	0x588f08		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:139	0x588f0d		c5cd60dd		VPUNPCKLBW Y5, Y6, Y3			
+  mc_center_stack_amd64.s:139	0x588f11		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:139	0x588f14		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:139	0x588f19		c5d560e6		VPUNPCKLBW Y6, Y5, Y4			
+  mc_center_stack_amd64.s:139	0x588f1d		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:141	0x588f20		c4427d04c4		VPMADDUBSW Y12, Y0, Y8			
+  mc_center_stack_amd64.s:141	0x588f25		c4426d04cd		VPMADDUBSW Y13, Y2, Y9			
+  mc_center_stack_amd64.s:141	0x588f2a		c4425d04d6		VPMADDUBSW Y14, Y4, Y10			
+  mc_center_stack_amd64.s:141	0x588f2f		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:141	0x588f34		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:141	0x588f39		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:141	0x588f3d		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:141	0x588f40		0f84fb000000		JE 0x589041				
+  mc_center_stack_amd64.s:141	0x588f46		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:141	0x588f49		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:141	0x588f4e		c5cd60c5		VPUNPCKLBW Y5, Y6, Y0			
+  mc_center_stack_amd64.s:141	0x588f52		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:142	0x588f55		c4427504c4		VPMADDUBSW Y12, Y1, Y8			
+  mc_center_stack_amd64.s:142	0x588f5a		c4426504cd		VPMADDUBSW Y13, Y3, Y9			
+  mc_center_stack_amd64.s:142	0x588f5f		c4427d04d6		VPMADDUBSW Y14, Y0, Y10			
+  mc_center_stack_amd64.s:142	0x588f64		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:142	0x588f69		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:142	0x588f6e		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:142	0x588f72		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:142	0x588f75		0f84c6000000		JE 0x589041				
+  mc_center_stack_amd64.s:142	0x588f7b		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:142	0x588f7e		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:142	0x588f83		c5d560ce		VPUNPCKLBW Y6, Y5, Y1			
+  mc_center_stack_amd64.s:142	0x588f87		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:143	0x588f8a		c4426d04c4		VPMADDUBSW Y12, Y2, Y8			
+  mc_center_stack_amd64.s:143	0x588f8f		c4425d04cd		VPMADDUBSW Y13, Y4, Y9			
+  mc_center_stack_amd64.s:143	0x588f94		c4427504d6		VPMADDUBSW Y14, Y1, Y10			
+  mc_center_stack_amd64.s:143	0x588f99		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:143	0x588f9e		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:143	0x588fa3		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:143	0x588fa7		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:143	0x588faa		0f8491000000		JE 0x589041				
+  mc_center_stack_amd64.s:143	0x588fb0		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:143	0x588fb3		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:143	0x588fb8		c5cd60d5		VPUNPCKLBW Y5, Y6, Y2			
+  mc_center_stack_amd64.s:143	0x588fbc		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:144	0x588fbf		c4426504c4		VPMADDUBSW Y12, Y3, Y8			
+  mc_center_stack_amd64.s:144	0x588fc4		c4427d04cd		VPMADDUBSW Y13, Y0, Y9			
+  mc_center_stack_amd64.s:144	0x588fc9		c4426d04d6		VPMADDUBSW Y14, Y2, Y10			
+  mc_center_stack_amd64.s:144	0x588fce		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:144	0x588fd3		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:144	0x588fd8		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:144	0x588fdc		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:144	0x588fdf		7460			JE 0x589041				
+  mc_center_stack_amd64.s:144	0x588fe1		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:144	0x588fe4		c4e1f96e32		VMOVQ 0(DX), X6				
+  mc_center_stack_amd64.s:144	0x588fe9		c5d560de		VPUNPCKLBW Y6, Y5, Y3			
+  mc_center_stack_amd64.s:144	0x588fed		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:145	0x588ff0		c4425d04c4		VPMADDUBSW Y12, Y4, Y8			
+  mc_center_stack_amd64.s:145	0x588ff5		c4427504cd		VPMADDUBSW Y13, Y1, Y9			
+  mc_center_stack_amd64.s:145	0x588ffa		c4426504d6		VPMADDUBSW Y14, Y3, Y10			
+  mc_center_stack_amd64.s:145	0x588fff		c4413dfdc1		VPADDW Y9, Y8, Y8			
+  mc_center_stack_amd64.s:145	0x589004		c4413dfdc2		VPADDW Y10, Y8, Y8			
+  mc_center_stack_amd64.s:145	0x589009		c57a7f00		VMOVDQU X8, 0(AX)			
+  mc_center_stack_amd64.s:145	0x58900d		49ffca			DECQ R10				
+  mc_center_stack_amd64.s:145	0x589010		742f			JE 0x589041				
+  mc_center_stack_amd64.s:145	0x589012		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:145	0x589015		c4e1f96e2a		VMOVQ 0(DX), X5				
+  mc_center_stack_amd64.s:145	0x58901a		c5cd60e5		VPUNPCKLBW Y5, Y6, Y4			
+  mc_center_stack_amd64.s:145	0x58901e		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:146	0x589021		c5fd7fee		VMOVDQA Y5, Y6				
+  mc_center_stack_amd64.s:147	0x589025		e9f6feffff		JMP 0x588f20				
+  mc_center_stack_amd64.s:151	0x58902a		498d44241c		LEAQ 0x1c(R12), AX			
+  mc_center_stack_amd64.s:152	0x58902f		498d550e		LEAQ 0xe(R13), DX			
+  mc_center_stack_amd64.s:153	0x589033		4829da			SUBQ BX, DX				
+  mc_center_stack_amd64.s:154	0x589036		4829da			SUBQ BX, DX				
+  mc_center_stack_amd64.s:155	0x589039		4989fa			MOVQ DI, R10				
+  mc_center_stack_amd64.s:156	0x58903c		e99bfeffff		JMP 0x588edc				
+  mc_center_stack_amd64.s:159	0x589041		488b842400030000	MOVQ 0x300(SP), AX			
+  mc_center_stack_amd64.s:160	0x589049		488b8c2408030000	MOVQ 0x308(SP), CX			
+  mc_center_stack_amd64.s:161	0x589051		488d1424		LEAQ 0(SP), DX				
+  mc_center_stack_amd64.s:162	0x589055		bb2c000000		MOVL $0x2c, BX				
+  mc_center_stack_amd64.s:163	0x58905a		488bb42420030000	MOVQ 0x320(SP), SI			
+  mc_center_stack_amd64.s:164	0x589062		488bbc2428030000	MOVQ 0x328(SP), DI			
+  mc_center_stack_amd64.s:165	0x58906a		c5c576ff		VPCMPEQD Y7, Y7, Y7			
+  mc_center_stack_amd64.s:166	0x58906e		c5c572d71f		VPSRLD $0x1f, Y7, Y7			
+  mc_center_stack_amd64.s:167	0x589073		c5c572f709		VPSLLD $0x9, Y7, Y7			
+  mc_center_stack_amd64.s:168	0x589078		c4627d5a054f720200	VBROADCASTI128 0x2724f, Y8		
+  mc_center_stack_amd64.s:169	0x589081		c4627d5a0d56720200	VBROADCASTI128 0x27256, Y9		
+  mc_center_stack_amd64.s:170	0x58908a		c4627d5a155d720200	VBROADCASTI128 0x2725d, Y10		
+  mc_center_stack_amd64.s:171	0x589093		c4627d581d0c680200	VPBROADCASTD 0x2680c, Y11		
+  mc_center_stack_amd64.s:172	0x58909c		c4627d582507680200	VPBROADCASTD 0x26807, Y12		
+  mc_center_stack_amd64.s:173	0x5890a5		c4627d582d02680200	VPBROADCASTD 0x26802, Y13		
+  mc_center_stack_amd64.s:174	0x5890ae		4883fe05		CMPQ SI, $0x5				
+  mc_center_stack_amd64.s:175	0x5890b2		0f84d9010000		JE 0x589291				
+  mc_center_stack_amd64.s:176	0x5890b8		4883fe09		CMPQ SI, $0x9				
+  mc_center_stack_amd64.s:177	0x5890bc		0f8415010000		JE 0x5891d7				
+  mc_center_stack_amd64.s:179	0x5890c2		c5fa6f02		VMOVDQU 0(DX), X0			
+  mc_center_stack_amd64.s:179	0x5890c6		c4e37d38420801		VINSERTI128 $0x1, 0x8(DX), Y0, Y0	
+  mc_center_stack_amd64.s:179	0x5890cd		c5fa6f4a02		VMOVDQU 0x2(DX), X1			
+  mc_center_stack_amd64.s:179	0x5890d2		c4e375384a0a01		VINSERTI128 $0x1, 0xa(DX), Y1, Y1	
+  mc_center_stack_amd64.s:179	0x5890d9		c4c27d00d0		VPSHUFB Y8, Y0, Y2			
+  mc_center_stack_amd64.s:179	0x5890de		c4c27d00d9		VPSHUFB Y9, Y0, Y3			
+  mc_center_stack_amd64.s:179	0x5890e3		c4c27500ca		VPSHUFB Y10, Y1, Y1			
+  mc_center_stack_amd64.s:179	0x5890e8		c4c16df5d3		VPMADDWD Y11, Y2, Y2			
+  mc_center_stack_amd64.s:179	0x5890ed		c4c165f5dc		VPMADDWD Y12, Y3, Y3			
+  mc_center_stack_amd64.s:179	0x5890f2		c4c175f5cd		VPMADDWD Y13, Y1, Y1			
+  mc_center_stack_amd64.s:179	0x5890f7		c5edfec3		VPADDD Y3, Y2, Y0			
+  mc_center_stack_amd64.s:179	0x5890fb		c5fdfec1		VPADDD Y1, Y0, Y0			
+  mc_center_stack_amd64.s:179	0x5890ff		c5fdfec7		VPADDD Y7, Y0, Y0			
+  mc_center_stack_amd64.s:179	0x589103		c5fd72e00a		VPSRAD $0xa, Y0, Y0			
+  mc_center_stack_amd64.s:179	0x589108		c4e37d39c101		VEXTRACTI128 $0x1, Y0, X1		
+  mc_center_stack_amd64.s:179	0x58910e		c5f96bc1		VPACKSSDW X1, X0, X0			
+  mc_center_stack_amd64.s:179	0x589112		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:179	0x589116		c4e1f97e00		VMOVQ X0, 0(AX)				
+  mc_center_stack_amd64.s:180	0x58911b		c5fa6f4210		VMOVDQU 0x10(DX), X0			
+  mc_center_stack_amd64.s:180	0x589120		c4e37d38421801		VINSERTI128 $0x1, 0x18(DX), Y0, Y0	
+  mc_center_stack_amd64.s:180	0x589127		c5fa6f4a12		VMOVDQU 0x12(DX), X1			
+  mc_center_stack_amd64.s:180	0x58912c		c4e375384a1a01		VINSERTI128 $0x1, 0x1a(DX), Y1, Y1	
+  mc_center_stack_amd64.s:180	0x589133		c4c27d00d0		VPSHUFB Y8, Y0, Y2			
+  mc_center_stack_amd64.s:180	0x589138		c4c27d00d9		VPSHUFB Y9, Y0, Y3			
+  mc_center_stack_amd64.s:180	0x58913d		c4c27500ca		VPSHUFB Y10, Y1, Y1			
+  mc_center_stack_amd64.s:180	0x589142		c4c16df5d3		VPMADDWD Y11, Y2, Y2			
+  mc_center_stack_amd64.s:180	0x589147		c4c165f5dc		VPMADDWD Y12, Y3, Y3			
+  mc_center_stack_amd64.s:180	0x58914c		c4c175f5cd		VPMADDWD Y13, Y1, Y1			
+  mc_center_stack_amd64.s:180	0x589151		c5edfec3		VPADDD Y3, Y2, Y0			
+  mc_center_stack_amd64.s:180	0x589155		c5fdfec1		VPADDD Y1, Y0, Y0			
+  mc_center_stack_amd64.s:180	0x589159		c5fdfec7		VPADDD Y7, Y0, Y0			
+  mc_center_stack_amd64.s:180	0x58915d		c5fd72e00a		VPSRAD $0xa, Y0, Y0			
+  mc_center_stack_amd64.s:180	0x589162		c4e37d39c101		VEXTRACTI128 $0x1, Y0, X1		
+  mc_center_stack_amd64.s:180	0x589168		c5f96bc1		VPACKSSDW X1, X0, X0			
+  mc_center_stack_amd64.s:180	0x58916c		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:180	0x589170		c4e1f97e4008		VMOVQ X0, 0x8(AX)			
+  mc_center_stack_amd64.s:181	0x589176		c5fa6f421a		VMOVDQU 0x1a(DX), X0			
+  mc_center_stack_amd64.s:181	0x58917b		c5fa6f4a1c		VMOVDQU 0x1c(DX), X1			
+  mc_center_stack_amd64.s:181	0x589180		c4c27900d0		VPSHUFB X8, X0, X2			
+  mc_center_stack_amd64.s:181	0x589185		c4c27900d9		VPSHUFB X9, X0, X3			
+  mc_center_stack_amd64.s:181	0x58918a		c4c27100ca		VPSHUFB X10, X1, X1			
+  mc_center_stack_amd64.s:181	0x58918f		c4c169f5d3		VPMADDWD X11, X2, X2			
+  mc_center_stack_amd64.s:181	0x589194		c4c161f5dc		VPMADDWD X12, X3, X3			
+  mc_center_stack_amd64.s:181	0x589199		c4c171f5cd		VPMADDWD X13, X1, X1			
+  mc_center_stack_amd64.s:181	0x58919e		c5e9fec3		VPADDD X3, X2, X0			
+  mc_center_stack_amd64.s:181	0x5891a2		c5f9fec1		VPADDD X1, X0, X0			
+  mc_center_stack_amd64.s:181	0x5891a6		c5f9fec7		VPADDD X7, X0, X0			
+  mc_center_stack_amd64.s:181	0x5891aa		c5f972e00a		VPSRAD $0xa, X0, X0			
+  mc_center_stack_amd64.s:181	0x5891af		c5f96bc0		VPACKSSDW X0, X0, X0			
+  mc_center_stack_amd64.s:181	0x5891b3		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:181	0x5891b7		c5f97e400d		VMOVD X0, 0xd(AX)			
+  mc_center_stack_amd64.s:182	0x5891bc		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:183	0x5891bf		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:184	0x5891c2		48ffcf			DECQ DI					
+  mc_center_stack_amd64.s:185	0x5891c5		0f85f7feffff		JNE 0x5890c2				
+  mc_center_stack_amd64.s:186	0x5891cb		c5f8774881		VZEROUPPER				
+  mc_center_stack_amd64.s:187	0x5891d0		c4			?					
+  mc_center_stack_amd64.s:187	0x5891d1		f00200			LOCK ADDB 0(AX), AL			
+  mc_center_stack_amd64.s:187	0x5891d4		005dc3			ADDB BL, -0x3d(BP)			
+  mc_center_stack_amd64.s:190	0x5891d7		c5fa6f02		VMOVDQU 0(DX), X0			
+  mc_center_stack_amd64.s:190	0x5891db		c4e37d38420801		VINSERTI128 $0x1, 0x8(DX), Y0, Y0	
+  mc_center_stack_amd64.s:190	0x5891e2		c5fa6f4a02		VMOVDQU 0x2(DX), X1			
+  mc_center_stack_amd64.s:190	0x5891e7		c4e375384a0a01		VINSERTI128 $0x1, 0xa(DX), Y1, Y1	
+  mc_center_stack_amd64.s:190	0x5891ee		c4c27d00d0		VPSHUFB Y8, Y0, Y2			
+  mc_center_stack_amd64.s:190	0x5891f3		c4c27d00d9		VPSHUFB Y9, Y0, Y3			
+  mc_center_stack_amd64.s:190	0x5891f8		c4c27500ca		VPSHUFB Y10, Y1, Y1			
+  mc_center_stack_amd64.s:190	0x5891fd		c4c16df5d3		VPMADDWD Y11, Y2, Y2			
+  mc_center_stack_amd64.s:190	0x589202		c4c165f5dc		VPMADDWD Y12, Y3, Y3			
+  mc_center_stack_amd64.s:190	0x589207		c4c175f5cd		VPMADDWD Y13, Y1, Y1			
+  mc_center_stack_amd64.s:190	0x58920c		c5edfec3		VPADDD Y3, Y2, Y0			
+  mc_center_stack_amd64.s:190	0x589210		c5fdfec1		VPADDD Y1, Y0, Y0			
+  mc_center_stack_amd64.s:190	0x589214		c5fdfec7		VPADDD Y7, Y0, Y0			
+  mc_center_stack_amd64.s:190	0x589218		c5fd72e00a		VPSRAD $0xa, Y0, Y0			
+  mc_center_stack_amd64.s:190	0x58921d		c4e37d39c101		VEXTRACTI128 $0x1, Y0, X1		
+  mc_center_stack_amd64.s:190	0x589223		c5f96bc1		VPACKSSDW X1, X0, X0			
+  mc_center_stack_amd64.s:190	0x589227		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:190	0x58922b		c4e1f97e00		VMOVQ X0, 0(AX)				
+  mc_center_stack_amd64.s:191	0x589230		c5fa6f420a		VMOVDQU 0xa(DX), X0			
+  mc_center_stack_amd64.s:191	0x589235		c5fa6f4a0c		VMOVDQU 0xc(DX), X1			
+  mc_center_stack_amd64.s:191	0x58923a		c4c27900d0		VPSHUFB X8, X0, X2			
+  mc_center_stack_amd64.s:191	0x58923f		c4c27900d9		VPSHUFB X9, X0, X3			
+  mc_center_stack_amd64.s:191	0x589244		c4c27100ca		VPSHUFB X10, X1, X1			
+  mc_center_stack_amd64.s:191	0x589249		c4c169f5d3		VPMADDWD X11, X2, X2			
+  mc_center_stack_amd64.s:191	0x58924e		c4c161f5dc		VPMADDWD X12, X3, X3			
+  mc_center_stack_amd64.s:191	0x589253		c4c171f5cd		VPMADDWD X13, X1, X1			
+  mc_center_stack_amd64.s:191	0x589258		c5e9fec3		VPADDD X3, X2, X0			
+  mc_center_stack_amd64.s:191	0x58925c		c5f9fec1		VPADDD X1, X0, X0			
+  mc_center_stack_amd64.s:191	0x589260		c5f9fec7		VPADDD X7, X0, X0			
+  mc_center_stack_amd64.s:191	0x589264		c5f972e00a		VPSRAD $0xa, X0, X0			
+  mc_center_stack_amd64.s:191	0x589269		c5f96bc0		VPACKSSDW X0, X0, X0			
+  mc_center_stack_amd64.s:191	0x58926d		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:191	0x589271		c5f97e4005		VMOVD X0, 0x5(AX)			
+  mc_center_stack_amd64.s:192	0x589276		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:193	0x589279		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:194	0x58927c		48ffcf			DECQ DI					
+  mc_center_stack_amd64.s:195	0x58927f		0f8552ffffff		JNE 0x5891d7				
+  mc_center_stack_amd64.s:196	0x589285		c5f8774881		VZEROUPPER				
+  mc_center_stack_amd64.s:197	0x58928a		c4			?					
+  mc_center_stack_amd64.s:197	0x58928b		f00200			LOCK ADDB 0(AX), AL			
+  mc_center_stack_amd64.s:197	0x58928e		005dc3			ADDB BL, -0x3d(BP)			
+  mc_center_stack_amd64.s:200	0x589291		c5fa6f02		VMOVDQU 0(DX), X0			
+  mc_center_stack_amd64.s:200	0x589295		c5fa6f4a02		VMOVDQU 0x2(DX), X1			
+  mc_center_stack_amd64.s:200	0x58929a		c4c27900d0		VPSHUFB X8, X0, X2			
+  mc_center_stack_amd64.s:200	0x58929f		c4c27900d9		VPSHUFB X9, X0, X3			
+  mc_center_stack_amd64.s:200	0x5892a4		c4c27100ca		VPSHUFB X10, X1, X1			
+  mc_center_stack_amd64.s:200	0x5892a9		c4c169f5d3		VPMADDWD X11, X2, X2			
+  mc_center_stack_amd64.s:200	0x5892ae		c4c161f5dc		VPMADDWD X12, X3, X3			
+  mc_center_stack_amd64.s:200	0x5892b3		c4c171f5cd		VPMADDWD X13, X1, X1			
+  mc_center_stack_amd64.s:200	0x5892b8		c5e9fec3		VPADDD X3, X2, X0			
+  mc_center_stack_amd64.s:200	0x5892bc		c5f9fec1		VPADDD X1, X0, X0			
+  mc_center_stack_amd64.s:200	0x5892c0		c5f9fec7		VPADDD X7, X0, X0			
+  mc_center_stack_amd64.s:200	0x5892c4		c5f972e00a		VPSRAD $0xa, X0, X0			
+  mc_center_stack_amd64.s:200	0x5892c9		c5f96bc0		VPACKSSDW X0, X0, X0			
+  mc_center_stack_amd64.s:200	0x5892cd		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:200	0x5892d1		c5f97e00		VMOVD X0, 0(AX)				
+  mc_center_stack_amd64.s:201	0x5892d5		c5fa6f4202		VMOVDQU 0x2(DX), X0			
+  mc_center_stack_amd64.s:201	0x5892da		c5fa6f4a04		VMOVDQU 0x4(DX), X1			
+  mc_center_stack_amd64.s:201	0x5892df		c4c27900d0		VPSHUFB X8, X0, X2			
+  mc_center_stack_amd64.s:201	0x5892e4		c4c27900d9		VPSHUFB X9, X0, X3			
+  mc_center_stack_amd64.s:201	0x5892e9		c4c27100ca		VPSHUFB X10, X1, X1			
+  mc_center_stack_amd64.s:201	0x5892ee		c4c169f5d3		VPMADDWD X11, X2, X2			
+  mc_center_stack_amd64.s:201	0x5892f3		c4c161f5dc		VPMADDWD X12, X3, X3			
+  mc_center_stack_amd64.s:201	0x5892f8		c4c171f5cd		VPMADDWD X13, X1, X1			
+  mc_center_stack_amd64.s:201	0x5892fd		c5e9fec3		VPADDD X3, X2, X0			
+  mc_center_stack_amd64.s:201	0x589301		c5f9fec1		VPADDD X1, X0, X0			
+  mc_center_stack_amd64.s:201	0x589305		c5f9fec7		VPADDD X7, X0, X0			
+  mc_center_stack_amd64.s:201	0x589309		c5f972e00a		VPSRAD $0xa, X0, X0			
+  mc_center_stack_amd64.s:201	0x58930e		c5f96bc0		VPACKSSDW X0, X0, X0			
+  mc_center_stack_amd64.s:201	0x589312		c5f967c0		VPACKUSWB X0, X0, X0			
+  mc_center_stack_amd64.s:201	0x589316		c5f97e4001		VMOVD X0, 0x1(AX)			
+  mc_center_stack_amd64.s:202	0x58931b		4801c8			ADDQ CX, AX				
+  mc_center_stack_amd64.s:203	0x58931e		4801da			ADDQ BX, DX				
+  mc_center_stack_amd64.s:204	0x589321		48ffcf			DECQ DI					
+  mc_center_stack_amd64.s:205	0x589324		0f8567ffffff		JNE 0x589291				
+  mc_center_stack_amd64.s:206	0x58932a		c5f8774881		VZEROUPPER				
+  mc_center_stack_amd64.s:207	0x58932f		c4			?					
+  mc_center_stack_amd64.s:207	0x589330		f00200			LOCK ADDB 0(AX), AL			
+  mc_center_stack_amd64.s:207	0x589333		005dc3			ADDB BL, -0x3d(BP)			

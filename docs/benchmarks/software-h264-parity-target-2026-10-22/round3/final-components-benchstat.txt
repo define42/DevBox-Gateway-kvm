@@ -1,0 +1,144 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                     │ /tmp/h264-parity-target-20261022/before-final-components.txt │ /tmp/h264-parity-target-20261022/after-final-components.txt │
+                                     │                            sec/op                            │                sec/op                 vs base               │
+IntegerMotionCopy/LumaSSE2/8x8-4                                                        19.37n ± 9%                           18.89n ±  6%        ~ (p=0.195 n=6)
+IntegerMotionCopy/LumaSSE2/8x16-4                                                       29.04n ± 2%                           24.37n ±  5%  -16.10% (p=0.002 n=6)
+IntegerMotionCopy/LumaSSE2/16x8-4                                                       19.85n ± 2%                           19.32n ± 12%        ~ (p=0.084 n=6)
+IntegerMotionCopy/LumaSSE2/16x16-4                                                      31.52n ± 2%                           24.16n ±  2%  -23.32% (p=0.002 n=6)
+IntegerMotionCopy/LumaSSE2/8x4-4                                                        14.48n ± 5%                           14.05n ±  8%        ~ (p=0.223 n=6)
+IntegerMotionCopy/LumaSSE2/4x4-4                                                        14.71n ± 3%                           14.27n ±  2%   -3.02% (p=0.015 n=6)
+IntegerMotionCopy/LumaAVX2/8x8-4                                                        19.84n ± 5%                           19.50n ±  3%        ~ (p=0.180 n=6)
+IntegerMotionCopy/LumaAVX2/8x16-4                                                       29.82n ± 2%                           24.59n ±  5%  -17.56% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/16x8-4                                                       19.87n ± 2%                           20.22n ±  5%        ~ (p=0.132 n=6)
+IntegerMotionCopy/LumaAVX2/16x16-4                                                      32.74n ± 7%                           25.00n ± 10%  -23.65% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/8x4-4                                                        14.46n ± 3%                           14.44n ±  4%        ~ (p=0.981 n=6)
+IntegerMotionCopy/LumaAVX2/4x4-4                                                        17.16n ± 2%                           17.20n ± 12%        ~ (p=0.699 n=6)
+IntegerMotionCopy/ChromaSSE2/8x8-4                                                      30.87n ± 2%                           18.91n ±  8%  -38.73% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/8x16-4                                                     31.73n ± 5%                           23.89n ±  3%  -24.72% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/16x8-4                                                     21.96n ± 1%                           19.10n ±  3%  -13.04% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/16x16-4                                                    33.28n ± 3%                           23.85n ±  5%  -28.35% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/8x4-4                                                      16.48n ± 2%                           14.69n ±  5%  -10.83% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/4x4-4                                                      16.96n ± 3%                           14.25n ± 17%  -16.01% (p=0.009 n=6)
+SampleSadFourRows/16x16/stride32-4                                                      34.43n ± 4%                           34.74n ±  2%        ~ (p=0.589 n=6)
+SampleSadFourRows/16x16/stride2048-4                                                    44.93n ± 7%                           45.38n ±  8%        ~ (p=0.589 n=6)
+SampleSadFourRows/16x8/stride32-4                                                       25.38n ± 4%                           25.70n ±  7%        ~ (p=0.485 n=6)
+SampleSadFourRows/16x8/stride2048-4                                                     25.20n ± 4%                           25.58n ± 23%        ~ (p=1.000 n=6)
+SampleSadFourRows/8x16/stride32-4                                                       34.32n ± 2%                           31.57n ±  2%   -8.00% (p=0.002 n=6)
+SampleSadFourRows/8x16/stride2048-4                                                     46.23n ± 5%                           41.11n ±  6%  -11.10% (p=0.002 n=6)
+SampleSadFourRows/8x8/stride32-4                                                        24.16n ± 1%                           23.87n ± 10%        ~ (p=1.000 n=6)
+SampleSadFourRows/8x8/stride2048-4                                                      24.39n ± 2%                           22.80n ±  3%   -6.52% (p=0.002 n=6)
+SampleSadFourRows/8x4/stride32-4                                                        19.50n ± 4%                           18.07n ±  3%   -7.28% (p=0.002 n=6)
+SampleSadFourRows/8x4/stride2048-4                                                      19.31n ± 2%                           18.00n ±  5%   -6.76% (p=0.002 n=6)
+SampleSadFourRows/4x8/stride32-4                                                        23.96n ± 5%                           24.21n ±  2%        ~ (p=0.310 n=6)
+SampleSadFourRows/4x8/stride2048-4                                                      24.40n ± 3%                           24.28n ±  4%        ~ (p=0.937 n=6)
+SampleSadFourRows/4x4/stride32-4                                                        18.94n ± 4%                           19.02n ±  2%        ~ (p=0.937 n=6)
+SampleSadFourRows/4x4/stride2048-4                                                      18.83n ± 3%                           19.01n ±  4%        ~ (p=0.240 n=6)
+geomean                                                                                 23.74n                                21.68n         -8.70%
+
+                                     │ /tmp/h264-parity-target-20261022/before-final-components.txt │ /tmp/h264-parity-target-20261022/after-final-components.txt │
+                                     │                             B/op                             │                B/op                  vs base                │
+IntegerMotionCopy/LumaSSE2/8x8-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x16-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x8-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x16-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/4x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x8-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x16-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x8-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x16-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/4x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x8-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x16-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x8-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x16-4                                                   0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x4-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/4x4-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride32-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride2048-4                                                   0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride32-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride2048-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride32-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride2048-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                           ²                                        +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                     │ /tmp/h264-parity-target-20261022/before-final-components.txt │ /tmp/h264-parity-target-20261022/after-final-components.txt │
+                                     │                          allocs/op                           │              allocs/op               vs base                │
+IntegerMotionCopy/LumaSSE2/8x8-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x16-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x8-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x16-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/4x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x8-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x16-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x8-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x16-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/4x4-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x8-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x16-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x8-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x16-4                                                   0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x4-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/4x4-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride32-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride2048-4                                                   0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride32-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride2048-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride32-4                                                      0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride2048-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride32-4                                                       0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride2048-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                           ²                                        +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+                          │ /tmp/h264-parity-target-20261022/before-final-components.txt │ /tmp/h264-parity-target-20261022/after-final-components.txt │
+                          │                            sec/op                            │                sec/op                 vs base               │
+EncodingBlockCopy/8x8-4                                                     14.52n ± 10%                            14.36n ± 6%        ~ (p=0.699 n=6)
+EncodingBlockCopy/8x16-4                                                    29.12n ±  3%                            18.74n ± 1%  -35.65% (p=0.002 n=6)
+EncodingBlockCopy/16x8-4                                                    14.93n ±  2%                            14.99n ± 2%        ~ (p=0.937 n=6)
+EncodingBlockCopy/16x16-4                                                   28.11n ±  4%                            18.84n ± 6%  -33.00% (p=0.002 n=6)
+geomean                                                                     20.52n                                  16.60n       -19.09%
+
+                          │ /tmp/h264-parity-target-20261022/before-final-components.txt │ /tmp/h264-parity-target-20261022/after-final-components.txt │
+                          │                             B/op                             │                B/op                  vs base                │
+EncodingBlockCopy/8x8-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/8x16-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x8-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x16-4                                                   0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                ²                                        +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                          │ /tmp/h264-parity-target-20261022/before-final-components.txt │ /tmp/h264-parity-target-20261022/after-final-components.txt │
+                          │                          allocs/op                           │              allocs/op               vs base                │
+EncodingBlockCopy/8x8-4                                                     0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/8x16-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x8-4                                                    0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x16-4                                                   0.000 ± 0%                              0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                ²                                        +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

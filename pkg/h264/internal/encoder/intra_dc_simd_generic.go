@@ -1,0 +1,11 @@
+//go:build !amd64
+
+package encoder
+
+func hadamardT4Dc(dc, residual []int16) {
+	WelsHadamardT4Dc_c(dc, residual)
+}
+
+func dequantIHadamard4x4(residual []int16, mf uint16) {
+	WelsDequantIHadamard4x4_c(residual, mf)
+}

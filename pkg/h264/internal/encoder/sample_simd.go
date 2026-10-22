@@ -58,6 +58,13 @@ type sampleAvgSatdFunc func(enc []byte, encOff int, encStride int32,
 	a []byte, aOff int, aStride int32, b []byte, bOff int, bStride int32,
 	width, height int32) int32
 
+// sampleAvgSatdValidatedFunc is used only after the quarter-refinement batch
+// has checked every input and output span. Its pointers remain tracked by Go.
+// Keeping this separate retains the checked callback for other callers and
+// instrumentation, while avoiding repeated span checks for each candidate.
+type sampleAvgSatdValidatedFunc func(enc *byte, encStride int,
+	a *byte, aStride int, b *byte, bStride, width, height int) int
+
 // Keep addresses as pointers across calls: stack-backed input arrays may move
 // when a helper grows the goroutine stack.
 type sampleMemoryRange struct {
@@ -130,14 +137,33 @@ func meRefineQuarPixelFused(funcs *SWelsFuncPtrList, me *SWelsME, refine *SMeRef
 	}
 	modes := [4]int32{ME_QUAR_PIXEL_TOP, ME_QUAR_PIXEL_BOTTOM, ME_QUAR_PIXEL_LEFT, ME_QUAR_PIXEL_RIGHT}
 	winner := -1
+	var costs [4]int32
+	batch := samples.bSampleAvgSatdFour && samples.pfSampleAvgSatdValidated != nil
+	if batch {
+		// Call directly: passing params through a function value would make
+		// MeRefineFracPixel's local SQuarRefineParams escape on every block.
+		costs = sampleAvgSatdFourValidated(&me.pEncMb[me.iEncMbOff], int(encStride), params, int(width), int(height))
+	}
 	for i := 0; i < 4; i++ {
 		stride := params.iStrideA
 		if i >= 2 {
 			stride = params.iStrideB
 		}
-		cost := samples.pfSampleAvgSatd(me.pEncMb, me.iEncMbOff, encStride,
-			params.pSrcA[i], params.iSrcAOff[i], ME_REFINE_BUF_STRIDE,
-			params.pSrcB[i], params.iSrcBOff[i], stride, width, height) + params.iLms[i]
+		var cost int32
+		if batch {
+			cost = costs[i]
+		} else if samples.pfSampleAvgSatdValidated != nil {
+			// quarterRefineBuffersDisjoint has already checked all eleven
+			// buffer spans before any cost evaluation or prediction store.
+			cost = int32(samples.pfSampleAvgSatdValidated(&me.pEncMb[me.iEncMbOff], int(encStride),
+				&params.pSrcA[i][params.iSrcAOff[i]], ME_REFINE_BUF_STRIDE,
+				&params.pSrcB[i][params.iSrcBOff[i]], int(stride), int(width), int(height)))
+		} else {
+			cost = samples.pfSampleAvgSatd(me.pEncMb, me.iEncMbOff, encStride,
+				params.pSrcA[i], params.iSrcAOff[i], ME_REFINE_BUF_STRIDE,
+				params.pSrcB[i], params.iSrcBOff[i], stride, width, height)
+		}
+		cost += params.iLms[i]
 		if cost < params.iBestCost {
 			params.iBestCost = cost
 			params.iBestQuarPix = modes[i]

@@ -1,0 +1,396 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourRows/16x16/stride32-4         	 6534633	        37.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4       	 5680606	        47.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4          	10256641	        24.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4        	10059070	        24.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4          	 8417628	        29.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4        	 5948521	        39.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4           	12042873	        25.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4         	10416264	        23.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4           	12793190	        16.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4         	14623233	        17.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4           	10931452	        22.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4         	10585688	        23.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4           	12442801	        17.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4         	13790998	        18.09 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDiamondSadFourCaller/16x16/stride32/Stationary-4         	 4365645	        55.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveX3-4             	 1295704	       187.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveY3-4             	 1296248	       186.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/Stationary-4       	 3768246	        65.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveX3-4           	 1000000	       221.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveY3-4           	  927049	       221.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/Stationary-4          	 5565950	        42.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveX3-4              	 1701205	       140.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveY3-4              	 1724257	       140.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/Stationary-4        	 5306923	        45.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveX3-4            	 1656798	       144.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveY3-4            	 1635920	       147.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/Stationary-4          	 4792986	        50.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveX3-4              	 1415676	       171.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveY3-4              	 1445545	       166.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/Stationary-4        	 3937182	        60.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveX3-4            	 1000000	       211.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveY3-4            	 1000000	       205.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/Stationary-4           	 5755372	        40.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveX3-4               	 1851189	       133.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveY3-4               	 1897166	       127.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/Stationary-4         	 5627158	        42.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveX3-4             	 1853262	       130.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveY3-4             	 1801521	       132.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/Stationary-4           	 6599749	        36.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveX3-4               	 2160357	       112.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveY3-4               	 2118828	       112.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/Stationary-4         	 6461383	        36.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveX3-4             	 2142216	       112.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveY3-4             	 2128124	       114.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/Stationary-4           	 5671347	        42.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveX3-4               	 1793395	       134.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveY3-4               	 1693576	       139.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/Stationary-4         	 5357527	        44.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveX3-4             	 1696406	       140.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveY3-4             	 1690230	       145.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/Stationary-4           	 6585007	        36.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveX3-4               	 2062347	       116.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveY3-4               	 2126461	       114.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/Stationary-4         	 6416760	        39.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveX3-4             	 1966558	       124.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveY3-4             	 2114058	       112.4 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourRows/16x16/stride32-4         	 6548662	        36.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4       	 5648830	        42.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4          	10190416	        23.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4        	 9473372	        24.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4          	 8267763	        29.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4        	 6152134	        38.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4           	11558347	        20.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4         	11554202	        20.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4           	14802092	        16.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4         	15035588	        16.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4           	10642879	        21.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4         	10007118	        23.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4           	13408110	        17.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4         	14032209	        17.68 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDiamondSadFourCaller/16x16/stride32/Stationary-4         	 4409233	        54.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveX3-4             	 1303130	       185.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveY3-4             	 1292577	       189.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/Stationary-4       	 3379290	        70.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveX3-4           	 1000000	       220.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveY3-4           	 1000000	       218.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/Stationary-4          	 5551754	        43.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveX3-4              	 1716432	       142.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveY3-4              	 1682847	       146.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/Stationary-4        	 5363218	        44.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveX3-4            	 1632139	       144.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveY3-4            	 1511824	       154.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/Stationary-4          	 4711400	        51.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveX3-4              	 1451581	       164.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveY3-4              	 1407362	       169.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/Stationary-4        	 4049228	        60.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveX3-4            	 1000000	       213.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveY3-4            	 1000000	       204.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/Stationary-4           	 5848814	        42.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveX3-4               	 1914794	       124.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveY3-4               	 1910929	       126.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/Stationary-4         	 5583853	        42.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveX3-4             	 1804518	       136.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveY3-4             	 1718697	       136.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/Stationary-4           	 6787586	        36.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveX3-4               	 2162102	       113.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveY3-4               	 1840731	       132.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/Stationary-4         	 6488772	        37.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveX3-4             	 2090439	       114.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveY3-4             	 2137890	       113.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/Stationary-4           	 5600793	        42.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveX3-4               	 1685059	       139.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveY3-4               	 1500723	       151.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/Stationary-4         	 5360664	        44.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveX3-4             	 1708134	       139.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveY3-4             	 1699393	       142.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/Stationary-4           	 6382927	        37.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveX3-4               	 2073004	       115.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveY3-4               	 1761508	       126.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/Stationary-4         	 5741133	        37.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveX3-4             	 1861827	       122.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveY3-4             	 1892348	       120.7 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourRows/16x16/stride32-4         	 6590814	        36.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4       	 5631300	        43.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4          	10731045	        23.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4        	 9177496	        24.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4          	 7701752	        30.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4        	 6273926	        38.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4           	12201331	        20.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4         	11557723	        20.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4           	13006887	        17.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4         	15297841	        16.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4           	10775598	        22.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4         	10295059	        22.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4           	13784967	        18.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4         	14210527	        17.54 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDiamondSadFourCaller/16x16/stride32/Stationary-4         	 4343636	        54.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveX3-4             	 1306432	       182.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveY3-4             	 1000000	       204.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/Stationary-4       	 3816687	        65.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveX3-4           	 1000000	       220.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveY3-4           	 1000000	       222.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/Stationary-4          	 5599803	        43.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveX3-4              	 1720222	       140.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveY3-4              	 1694782	       141.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/Stationary-4        	 5424040	        44.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveX3-4            	 1708717	       140.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveY3-4            	 1606138	       147.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/Stationary-4          	 4858875	        51.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveX3-4              	 1424658	       168.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveY3-4              	 1409271	       169.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/Stationary-4        	 3922921	        61.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveX3-4            	 1157762	       205.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveY3-4            	 1000000	       201.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/Stationary-4           	 6124852	        40.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveX3-4               	 1834126	       128.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveY3-4               	 1905031	       124.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/Stationary-4         	 5693329	        42.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveX3-4             	 1828687	       130.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveY3-4             	 1799478	       133.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/Stationary-4           	 6477934	        37.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveX3-4               	 2173777	       110.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveY3-4               	 2154864	       108.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/Stationary-4         	 6927915	        35.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveX3-4             	 2157127	       109.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveY3-4             	 2126589	       111.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/Stationary-4           	 5283985	        42.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveX3-4               	 1796878	       137.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveY3-4               	 1669814	       138.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/Stationary-4         	 5476065	        43.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveX3-4             	 1781601	       135.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveY3-4             	 1697920	       140.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/Stationary-4           	 6258206	        36.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveX3-4               	 2043915	       117.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveY3-4               	 1912450	       122.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/Stationary-4         	 6236044	        38.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveX3-4             	 2035396	       116.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveY3-4             	 2069554	       117.0 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourRows/16x16/stride32-4         	 5779824	        37.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4       	 5604163	        43.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4          	10505010	        22.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4        	10133254	        24.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4          	 8073577	        28.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4        	 6073123	        40.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4           	12263720	        20.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4         	11408186	        21.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4           	14473675	        16.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4         	14693767	        16.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4           	 9059685	        22.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4         	10458948	        23.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4           	12372912	        17.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4         	14468371	        17.62 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDiamondSadFourCaller/16x16/stride32/Stationary-4         	 4336532	        53.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveX3-4             	 1334310	       179.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveY3-4             	 1262876	       188.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/Stationary-4       	 3715308	        65.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveX3-4           	 1000000	       218.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveY3-4           	  853856	       234.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/Stationary-4          	 5491118	        43.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveX3-4              	 1724672	       140.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveY3-4              	 1705852	       140.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/Stationary-4        	 5343825	        44.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveX3-4            	 1674735	       144.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveY3-4            	 1640200	       146.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/Stationary-4          	 4858675	        49.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveX3-4              	 1441395	       165.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveY3-4              	 1402089	       169.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/Stationary-4        	 3947718	        60.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveX3-4            	 1125295	       210.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveY3-4            	 1000000	       200.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/Stationary-4           	 5997020	        40.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveX3-4               	 1877846	       128.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveY3-4               	 1905625	       126.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/Stationary-4         	 5809911	        41.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveX3-4             	 1732646	       134.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveY3-4             	 1788508	       136.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/Stationary-4           	 6893272	        35.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveX3-4               	 2185671	       110.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveY3-4               	 2054346	       114.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/Stationary-4         	 6667215	        37.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveX3-4             	 2126154	       112.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveY3-4             	 2067926	       114.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/Stationary-4           	 5182989	        45.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveX3-4               	 1734628	       138.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveY3-4               	 1769665	       136.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/Stationary-4         	 5443056	        43.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveX3-4             	 1632429	       144.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveY3-4             	 1675948	       144.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/Stationary-4           	 5952992	        38.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveX3-4               	 2096688	       115.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveY3-4               	 1889550	       120.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/Stationary-4         	 6416169	        36.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveX3-4             	 2114396	       114.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveY3-4             	 2084443	       113.9 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourRows/16x16/stride32-4         	 6139425	        36.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4       	 5161700	        43.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4          	 9587156	        25.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4        	 9350538	        24.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4          	 8355603	        29.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4        	 6108775	        39.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4           	10366695	        25.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4         	 9594288	        21.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4           	12777304	        16.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4         	14924931	        16.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4           	10074190	        23.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4         	10728619	        23.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4           	13546849	        17.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4         	12939385	        18.95 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDiamondSadFourCaller/16x16/stride32/Stationary-4         	 3932646	        56.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveX3-4             	 1302002	       187.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveY3-4             	 1248262	       191.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/Stationary-4       	 3798094	        68.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveX3-4           	 1000000	       227.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveY3-4           	 1000000	       225.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/Stationary-4          	 5749692	        43.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveX3-4              	 1672600	       143.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveY3-4              	 1681756	       143.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/Stationary-4        	 5276296	        45.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveX3-4            	 1686601	       141.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveY3-4            	 1652146	       144.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/Stationary-4          	 4720680	        50.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveX3-4              	 1407078	       168.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveY3-4              	 1457613	       163.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/Stationary-4        	 3937996	        61.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveX3-4            	 1000000	       209.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveY3-4            	 1000000	       204.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/Stationary-4           	 5735954	        41.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveX3-4               	 1868672	       129.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveY3-4               	 1863709	       128.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/Stationary-4         	 5688327	        42.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveX3-4             	 1842384	       131.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveY3-4             	 1717172	       136.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/Stationary-4           	 6824955	        36.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveX3-4               	 2114984	       113.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveY3-4               	 2143588	       116.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/Stationary-4         	 6589798	        36.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveX3-4             	 2129612	       111.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveY3-4             	 2017633	       115.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/Stationary-4           	 5480107	        43.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveX3-4               	 1676067	       142.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveY3-4               	 1726974	       137.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/Stationary-4         	 5418020	        43.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveX3-4             	 1731739	       139.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveY3-4             	 1710633	       142.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/Stationary-4           	 5617900	        38.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveX3-4               	 2063936	       114.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveY3-4               	 2125350	       113.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/Stationary-4         	 5760643	        37.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveX3-4             	 2061640	       114.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveY3-4             	 2088668	       113.9 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkSampleSadFourRows/16x16/stride32-4         	 5888998	        36.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4       	 5567228	        42.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4          	10255995	        23.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4        	 9124516	        24.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4          	 8214253	        30.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4        	 6164144	        38.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4           	11051624	        19.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4         	11175120	        21.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4           	14257108	        15.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4         	16092540	        17.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4           	10755232	        22.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4         	10254124	        23.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4           	13655422	        18.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4         	13752828	        17.82 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkDiamondSadFourCaller/16x16/stride32/Stationary-4         	 4339202	        55.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveX3-4             	 1313442	       180.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride32/MoveY3-4             	 1307976	       183.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/Stationary-4       	 3718316	        64.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveX3-4           	 1000000	       228.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x16/stride2048/MoveY3-4           	 1000000	       225.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/Stationary-4          	 5709644	        43.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveX3-4              	 1660376	       142.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride32/MoveY3-4              	 1706977	       142.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/Stationary-4        	 5311449	        45.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveX3-4            	 1586696	       146.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/16x8/stride2048/MoveY3-4            	 1617900	       147.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/Stationary-4          	 4784523	        50.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveX3-4              	 1436636	       166.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride32/MoveY3-4              	 1415965	       167.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/Stationary-4        	 3873871	        61.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveX3-4            	 1000000	       214.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x16/stride2048/MoveY3-4            	 1000000	       202.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/Stationary-4           	 5928572	        41.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveX3-4               	 1837822	       128.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride32/MoveY3-4               	 1846070	       131.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/Stationary-4         	 5617962	        42.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveX3-4             	 1854525	       130.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x8/stride2048/MoveY3-4             	 1736346	       135.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/Stationary-4           	 6503254	        36.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveX3-4               	 2189745	       109.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride32/MoveY3-4               	 2150271	       111.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/Stationary-4         	 6134649	        36.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveX3-4             	 2155348	       112.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/8x4/stride2048/MoveY3-4             	 2148980	       113.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/Stationary-4           	 5166802	        44.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveX3-4               	 1749217	       138.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride32/MoveY3-4               	 1729765	       137.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/Stationary-4         	 5615848	        43.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveX3-4             	 1600611	       147.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x8/stride2048/MoveY3-4             	 1688821	       142.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/Stationary-4           	 6533164	        38.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveX3-4               	 2081348	       117.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride32/MoveY3-4               	 2079146	       118.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/Stationary-4         	 6422184	        37.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveX3-4             	 2144952	       113.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDiamondSadFourCaller/4x4/stride2048/MoveY3-4             	 2142697	       112.7 ns/op	       0 B/op	       0 allocs/op
+PASS

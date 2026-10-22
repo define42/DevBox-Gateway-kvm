@@ -1,0 +1,24 @@
+{
+  "baseline": "/tmp/h264-parity-target-20261022/round11-avc.test",
+  "baseline_scope": "frozen round11, not original",
+  "baseline_sha256": "7860002cca313c43498fefe9bc32f8f2b455b7dd2a0ca041908c70af51510781",
+  "candidate": "/tmp/h264-parity-target-20261022/intra4-scratch-isolation-next",
+  "candidate_binary_sha256": "340d92794c98f664c6bb0934d1d6519fdd7c958f2cda63e1b50f64090705f201",
+  "overlay_sha256": {
+    "compare_test.go": "851f0ba72566674e8fd332f58da91bce572896202fc7b8537b7e09ed0c4faf9a",
+    "fullscreen_test.go": "e966fffe4c17e702d5f0bbea8ade6e20378df0a5c5bbf861178e43e0f348fa02"
+  },
+  "source_files": 570,
+  "repetitions": 6,
+  "full_frames": 60,
+  "warmup_frames": 16,
+  "parity_frames_per_case": 96,
+  "full_framerate": 30,
+  "codec_preflight_framerate": 60,
+  "GOMAXPROCS": 4,
+  "CGO_ENABLED": 0,
+  "affinity_one_slice": "2",
+  "affinity_four_slices": "0-3",
+  "saved_streams": "/tmp/h264-parity-target-20261022/parity",
+  "preflight": "candidate matches saved original/native SHA256 and FFmpeg+ffprobe960frames"
+}

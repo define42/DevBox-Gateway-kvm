@@ -8,14 +8,17 @@ type cavlcLevelSymbol struct {
 	nextSuffix uint8
 }
 
-// About 14 KiB covers common signed levels for every suffix and first-level
-// adjustment. Larger coefficients retain the original escape/overflow path.
+// Each table entry holds the code in bits 0..15, length in bits 16..23, and
+// next suffix in bits 24..31. Packing keeps all fields in one word per symbol.
+// The 8 KiB table includes a padding suffix row so the writer can prove its
+// internally generated suffix index is in bounds. Larger coefficients retain
+// the original escape/overflow path.
 var cavlcLevelTable = makeCavlcLevelTable()
 
-func makeCavlcLevelTable() [2][7][2 * cavlcLevelLimit]cavlcLevelSymbol {
-	var table [2][7][2 * cavlcLevelLimit]cavlcLevelSymbol
+func makeCavlcLevelTable() [2][8][2 * cavlcLevelLimit]uint32 {
+	var table [2][8][2 * cavlcLevelLimit]uint32
 	for adjustment := range table {
-		for suffix := range table[adjustment] {
+		for suffix := 0; suffix < 7; suffix++ {
 			for index := range table[adjustment][suffix] {
 				value := int32(index - cavlcLevelLimit)
 				// Zero is never a level; adjusted ±1 are trailing ones and
@@ -23,11 +26,19 @@ func makeCavlcLevelTable() [2][7][2 * cavlcLevelLimit]cavlcLevelSymbol {
 				if value == 0 || (adjustment != 0 && (value == 1 || value == -1)) {
 					continue
 				}
-				table[adjustment][suffix][index], _ = cavlcLevelSymbolSlow(value, int32(suffix), adjustment != 0)
+				symbol, _ := cavlcLevelSymbolSlow(value, int32(suffix), adjustment != 0)
+				table[adjustment][suffix][index] = packCavlcLevelSymbol(symbol)
 			}
 		}
 	}
 	return table
+}
+
+// Successful symbols for signed int16 levels and suffixes 0..6 have at most
+// 13 code bits, 28 total bits, and a next suffix no larger than 6. Keep the
+// escape calculation separate so its overflow exit remains unchanged.
+func packCavlcLevelSymbol(symbol cavlcLevelSymbol) uint32 {
+	return symbol.code | uint32(symbol.length)<<16 | uint32(symbol.nextSuffix)<<24
 }
 
 func cavlcLevelSymbolSlow(value, suffix int32, adjust bool) (cavlcLevelSymbol, bool) {

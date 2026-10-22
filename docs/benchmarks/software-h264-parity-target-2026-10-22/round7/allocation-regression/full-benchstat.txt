@@ -1,0 +1,91 @@
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                      sec/op                      │          sec/op            vs base              │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                       34.99m ±  3%                 32.67m ± 3%  -6.63% (p=0.002 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                       10.93m ±  5%                 10.55m ± 8%  -3.50% (p=0.041 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                            35.75m ±  2%                 34.55m ± 2%  -3.37% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                            12.47m ±  5%                 12.23m ± 9%       ~ (p=0.132 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                           76.96m ±  1%                 73.71m ± 1%  -4.22% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                           22.79m ± 15%                 21.05m ± 2%  -7.62% (p=0.002 n=6)
+geomean                                                                                    25.86m                       24.68m       -4.56%
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                   bytes/frame                    │       bytes/frame        vs base                │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                       99.42Ki ± 0%              99.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                       99.63Ki ± 0%              99.63Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                            131.9Ki ± 0%              131.9Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                            133.5Ki ± 0%              133.5Ki ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                           1.574Mi ± 0%              1.574Mi ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                           1.588Mi ± 0%              1.588Mi ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                    277.6Ki                   277.6Ki       +0.00%
+¹ all samples are equal
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                 convert_ns/frame                 │     convert_ns/frame       vs base              │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                       1.494M ±  3%                 1.478M ± 4%       ~ (p=0.394 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                       704.2k ±  3%                 721.0k ± 1%  +2.39% (p=0.026 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                            1.478M ±  2%                 1.484M ± 3%       ~ (p=0.818 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                            698.3k ±  4%                 706.3k ± 2%       ~ (p=0.132 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                           1.493M ±  3%                 1.485M ± 2%       ~ (p=0.589 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                           759.0k ± 14%                 773.1k ± 2%       ~ (p=0.093 n=6)
+geomean                                                                                    1.035M                       1.042M       +0.69%
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                   cpu_ns/frame                   │       cpu_ns/frame         vs base              │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                        34.98M ± 3%                 32.66M ± 3%  -6.63% (p=0.002 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                        35.89M ± 2%                 33.91M ± 4%  -5.52% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                             35.74M ± 2%                 34.53M ± 2%  -3.38% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                             36.76M ± 3%                 35.79M ± 7%       ~ (p=0.065 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                            76.99M ± 1%                 73.66M ± 1%  -4.32% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                            80.02M ± 5%                 76.03M ± 1%  -5.00% (p=0.002 n=6)
+geomean                                                                                     46.54M                      44.40M       -4.59%
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                 encode_ns/frame                  │      encode_ns/frame       vs base              │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                       33.51M ±  3%                31.20M ±  3%  -6.89% (p=0.002 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                      10.225M ±  5%                9.827M ±  8%  -3.90% (p=0.041 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                            34.26M ±  2%                33.06M ±  2%  -3.51% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                            11.77M ±  5%                11.53M ± 10%       ~ (p=0.093 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                           75.47M ±  1%                72.22M ±  1%  -4.31% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                           22.02M ± 15%                20.27M ±  2%  -7.93% (p=0.002 n=6)
+geomean                                                                                    24.75M                      23.56M        -4.79%
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                   p95_ns/frame                   │       p95_ns/frame         vs base              │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                       38.91M ±  7%                37.70M ±  8%       ~ (p=0.310 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                       12.26M ± 33%                13.24M ± 20%       ~ (p=0.485 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                            42.28M ±  5%                39.11M ± 13%  -7.49% (p=0.041 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                            16.29M ± 24%                14.92M ± 14%       ~ (p=0.394 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                           81.59M ±  2%                80.85M ±  3%       ~ (p=0.394 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                           26.29M ± 69%                25.56M ±  9%       ~ (p=0.589 n=6)
+geomean                                                                                    29.83M                      29.06M        -2.60%
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                      slices                      │         slices           vs base                │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                         1.000 ± 0%                1.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                         4.000 ± 0%                4.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                              1.000 ± 0%                1.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                              4.000 ± 0%                4.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                             1.000 ± 0%                1.000 ± 0%       ~ (p=1.000 n=6) ¹
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                             4.000 ± 0%                4.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                      2.000                     2.000       +0.00%
+¹ all samples are equal
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                       B/op                       │          B/op           vs base                 │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                       103.0Ki ± 0%            2131.5Ki ± 0%  +1968.96% (p=0.002 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                       103.6Ki ± 0%            2141.7Ki ± 0%  +1967.91% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                            136.2Ki ± 0%            2318.1Ki ± 0%  +1601.72% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                            138.8Ki ± 0%            2323.8Ki ± 0%  +1574.25% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                           1.579Mi ± 0%             5.102Mi ± 0%   +223.13% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                           1.594Mi ± 0%             4.972Mi ± 0%   +212.01% (p=0.002 n=6)
+geomean                                                                                    284.7Ki                  2.877Mi        +934.96%
+
+                                                     │ /tmp/h264-parity-target-20261022/full/before.txt │ /tmp/h264-parity-target-20261022/full/after.txt │
+                                                     │                    allocs/op                     │       allocs/op        vs base                  │
+FullscreenVideo/ShortClip/1080p/1Slices/FullDamage-4                                         8.000 ± 0%           5909.000 ± 0%  +73762.50% (p=0.002 n=6)
+FullscreenVideo/ShortClip/1080p/4Slices/FullDamage-4                                         27.00 ± 0%            5956.00 ± 0%  +21959.26% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/1Slices/FullDamage-4                                              8.000 ± 0%           6355.000 ± 0%  +79337.50% (p=0.002 n=6)
+FullscreenVideo/Road/1080p/4Slices/FullDamage-4                                              27.50 ± 2%            6384.00 ± 0%  +23114.55% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/1Slices/FullDamage-4                                             11.00 ± 0%           10506.00 ± 0%  +95409.09% (p=0.002 n=6)
+FullscreenVideo/Dense/1080p/4Slices/FullDamage-4                                             30.00 ± 3%           10095.00 ± 0%  +33550.00% (p=0.002 n=6)
+geomean                                                                                      15.82                  7.301k       +46046.46%

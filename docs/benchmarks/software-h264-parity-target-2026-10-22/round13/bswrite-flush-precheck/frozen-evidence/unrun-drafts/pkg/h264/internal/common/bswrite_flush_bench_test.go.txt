@@ -1,0 +1,69 @@
+package common_test
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+var bsFlushBenchmarkSink uint32
+
+// These external-package benchmarks depend only on the existing public API.
+// Copy this file unchanged into round12-next for the matched baseline.
+func BenchmarkBsWriteBitsPublic(b *testing.B) {
+	for _, tc := range []struct {
+		name string
+		left, length int32
+		value uint32
+	}{
+		{"Fast1", 32, 1, 1}, {"Fast3", 32, 3, 5}, {"Fast17", 32, 17, 0x1a35f},
+		{"FlushEqual", 8, 8, 0xa5}, {"FlushSpill", 5, 17, 0x1a35f}, {"Flush32", 32, 32, 0xa5937e21},
+		{"ZeroLength", 32, 0, 0}, {"NegativeLength", 32, -1, 1}, {"ZeroLeft", 0, 17, 0x1a35f},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			var buf [16]byte
+			state := common.SBitStringAux{PBuf: buf[:]}
+			b.ReportAllocs()
+			for b.Loop() {
+				state.PCurBuf, state.UiCurBits, state.ILeftBits = 0, 0x12345678, tc.left
+				common.BsWriteBits(&state, tc.length, tc.value)
+			}
+			bsFlushBenchmarkSink = state.UiCurBits + uint32(state.PCurBuf) + uint32(buf[0])
+		})
+	}
+}
+
+func BenchmarkBsWriteUEPublic(b *testing.B) {
+	for _, value := range []uint32{0, 1, 31, 255, 256, 65535} {
+		for _, left := range []int32{1, 32} {
+			b.Run(fmt.Sprintf("value%d/left%d", value, left), func(b *testing.B) {
+				var buf [16]byte
+				state := common.SBitStringAux{PBuf: buf[:]}
+				b.ReportAllocs()
+				for b.Loop() {
+					state.PCurBuf, state.UiCurBits, state.ILeftBits = 0, 0x12345678, left
+					common.BsWriteUE(&state, value)
+				}
+				bsFlushBenchmarkSink = state.UiCurBits + uint32(state.PCurBuf) + uint32(buf[0])
+			})
+		}
+	}
+}
+
+func BenchmarkBsWriteSEPublic(b *testing.B) {
+	for _, value := range []int32{0, 1, -1, 32, -32, 32767, -32768} {
+		for _, left := range []int32{1, 32} {
+			b.Run(fmt.Sprintf("value%d/left%d", value, left), func(b *testing.B) {
+				var buf [16]byte
+				state := common.SBitStringAux{PBuf: buf[:]}
+				b.ReportAllocs()
+				for b.Loop() {
+					state.PCurBuf, state.UiCurBits, state.ILeftBits = 0, 0x12345678, left
+					common.BsWriteSE(&state, value)
+				}
+				bsFlushBenchmarkSink = state.UiCurBits + uint32(state.PCurBuf) + uint32(buf[0])
+			})
+		}
+	}
+}

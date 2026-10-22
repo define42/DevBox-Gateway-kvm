@@ -1,0 +1,124 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                       │ /tmp/h264-parity-target-20261022/quarter-caller-base.txt │ /tmp/h264-parity-target-20261022/quarter-caller-after.txt │
+                                                       │                          sec/op                          │               sec/op                vs base               │
+QuarterRefineLocalParams/16x16-4                                                                     267.9n ±  3%                         250.8n ±  1%   -6.38% (p=0.002 n=6)
+QuarterRefineLocalParams/16x8-4                                                                      185.0n ± 25%                         168.3n ±  5%   -9.02% (p=0.002 n=6)
+QuarterRefineLocalParams/8x16-4                                                                      201.4n ± 30%                         187.6n ±  4%   -6.85% (p=0.002 n=6)
+QuarterRefineLocalParams/8x8-4                                                                       154.8n ±  2%                         137.0n ±  3%  -11.47% (p=0.002 n=6)
+QuarterRefineLocalParams/8x4-4                                                                       142.0n ± 37%                         130.8n ± 14%   -7.92% (p=0.041 n=6)
+QuarterRefineLocalParams/4x4-4                                                                       176.2n ± 34%                         181.2n ±  4%        ~ (p=0.394 n=6)
+QuarterRefineLocalParams/4x8-4                                                                       296.0n ±  7%                         303.6n ± 21%        ~ (p=0.240 n=6)
+MeRefineFracPixelCaller/16x16/stride32/motionfalse-4                                                 510.3n ±  1%                         519.9n ± 13%        ~ (p=0.589 n=6)
+MeRefineFracPixelCaller/16x16/stride32/motiontrue-4                                                  794.6n ±  6%                         775.1n ±  7%   -2.45% (p=0.041 n=6)
+MeRefineFracPixelCaller/16x16/stride2048/motionfalse-4                                               566.8n ±  6%                         546.8n ±  2%   -3.53% (p=0.004 n=6)
+MeRefineFracPixelCaller/16x16/stride2048/motiontrue-4                                                831.0n ±  8%                         831.1n ±  7%        ~ (p=0.818 n=6)
+MeRefineFracPixelCaller/16x8/stride32/motionfalse-4                                                  355.8n ±  4%                         351.9n ±  8%        ~ (p=1.000 n=6)
+MeRefineFracPixelCaller/16x8/stride32/motiontrue-4                                                   534.5n ±  4%                         533.1n ±  6%        ~ (p=0.859 n=6)
+MeRefineFracPixelCaller/16x8/stride2048/motionfalse-4                                                372.6n ± 13%                         366.6n ±  2%        ~ (p=0.093 n=6)
+MeRefineFracPixelCaller/16x8/stride2048/motiontrue-4                                                 557.8n ± 14%                         555.6n ±  5%        ~ (p=0.699 n=6)
+MeRefineFracPixelCaller/8x16/stride32/motionfalse-4                                                  434.0n ±  4%                         417.5n ± 10%        ~ (p=0.370 n=6)
+MeRefineFracPixelCaller/8x16/stride32/motiontrue-4                                                   653.3n ±  3%                         627.7n ±  3%   -3.92% (p=0.004 n=6)
+MeRefineFracPixelCaller/8x16/stride2048/motionfalse-4                                                489.0n ±  4%                         447.8n ±  8%   -8.42% (p=0.009 n=6)
+MeRefineFracPixelCaller/8x16/stride2048/motiontrue-4                                                 684.4n ±  5%                         672.9n ± 17%        ~ (p=0.132 n=6)
+MeRefineFracPixelCaller/8x8/stride32/motionfalse-4                                                   329.8n ±  4%                         319.1n ± 27%        ~ (p=0.240 n=6)
+MeRefineFracPixelCaller/8x8/stride32/motiontrue-4                                                    477.7n ±  4%                         467.6n ±  6%        ~ (p=0.240 n=6)
+MeRefineFracPixelCaller/8x8/stride2048/motionfalse-4                                                 339.1n ±  4%                         328.0n ±  3%   -3.26% (p=0.030 n=6)
+MeRefineFracPixelCaller/8x8/stride2048/motiontrue-4                                                  489.1n ±  4%                         477.1n ±  4%   -2.45% (p=0.041 n=6)
+MeRefineFracPixelCaller/8x4/stride32/motionfalse-4                                                   395.6n ±  3%                         380.1n ±  4%   -3.93% (p=0.015 n=6)
+MeRefineFracPixelCaller/8x4/stride32/motiontrue-4                                                    504.9n ±  6%                         492.4n ±  3%   -2.48% (p=0.041 n=6)
+MeRefineFracPixelCaller/8x4/stride2048/motionfalse-4                                                 400.1n ±  4%                         380.0n ±  5%   -5.04% (p=0.026 n=6)
+MeRefineFracPixelCaller/8x4/stride2048/motiontrue-4                                                  507.0n ±  5%                         491.1n ±  2%   -3.14% (p=0.017 n=6)
+MeRefineFracPixelCaller/4x4/stride32/motionfalse-4                                                   345.1n ±  2%                         346.6n ±  1%        ~ (p=0.851 n=6)
+MeRefineFracPixelCaller/4x4/stride32/motiontrue-4                                                    421.1n ±  7%                         416.5n ± 12%        ~ (p=0.589 n=6)
+MeRefineFracPixelCaller/4x4/stride2048/motionfalse-4                                                 350.9n ±  6%                         349.1n ±  3%        ~ (p=0.981 n=6)
+MeRefineFracPixelCaller/4x4/stride2048/motiontrue-4                                                  418.0n ±  5%                         415.8n ± 11%        ~ (p=0.937 n=6)
+MeRefineFracPixelCaller/4x8/stride32/motionfalse-4                                                   569.2n ±  2%                         567.3n ±  7%        ~ (p=0.937 n=6)
+MeRefineFracPixelCaller/4x8/stride32/motiontrue-4                                                    674.9n ±  7%                         663.4n ±  6%        ~ (p=0.394 n=6)
+MeRefineFracPixelCaller/4x8/stride2048/motionfalse-4                                                 579.2n ± 22%                         591.7n ±  7%        ~ (p=0.589 n=6)
+MeRefineFracPixelCaller/4x8/stride2048/motiontrue-4                                                  688.4n ± 26%                         695.9n ±  3%        ~ (p=0.485 n=6)
+geomean                                                                                              410.1n                               399.6n         -2.56%
+
+                                                       │ /tmp/h264-parity-target-20261022/quarter-caller-base.txt │ /tmp/h264-parity-target-20261022/quarter-caller-after.txt │
+                                                       │                           B/op                           │               B/op                 vs base                │
+QuarterRefineLocalParams/16x16-4                                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/16x8-4                                                                      0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/8x16-4                                                                      0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/8x8-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/8x4-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/4x4-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/4x8-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride32/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride32/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride2048/motionfalse-4                                               0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride2048/motiontrue-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride32/motionfalse-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride32/motiontrue-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride2048/motionfalse-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride2048/motiontrue-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride32/motionfalse-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride32/motiontrue-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride2048/motionfalse-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride2048/motiontrue-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                         ²                                      +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                       │ /tmp/h264-parity-target-20261022/quarter-caller-base.txt │ /tmp/h264-parity-target-20261022/quarter-caller-after.txt │
+                                                       │                        allocs/op                         │             allocs/op              vs base                │
+QuarterRefineLocalParams/16x16-4                                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/16x8-4                                                                      0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/8x16-4                                                                      0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/8x8-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/8x4-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/4x4-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineLocalParams/4x8-4                                                                       0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride32/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride32/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride2048/motionfalse-4                                               0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x16/stride2048/motiontrue-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride32/motionfalse-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride32/motiontrue-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride2048/motionfalse-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/16x8/stride2048/motiontrue-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride32/motionfalse-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride32/motiontrue-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride2048/motionfalse-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x16/stride2048/motiontrue-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x8/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/8x4/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x4/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride32/motionfalse-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride32/motiontrue-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride2048/motionfalse-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+MeRefineFracPixelCaller/4x8/stride2048/motiontrue-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                         ²                                      +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

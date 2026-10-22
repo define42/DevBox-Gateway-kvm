@@ -1,0 +1,57 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkCavlcLevelWriter/end14/medium/small         	  127538	      1873 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end14/medium/boundary      	   94848	      2459 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end14/medium/mixed         	  100866	      2157 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end14/dense/small          	  145188	      1698 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end14/dense/boundary       	   90982	      2713 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end14/dense/mixed          	  112795	      2228 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end15/medium/small         	  125858	      1901 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end15/medium/boundary      	   87676	      2531 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end15/medium/mixed         	  109771	      2267 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end15/dense/small          	  141160	      1726 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end15/dense/boundary       	   83667	      2826 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcLevelWriter/end15/dense/mixed          	  103792	      2295 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/NoResidual/Zero             	26652063	         9.816 ns/op	         0 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/NoResidual/Sparse           	27772171	         9.681 ns/op	         0 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/NoResidual/Dense            	24147543	         9.654 ns/op	         0 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/NoResidual/Mixed            	28319151	         9.500 ns/op	         0 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16DC/Zero                  	 7303126	        32.10 ns/op	         1.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16DC/Sparse                	 4477681	        53.90 ns/op	         1.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16DC/Dense                 	 1958371	       120.5 ns/op	         1.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16DC/Mixed                 	 1921562	       122.3 ns/op	         1.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaDC/Zero               	 4514934	        52.30 ns/op	         2.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaDC/Sparse             	 2661750	        91.02 ns/op	         2.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaDC/Dense              	 2174011	       110.4 ns/op	         2.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaDC/Mixed              	 3226766	        73.86 ns/op	         2.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOne/Zero               	 5453794	        52.28 ns/op	         4.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOne/Sparse             	  695734	       334.4 ns/op	         4.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOne/Dense              	  492492	       491.2 ns/op	         4.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOne/Mixed              	 1000000	       212.0 ns/op	         4.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOneChromaDC/Zero       	 2761046	        88.04 ns/op	         6.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOneChromaDC/Sparse     	  877984	       273.3 ns/op	         6.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOneChromaDC/Dense      	  417153	       556.2 ns/op	         6.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterOneChromaDC/Mixed      	  855296	       278.1 ns/op	         6.000 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaAll/Zero              	 2031013	       118.4 ns/op	        10.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaAll/Sparse            	  484096	       455.4 ns/op	        10.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaAll/Dense             	  256484	       981.2 ns/op	        10.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/ChromaAll/Mixed             	  335698	       627.7 ns/op	        10.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterLuma/Zero              	 1511979	       158.4 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterLuma/Sparse            	  364532	       732.1 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterLuma/Dense             	  139882	      1894 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterLuma/Mixed             	  276699	       949.0 ns/op	        16.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16Luma/Zero                	 1304372	       183.7 ns/op	        17.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16Luma/Sparse              	  276374	       787.3 ns/op	        17.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16Luma/Dense               	  127501	      1835 ns/op	        17.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16Luma/Mixed               	  236071	      1056 ns/op	        17.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterAll/Zero               	 1000000	       263.7 ns/op	        26.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterAll/Sparse             	  209412	      1193 ns/op	        26.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterAll/Dense              	   83528	      3404 ns/op	        26.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/InterAll/Mixed              	  154058	      1520 ns/op	        26.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16All/Zero                 	  841929	       293.9 ns/op	        27.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16All/Sparse               	  188569	      1302 ns/op	        27.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16All/Dense                	   85298	      2858 ns/op	        27.00 blocks/op	       0 B/op	       0 allocs/op
+BenchmarkCavlcMacroblock/I16All/Mixed                	  144307	      1935 ns/op	        27.00 blocks/op	       0 B/op	       0 allocs/op
+PASS

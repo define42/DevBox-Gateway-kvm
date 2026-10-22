@@ -1,0 +1,157 @@
+package encoder
+
+// DIAGNOSTIC COPY ONLY. Never merge this file or its call-site hooks.
+// Global counters are intentionally non-atomic: the exact comparison runner
+// must use one encoder and one slice. These logs are not performance data.
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+)
+
+const diagnosticCountInterval = uint64(100000)
+
+var diagnosticCountsEnabled = os.Getenv("H264_CALL_COUNT_DIAGNOSTIC") == "1"
+var diagnosticCountOwner *CWelsH264SVCEncoder
+var diagnosticCountFrames uint64
+
+// Properties: LUMA_DC, LUMA_AC, LUMA_4x4, CHROMA_DC, CHROMA_AC, other.
+type diagnosticCavlcCounters struct {
+ Single [6]uint64 `json:"single_by_property"`
+ SingleOne [6]uint64 `json:"single_trailing_one_by_property"`
+ Coefficients [17]uint64 `json:"coefficient_histogram"`
+	Calls           uint64    `json:"calls"`
+	KnownZero       uint64    `json:"known_zero"`
+	ExtractedZero   uint64    `json:"extracted_zero"`
+	Nonzero         uint64    `json:"nonzero"`
+	ByProperty      [6]uint64 `json:"calls_by_property"`
+	KnownProperty   [6]uint64 `json:"known_zero_by_property"`
+	ZeroProperty    [6]uint64 `json:"extracted_zero_by_property"`
+	NonzeroProperty [6]uint64 `json:"nonzero_by_property"`
+}
+
+// Rows use BLOCK_16x16, BLOCK_16x8, BLOCK_8x16, BLOCK_8x8, BLOCK_4x4,
+// BLOCK_8x4, BLOCK_4x8, other. Columns use uiMvcNum 0..5, other.
+// EvaluatedByCount counts only extra MVC SADs; every initial call also
+// evaluates the MVP once. OneDistinct directly counts the proposed two-SAD
+// opportunity, rather than assuming every uiMvcNum==1 call evaluates it.
+type diagnosticInitialCounters struct {
+	Calls            uint64       `json:"calls"`
+	ByCount          [7]uint64    `json:"calls_by_mvc_count"`
+	ByBlock          [8]uint64    `json:"calls_by_block"`
+	ByBlockCount     [8][7]uint64 `json:"calls_by_block_mvc_count"`
+	EvaluatedByCount [7]uint64    `json:"extra_sad_by_mvc_count"`
+	SkippedByCount   [7]uint64    `json:"skipped_equal_current_best_by_mvc_count"`
+	OneDistinct      [8]uint64    `json:"one_mvc_distinct_by_block"`
+}
+
+var diagnosticCavlc diagnosticCavlcCounters
+var diagnosticInitial diagnosticInitialCounters
+
+func diagnosticBeginFrame(p *CWelsH264SVCEncoder) {
+	if !diagnosticCountsEnabled || p.m_pEncContext == nil {
+		return
+	}
+	param := p.m_pEncContext.pSvcParam
+	if param == nil || param.ISpatialLayerNum != 1 || param.IMultipleThreadIdc != 1 {
+		panic("H264 call-count diagnostics require one layer and one encoder thread")
+	}
+	slice := param.SSpatialLayers[0].SSliceArgument
+	if slice.UiSliceMode != api.SM_SINGLE_SLICE &&
+		!(slice.UiSliceMode == api.SM_FIXEDSLCNUM_SLICE && slice.UiSliceNum == 1) {
+		panic("H264 call-count diagnostics require exactly one slice")
+	}
+	if diagnosticCountOwner == nil {
+		diagnosticCavlc = diagnosticCavlcCounters{}
+		diagnosticInitial = diagnosticInitialCounters{}
+		diagnosticCountFrames = 0
+		diagnosticCountOwner = p
+	} else if diagnosticCountOwner != p {
+		panic("H264 call-count diagnostics require one active encoder")
+	}
+	diagnosticCountFrames++
+}
+
+func diagnosticRecordCavlc(flag, coeffs, property, trailingOnes int32) {
+	if !diagnosticCountsEnabled || diagnosticCountOwner == nil {
+		return
+	}
+	bucket := 5
+	if property >= 0 && property < 5 {
+		bucket = int(property)
+	}
+	diagnosticCavlc.Coefficients[coeffs]++
+ if coeffs == 1 { diagnosticCavlc.Single[bucket]++; if trailingOnes == 1 { diagnosticCavlc.SingleOne[bucket]++ } }
+ diagnosticCavlc.Calls++
+	diagnosticCavlc.ByProperty[bucket]++
+	if flag == 0 {
+		diagnosticCavlc.KnownZero++
+		diagnosticCavlc.KnownProperty[bucket]++
+	} else if coeffs == 0 {
+		diagnosticCavlc.ExtractedZero++
+		diagnosticCavlc.ZeroProperty[bucket]++
+	} else {
+		diagnosticCavlc.Nonzero++
+		diagnosticCavlc.NonzeroProperty[bucket]++
+	}
+	if diagnosticCavlc.Calls%diagnosticCountInterval == 0 {
+		diagnosticReport("cavlc", false, diagnosticCavlc)
+	}
+}
+
+func diagnosticRecordInitial(block uint8, count uint32, evaluated uint32) {
+	if !diagnosticCountsEnabled || diagnosticCountOwner == nil {
+		return
+	}
+	blockBucket, countBucket := 7, 6
+	if block < MAX_BLOCK_TYPE {
+		blockBucket = int(block)
+	}
+	if count <= 5 {
+		countBucket = int(count)
+	}
+	diagnosticInitial.Calls++
+	diagnosticInitial.ByCount[countBucket]++
+	diagnosticInitial.ByBlock[blockBucket]++
+	diagnosticInitial.ByBlockCount[blockBucket][countBucket]++
+	diagnosticInitial.EvaluatedByCount[countBucket] += uint64(evaluated)
+	if evaluated <= count {
+		diagnosticInitial.SkippedByCount[countBucket] += uint64(count - evaluated)
+	}
+	if count == 1 && evaluated == 1 {
+		diagnosticInitial.OneDistinct[blockBucket]++
+	}
+	if diagnosticInitial.Calls%diagnosticCountInterval == 0 {
+		diagnosticReport("initial", false, diagnosticInitial)
+	}
+}
+
+func diagnosticReport(kind string, final bool, counts any) {
+	record := struct {
+		Kind   string `json:"kind"`
+		Case   string `json:"case"`
+		Frames uint64 `json:"frames_including_warmup"`
+		Final  bool   `json:"final"`
+		Counts any    `json:"counts"`
+	}{kind, os.Getenv("COMPARE_CASE"), diagnosticCountFrames, final, counts}
+	data, err := json.Marshal(record)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Fprintf(os.Stderr, "H264_CALL_COUNTS %s\n", data)
+}
+
+func diagnosticFinishEncoder(p *CWelsH264SVCEncoder) {
+	if !diagnosticCountsEnabled || diagnosticCountOwner != p {
+		return
+	}
+	diagnosticReport("cavlc", true, diagnosticCavlc)
+	diagnosticReport("initial", true, diagnosticInitial)
+	diagnosticCavlc = diagnosticCavlcCounters{}
+	diagnosticInitial = diagnosticInitialCounters{}
+	diagnosticCountFrames = 0
+	diagnosticCountOwner = nil
+}

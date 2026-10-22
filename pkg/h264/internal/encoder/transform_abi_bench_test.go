@@ -1,0 +1,69 @@
+//go:build amd64
+
+package encoder
+
+import (
+	"fmt"
+	"testing"
+)
+
+var transformABICoefficientSink int16
+var transformABIPixelSink byte
+
+// Raw measures only argument marshalling and the unchanged assembly kernel.
+// Checked measures the production wrapper, including validation and IDCT alias
+// checks. The four-byte prediction stride matches the I4 reconstruction path.
+func BenchmarkTransformABI(b *testing.B) {
+	for _, stride := range []int{4, 64, 1920, 1984} {
+		b.Run(fmt.Sprintf("DCT/Stride%d", stride), func(b *testing.B) {
+			source := make([]byte, 3+3*stride+4)
+			var prediction [16]byte
+			var coefficients [16]int16
+			for i := range source {
+				source[i] = byte(i*29 + 17)
+			}
+			for i := range prediction {
+				prediction[i] = byte(i*13 + 71)
+			}
+			b.Run("Checked", func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					WelsDctT4_sse2(coefficients[:], source, 3, int32(stride), prediction[:], 0, 4)
+				}
+				transformABICoefficientSink = coefficients[0]
+			})
+			b.Run("Raw", func(b *testing.B) {
+				pixels := source[3:]
+				b.ReportAllocs()
+				for b.Loop() {
+					welsDctT4SSE2(&coefficients, &pixels[0], stride, &prediction[0], 4)
+				}
+				transformABICoefficientSink = coefficients[0]
+			})
+		})
+		b.Run(fmt.Sprintf("IDCT/Stride%d", stride), func(b *testing.B) {
+			reconstruction := make([]byte, 5+3*stride+4)
+			var prediction [16]byte
+			var coefficients [16]int16
+			for i := range prediction {
+				prediction[i] = byte(i*13 + 71)
+				coefficients[i] = int16(i*43 - 300)
+			}
+			b.Run("Checked", func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					WelsIDctT4Rec_sse2(reconstruction, 5, int32(stride), prediction[:], 0, 4, coefficients[:])
+				}
+				transformABIPixelSink = reconstruction[5]
+			})
+			b.Run("Raw", func(b *testing.B) {
+				pixels := reconstruction[5:]
+				b.ReportAllocs()
+				for b.Loop() {
+					idctT4RecSSE2(&pixels[0], stride, &prediction[0], 4, &coefficients)
+				}
+				transformABIPixelSink = reconstruction[5]
+			})
+		})
+	}
+}

@@ -1,0 +1,60 @@
+{
+  "scope": "Codec encode and owning payload; no RGB conversion, initialization, capture, network or presentation",
+  "reason": "Test transfer of I4 worker gain to codec including PDF/720p/QP32; retain prior neutral full-path results",
+  "baseline": "/tmp/h264-parity-target-20261022/round11-avc.test",
+  "baseline_scope": "frozen round11, not original",
+  "baseline_sha256": "7860002cca313c43498fefe9bc32f8f2b455b7dd2a0ca041908c70af51510781",
+  "candidate": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/candidate-avc.test",
+  "candidate_sha256": "340d92794c98f664c6bb0934d1d6519fdd7c958f2cda63e1b50f64090705f201",
+  "repetitions": 6,
+  "measured_frames": 80,
+  "warmup_frames": 16,
+  "codec_clock_fps": 60,
+  "GOMAXPROCS": 4,
+  "CGO_ENABLED": 0,
+  "affinity_one_slice": "2",
+  "affinity_four_slices": "0-3",
+  "order": "before/after on even repetitions, after/before on odd repetitions; adjacent pair for each case",
+  "native_reruns": false,
+  "source_or_binary_mutations": false,
+  "prior_parity": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/parity.json",
+  "retained_full_summary": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full-summary.json",
+  "retained_full_summary_sha256": "55de62bca5f7befbebf61a09c77d331bf077a96bd047bc6e5d047f24a33bfdf7",
+  "cases": [
+    {
+      "name": "ShortClip",
+      "file": "/tmp/openh264-comparison-20261021/clip1080p.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 32
+    },
+    {
+      "name": "PDF",
+      "file": "/tmp/h264-native-parity-20261021/pdf1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-native-parity-20261021/road720.i420",
+      "width": 1280,
+      "height": 720,
+      "qp": 20
+    }
+  ]
+}

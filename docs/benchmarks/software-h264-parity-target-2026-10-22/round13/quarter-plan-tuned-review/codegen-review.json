@@ -1,0 +1,18 @@
+{
+  "scope": "Inspection of already-emitted component benchmark binary; no new build/timing job.",
+  "assembly_sha256": {
+    "/tmp/h264-parity-target-20261022/quarter-plan-tuned-review/validation/after-refinement-assembly.txt": "67776e63c3f9c09caeb312bc5145eb5a8c6c3ef021cb477bd0babd4d943a86a8",
+    "/tmp/h264-parity-target-20261022/quarter-plan-tuned-review/validation/base-refinement-assembly.txt": "e03b2ff6229e527618a74d14ae437eab3593840db0df4cfe3835173a05c0c5ea"
+  },
+  "parent_reserved_stack_bytes": {
+    "round11": 736,
+    "initial_held": 416,
+    "tuned": 768
+  },
+  "observations": [
+    "Tuned MeRefineFracPixel has no call to meRefineQuarterPlanLegacy; fallback directly calls MeRefineQuarPixel at0x5ec908.",
+    "The successful compact flag is tested at0x5ec3ec; JNE0x5ec6ba bypasses descriptor zeroing starting at0x5ec3f5/0x5ec403. The prologue does not zero this descriptor.",
+    "The width/capability branches precede the compact helper call at0x5ec375. Fallback still reserves the larger parent frame; source changes do not imply a speedup."
+  ],
+  "performance_claim": false
+}

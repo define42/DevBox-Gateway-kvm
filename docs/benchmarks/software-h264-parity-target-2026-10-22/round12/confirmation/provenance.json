@@ -1,0 +1,62 @@
+{
+  "reason": "Resolve original ShortClip/1 regression +1.44% p=.026 versus Road20/1 improvement -1.52% p=.041; all other codec/full observations remain archived. One confirmation only, all5 one-slice settings, not only the regression case.",
+  "binaries": {
+    "round11": {
+      "path": "/tmp/h264-parity-target-20261022/round11-avc.test",
+      "sha256": "7860002cca313c43498fefe9bc32f8f2b455b7dd2a0ca041908c70af51510781"
+    },
+    "current": {
+      "path": "/tmp/h264-parity-target-20261022/round12-review/bin/current-avc.test",
+      "sha256": "06875666d6aa2232c1a974cbf934724afcc9b20dc9e427a511ad667e689b97ab"
+    }
+  },
+  "cases": [
+    {
+      "name": "ShortClip",
+      "file": "/tmp/openh264-comparison-20261021/clip1080p.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 32
+    },
+    {
+      "name": "PDF",
+      "file": "/tmp/h264-native-parity-20261021/pdf1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-native-parity-20261021/road720.i420",
+      "width": 1280,
+      "height": 720,
+      "qp": 20
+    }
+  ],
+  "measured_frames": 240,
+  "warmup_frames": 16,
+  "pairs": 6,
+  "affinity": "2",
+  "GOMAXPROCS": 4,
+  "native_reruns": 0,
+  "prior_artifact_sha256": {
+    "/tmp/h264-parity-target-20261022/round12-review/codec/benchstat.txt": "480f0c130bde0e5d626fbca9e94fd5d0a2f28a38a96779e190351c0a1d66ba7f",
+    "/tmp/h264-parity-target-20261022/round12-review/full/incremental-benchstat.txt": "558637cdbf720d74c4335e451036e041c5bfc3ecc2ddc13b0ed4d509e2f76282",
+    "/tmp/h264-parity-target-20261022/round12-review/codec/summary.json": "9d10b547b25e550867c16b92494df46ff2eb98850f725a770e041a4dfc14dac5",
+    "/tmp/h264-parity-target-20261022/round12-review/full/summary.json": "df285fc3081c7ad3a0be797f746da8c00c138aeab568c40cec146a957b58ef74"
+  }
+}

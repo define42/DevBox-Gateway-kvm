@@ -1,0 +1,202 @@
+=== RUN   TestIntra4ScratchAllocationDiagnostic
+=== RUN   TestIntra4ScratchAllocationDiagnostic/slices1
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction4 start=0xa28a9e90040 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=previous modes start=0xa28a9e90060 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=remaining modes start=0xa28a9e90070 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction MB start=0xa28a9ec4800 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=coefficients start=0xa28a9d4e000 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=skip prediction start=0xa28a9e8e000 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=fractional prediction start=0xa28a9e9a000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=DCT output start=0xa28a9e9c000 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MD state start=0xa28ab2c0008 bytes=7960 line_offset=8
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MB cache start=0xa28ab2c2168 bytes=1072 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=bit writer start=0xa28ab2c25e0 bytes=72 line_offset=32
+    intra4_scratch_diagnostic_test.go:82: SUMMARY slices=1 cache_line_assumption=64 cross_slice_shared_lines=0 shared_lines_involving_small_scratch=0
+=== RUN   TestIntra4ScratchAllocationDiagnostic/slices4
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction4 start=0xa28a9e90040 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=previous modes start=0xa28a9e90060 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=remaining modes start=0xa28a9e90070 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction MB start=0xa28a9ec4800 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=coefficients start=0xa28a9df2000 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=skip prediction start=0xa28a9e8e000 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=fractional prediction start=0xa28a9e9a000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=DCT output start=0xa28a9e9c000 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MD state start=0xa28a9ed8000 bytes=7960 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MB cache start=0xa28a9eda160 bytes=1072 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=bit writer start=0xa28a9eda5d8 bytes=72 line_offset=24
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=thread bitstream start=0xa28acaf8000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=prediction4 start=0xa28a9e90100 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=previous modes start=0xa28a9e90120 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=remaining modes start=0xa28a9e90130 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=prediction MB start=0xa28a9ec4a00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=coefficients start=0xa28a9df2300 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=skip prediction start=0xa28a9e8e180 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=fractional prediction start=0xa28a9e9aa80 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=DCT output start=0xa28a9e9c380 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=MD state start=0xa28a9eda9e8 bytes=7960 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=MB cache start=0xa28a9edcb48 bytes=1072 line_offset=8
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=bit writer start=0xa28a9edcfc0 bytes=72 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=thread bitstream start=0xa28aa508000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=prediction4 start=0xa28a9e901c0 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=previous modes start=0xa28a9e901e0 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=remaining modes start=0xa28a9e901f0 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=prediction MB start=0xa28a9ec4c00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=coefficients start=0xa28a9df2600 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=skip prediction start=0xa28a9e8e300 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=fractional prediction start=0xa28a9e9b500 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=DCT output start=0xa28a9e9c700 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=MD state start=0xa28a9edd3d0 bytes=7960 line_offset=16
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=MB cache start=0xa28a9edf530 bytes=1072 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=bit writer start=0xa28a9edf9a8 bytes=72 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=thread bitstream start=0xa28a9f00000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=prediction4 start=0xa28a9e90280 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=previous modes start=0xa28a9e902a0 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=remaining modes start=0xa28a9e902b0 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=prediction MB start=0xa28a9ec4e00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=coefficients start=0xa28a9df2900 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=skip prediction start=0xa28a9e8e480 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=fractional prediction start=0xa28a9ea0000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=DCT output start=0xa28a9e9ca80 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=MD state start=0xa28a9edfdb8 bytes=7960 line_offset=56
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=MB cache start=0xa28a9ee1f18 bytes=1072 line_offset=24
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=bit writer start=0xa28a9ee2390 bytes=72 line_offset=16
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=thread bitstream start=0xa28aab04000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:82: SUMMARY slices=4 cache_line_assumption=64 cross_slice_shared_lines=0 shared_lines_involving_small_scratch=0
+--- PASS: TestIntra4ScratchAllocationDiagnostic (0.02s)
+    --- PASS: TestIntra4ScratchAllocationDiagnostic/slices1 (0.00s)
+    --- PASS: TestIntra4ScratchAllocationDiagnostic/slices4 (0.02s)
+=== RUN   TestIntra4ScratchAllocationDiagnostic
+=== RUN   TestIntra4ScratchAllocationDiagnostic/slices1
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction4 start=0xa28a9ea4040 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=previous modes start=0xa28a9ea4060 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=remaining modes start=0xa28a9ea4070 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction MB start=0xa28a9ec4800 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=coefficients start=0xa28a9ea0000 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=skip prediction start=0xa28a9ea2000 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=fractional prediction start=0xa28a9ec0000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=DCT output start=0xa28a9ec2000 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MD state start=0xa28aa366008 bytes=7960 line_offset=8
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MB cache start=0xa28aa368168 bytes=1072 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=bit writer start=0xa28aa3685e0 bytes=72 line_offset=32
+    intra4_scratch_diagnostic_test.go:82: SUMMARY slices=1 cache_line_assumption=64 cross_slice_shared_lines=0 shared_lines_involving_small_scratch=0
+=== RUN   TestIntra4ScratchAllocationDiagnostic/slices4
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction4 start=0xa28a9e9c040 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=previous modes start=0xa28a9e9c060 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=remaining modes start=0xa28a9e9c070 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction MB start=0xa28a9ec4800 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=coefficients start=0xa28a9e90000 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=skip prediction start=0xa28a9e9a000 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=fractional prediction start=0xa28a9ea0000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=DCT output start=0xa28a9ea2000 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MD state start=0xa28a9ec8000 bytes=7960 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MB cache start=0xa28a9eca160 bytes=1072 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=bit writer start=0xa28a9eca5d8 bytes=72 line_offset=24
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=thread bitstream start=0xa28abff8000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=prediction4 start=0xa28a9e9c100 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=previous modes start=0xa28a9e9c120 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=remaining modes start=0xa28a9e9c130 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=prediction MB start=0xa28a9ec4a00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=coefficients start=0xa28a9e90300 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=skip prediction start=0xa28a9e9a180 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=fractional prediction start=0xa28a9ea0a80 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=DCT output start=0xa28a9ea2380 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=MD state start=0xa28a9eca9e8 bytes=7960 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=MB cache start=0xa28a9eccb48 bytes=1072 line_offset=8
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=bit writer start=0xa28a9eccfc0 bytes=72 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=thread bitstream start=0xa28aa488000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=prediction4 start=0xa28a9e9c1c0 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=previous modes start=0xa28a9e9c1e0 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=remaining modes start=0xa28a9e9c1f0 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=prediction MB start=0xa28a9ec4c00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=coefficients start=0xa28a9e90600 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=skip prediction start=0xa28a9e9a300 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=fractional prediction start=0xa28a9ea1500 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=DCT output start=0xa28a9ea2700 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=MD state start=0xa28a9ecd3d0 bytes=7960 line_offset=16
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=MB cache start=0xa28a9ecf530 bytes=1072 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=bit writer start=0xa28a9ecf9a8 bytes=72 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=thread bitstream start=0xa28aaa84000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=prediction4 start=0xa28a9e9c280 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=previous modes start=0xa28a9e9c2a0 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=remaining modes start=0xa28a9e9c2b0 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=prediction MB start=0xa28a9ec4e00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=coefficients start=0xa28a9e90900 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=skip prediction start=0xa28a9e9a480 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=fractional prediction start=0xa28a9ea4000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=DCT output start=0xa28a9ea2a80 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=MD state start=0xa28a9ecfdb8 bytes=7960 line_offset=56
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=MB cache start=0xa28a9ed1f18 bytes=1072 line_offset=24
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=bit writer start=0xa28a9ed2390 bytes=72 line_offset=16
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=thread bitstream start=0xa28ac5f4000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:82: SUMMARY slices=4 cache_line_assumption=64 cross_slice_shared_lines=0 shared_lines_involving_small_scratch=0
+--- PASS: TestIntra4ScratchAllocationDiagnostic (0.02s)
+    --- PASS: TestIntra4ScratchAllocationDiagnostic/slices1 (0.00s)
+    --- PASS: TestIntra4ScratchAllocationDiagnostic/slices4 (0.01s)
+=== RUN   TestIntra4ScratchAllocationDiagnostic
+=== RUN   TestIntra4ScratchAllocationDiagnostic/slices1
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction4 start=0xa28a9ea0040 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=previous modes start=0xa28a9ea0060 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=remaining modes start=0xa28a9ea0070 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction MB start=0xa28a9ec4800 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=coefficients start=0xa28a9e9a000 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=skip prediction start=0xa28a9e9c000 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=fractional prediction start=0xa28a9ea2000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=DCT output start=0xa28a9ea4000 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MD state start=0xa28aa030008 bytes=7960 line_offset=8
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MB cache start=0xa28aa032168 bytes=1072 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=bit writer start=0xa28aa0325e0 bytes=72 line_offset=32
+    intra4_scratch_diagnostic_test.go:82: SUMMARY slices=1 cache_line_assumption=64 cross_slice_shared_lines=0 shared_lines_involving_small_scratch=0
+=== RUN   TestIntra4ScratchAllocationDiagnostic/slices4
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction4 start=0xa28a9ea2040 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=previous modes start=0xa28a9ea2060 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=remaining modes start=0xa28a9ea2070 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=prediction MB start=0xa28a9ec4800 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=coefficients start=0xa28a9e9c000 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=skip prediction start=0xa28a9ea0000 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=fractional prediction start=0xa28a9ea4000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=DCT output start=0xa28a9ec0000 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MD state start=0xa28aa028000 bytes=7960 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=MB cache start=0xa28aa02a160 bytes=1072 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=bit writer start=0xa28aa02a5d8 bytes=72 line_offset=24
+    intra4_scratch_diagnostic_test.go:79: slice=0 buffer=thread bitstream start=0xa28ac0de000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=prediction4 start=0xa28a9ea2100 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=previous modes start=0xa28a9ea2120 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=remaining modes start=0xa28a9ea2130 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=prediction MB start=0xa28a9ec4a00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=coefficients start=0xa28a9e9c300 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=skip prediction start=0xa28a9ea0180 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=fractional prediction start=0xa28a9ea4a80 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=DCT output start=0xa28a9ec0380 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=MD state start=0xa28aa02a9e8 bytes=7960 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=MB cache start=0xa28aa02cb48 bytes=1072 line_offset=8
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=bit writer start=0xa28aa02cfc0 bytes=72 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=1 buffer=thread bitstream start=0xa28ac6da000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=prediction4 start=0xa28a9ea21c0 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=previous modes start=0xa28a9ea21e0 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=remaining modes start=0xa28a9ea21f0 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=prediction MB start=0xa28a9ec4c00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=coefficients start=0xa28a9e9c600 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=skip prediction start=0xa28a9ea0300 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=fractional prediction start=0xa28a9ea5500 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=DCT output start=0xa28a9ec0700 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=MD state start=0xa28aa02d3d0 bytes=7960 line_offset=16
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=MB cache start=0xa28aa02f530 bytes=1072 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=bit writer start=0xa28aa02f9a8 bytes=72 line_offset=40
+    intra4_scratch_diagnostic_test.go:79: slice=2 buffer=thread bitstream start=0xa28aa488000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=prediction4 start=0xa28a9ea2280 bytes=32 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=previous modes start=0xa28a9ea22a0 bytes=16 line_offset=32
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=remaining modes start=0xa28a9ea22b0 bytes=16 line_offset=48
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=prediction MB start=0xa28a9ec4e00 bytes=512 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=coefficients start=0xa28a9e9c900 bytes=768 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=skip prediction start=0xa28a9ea0480 bytes=384 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=fractional prediction start=0xa28a9ec2000 bytes=2560 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=DCT output start=0xa28a9ec0a80 bytes=816 line_offset=0
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=MD state start=0xa28aa02fdb8 bytes=7960 line_offset=56
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=MB cache start=0xa28aa031f18 bytes=1072 line_offset=24
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=bit writer start=0xa28aa032390 bytes=72 line_offset=16
+    intra4_scratch_diagnostic_test.go:79: slice=3 buffer=thread bitstream start=0xa28aaa84000 bytes=6271872 line_offset=0
+    intra4_scratch_diagnostic_test.go:82: SUMMARY slices=4 cache_line_assumption=64 cross_slice_shared_lines=0 shared_lines_involving_small_scratch=0
+--- PASS: TestIntra4ScratchAllocationDiagnostic (0.02s)
+    --- PASS: TestIntra4ScratchAllocationDiagnostic/slices1 (0.01s)
+    --- PASS: TestIntra4ScratchAllocationDiagnostic/slices4 (0.01s)
+PASS

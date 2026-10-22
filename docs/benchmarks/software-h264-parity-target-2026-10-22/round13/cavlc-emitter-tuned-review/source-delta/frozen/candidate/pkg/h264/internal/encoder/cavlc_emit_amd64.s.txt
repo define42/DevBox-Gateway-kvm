@@ -1,0 +1,479 @@
+//go:build amd64
+
+#include "textflag.h"
+#include "go_asm.h"
+
+// Register-resident implementation of the existing Go CAVLC symbol writer.
+// The coding equations follow OpenH264's set_mb_syn_cavlc.cpp, already ported
+// in set_mb_syn_cavlc.go; this leaf retains Go's packed mutable level table.
+// There are no calls, SIMD requirements, retained pointers, or R14/BP writes.
+//
+// R9 output, R10 pending bits, R11 available bits; R12 levels (then runs),
+// R13 level/run index, R15 total, BX zeros left, R8 suffix. Other registers are
+// temporary. Locals: first adjustment, current level, slow symbol length.
+// Fallback/overflow never commit bs or change levels/runs. Any output prefix
+// is identical to Go replay; the guard excludes all later-read aliases.
+TEXT ·cavlcEmit(SB), NOSPLIT, $16-60
+	MOVL $0, ret+56(FP)
+	MOVQ bs+0(FP), SI
+	MOVQ levels+8(FP), R12
+	MOVQ runs+16(FP), R13
+	TESTQ SI, SI
+	JZ cavlc_emit_return
+	TESTQ R12, R12
+	JZ cavlc_emit_return
+	TESTQ R13, R13
+	JZ cavlc_emit_return
+	MOVQ external+24(FP), AX
+	TESTQ AX, AX
+	JZ cavlc_emit_return
+	MOVL total+32(FP), R15
+	CMPL R15, $1
+	JL cavlc_emit_return
+	MOVL end+40(FP), AX
+	CMPL AX, $3
+	JE cavlc_emit_dimensions
+	CMPL AX, $14
+	JE cavlc_emit_dimensions
+	CMPL AX, $15
+	JNE cavlc_emit_return
+cavlc_emit_dimensions:
+	INCL AX
+	CMPL R15, AX
+	JG cavlc_emit_return
+	SUBL R15, AX
+	MOVL zeros+36(FP), BX
+	CMPL BX, AX
+	JA cavlc_emit_return
+	MOVL sCavlcBs_iLeftBits(SI), R11
+	LEAL -1(R11), AX
+	CMPL AX, $31
+	JA cavlc_emit_return
+	MOVQ sCavlcBs_pBufPtr(SI), AX
+	TESTQ AX, AX
+	JS cavlc_emit_return
+	MOVQ sCavlcBs_pBuf+8(SI), DX
+	SUBQ $const_cavlcEmitSpace, DX
+	CMPQ AX, DX
+	JG cavlc_emit_return
+	MOVQ sCavlcBs_pBuf(SI), R9
+	ADDQ AX, R9
+	JC cavlc_emit_return
+	MOVQ R9, R10
+	ADDQ $const_cavlcEmitSpace, R10
+	JC cavlc_emit_return
+	MOVQ bs+0(FP), AX
+	LEAQ sCavlcBs__size(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_0
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_0:
+	MOVQ levels+8(FP), AX
+	LEAQ 32(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_1
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_1:
+	MOVQ runs+16(FP), AX
+	LEAQ 16(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_2
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_2:
+	MOVQ external+24(FP), AX
+	LEAQ const_cavlcEmitExternalSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_3
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_3:
+	LEAQ ·g_kuiEncNcMapTable(SB), AX
+	LEAQ const_cavlcEmitNcSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_4
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_4:
+	LEAQ ·g_kuiVlcCoeffToken(SB), AX
+	LEAQ const_cavlcEmitTokenSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_5
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_5:
+	LEAQ ·cavlcLevelTable(SB), AX
+	LEAQ const_cavlcEmitLevelSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_6
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_6:
+	LEAQ ·g_kuiVlcTotalZeros(SB), AX
+	LEAQ const_cavlcEmitZerosSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_7
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_7:
+	LEAQ ·g_kuiVlcTotalZerosChromaDc(SB), AX
+	LEAQ const_cavlcEmitChromaZerosSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_8
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_8:
+	LEAQ ·g_kuiZeroLeftMap(SB), AX
+	LEAQ const_cavlcEmitZeroMapSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_9
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_9:
+	LEAQ ·g_kuiVlcRunBefore(SB), AX
+	LEAQ const_cavlcEmitRunSize(AX), DX
+	CMPQ R9, DX
+	JAE cavlc_emit_disjoint_10
+	CMPQ AX, R10
+	JB cavlc_emit_return
+cavlc_emit_disjoint_10:
+	MOVL sCavlcBs_uiCurBits(SI), R10
+	XORL R13, R13
+	XORL DI, DI
+cavlc_emit_trailing:
+	CMPL R13, R15
+	JGE cavlc_emit_token
+	CMPL R13, $3
+	JGE cavlc_emit_token
+	MOVWLSX (R12)(R13*2), AX
+	CMPL AX, $1
+	JE cavlc_emit_positive_one
+	CMPL AX, $-1
+	JNE cavlc_emit_token
+	SHLL $1, DI
+	ORL $1, DI
+	JMP cavlc_emit_next_one
+cavlc_emit_positive_one:
+	SHLL $1, DI
+cavlc_emit_next_one:
+	INCL R13
+	JMP cavlc_emit_trailing
+cavlc_emit_token:
+	MOVL nc+48(FP), AX
+	CMPL AX, $18
+	JAE cavlc_emit_return
+	LEAQ ·g_kuiEncNcMapTable(SB), SI
+	MOVBLZX (SI)(AX*1), AX
+	CMPL AX, $5
+	JAE cavlc_emit_return
+	IMULL $136, AX
+	LEAL (AX)(R15*8), AX
+	LEAL (AX)(R13*2), AX
+	LEAQ ·g_kuiVlcCoeffToken(SB), SI
+	MOVBLZX 1(SI)(AX*1), DX
+	MOVBLZX (SI)(AX*1), AX
+	ADDL R13, DX
+	MOVL R13, CX
+	SHLL CX, AX
+	ADDL DI, AX
+	// n is a mutable byte (plus up to three trailing signs for the token).
+	// Larger lengths use the unchanged Go path, before this symbol's store.
+	CMPL DX, $32
+	JA cavlc_emit_return
+	CMPL DX, R11
+	JGE cavlc_emit_token_flush
+	MOVL DX, CX
+	SHLL CX, R10
+	ORL AX, R10
+	SUBL DX, R11
+	JMP cavlc_emit_token_done
+cavlc_emit_token_flush:
+	SUBL R11, DX
+	MOVL R11, CX
+	MOVL R10, SI
+	// Qword shift gives the required zero low word when left == 32.
+	SHLQ CX, SI
+	MOVL DX, CX
+	MOVL AX, DI
+	SARL CX, DI
+	ORL DI, SI
+	BSWAPL SI
+	MOVL SI, (R9)
+	ADDQ $4, R9
+	MOVL $1, SI
+	SHLQ CX, SI
+	DECL SI
+	ANDL SI, AX
+	MOVL AX, R10
+	MOVL $32, R11
+	SUBL DX, R11
+cavlc_emit_token_done:
+	XORL R8, R8
+	MOVL $0, 0(SP)
+	CMPL R13, $3
+	JGE cavlc_emit_level_test
+	MOVL $1, 0(SP)
+	CMPL R15, $10
+	JLE cavlc_emit_level_test
+	MOVL $1, R8
+cavlc_emit_level_test:
+	CMPL R13, R15
+	JGE cavlc_emit_total_zeros
+	MOVWLSX (R12)(R13*2), AX
+	MOVL AX, 4(SP)
+	LEAL 64(AX), SI
+	CMPL SI, $128
+	JAE cavlc_emit_level_slow
+	MOVL R8, CX
+	ANDL $7, CX
+	MOVL 0(SP), DI
+	SHLL $3, DI
+	ADDL DI, CX
+	SHLL $7, CX
+	ADDL SI, CX
+	LEAQ ·cavlcLevelTable(SB), SI
+	MOVL (SI)(CX*4), SI
+	MOVL SI, AX
+	ANDL $65535, AX
+	MOVL SI, DX
+	SHRL $16, DX
+	ANDL $255, DX
+	MOVL SI, R8
+	SHRL $24, R8
+	JMP cavlc_emit_level_write
+cavlc_emit_level_slow:
+	// Normal suffixes cover all signed-int16 coefficients. A mutated suffix
+	// outside this domain replays Go's exact wide-shift/overflow semantics.
+	CMPL R8, $6
+	JA cavlc_emit_return
+	LEAL -2(AX)(AX*1), SI
+	MOVL SI, DI
+	SARL $31, DI
+	XORL DI, SI
+	SHLL $1, DI
+	ADDL DI, SI
+	MOVL 0(SP), DI
+	SHLL $1, DI
+	SUBL DI, SI
+	MOVL R8, CX
+	MOVL SI, DI
+	SARL CX, DI
+	MOVL DI, DX
+	SHLL CX, DX
+	MOVL SI, AX
+	SUBL DX, AX
+	MOVL R8, DX
+	CMPL DI, $14
+	JL cavlc_emit_level_word
+	CMPL DI, $30
+	JGE cavlc_emit_level_escape
+	TESTL R8, R8
+	JNZ cavlc_emit_level_escape
+	MOVL $14, DI
+	MOVL SI, AX
+	SUBL $14, AX
+	MOVL $4, DX
+	JMP cavlc_emit_level_word
+cavlc_emit_level_escape:
+	CMPL DI, $15
+	JL cavlc_emit_level_word
+	MOVL $15, DI
+	MOVL DI, AX
+	SHLL CX, AX
+	SUBL AX, SI
+	MOVL SI, AX
+	SARL $11, SI
+	JNZ cavlc_emit_overflow
+	TESTL R8, R8
+	JNZ cavlc_emit_level_escape_size
+	SUBL $15, AX
+cavlc_emit_level_escape_size:
+	MOVL $12, DX
+cavlc_emit_level_word:
+	LEAL 1(DI)(DX*1), SI
+	MOVL SI, 8(SP)
+	MOVL DX, CX
+	MOVL $1, DI
+	SHLL CX, DI
+	ORL DI, AX
+	TESTL R8, R8
+	JNZ cavlc_emit_level_threshold
+	INCL R8
+cavlc_emit_level_threshold:
+	LEAL -1(R8), CX
+	MOVL $3, DI
+	SHLL CX, DI
+	MOVL 4(SP), SI
+	CMPL SI, DI
+	JG cavlc_emit_level_advance
+	NEGL DI
+	CMPL SI, DI
+	JGE cavlc_emit_level_ready
+cavlc_emit_level_advance:
+	CMPL R8, $6
+	JGE cavlc_emit_level_ready
+	INCL R8
+cavlc_emit_level_ready:
+	MOVL 8(SP), DX
+cavlc_emit_level_write:
+	MOVL $0, 0(SP)
+	// n is a mutable byte (plus up to three trailing signs for the token).
+	// Larger lengths use the unchanged Go path, before this symbol's store.
+	CMPL DX, $32
+	JA cavlc_emit_return
+	CMPL DX, R11
+	JGE cavlc_emit_level_flush
+	MOVL DX, CX
+	SHLL CX, R10
+	ORL AX, R10
+	SUBL DX, R11
+	JMP cavlc_emit_level_done
+cavlc_emit_level_flush:
+	SUBL R11, DX
+	MOVL R11, CX
+	MOVL R10, SI
+	// Qword shift gives the required zero low word when left == 32.
+	SHLQ CX, SI
+	MOVL DX, CX
+	MOVL AX, DI
+	SARL CX, DI
+	ORL DI, SI
+	BSWAPL SI
+	MOVL SI, (R9)
+	ADDQ $4, R9
+	MOVL $1, SI
+	SHLQ CX, SI
+	DECL SI
+	ANDL SI, AX
+	MOVL AX, R10
+	MOVL $32, R11
+	SUBL DX, R11
+cavlc_emit_level_done:
+	INCL R13
+	JMP cavlc_emit_level_test
+cavlc_emit_total_zeros:
+	MOVL end+40(FP), AX
+	INCL AX
+	CMPL R15, AX
+	JGE cavlc_emit_runs
+	CMPL property+44(FP), $3
+	JE cavlc_emit_chroma_zeros
+	MOVL R15, AX
+	SHLL $5, AX
+	LEAL (AX)(BX*2), AX
+	LEAQ ·g_kuiVlcTotalZeros(SB), SI
+	JMP cavlc_emit_zero_symbol
+cavlc_emit_chroma_zeros:
+	CMPL R15, $4
+	JAE cavlc_emit_return
+	CMPL BX, $4
+	JAE cavlc_emit_return
+	MOVL R15, AX
+	SHLL $3, AX
+	LEAL (AX)(BX*2), AX
+	LEAQ ·g_kuiVlcTotalZerosChromaDc(SB), SI
+cavlc_emit_zero_symbol:
+	MOVBLZX 1(SI)(AX*1), DX
+	MOVBLZX (SI)(AX*1), AX
+	// n is a mutable byte (plus up to three trailing signs for the token).
+	// Larger lengths use the unchanged Go path, before this symbol's store.
+	CMPL DX, $32
+	JA cavlc_emit_return
+	CMPL DX, R11
+	JGE cavlc_emit_zero_flush
+	MOVL DX, CX
+	SHLL CX, R10
+	ORL AX, R10
+	SUBL DX, R11
+	JMP cavlc_emit_zero_done
+cavlc_emit_zero_flush:
+	SUBL R11, DX
+	MOVL R11, CX
+	MOVL R10, SI
+	// Qword shift gives the required zero low word when left == 32.
+	SHLQ CX, SI
+	MOVL DX, CX
+	MOVL AX, DI
+	SARL CX, DI
+	ORL DI, SI
+	BSWAPL SI
+	MOVL SI, (R9)
+	ADDQ $4, R9
+	MOVL $1, SI
+	SHLQ CX, SI
+	DECL SI
+	ANDL SI, AX
+	MOVL AX, R10
+	MOVL $32, R11
+	SUBL DX, R11
+cavlc_emit_zero_done:
+cavlc_emit_runs:
+	MOVQ runs+16(FP), R12
+	XORL R13, R13
+	DECL R15
+cavlc_emit_run_test:
+	CMPL R13, R15
+	JGE cavlc_emit_success
+	TESTL BX, BX
+	JLE cavlc_emit_success
+	MOVBLZX (R12)(R13*1), SI
+	CMPL SI, $15
+	JAE cavlc_emit_return
+	LEAQ ·g_kuiZeroLeftMap(SB), DI
+	MOVBLZX (DI)(BX*1), DI
+	CMPL DI, $8
+	JAE cavlc_emit_return
+	IMULL $30, DI
+	LEAL (DI)(SI*2), DI
+	SUBL SI, BX
+	LEAQ ·g_kuiVlcRunBefore(SB), SI
+	MOVBLZX 1(SI)(DI*1), DX
+	MOVBLZX (SI)(DI*1), AX
+	// n is a mutable byte (plus up to three trailing signs for the token).
+	// Larger lengths use the unchanged Go path, before this symbol's store.
+	CMPL DX, $32
+	JA cavlc_emit_return
+	CMPL DX, R11
+	JGE cavlc_emit_run_flush
+	MOVL DX, CX
+	SHLL CX, R10
+	ORL AX, R10
+	SUBL DX, R11
+	JMP cavlc_emit_run_done
+cavlc_emit_run_flush:
+	SUBL R11, DX
+	MOVL R11, CX
+	MOVL R10, SI
+	// Qword shift gives the required zero low word when left == 32.
+	SHLQ CX, SI
+	MOVL DX, CX
+	MOVL AX, DI
+	SARL CX, DI
+	ORL DI, SI
+	BSWAPL SI
+	MOVL SI, (R9)
+	ADDQ $4, R9
+	MOVL $1, SI
+	SHLQ CX, SI
+	DECL SI
+	ANDL SI, AX
+	MOVL AX, R10
+	MOVL $32, R11
+	SUBL DX, R11
+cavlc_emit_run_done:
+	INCL R13
+	JMP cavlc_emit_run_test
+cavlc_emit_success:
+	MOVQ bs+0(FP), SI
+	SUBQ sCavlcBs_pBuf(SI), R9
+	MOVQ R9, sCavlcBs_pBufPtr(SI)
+	MOVL R10, sCavlcBs_uiCurBits(SI)
+	MOVL R11, sCavlcBs_iLeftBits(SI)
+	MOVL $1, ret+56(FP)
+	RET
+cavlc_emit_overflow:
+	MOVL $2, ret+56(FP)
+cavlc_emit_return:
+	RET

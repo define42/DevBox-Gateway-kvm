@@ -1,0 +1,88 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                    │ /tmp/h264-parity-target-20261022/chroma-decision-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-decision-review/after.txt │
+                                                    │                              sec/op                              │                   sec/op                     vs base              │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                        153.1n ±  7%                                  138.5n ±  3%  -9.51% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                       151.0n ±  3%                                  137.6n ±  1%  -8.87% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                       137.7n ±  6%                                  132.3n ±  7%       ~ (p=0.065 n=6)
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                         106.0n ±  4%                                  112.6n ±  7%       ~ (p=0.132 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                         146.8n ±  4%                                  132.3n ± 38%       ~ (p=0.065 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                        146.6n ±  7%                                  134.3n ±  4%  -8.36% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                        136.3n ±  3%                                  127.6n ±  4%  -6.42% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                          103.5n ±  2%                                  104.3n ±  7%       ~ (p=0.180 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                        149.6n ±  3%                                  140.0n ± 12%       ~ (p=0.065 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                       150.3n ±  7%                                  140.1n ±  6%  -6.75% (p=0.009 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                       105.8n ±  5%                                  107.2n ±  3%       ~ (p=0.619 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                         107.8n ± 22%                                  108.7n ±  4%       ~ (p=0.699 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                         150.9n ±  3%                                  142.6n ± 18%       ~ (p=0.180 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                        151.5n ±  3%                                  140.9n ± 15%       ~ (p=0.065 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                        108.5n ±  7%                                  113.0n ±  3%       ~ (p=0.158 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                          110.6n ±  4%                                  113.4n ± 18%       ~ (p=0.169 n=6)
+geomean                                                                                                   130.6n                                        125.8n        -3.69%
+
+                                                    │ /tmp/h264-parity-target-20261022/chroma-decision-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-decision-review/after.txt │
+                                                    │                            planes/op                             │                 planes/op                  vs base                │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                          2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                         2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                         2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                           2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                           2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                          2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                          2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                            2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                          2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                         2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                         2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                           2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                           2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                          2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                          2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                            2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     2.000                                       2.000       +0.00%
+¹ all samples are equal
+
+                                                    │ /tmp/h264-parity-target-20261022/chroma-decision-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-decision-review/after.txt │
+                                                    │                               B/op                               │                   B/op                     vs base                │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                          0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                          0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                              ²                                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                    │ /tmp/h264-parity-target-20261022/chroma-decision-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-decision-review/after.txt │
+                                                    │                            allocs/op                             │                 allocs/op                  vs base                │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                          0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                       0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                         0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                        0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                          0.000 ± 0%                                    0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                              ²                                              +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

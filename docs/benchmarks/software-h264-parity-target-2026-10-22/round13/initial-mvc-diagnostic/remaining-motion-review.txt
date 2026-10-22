@@ -1,0 +1,80 @@
+READ-ONLY MOTION AUDIT AFTER COMPACT QUARTER PLAN
+
+One bounded candidate: deduplicated multi-candidate initial SAD for the active
+P16x16 / uiMvcNum==5 path. No implementation, build, test, timing or profiling was
+performed. Frozen quarter sources, main and round12 were not changed.
+
+ACTIVE SOURCE PATH
+round11/pkg/h264/internal/encoder/svc_base_layer_md.go:846-889 builds the P16x16
+list from base, left, top and two temporal predictors, then calls motion search.
+svc_motion_estimate.go:72-83 calls WelsMotionEstimateInitialPoint, whose optimized
+two-SAD branch at145-161 only accepts uiMvcNum==1. The five-MVC case still invokes
+one initial checked SAD at163 and up to five further checked SADs at168-181.
+The encoded block and stride are fixed throughout this pure built-in-SAD loop.
+
+Native codec/encoder/core/src/svc_motion_estimate.cpp:222-285 uses the same separate
+initial/MVC SAD calls and current-best equality skip. Native sample.cpp:375 and
+common/x86/satd_sad.asm:1824 select/use SSE2 single SAD16x16, as Go already does.
+There is no missing native AVX2 SAD16 dispatch or native six-candidate batch here.
+This proposal is additional Go caller fusion to offset repeated Go call/check and
+encoded-load work, not an unported native algorithm or a changed search heuristic.
+
+MEASURED ACTIVITY, NOT A SPEED CLAIM
+Saved call-count-road1-totals.json contains 10,025,547 initial searches, including
+3,770,737 five-MVC searches (all16x16). Those issue 14,507,502 extra SADs plus one
+initial SAD each: 18,278,239 SAD evaluations, averaging4.85 per search. The existing
+one-MVC two-SAD helper does not cover them. PDF has490,448 five-MVC searches and
+1,462,625 extra SADs: 1,953,073 evaluations, averaging3.98 per search.
+
+The round11 Road profile totals17.99CPU seconds; InitialPoint is1.13s cumulative
+and0.35s flat. ALL of InitialPoint is only6.28% of total CPU, an absolute ceiling
+that this subset cannot attain. SAD16x16's0.64s is shared with other callers and
+cannot be added to InitialPoint's cumulative cost. PDF InitialPoint is0.08/6.23s,
+so the ceiling there is only1.28%. Native's flatter call representation does not
+prove this fusion will win. A practical codec gain would be much smaller than
+these ceilings and cannot close the remaining overall native gap.
+
+BOUNDED DESIGN / NECESSARY SAFETY
+Start only with16x16 and exactlyfive MVCs. Require an exact known built-in SAD
+callback identity in addition to CPU/capability gating; a marker alone must not
+silently bypass newly customized five-MVC callbacks. All other shapes/counts and
+custom callbacks keep the old loop with its live mutation behavior.
+
+Clip initial+five vectors exactly as today (including int16 conversion), retain
+first-occurrence order, and deduplicate equal clipped MVs before SAD. For immutable
+built-in inputs and identical MVD terms, a repeated MV has identical signed cost;
+best cost only decreases under strict '<', so a later duplicate can never win.
+This preserves winner/tie order without searching fewer distinct positions.
+
+Use fixed stack arrays with tracked pointers and one direct noescape raw call,
+never an indirect callback receiving a local descriptor. Validate encoded visible
+bytes once and each unique reference view; preserve the existing int32 offset
+multiplication/addition before conversion to int. Negative/overflow/short spans
+and malformed MVD indices return to the old loop before any externally observable
+write, so its candidate-by-candidate panic order survives. Zero/overlapping strides
+and read-only source aliases either retain exact reads or fall back. A direct raw
+multi-SAD leaf can keep several independent sums and share each16-byte encoded row
+across references, without modifying reference reads or the final selection math.
+
+Preflight all unique MVD indices without indexing/panicking; on failure use legacy
+before any changes. Once every read is safe and the exact SAD callback is pure,
+compute costs and select in first-occurrence order with the existing int32 wrapping
+and strict '<'. Invoke the directional callback once at its original point with
+unchanged arguments/state, then keep UpdateMeResults and early-stop behavior.
+
+WHY ONE MORE DIAGNOSTIC IS NEEDED BEFORE CODE
+The existing counters record only skips equal to the current winner, not the
+number of distinct clipped vectors. Scoring all six unconditionally would perform
+~24% more SAD arithmetic on Road and~51% more on PDF. Deduplicating the six positions
+should avoid that, but its benefit and average resulting batch size are unknown.
+One isolated diagnostic over the same fixtures should record distinct clipped-MV
+histograms for only16x16/uiMvcNum5, without changing production or timing the
+instrumented build. If most have only1-2 unique vectors, plan/dispatch overhead
+may outweigh batching; a blanket multi-kernel would be unjustified.
+
+If the distribution supports it, compare the complete InitialPoint caller against
+frozen source for all winner/tie/duplicate/clipping/MVD/extreme/alias/custom/partial
+panic cases, with one-MVC/narrow/custom/scalar controls and local-state allocations.
+Only then use paired codec/full-frame gates. This is a new experiment; prior held
+16-wide four-SAD scheduling, SATD scheduling, metadata layout and narrow-copy work
+are not being proposed again.

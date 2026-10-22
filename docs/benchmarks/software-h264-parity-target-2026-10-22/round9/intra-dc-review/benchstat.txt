@@ -1,0 +1,150 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                 │ /tmp/h264-parity-target-20261022/intra-dc-review/base.txt │ /tmp/h264-parity-target-20261022/intra-dc-review/after.txt │
+                                                 │                          sec/op                           │               sec/op                 vs base               │
+IntraDCTransforms/Forward/scalar=false-4                                                        36.51n ±  1%                          14.46n ±  5%  -60.39% (p=0.002 n=6)
+IntraDCTransforms/Inverse/mf10/scalar=false-4                                                   29.84n ±  2%                          11.20n ± 22%  -62.47% (p=0.002 n=6)
+IntraDCTransforms/Inverse/mf104/scalar=false-4                                                  29.77n ±  3%                          10.99n ±  4%  -63.08% (p=0.002 n=6)
+IntraDCTransforms/Inverse/mf832/scalar=false-4                                                  29.94n ±  5%                          10.79n ±  8%  -63.96% (p=0.002 n=6)
+IntraDCTransforms/Inverse/mf65535/scalar=false-4                                                29.75n ±  3%                          10.74n ±  6%  -63.90% (p=0.002 n=6)
+IntraDCTransforms/Forward/scalar=true-4                                                         36.47n ±  3%                          37.39n ±  6%   +2.55% (p=0.041 n=6)
+IntraDCTransforms/Inverse/mf10/scalar=true-4                                                    29.62n ±  2%                          29.89n ± 12%        ~ (p=0.699 n=6)
+IntraDCTransforms/Inverse/mf104/scalar=true-4                                                   29.55n ±  2%                          29.63n ±  2%        ~ (p=0.420 n=6)
+IntraDCTransforms/Inverse/mf832/scalar=true-4                                                   29.88n ±  7%                          29.45n ±  3%        ~ (p=0.394 n=6)
+IntraDCTransforms/Inverse/mf65535/scalar=true-4                                                 29.63n ±  6%                          29.75n ±  4%        ~ (p=0.699 n=6)
+I16Reconstruction/Zero/QP8/Stride64_64-4                                                        404.9n ±  6%                          365.2n ±  1%   -9.80% (p=0.002 n=6)
+I16Reconstruction/DC/QP8/Stride64_64-4                                                          488.0n ±  5%                          445.8n ±  3%   -8.65% (p=0.002 n=6)
+I16Reconstruction/Sparse/QP8/Stride64_64-4                                                      620.8n ± 17%                          592.8n ±  3%   -4.49% (p=0.002 n=6)
+I16Reconstruction/Dense/QP8/Stride64_64-4                                                       630.0n ±  4%                          599.1n ±  2%   -4.90% (p=0.015 n=6)
+I16Reconstruction/Zero/QP20/Stride64_64-4                                                       393.5n ±  3%                          368.5n ±  2%   -6.37% (p=0.002 n=6)
+I16Reconstruction/DC/QP20/Stride64_64-4                                                         456.2n ±  4%                          391.6n ±  6%  -14.16% (p=0.002 n=6)
+I16Reconstruction/Sparse/QP20/Stride64_64-4                                                     606.1n ±  5%                          549.2n ±  3%   -9.39% (p=0.002 n=6)
+I16Reconstruction/Dense/QP20/Stride64_64-4                                                      603.0n ±  4%                          541.9n ±  2%  -10.13% (p=0.002 n=6)
+I16Reconstruction/Zero/QP32/Stride64_64-4                                                       391.6n ± 15%                          367.7n ±  9%   -6.09% (p=0.026 n=6)
+I16Reconstruction/DC/QP32/Stride64_64-4                                                         451.7n ± 24%                          390.6n ± 15%  -13.53% (p=0.004 n=6)
+I16Reconstruction/Sparse/QP32/Stride64_64-4                                                     388.4n ± 13%                          380.1n ±  6%   -2.11% (p=0.041 n=6)
+I16Reconstruction/Dense/QP32/Stride64_64-4                                                      593.0n ± 13%                          547.7n ±  3%   -7.64% (p=0.002 n=6)
+I16Reconstruction/Zero/QP8/Stride1920_1984-4                                                    394.7n ±  3%                          373.4n ±  4%   -5.40% (p=0.002 n=6)
+I16Reconstruction/DC/QP8/Stride1920_1984-4                                                      492.2n ±  2%                          458.4n ±  8%   -6.87% (p=0.041 n=6)
+I16Reconstruction/Sparse/QP8/Stride1920_1984-4                                                  622.7n ±  2%                          600.9n ±  2%   -3.49% (p=0.002 n=6)
+I16Reconstruction/Dense/QP8/Stride1920_1984-4                                                   634.8n ± 13%                          601.6n ±  4%   -5.24% (p=0.002 n=6)
+I16Reconstruction/Zero/QP20/Stride1920_1984-4                                                   389.9n ±  3%                          372.1n ±  7%        ~ (p=0.132 n=6)
+I16Reconstruction/DC/QP20/Stride1920_1984-4                                                     455.6n ± 25%                          396.7n ±  2%  -12.92% (p=0.002 n=6)
+I16Reconstruction/Sparse/QP20/Stride1920_1984-4                                                 595.9n ±  2%                          541.3n ±  4%   -9.15% (p=0.002 n=6)
+I16Reconstruction/Dense/QP20/Stride1920_1984-4                                                  607.9n ± 17%                          549.6n ± 13%   -9.59% (p=0.013 n=6)
+I16Reconstruction/Zero/QP32/Stride1920_1984-4                                                   404.1n ±  7%                          368.5n ± 40%        ~ (p=0.132 n=6)
+I16Reconstruction/DC/QP32/Stride1920_1984-4                                                     452.7n ±  4%                          391.1n ±  4%  -13.61% (p=0.002 n=6)
+I16Reconstruction/Sparse/QP32/Stride1920_1984-4                                                 392.3n ±  3%                          371.1n ±  4%   -5.40% (p=0.002 n=6)
+I16Reconstruction/Dense/QP32/Stride1920_1984-4                                                  603.0n ±  6%                          542.0n ± 15%  -10.12% (p=0.037 n=6)
+geomean                                                                                         218.7n                                178.4n        -18.46%
+
+                                                 │ /tmp/h264-parity-target-20261022/intra-dc-review/base.txt │ /tmp/h264-parity-target-20261022/intra-dc-review/after.txt │
+                                                 │                           B/op                            │                B/op                 vs base                │
+IntraDCTransforms/Forward/scalar=false-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf10/scalar=false-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf104/scalar=false-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf832/scalar=false-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf65535/scalar=false-4                                                0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Forward/scalar=true-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf10/scalar=true-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf104/scalar=true-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf832/scalar=true-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf65535/scalar=true-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP8/Stride64_64-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP8/Stride64_64-4                                                          0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP8/Stride64_64-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP8/Stride64_64-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP20/Stride64_64-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP20/Stride64_64-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP20/Stride64_64-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP20/Stride64_64-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP32/Stride64_64-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP32/Stride64_64-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP32/Stride64_64-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP32/Stride64_64-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP8/Stride1920_1984-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP8/Stride1920_1984-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP8/Stride1920_1984-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP8/Stride1920_1984-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP20/Stride1920_1984-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP20/Stride1920_1984-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP20/Stride1920_1984-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP20/Stride1920_1984-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP32/Stride1920_1984-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP32/Stride1920_1984-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP32/Stride1920_1984-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP32/Stride1920_1984-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                    ²                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                 │ /tmp/h264-parity-target-20261022/intra-dc-review/base.txt │ /tmp/h264-parity-target-20261022/intra-dc-review/after.txt │
+                                                 │                         allocs/op                         │             allocs/op               vs base                │
+IntraDCTransforms/Forward/scalar=false-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf10/scalar=false-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf104/scalar=false-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf832/scalar=false-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf65535/scalar=false-4                                                0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Forward/scalar=true-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf10/scalar=true-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf104/scalar=true-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf832/scalar=true-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraDCTransforms/Inverse/mf65535/scalar=true-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP8/Stride64_64-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP8/Stride64_64-4                                                          0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP8/Stride64_64-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP8/Stride64_64-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP20/Stride64_64-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP20/Stride64_64-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP20/Stride64_64-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP20/Stride64_64-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP32/Stride64_64-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP32/Stride64_64-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP32/Stride64_64-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP32/Stride64_64-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP8/Stride1920_1984-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP8/Stride1920_1984-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP8/Stride1920_1984-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP8/Stride1920_1984-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP20/Stride1920_1984-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP20/Stride1920_1984-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP20/Stride1920_1984-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP20/Stride1920_1984-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP32/Stride1920_1984-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP32/Stride1920_1984-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP32/Stride1920_1984-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP32/Stride1920_1984-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                    ²                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                │ /tmp/h264-parity-target-20261022/intra-dc-review/base.txt │ /tmp/h264-parity-target-20261022/intra-dc-review/after.txt │
+                                                │                      macroblocks/op                       │           macroblocks/op            vs base                │
+I16Reconstruction/Zero/QP8/Stride64_64-4                                                         1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP8/Stride64_64-4                                                           1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP8/Stride64_64-4                                                       1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP8/Stride64_64-4                                                        1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP20/Stride64_64-4                                                        1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP20/Stride64_64-4                                                          1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP20/Stride64_64-4                                                      1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP20/Stride64_64-4                                                       1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP32/Stride64_64-4                                                        1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP32/Stride64_64-4                                                          1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP32/Stride64_64-4                                                      1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP32/Stride64_64-4                                                       1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP8/Stride1920_1984-4                                                     1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP8/Stride1920_1984-4                                                       1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP8/Stride1920_1984-4                                                   1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP8/Stride1920_1984-4                                                    1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP20/Stride1920_1984-4                                                    1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP20/Stride1920_1984-4                                                      1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP20/Stride1920_1984-4                                                  1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP20/Stride1920_1984-4                                                   1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Zero/QP32/Stride1920_1984-4                                                    1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/DC/QP32/Stride1920_1984-4                                                      1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Sparse/QP32/Stride1920_1984-4                                                  1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+I16Reconstruction/Dense/QP32/Stride1920_1984-4                                                   1.000 ± 0%                           1.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                          1.000                                1.000       +0.00%
+¹ all samples are equal

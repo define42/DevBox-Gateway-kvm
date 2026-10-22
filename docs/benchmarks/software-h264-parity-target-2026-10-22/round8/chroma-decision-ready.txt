@@ -1,0 +1,22 @@
+Chroma decision candidate: source-ready and frozen. No builds, tests, benchmarks or profiles run by subagent.
+Tree: /tmp/h264-parity-target-20261022/chroma-decision-next
+Base: repaired main, copied without .git.
+
+Changed production:
+pkg/h264/internal/encoder/svc_encode_mb.go
+Only WelsEncRecUV: after all four blocks have been quantized/scanned, stop AC keep/drop scoring once intra nonzero or inter score>=7 proves keep. Preserve signed maximum semantics (zero skips, negative takes run-score path). Remove dead carried residual/block offsets and unused math import. Every callback, callback argument length/capacity, callback order, current-vs-saved QP load, coefficient/nonzero/CBP write order, and failure path outside the private local score calculation is unchanged.
+
+New tests (baseline-compatible):
+pkg/h264/internal/encoder/chroma_decision_test.go
+pkg/h264/internal/encoder/chroma_decision_reference_test.go
+The frozen reference was source-compared to pre-change WelsEncRecUV and matches exactly apart from function name. Independent pre-fusion coefficientUVReference covers all QP0..51, both planes, intra/inter, score6/7 boundaries, DC presence and initial CBP variants. Frozen-reference coverage includes full int16 inputs, callback tracing/redirection/QP and buffer mutation/panics, residual/DCT/nonzero aliases, source lengths0..64 with excess capacity, count lengths0..24, nil callbacks/DCT and malformed UV/QP. All physical backing arrays and state/panic text are compared.
+
+Existing unchanged complete-function benchmark:
+pkg/h264/internal/encoder/hadamard_chroma_bench_test.go
+BenchmarkChromaCoefficientEncoding: QP20/32, intra/inter, Dense/Motion/Sparse/Zero, both planes per operation. Copy existing file unchanged to a component baseline if needed.
+
+Suggested root commands from candidate tree:
+/snap/go/current/bin/go test ./pkg/h264/internal/encoder -run 'Test(ChromaDecision|CoefficientEncodingStateParity)' -count=1
+/snap/go/current/bin/go test ./pkg/h264/internal/encoder -run '^$' -bench '^BenchmarkChromaCoefficientEncoding$' -benchmem -benchtime=300ms -count=10 -cpu=1
+
+After component improvement, use the established encoder test/stream hash/decoder and complete codec/frame benchmarks before retaining. Round6 wrapper ceiling is 1.32% Road /0.60% PDF flat CPU; no speedup claim before measurement.

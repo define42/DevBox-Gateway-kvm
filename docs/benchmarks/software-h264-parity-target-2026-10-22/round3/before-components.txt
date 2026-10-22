@@ -1,0 +1,264 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4 	16458266	        13.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4         	 9550053	        29.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4         	14495094	        15.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4        	 9055231	        27.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/Scalar-4      	 1307061	       183.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/SIMD-4        	 5296124	        45.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       212.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  904656	       279.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1552682	       153.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1233303	       195.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1418492	       168.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       214.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1681750	       139.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1453627	       165.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 1925422	       125.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1478258	       160.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12614409	        18.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8473238	        29.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	11981578	        19.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7820618	        32.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	18127354	        13.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	17010012	        14.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12723570	        18.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8494818	        28.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12204926	        19.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7551829	        33.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	16882000	        14.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	12914520	        17.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	11412864	        21.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7821672	        30.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	10885833	        22.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7328223	        34.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	15080895	        16.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	12604730	        18.44 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4 	16210828	        14.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4         	 7035033	        30.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4         	15638889	        15.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4        	 8410162	        27.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/Scalar-4      	 1300974	       184.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/SIMD-4        	 5293612	        45.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       230.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  898131	       281.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1505992	       158.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1000000	       204.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1000000	       237.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       210.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1740602	       137.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1348702	       179.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 1803985	       132.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1499950	       161.8 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12227199	        19.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8298463	        29.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	11751870	        19.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7839682	        31.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	17959053	        13.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	17431876	        14.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12630517	        21.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8309523	        28.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12660091	        20.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7583809	        32.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	17175804	        14.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	13653957	        17.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	11104218	        21.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7763028	        31.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	11296956	        21.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7394187	        34.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	15169299	        16.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	13399923	        17.64 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4 	16392615	        14.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4         	10428316	        29.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4         	16244685	        14.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4        	 8989126	        28.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/Scalar-4      	 1290168	       185.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/SIMD-4        	 5308370	        46.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       238.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  864057	       289.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1486251	       159.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1000000	       202.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1393591	       170.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       215.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1741192	       142.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1380992	       171.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 1950608	       124.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1434273	       165.7 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12425458	        18.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8496640	        28.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12907627	        19.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7460748	        31.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	15108612	        14.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	16970230	        15.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12232600	        19.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8299036	        29.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12165622	        20.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7344818	        32.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	17418772	        14.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	14043087	        17.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	11166046	        22.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7922464	        30.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	10793780	        22.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7233756	        33.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	14857717	        17.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14009119	        17.37 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4 	16901938	        14.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4         	 9265425	        27.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4         	15978930	        14.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4        	 9325489	        27.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/Scalar-4      	 1286344	       190.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/SIMD-4        	 5325706	        45.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       218.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  898688	       281.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1546958	       162.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1000000	       202.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1432563	       168.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       213.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1442986	       156.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1477828	       164.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 1760745	       131.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1433230	       165.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12269396	        19.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8657426	        28.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12576129	        19.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7604478	        31.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	17525770	        14.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	16943732	        14.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	11586688	        19.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 7788972	        30.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12157285	        20.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7578068	        31.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	16437192	        14.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	13978687	        16.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	11553540	        22.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7932021	        30.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	10841451	        21.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7660633	        33.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	14247234	        15.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14813780	        16.75 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4 	16666033	        14.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4         	10550374	        28.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4         	16014248	        15.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4        	 9354862	        27.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/Scalar-4      	 1313056	       182.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/SIMD-4        	 5272518	        45.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       212.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  894804	       272.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1545174	       155.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1000000	       205.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1318740	       179.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       212.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1727208	       137.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1423251	       169.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 1780329	       129.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1507549	       159.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12140450	        18.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8335021	        31.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	11041352	        19.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7727126	        31.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	17308335	        14.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	15560545	        14.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12513135	        19.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8272041	        34.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	 9241286	        28.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 5594703	        43.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	16831620	        14.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	13216096	        17.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	11126251	        21.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7595748	        31.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	11074722	        21.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7425494	        32.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	14865680	        16.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14184142	        17.38 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4 	16190312	        14.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4         	 8141104	        30.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4         	15459818	        15.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4        	 8847280	        26.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/Scalar-4      	 1301569	       186.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIDctReconstruction/SIMD-4        	 5314803	        45.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       215.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  824038	       283.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1498339	       160.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1000000	       205.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1341864	       177.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       210.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1735880	       140.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1408149	       170.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 1926321	       123.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1524008	       157.8 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12870050	        18.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 7821398	        28.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12682900	        19.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7620597	        31.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	16022227	        15.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	14762007	        14.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12899668	        19.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8384310	        29.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12165714	        19.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7603462	        31.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	17015284	        14.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	14605947	        17.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	10072321	        23.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7685444	        31.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	10884648	        21.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7174892	        33.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	15479593	        16.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14462284	        17.61 ns/op	       0 B/op	       0 allocs/op
+PASS

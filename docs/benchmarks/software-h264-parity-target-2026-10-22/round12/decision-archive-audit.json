@@ -1,0 +1,184 @@
+{
+  "decision": {
+    "status": "retained",
+    "rationale": "Retain the directional predictors for their demonstrated component benefit: all six dispatched predictor cases improve 36.04\u201349.73%, and ten of twenty-two complete I4 caller cases improve 3.41\u20137.01%, with no significant caller regression and zero allocations. All correctness, stream-parity, decoder, fallback and cross-build gates pass. The first codec pass was mixed (ShortClip +1.44%, Road QP20 \u22121.52%); the single predeclared longer confirmation found all five one-slice cases inconclusive and did not reproduce the ShortClip regression. This supports retaining a bounded component optimization, not claiming a demonstrated full-frame gain or equal performance. All six incremental full-frame results remain inconclusive; native parity remains unmet. Both passes are preserved separately and no further significance-seeking repeat is planned.",
+    "full_frame_gain_demonstrated": false,
+    "native_speed_parity_achieved": false,
+    "component_only_retention": true,
+    "confirmation_passes": 1
+  },
+  "retained_groups": 34,
+  "confirmation_complete": {
+    "complete": true,
+    "cases": 5,
+    "pairs_per_case": 6,
+    "native_reruns": 0,
+    "prior_evidence_preserved": true
+  },
+  "post_run_input_verification": {
+    "scope": "Post-run verification against the validated first-pass input hashes; no initial or mid-confirmation fixture check was performed by the confirmation driver.",
+    "started_utc": "2026-10-22T19:29:37.376175+00:00",
+    "finished_utc": "2026-10-22T19:29:38.538249+00:00",
+    "confirmation_complete": {
+      "complete": true,
+      "cases": 5,
+      "pairs_per_case": 6,
+      "native_reruns": 0,
+      "prior_evidence_preserved": true
+    },
+    "case_count": 5,
+    "distinct_input_files": 4,
+    "all_match": true,
+    "cases": [
+      {
+        "case": {
+          "name": "ShortClip",
+          "file": "/tmp/openh264-comparison-20261021/clip1080p.i420",
+          "width": 1920,
+          "height": 1080,
+          "qp": 20
+        },
+        "resolved_path": "/tmp/openh264-comparison-20261021/clip1080p.i420",
+        "first_pass_validated_sha256": "01fd1443b2ce08fe27e201f7848b0a68ffaba991332df24b18178015f1d54397",
+        "post_confirmation_sha256": "01fd1443b2ce08fe27e201f7848b0a68ffaba991332df24b18178015f1d54397",
+        "bytes": 15552000,
+        "matches": true
+      },
+      {
+        "case": {
+          "name": "Road",
+          "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+          "width": 1920,
+          "height": 1080,
+          "qp": 20
+        },
+        "resolved_path": "/tmp/h264-native-parity-20261021/road1080.i420",
+        "first_pass_validated_sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+        "post_confirmation_sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+        "bytes": 167961600,
+        "matches": true
+      },
+      {
+        "case": {
+          "name": "Road",
+          "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+          "width": 1920,
+          "height": 1080,
+          "qp": 32
+        },
+        "resolved_path": "/tmp/h264-native-parity-20261021/road1080.i420",
+        "first_pass_validated_sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+        "post_confirmation_sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+        "bytes": 167961600,
+        "matches": true
+      },
+      {
+        "case": {
+          "name": "PDF",
+          "file": "/tmp/h264-native-parity-20261021/pdf1080.i420",
+          "width": 1920,
+          "height": 1080,
+          "qp": 20
+        },
+        "resolved_path": "/tmp/h264-native-parity-20261021/pdf1080.i420",
+        "first_pass_validated_sha256": "8a938d0eb90f03c63a7ec8b35247e53033bc6acc683146b74a299767a083ad6b",
+        "post_confirmation_sha256": "8a938d0eb90f03c63a7ec8b35247e53033bc6acc683146b74a299767a083ad6b",
+        "bytes": 155520000,
+        "matches": true
+      },
+      {
+        "case": {
+          "name": "Road",
+          "file": "/tmp/h264-native-parity-20261021/road720.i420",
+          "width": 1280,
+          "height": 720,
+          "qp": 20
+        },
+        "resolved_path": "/tmp/h264-native-parity-20261021/road720.i420",
+        "first_pass_validated_sha256": "1c65ba12ef3b2b21632f4a4d3a7c6d089ae7643ce5ada7a24aada4c64614eef5",
+        "post_confirmation_sha256": "1c65ba12ef3b2b21632f4a4d3a7c6d089ae7643ce5ada7a24aada4c64614eef5",
+        "bytes": 74649600,
+        "matches": true
+      }
+    ],
+    "reads_only": true,
+    "first_pass_provenance": "/tmp/h264-parity-target-20261022/round12-review/provenance.json"
+  },
+  "first_pass_evidence_preserved": true,
+  "initial_component_evidence_preserved": true,
+  "scratch_archive_preserved": true,
+  "original_helpers_unchanged": {
+    "save_round12.py": "bfa8c5ec924c7dc904098ce5c5cc663277db035df25ddeb8a4a78abb0d79cced",
+    "write_round12_report.py": "fbb2c0531062ca3d51c9ae06079404819ebf39b5146b529b2ada290a206b69d3"
+  },
+  "confirmation_archived_files": {
+    "PDF-1920x1080-qp20-1-current.log": "944eccd59b4122651a4ac69a46cc31ef29886ada4f788d5aa07568ed77b594e2",
+    "PDF-1920x1080-qp20-1-round11.log": "2df53d2346704f1aa70911fdfe3796da1441751ba4fa68c16841d0f7fe65a16e",
+    "PDF-1920x1080-qp20-2-current.log": "b1f17c99e28b8421aa191c13c2b845beda05e71cfa9e5646b8ff567a47c5a68d",
+    "PDF-1920x1080-qp20-2-round11.log": "194656841d0663a3db3abf43a0e7637e54ce33fcc9a7048b381919823f161d24",
+    "PDF-1920x1080-qp20-3-current.log": "eaec57f12ccf45c862e56ecf24db7040c8502af83c4970d2c13186f08a443342",
+    "PDF-1920x1080-qp20-3-round11.log": "1e82fcf5118f91f0953a7f918db686bc8053bcd68464b4b7c2791f3e686ac109",
+    "PDF-1920x1080-qp20-4-current.log": "2391825a24b7a0796f64873fca13011725c842aae815b8c6936bccb354c5a926",
+    "PDF-1920x1080-qp20-4-round11.log": "aa019ea99d58ea3a68680e7feff9530cc87e7de3bc325a45b78b380b7f3dcedd",
+    "PDF-1920x1080-qp20-5-current.log": "6c517ca7c1c8a989cf6a4ebee9615381b41089db80ee10e87a09ee904807e906",
+    "PDF-1920x1080-qp20-5-round11.log": "afba75f7528e9a72199f29c9d712e271667e53650fcb235db9457dc7452cd6ba",
+    "PDF-1920x1080-qp20-6-current.log": "67ac4774ddf70af64d880fa9df4b5565ede1342c6139b4c8460abf98749cda9b",
+    "PDF-1920x1080-qp20-6-round11.log": "365ee80bcad38baffa0fa5ba1b06a167feab3f5503124a940804d1bcfbb15a04",
+    "Road-1280x720-qp20-1-current.log": "0330d639c9ea800566d88dd2f1d233e8b2841c771b2f0a7a953527bf191f60e0",
+    "Road-1280x720-qp20-1-round11.log": "65c1efd37115e754f6f0fa082e430160ff15c9071cf879c5d78c0a15d541b7be",
+    "Road-1280x720-qp20-2-current.log": "7f5bb64a485f938ee40dfaaa9a3c6a531a09c9f73e59cbceab07d7385c28a7b1",
+    "Road-1280x720-qp20-2-round11.log": "3e010be09328a859587f8f866e9baf1cddeb0405b6482e43eaadee5b34586864",
+    "Road-1280x720-qp20-3-current.log": "86000d6186ca188a160a1d1b51204c0f27558f01a786fb3db04dd813c70e8bce",
+    "Road-1280x720-qp20-3-round11.log": "9b345592e91de3487e595e8b46a60d52777b96fe82a790e7369cb30a85fdac36",
+    "Road-1280x720-qp20-4-current.log": "edaad9213d59906e6f8aad7d0712709f10e1b4cb69123e3c0d26e599cdc6db09",
+    "Road-1280x720-qp20-4-round11.log": "a0c59abb0fade8edfd0e7d2ebe18234795f7c1da4be7099b6946e82257439b70",
+    "Road-1280x720-qp20-5-current.log": "cd99aef965c8fb3460874684c111372b6a807ecdcda305571bf3d4a65b1ad09a",
+    "Road-1280x720-qp20-5-round11.log": "ce7745b251456748111e704831ee1ca329049378ac36f72f0f2b1b210d146e11",
+    "Road-1280x720-qp20-6-current.log": "263e56a5bdcaf8b2605561cf071fed1ea0eb134db5addf7d928456df98108aac",
+    "Road-1280x720-qp20-6-round11.log": "13599d8c8981a84b414e769442f950ce2656e231d721c1063369e2ffe6b02403",
+    "Road-1920x1080-qp20-1-current.log": "62048787bea95999d95b95fc55107e4214c70901ef2d00603354e6fcc47af069",
+    "Road-1920x1080-qp20-1-round11.log": "e40e281fa6812578f8ce8def5225b0462a5e7ad144d82323da35a0425a01c89d",
+    "Road-1920x1080-qp20-2-current.log": "ca1e8bfa461b028fe0c27a85566a9f9af09af6502f3e94cf5b48ea011d55eb20",
+    "Road-1920x1080-qp20-2-round11.log": "41ce9be86950a6866a2a95872fea62869ccc90e040c2f6394ee30de2c3742b6d",
+    "Road-1920x1080-qp20-3-current.log": "a4f943f21a0c2a555a39ffa1bf8771b6e893a05e70f262a29a37723e759f713a",
+    "Road-1920x1080-qp20-3-round11.log": "2c6b65562e2d36311e4fb00123bc300704a1da8011f4d36136250c2c01e7c863",
+    "Road-1920x1080-qp20-4-current.log": "d2ad9ad5ead3d857a60af1b2b22208e25e40470c1b6949b3373340b26ae8d3d5",
+    "Road-1920x1080-qp20-4-round11.log": "f323ec7b866634d1f7a5ab602a1fa9c3323082886a102f39ab2d31cfd40fc90e",
+    "Road-1920x1080-qp20-5-current.log": "ab26103038f9f6029ae41906edde0c50ed281328b76016fed454e90141d00231",
+    "Road-1920x1080-qp20-5-round11.log": "2c4254ea2c36857635fe6c0c6a3fe45a5423c741ebef84c5918ab03939725229",
+    "Road-1920x1080-qp20-6-current.log": "3484c334fd39f53d4805644c121dfe77d6ac8209c42a3b007243b103111f1c81",
+    "Road-1920x1080-qp20-6-round11.log": "9e9fce55aefefc33d41a2a11611db1be6567da50bccabd64593f5f692e5dc08a",
+    "Road-1920x1080-qp32-1-current.log": "91acc29b56b63a4392b3e42e764d2308cb7bd9653bb0b8920ce5ddd4471d1f76",
+    "Road-1920x1080-qp32-1-round11.log": "c24e24ac25b32a929d56a63a01a45862babb093ff745df05ca40932d189e3fcd",
+    "Road-1920x1080-qp32-2-current.log": "0f7d8ba6b4a6884bfee1834faba55e5881ce67f827b4ebe01bfa72a34df02007",
+    "Road-1920x1080-qp32-2-round11.log": "57f11c410e7babcf94f1f10a336bcc669d066d76d36d50db1d2188baf28fdf36",
+    "Road-1920x1080-qp32-3-current.log": "ee69cce548e58766566bbcb98c66734756b120fee8646377092967aa98c9af40",
+    "Road-1920x1080-qp32-3-round11.log": "9f461446cd408deb267214d1d9ce68a869ffb03c0030abd60f9e15886d37d21b",
+    "Road-1920x1080-qp32-4-current.log": "416b81b1e5ef81d1cc8c5967cbc0c2f66bb8a2898c4936bba8c2e550610b866c",
+    "Road-1920x1080-qp32-4-round11.log": "87beacb27e4fb4816d5b38957fdd41ca553cd8552f9e5f43f4d620121ea26ec0",
+    "Road-1920x1080-qp32-5-current.log": "5fc3fbe4010025677d9549c4f1831972055695176533c037e140512c0ec03d2a",
+    "Road-1920x1080-qp32-5-round11.log": "db70cb05a3222af5a883240f1e39280a9dff37f5487b208d7085218cf3318f55",
+    "Road-1920x1080-qp32-6-current.log": "ae308370a5a3cf0f7543ef86a7916f74e4b1ac4cc0ea7fe7786ab2626f07b0b9",
+    "Road-1920x1080-qp32-6-round11.log": "9a61b0599dfda30fe5b9ae6bf5858da7efd932b273571221e15ca9467375d65d",
+    "ShortClip-1920x1080-qp20-1-current.log": "e6ac70c24335f9f2d3b2c871d78394d61c2df4c3bd5e674c2696c70ba1135cbb",
+    "ShortClip-1920x1080-qp20-1-round11.log": "dfaa0461f375e5625f3bb3ab9a82c93681d60ec82277e8036f3e04710ba3ad4f",
+    "ShortClip-1920x1080-qp20-2-current.log": "eb1b00065d70d6170a32dbe7a4cd48d6cbcf71eb1b1dcb9920aeb3c99e1c0902",
+    "ShortClip-1920x1080-qp20-2-round11.log": "1b0b55f0bef8f2d0fe7b4879acdc08f226bd9081e63f42d8fc6e03b210f9c25f",
+    "ShortClip-1920x1080-qp20-3-current.log": "f6e5944db9cd5d76fa22b7757c6c4f30c510115ffa7125fa771557d89dd702e0",
+    "ShortClip-1920x1080-qp20-3-round11.log": "80c3e0c6303da84aff47e62b288d1edbf805d55c1a000b096c2cdc0ae2d69d95",
+    "ShortClip-1920x1080-qp20-4-current.log": "6b75299b0a4aa873e7bc67f252e88ff738f8f88b68a98b389201079e99924c9f",
+    "ShortClip-1920x1080-qp20-4-round11.log": "00dc128bd02ffd0d3022520cb624fe018e17bd5072d7531278c641bb5682ba03",
+    "ShortClip-1920x1080-qp20-5-current.log": "14b7cb28c7b26ae63f776bc9ef1a4960a5ee42ee42b049918e406f0c73eabdfa",
+    "ShortClip-1920x1080-qp20-5-round11.log": "626e3f5a1a126df022b1a7459f555af6fb9aa190fa41a58d2c26dfdf34b2c767",
+    "ShortClip-1920x1080-qp20-6-current.log": "e73fc20b1f8ae8eb4c16c157dbfcf5a470095ece12ed9ffd9ed0694e9d285c77",
+    "ShortClip-1920x1080-qp20-6-round11.log": "a14bf65781d4a377be92d045c7448a700795409deaec50a3ff156dc65577adb6",
+    "benchstat.txt": "b61c1cf6882758e4f78d1976652c93feae611bc82631a67031e09dc0c38a3b7e",
+    "complete.json": "655ff47db8880e82466908204b9c0db6a1e0edfa40a43a3c862f55f3d553c97b",
+    "current.txt": "f321dd9d6556bbdd1c3cf0e86c595b3863cc18d23113b8ba2324a804bf8d634b",
+    "post-run-input-verification.json": "33edc7957a540217fe14359a4610963af308ea1876b067d122c3ac4fbd169643",
+    "provenance.json": "a6c01536bfab78b4a9709d32bfc30aed51f449ade6ae4dc4900bd43d66b4e7f5",
+    "round11.txt": "ff5ebbffaa63cabcaa52bfa1671d61197c520a4fc7d4ad4d56444cbde800c2bf",
+    "summary.json": "3c2f690b23f08bca71545f12fc1576fcbb907a47d8cb686822a5fbb60055e873"
+  },
+  "selection_manifest_is_provisional": "round12-selection.json predates the explicit final decision.json"
+}

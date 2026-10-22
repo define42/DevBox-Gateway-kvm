@@ -1,0 +1,312 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                          │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/base.txt │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/after.txt │
+                                          │                             sec/op                             │                  sec/op                   vs base               │
+CavlcLevelWriter/end14/medium/small                                                           1.832µ ±  8%                               1.809µ ±  3%        ~ (p=0.162 n=6)
+CavlcLevelWriter/end14/medium/boundary                                                        2.411µ ±  1%                               2.065µ ±  3%  -14.37% (p=0.002 n=6)
+CavlcLevelWriter/end14/medium/mixed                                                           2.116µ ±  5%                               1.978µ ±  4%   -6.52% (p=0.002 n=6)
+CavlcLevelWriter/end14/dense/small                                                            1.662µ ±  6%                               1.574µ ±  5%   -5.32% (p=0.015 n=6)
+CavlcLevelWriter/end14/dense/boundary                                                         2.619µ ± 51%                               2.011µ ±  2%  -23.21% (p=0.002 n=6)
+CavlcLevelWriter/end14/dense/mixed                                                            2.199µ ±  3%                               1.822µ ±  4%  -17.17% (p=0.002 n=6)
+CavlcLevelWriter/end15/medium/small                                                           1.911µ ±  3%                               1.876µ ±  5%   -1.86% (p=0.026 n=6)
+CavlcLevelWriter/end15/medium/boundary                                                        2.522µ ±  4%                               2.205µ ±  4%  -12.55% (p=0.002 n=6)
+CavlcLevelWriter/end15/medium/mixed                                                           2.289µ ±  6%                               2.046µ ±  2%  -10.61% (p=0.002 n=6)
+CavlcLevelWriter/end15/dense/small                                                            1.727µ ±  3%                               1.565µ ±  2%   -9.41% (p=0.002 n=6)
+CavlcLevelWriter/end15/dense/boundary                                                         2.823µ ±  3%                               2.085µ ±  2%  -26.13% (p=0.002 n=6)
+CavlcLevelWriter/end15/dense/mixed                                                            2.332µ ±  2%                               1.843µ ±  6%  -20.97% (p=0.002 n=6)
+CavlcMacroblock/NoResidual/Zero                                                               9.950n ±  7%                               9.646n ±  3%   -3.06% (p=0.026 n=6)
+CavlcMacroblock/NoResidual/Sparse                                                             9.864n ±  5%                               9.690n ±  5%        ~ (p=0.310 n=6)
+CavlcMacroblock/NoResidual/Dense                                                              9.835n ± 10%                               9.854n ±  4%        ~ (p=0.699 n=6)
+CavlcMacroblock/NoResidual/Mixed                                                              9.756n ±  7%                               9.765n ±  3%        ~ (p=1.000 n=6)
+CavlcMacroblock/I16DC/Zero                                                                    32.71n ±  2%                               33.04n ±  4%        ~ (p=0.416 n=6)
+CavlcMacroblock/I16DC/Sparse                                                                  56.05n ±  4%                               57.75n ±  3%   +3.04% (p=0.037 n=6)
+CavlcMacroblock/I16DC/Dense                                                                   120.6n ±  2%                               111.3n ±  3%   -7.71% (p=0.002 n=6)
+CavlcMacroblock/I16DC/Mixed                                                                   121.4n ±  2%                               113.1n ± 39%        ~ (p=0.065 n=6)
+CavlcMacroblock/ChromaDC/Zero                                                                 52.59n ±  3%                               55.73n ±  2%   +5.96% (p=0.002 n=6)
+CavlcMacroblock/ChromaDC/Sparse                                                               92.04n ±  2%                              102.35n ±  4%  +11.21% (p=0.002 n=6)
+CavlcMacroblock/ChromaDC/Dense                                                                105.2n ± 51%                               112.0n ±  6%        ~ (p=0.093 n=6)
+CavlcMacroblock/ChromaDC/Mixed                                                                76.11n ±  3%                               77.02n ±  5%        ~ (p=0.240 n=6)
+CavlcMacroblock/InterOne/Zero                                                                 46.50n ±  3%                               46.50n ±  6%        ~ (p=1.000 n=6)
+CavlcMacroblock/InterOne/Sparse                                                               196.5n ±  6%                               205.4n ±  2%   +4.53% (p=0.026 n=6)
+CavlcMacroblock/InterOne/Dense                                                                462.2n ± 51%                               429.3n ±  1%   -7.14% (p=0.002 n=6)
+CavlcMacroblock/InterOne/Mixed                                                                221.5n ± 17%                               217.4n ± 28%        ~ (p=0.394 n=6)
+CavlcMacroblock/InterOneChromaDC/Zero                                                         91.10n ±  5%                               94.42n ±  6%   +3.64% (p=0.026 n=6)
+CavlcMacroblock/InterOneChromaDC/Sparse                                                       284.1n ±  3%                               296.3n ± 41%   +4.28% (p=0.004 n=6)
+CavlcMacroblock/InterOneChromaDC/Dense                                                        557.2n ±  2%                               521.2n ±  4%   -6.47% (p=0.002 n=6)
+CavlcMacroblock/InterOneChromaDC/Mixed                                                        288.6n ±  2%                               282.5n ±  1%   -2.15% (p=0.002 n=6)
+CavlcMacroblock/ChromaAll/Zero                                                                119.3n ± 10%                               123.7n ±  4%        ~ (p=0.065 n=6)
+CavlcMacroblock/ChromaAll/Sparse                                                              474.5n ±  3%                               488.8n ±  4%   +3.01% (p=0.009 n=6)
+CavlcMacroblock/ChromaAll/Dense                                                               972.9n ± 20%                               929.1n ±  3%   -4.50% (p=0.002 n=6)
+CavlcMacroblock/ChromaAll/Mixed                                                               591.1n ±  2%                               573.0n ±  4%        ~ (p=0.093 n=6)
+CavlcMacroblock/InterLuma/Zero                                                                154.2n ±  8%                               159.8n ±  4%        ~ (p=0.240 n=6)
+CavlcMacroblock/InterLuma/Sparse                                                              748.7n ±  6%                               775.5n ±  5%        ~ (p=0.065 n=6)
+CavlcMacroblock/InterLuma/Dense                                                               1.804µ ±  3%                               1.696µ ± 25%        ~ (p=0.065 n=6)
+CavlcMacroblock/InterLuma/Mixed                                                               953.8n ±  2%                               928.6n ± 11%        ~ (p=0.132 n=6)
+CavlcMacroblock/I16Luma/Zero                                                                  186.4n ±  5%                               185.3n ±  4%        ~ (p=0.900 n=6)
+CavlcMacroblock/I16Luma/Sparse                                                                783.8n ±  5%                               814.9n ±  6%   +3.97% (p=0.004 n=6)
+CavlcMacroblock/I16Luma/Dense                                                                 1.839µ ±  2%                               1.745µ ±  3%   -5.09% (p=0.002 n=6)
+CavlcMacroblock/I16Luma/Mixed                                                                 1.019µ ±  4%                               1.009µ ±  9%        ~ (p=0.589 n=6)
+CavlcMacroblock/InterAll/Zero                                                                 262.3n ±  6%                               269.6n ± 31%   +2.76% (p=0.024 n=6)
+CavlcMacroblock/InterAll/Sparse                                                               1.213µ ±  5%                               1.275µ ±  4%   +5.07% (p=0.028 n=6)
+CavlcMacroblock/InterAll/Dense                                                                2.751µ ±  6%                               2.573µ ±  2%   -6.49% (p=0.002 n=6)
+CavlcMacroblock/InterAll/Mixed                                                                1.568µ ±  3%                               1.507µ ±  5%   -3.89% (p=0.026 n=6)
+CavlcMacroblock/I16All/Zero                                                                   304.9n ±  5%                               299.1n ±  6%        ~ (p=0.818 n=6)
+CavlcMacroblock/I16All/Sparse                                                                 1.259µ ±  3%                               1.320µ ±  7%   +4.81% (p=0.015 n=6)
+CavlcMacroblock/I16All/Dense                                                                  2.805µ ± 20%                               2.692µ ±  4%   -4.05% (p=0.015 n=6)
+CavlcMacroblock/I16All/Mixed                                                                  1.596µ ±  4%                               1.573µ ±  7%        ~ (p=0.513 n=6)
+CavlcNativeFull/end3/zero/prefix17                                                            738.1n ±  2%                               761.8n ±  1%   +3.22% (p=0.002 n=6)
+CavlcNativeFull/end3/known-zero/prefix17                                                      226.7n ±  4%                               226.2n ± 24%        ~ (p=0.699 n=6)
+CavlcNativeFull/end3/sparse/prefix17                                                          1.476µ ±  5%                               1.734µ ±  4%  +17.52% (p=0.002 n=6)
+CavlcNativeFull/end3/dense/prefix17                                                           1.536µ ±  2%                               1.667µ ±  4%   +8.56% (p=0.002 n=6)
+CavlcNativeFull/end3/mixed/prefix17                                                           1.771µ ±  3%                               1.736µ ±  2%        ~ (p=0.058 n=6)
+CavlcNativeFull/end14/zero/prefix17                                                           750.9n ±  1%                               801.0n ±  2%   +6.68% (p=0.002 n=6)
+CavlcNativeFull/end14/known-zero/prefix17                                                     248.7n ±  3%                               246.5n ±  5%        ~ (p=0.485 n=6)
+CavlcNativeFull/end14/sparse/prefix17                                                         1.798µ ±  3%                               1.821µ ±  6%        ~ (p=0.485 n=6)
+CavlcNativeFull/end14/dense/prefix17                                                          3.372µ ± 10%                               3.039µ ±  3%   -9.88% (p=0.002 n=6)
+CavlcNativeFull/end14/mixed/prefix17                                                          4.567µ ± 14%                               3.717µ ±  6%  -18.62% (p=0.002 n=6)
+CavlcNativeFull/end15/zero/prefix17                                                           755.4n ±  1%                               789.3n ±  1%   +4.49% (p=0.002 n=6)
+CavlcNativeFull/end15/known-zero/prefix17                                                     247.8n ±  4%                               246.4n ±  6%        ~ (p=0.937 n=6)
+CavlcNativeFull/end15/sparse/prefix17                                                         1.799µ ±  3%                               1.839µ ±  4%        ~ (p=0.132 n=6)
+CavlcNativeFull/end15/dense/prefix17                                                          3.502µ ±  2%                               3.252µ ±  9%        ~ (p=0.065 n=6)
+CavlcNativeFull/end15/mixed/prefix17                                                          4.675µ ±  4%                               3.786µ ± 20%  -19.03% (p=0.009 n=6)
+geomean                                                                                       512.2n                                     497.5n         -2.87%
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/base.txt │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/after.txt │
+                                          │                           blocks/op                            │                blocks/op                 vs base                │
+CavlcLevelWriter/end14/medium/small                                                           16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary                                                        16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed                                                           16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small                                                            16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary                                                         16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed                                                            16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small                                                           16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary                                                        16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed                                                           16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small                                                            16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary                                                         16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed                                                            16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Zero                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Sparse                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Dense                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Mixed                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Zero                                                                    1.000 ± 0%                                  1.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Sparse                                                                  1.000 ± 0%                                  1.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Dense                                                                   1.000 ± 0%                                  1.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Mixed                                                                   1.000 ± 0%                                  1.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Zero                                                                 2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Sparse                                                               2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Dense                                                                2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Mixed                                                                2.000 ± 0%                                  2.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Zero                                                                 4.000 ± 0%                                  4.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Sparse                                                               4.000 ± 0%                                  4.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Dense                                                                4.000 ± 0%                                  4.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Mixed                                                                4.000 ± 0%                                  4.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Zero                                                         6.000 ± 0%                                  6.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Sparse                                                       6.000 ± 0%                                  6.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Dense                                                        6.000 ± 0%                                  6.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Mixed                                                        6.000 ± 0%                                  6.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Zero                                                                10.00 ± 0%                                  10.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Sparse                                                              10.00 ± 0%                                  10.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Dense                                                               10.00 ± 0%                                  10.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Mixed                                                               10.00 ± 0%                                  10.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Zero                                                                16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Sparse                                                              16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Dense                                                               16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Mixed                                                               16.00 ± 0%                                  16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Zero                                                                  17.00 ± 0%                                  17.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Sparse                                                                17.00 ± 0%                                  17.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Dense                                                                 17.00 ± 0%                                  17.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Mixed                                                                 17.00 ± 0%                                  17.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Zero                                                                 26.00 ± 0%                                  26.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Sparse                                                               26.00 ± 0%                                  26.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Dense                                                                26.00 ± 0%                                  26.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Mixed                                                                26.00 ± 0%                                  26.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Zero                                                                   27.00 ± 0%                                  27.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Sparse                                                                 27.00 ± 0%                                  27.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Dense                                                                  27.00 ± 0%                                  27.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Mixed                                                                  27.00 ± 0%                                  27.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/zero/prefix17                                                            32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/known-zero/prefix17                                                      32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/sparse/prefix17                                                          32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/dense/prefix17                                                           32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/mixed/prefix17                                                           32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/zero/prefix17                                                           32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/known-zero/prefix17                                                     32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/sparse/prefix17                                                         32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/dense/prefix17                                                          32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/mixed/prefix17                                                          32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/zero/prefix17                                                           32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/known-zero/prefix17                                                     32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/sparse/prefix17                                                         32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/dense/prefix17                                                          32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/mixed/prefix17                                                          32.00 ± 0%                                  32.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                            +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/base.txt │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/after.txt │
+                                          │                              B/op                              │                  B/op                    vs base                │
+CavlcLevelWriter/end14/medium/small                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Zero                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Sparse                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Dense                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Mixed                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Zero                                                                    0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Sparse                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Dense                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Mixed                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Zero                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Sparse                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Dense                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Mixed                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Zero                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Sparse                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Dense                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Mixed                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Zero                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Sparse                                                       0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Dense                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Mixed                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Zero                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Sparse                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Dense                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Mixed                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Zero                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Sparse                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Dense                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Mixed                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Zero                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Sparse                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Dense                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Mixed                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Zero                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Sparse                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Dense                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Mixed                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Zero                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Sparse                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Dense                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Mixed                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/zero/prefix17                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/known-zero/prefix17                                                      0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/sparse/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/dense/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/mixed/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/zero/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/known-zero/prefix17                                                     0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/sparse/prefix17                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/dense/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/mixed/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/zero/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/known-zero/prefix17                                                     0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/sparse/prefix17                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/dense/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/mixed/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                            +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/base.txt │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/after.txt │
+                                          │                           allocs/op                            │                allocs/op                 vs base                │
+CavlcLevelWriter/end14/medium/small                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Zero                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Sparse                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Dense                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/NoResidual/Mixed                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Zero                                                                    0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Sparse                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Dense                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16DC/Mixed                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Zero                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Sparse                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Dense                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaDC/Mixed                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Zero                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Sparse                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Dense                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOne/Mixed                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Zero                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Sparse                                                       0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Dense                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterOneChromaDC/Mixed                                                        0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Zero                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Sparse                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Dense                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/ChromaAll/Mixed                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Zero                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Sparse                                                              0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Dense                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterLuma/Mixed                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Zero                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Sparse                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Dense                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16Luma/Mixed                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Zero                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Sparse                                                               0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Dense                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/InterAll/Mixed                                                                0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Zero                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Sparse                                                                 0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Dense                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/I16All/Mixed                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/zero/prefix17                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/known-zero/prefix17                                                      0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/sparse/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/dense/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end3/mixed/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/zero/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/known-zero/prefix17                                                     0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/sparse/prefix17                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/dense/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end14/mixed/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/zero/prefix17                                                           0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/known-zero/prefix17                                                     0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/sparse/prefix17                                                         0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/dense/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcNativeFull/end15/mixed/prefix17                                                          0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                            +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                          │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/base.txt │ /tmp/h264-parity-target-20261022/cavlc-emitter-review/after.txt │
+                                          │                           sec/block                            │                sec/block                  vs base               │
+CavlcNativeFull/end3/zero/prefix17                                                            23.06n ±  2%                               23.80n ±  1%   +3.23% (p=0.002 n=6)
+CavlcNativeFull/end3/known-zero/prefix17                                                      7.083n ±  4%                               7.071n ± 24%        ~ (p=0.699 n=6)
+CavlcNativeFull/end3/sparse/prefix17                                                          46.10n ±  5%                               54.19n ±  4%  +17.54% (p=0.002 n=6)
+CavlcNativeFull/end3/dense/prefix17                                                           47.99n ±  2%                               52.09n ±  4%   +8.55% (p=0.002 n=6)
+CavlcNativeFull/end3/mixed/prefix17                                                           55.34n ±  3%                               54.25n ±  2%        ~ (p=0.065 n=6)
+CavlcNativeFull/end14/zero/prefix17                                                           23.46n ±  1%                               25.04n ±  2%   +6.69% (p=0.002 n=6)
+CavlcNativeFull/end14/known-zero/prefix17                                                     7.772n ±  3%                               7.705n ±  5%        ~ (p=0.485 n=6)
+CavlcNativeFull/end14/sparse/prefix17                                                         56.18n ±  3%                               56.91n ±  6%        ~ (p=0.485 n=6)
+CavlcNativeFull/end14/dense/prefix17                                                         105.40n ± 10%                               94.97n ±  3%   -9.90% (p=0.002 n=6)
+CavlcNativeFull/end14/mixed/prefix17                                                          142.7n ± 14%                               116.1n ±  6%  -18.61% (p=0.002 n=6)
+CavlcNativeFull/end15/zero/prefix17                                                           23.61n ±  1%                               24.66n ±  1%   +4.49% (p=0.002 n=6)
+CavlcNativeFull/end15/known-zero/prefix17                                                     7.743n ±  4%                               7.702n ±  6%        ~ (p=0.937 n=6)
+CavlcNativeFull/end15/sparse/prefix17                                                         56.22n ±  3%                               57.45n ±  4%        ~ (p=0.132 n=6)
+CavlcNativeFull/end15/dense/prefix17                                                          109.4n ±  2%                               101.6n ±  9%        ~ (p=0.065 n=6)
+CavlcNativeFull/end15/mixed/prefix17                                                          146.1n ±  4%                               118.3n ± 20%  -19.03% (p=0.009 n=6)
+geomean                                                                                       38.05n                                     37.51n         -1.41%

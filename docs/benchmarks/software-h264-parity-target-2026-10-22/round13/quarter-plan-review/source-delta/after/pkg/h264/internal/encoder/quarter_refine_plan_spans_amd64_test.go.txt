@@ -1,0 +1,168 @@
+//go:build amd64
+
+package encoder
+
+import (
+	"bytes"
+	"fmt"
+	"math"
+	"reflect"
+	"testing"
+	"unsafe"
+)
+
+func newQuarterPlanDirectFixture(shape [3]int32, half int32, zero bool) *fractionalCallerFixture {
+	f := newFractionalCallerFixture(shape[0], shape[1], uint8(shape[2]), 32, true)
+	InitMeRefinePointer(&f.refine, &f.cache, 0)
+	f.refine.pHalfPixHV = make([]byte, (int(shape[1])+1)*ME_REFINE_BUF_STRIDE+int(shape[0])+1)
+	w, h := int(shape[0]), int(shape[1])
+	predSpan := (h-1)*ME_REFINE_BUF_STRIDE + w
+	f.refine.pQuarPixBest = f.refine.pQuarPixBest[:predSpan]
+	f.refine.pQuarPixTmp = f.refine.pQuarPixTmp[:predSpan]
+	// Shrink each source to exactly the union consumed for this direction.
+	vEnd, hEnd, hvEnd, refEnd := 0, 0, 0, 0
+	switch half {
+	case REFINE_ME_NO_BEST_HALF_PIXEL:
+		vEnd, hEnd, refEnd = h*ME_REFINE_BUF_STRIDE+w, (h-1)*ME_REFINE_BUF_STRIDE+w+1, f.me.iRefMbOff+(h-1)*32+w
+	case REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT:
+		off, refOff := 0, f.me.iRefMbOff-1
+		if half == REFINE_ME_HALF_PIXEL_RIGHT {
+			off, refOff = 1, f.me.iRefMbOff
+		}
+		hEnd, hvEnd, refEnd = off+(h-1)*ME_REFINE_BUF_STRIDE+w, off+h*ME_REFINE_BUF_STRIDE+w, refOff+(h-1)*32+w+1
+	case REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM:
+		off, refOff := 0, f.me.iRefMbOff-32
+		if half == REFINE_ME_HALF_PIXEL_BOTTOM {
+			off, refOff = ME_REFINE_BUF_STRIDE, f.me.iRefMbOff
+		}
+		vEnd, hvEnd, refEnd = off+(h-1)*ME_REFINE_BUF_STRIDE+w, off+(h-1)*ME_REFINE_BUF_STRIDE+w+1, refOff+h*32+w
+	}
+	f.refine.pHalfPixV = f.refine.pHalfPixV[:vEnd]
+	f.refine.pHalfPixH = f.refine.pHalfPixH[:hEnd]
+	f.refine.pHalfPixHV = f.refine.pHalfPixHV[:hvEnd]
+	f.me.pRefMb = f.me.pRefMb[:refEnd]
+	for _, buf := range [][]byte{f.me.pEncMb, f.me.pRefMb, f.cache.pBufferInterPredMe, f.refine.pHalfPixHV} {
+		for i := range buf {
+			if zero {
+				buf[i] = 0
+			} else {
+				buf[i] = byte(i*71 + i/7 + 29)
+			}
+		}
+	}
+	return f
+}
+
+func TestQuarterPlanExactSpansAndTies(t *testing.T) {
+	requireSampleAVX2(t)
+	for _, shape := range [][3]int32{{16, 16, BLOCK_16x16}, {16, 8, BLOCK_16x8}, {8, 16, BLOCK_8x16}, {8, 8, BLOCK_8x8}, {8, 4, BLOCK_8x4}} {
+		for _, half := range []int32{REFINE_ME_NO_BEST_HALF_PIXEL, REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM, REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT} {
+			for scenario := range 6 {
+				t.Run(fmt.Sprintf("%dx%d/half%d/scenario%d", shape[0], shape[1], half, scenario), func(t *testing.T) {
+					got, want := newQuarterPlanDirectFixture(shape, half, scenario > 0 && scenario < 5), newQuarterPlanDirectFixture(shape, half, scenario > 0 && scenario < 5)
+					best, lms := int32(math.MaxInt32), [4]int32{17, 9, 1, -7}
+					switch scenario {
+					case 1:
+						best, lms = 100, [4]int32{10, 10, 10, 10}
+					case 2:
+						best, lms = 10, [4]int32{10, 10, 10, 10}
+					case 3:
+						best, lms = 100, [4]int32{40, 30, 20, 10}
+					case 4, 5:
+						best, lms = math.MaxInt32, [4]int32{math.MaxInt32, math.MinInt32, math.MinInt32, math.MaxInt32}
+					}
+					originalBest := unsafe.SliceData(got.refine.pQuarPixBest)
+					wantOriginalBest := unsafe.SliceData(want.refine.pQuarPixBest)
+					cost, mode, ok := meRefineQuarterPlan(&got.funcs, &got.me, &got.refine, shape[0], shape[1], got.me.pRefMb, got.me.iRefMbOff, 32, 32, half, best, lms)
+					wantCost, wantMode := meRefineQuarterPlanLegacy(&want.funcs, &want.me, &want.refine, shape[0], shape[1], want.me.pRefMb, want.me.iRefMbOff, 32, 32, half, best, lms)
+					if !ok || cost != wantCost || mode != wantMode || !bytes.Equal(got.cache.pBufferInterPredMe, want.cache.pBufferInterPredMe) || !bytes.Equal(got.refine.pHalfPixHV, want.refine.pHalfPixHV) ||
+						(unsafe.SliceData(got.refine.pQuarPixBest) == originalBest) != (unsafe.SliceData(want.refine.pQuarPixBest) == wantOriginalBest) ||
+						!bytes.Equal(got.refine.pQuarPixBest, want.refine.pQuarPixBest) || !bytes.Equal(got.refine.pQuarPixTmp, want.refine.pQuarPixTmp) {
+						t.Fatalf("cost/mode/swap/store mismatch: (%d,%d,%v) want(%d,%d)", cost, mode, ok, wantCost, wantMode)
+					}
+					if scenario == 1 && mode != ME_QUAR_PIXEL_TOP {
+						t.Fatal("strict top-first tie changed")
+					}
+					if scenario == 2 && mode != ME_NO_BEST_QUAR_PIXEL {
+						t.Fatal("equality replaced initial winner")
+					}
+					if scenario == 3 && mode != ME_QUAR_PIXEL_RIGHT {
+						t.Fatal("ordered improvements changed")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestQuarterPlanPreflightDoesNotMutate(t *testing.T) {
+	requireSampleAVX2(t)
+	shape := [3]int32{16, 16, BLOCK_16x16}
+	for _, half := range []int32{REFINE_ME_NO_BEST_HALF_PIXEL, REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM, REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT} {
+		for _, bad := range []string{"enc", "ref", "V", "H", "HV", "best", "tmp", "outputAlias", "inputAlias", "badShape", "badBlock", "negativeOffset", "maxOffset", "minOffset", "maxRefOffset", "minRefOffset", "maxStride", "negativeStride", "zeroStride", "customBatch", "customValidated", "customMetric"} {
+			t.Run(fmt.Sprintf("half%d/%s", half, bad), func(t *testing.T) {
+				f := newQuarterPlanDirectFixture(shape, half, false)
+				stride, width := int32(32), shape[0]
+				shorten := func(b *[]byte) {
+					if len(*b) == 0 {
+						t.Skip("unused source family")
+					}
+					*b = (*b)[:len(*b)-1]
+				}
+				switch bad {
+				case "enc":
+					shorten(&f.me.pEncMb)
+				case "ref":
+					shorten(&f.me.pRefMb)
+				case "V":
+					shorten(&f.refine.pHalfPixV)
+				case "H":
+					shorten(&f.refine.pHalfPixH)
+				case "HV":
+					shorten(&f.refine.pHalfPixHV)
+				case "best":
+					shorten(&f.refine.pQuarPixBest)
+				case "tmp":
+					shorten(&f.refine.pQuarPixTmp)
+				case "outputAlias":
+					f.refine.pQuarPixTmp = f.refine.pQuarPixBest
+				case "inputAlias":
+					f.me.pEncMb, f.me.iEncMbOff = f.refine.pQuarPixBest, 0
+				case "badShape":
+					width = 12
+				case "badBlock":
+					f.me.uiBlockSize = MAX_BLOCK_TYPE
+				case "negativeOffset":
+					f.me.iEncMbOff = -1
+				case "maxOffset":
+					f.me.iEncMbOff = int(^uint(0) >> 1)
+				case "minOffset":
+					f.me.iEncMbOff = -int(^uint(0)>>1) - 1
+				case "maxRefOffset":
+					f.me.iRefMbOff = int(^uint(0) >> 1)
+				case "minRefOffset":
+					f.me.iRefMbOff = -int(^uint(0)>>1) - 1
+				case "maxStride":
+					stride = math.MaxInt32
+				case "negativeStride":
+					stride = -32
+				case "zeroStride":
+					stride = 0
+				case "customBatch":
+					f.funcs.sSampleDealingFuncs.bSampleAvgSatdFour = false
+				case "customValidated":
+					f.funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated = nil
+				case "customMetric":
+					f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSad
+				}
+				before := [][]byte{bytes.Clone(f.me.pEncMb), bytes.Clone(f.me.pRefMb), bytes.Clone(f.cache.pBufferInterPredMe), bytes.Clone(f.refine.pHalfPixHV)}
+				best, tmp := unsafe.SliceData(f.refine.pQuarPixBest), unsafe.SliceData(f.refine.pQuarPixTmp)
+				_, _, ok := meRefineQuarterPlan(&f.funcs, &f.me, &f.refine, width, shape[1], f.me.pRefMb, f.me.iRefMbOff, stride, 32, half, math.MaxInt32, [4]int32{})
+				after := [][]byte{f.me.pEncMb, f.me.pRefMb, f.cache.pBufferInterPredMe, f.refine.pHalfPixHV}
+				if ok || !reflect.DeepEqual(before, after) || unsafe.SliceData(f.refine.pQuarPixBest) != best || unsafe.SliceData(f.refine.pQuarPixTmp) != tmp {
+					t.Fatal("failed preflight wrote state or accepted invalid case")
+				}
+			})
+		}
+	}
+}

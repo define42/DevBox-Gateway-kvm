@@ -1,0 +1,197 @@
+--- FAIL: TestMcAVX2RefinementShapes (0.00s)
+    --- FAIL: TestMcAVX2RefinementShapes/horizontal/4x5 (0.00s)
+        mc_refine_amd64_test.go:71: pattern 0: output or destination canary differs
+    --- FAIL: TestMcAVX2RefinementShapes/horizontal/8x9 (0.00s)
+        mc_refine_amd64_test.go:71: pattern 0: output or destination canary differs
+    --- FAIL: TestMcAVX2RefinementShapes/horizontal/16x17 (0.00s)
+        mc_refine_amd64_test.go:71: pattern 0: output or destination canary differs
+    --- FAIL: TestMcAVX2RefinementShapes/horizontal/16x16 (0.00s)
+        mc_refine_amd64_test.go:71: pattern 0: output or destination canary differs
+--- FAIL: TestMcAVX2RefinementNegativeStrides (0.00s)
+    --- FAIL: TestMcAVX2RefinementNegativeStrides/horizontal/width4 (0.00s)
+        mc_refine_amd64_test.go:154: reverse source=false destination=false differs
+    --- FAIL: TestMcAVX2RefinementNegativeStrides/horizontal/width8 (0.00s)
+        mc_refine_amd64_test.go:154: reverse source=false destination=false differs
+    --- FAIL: TestMcAVX2RefinementNegativeStrides/horizontal/width16 (0.00s)
+        mc_refine_amd64_test.go:154: reverse source=false destination=false differs
+unexpected fault address 0x74d7ba407000
+fatal error: fault
+[signal SIGSEGV: segmentation violation code=0x2 addr=0x74d7ba407000 pc=0x589f90]
+
+goroutine 4003 gp=0x211b48e1b4a0 m=0 mp=0x783e80 [running]:
+runtime.throw({0x59f4cc?, 0x3?})
+	/snap/go/11382/src/runtime/panic.go:1243 +0x48 fp=0x211b48e89da8 sp=0x211b48e89d78 pc=0x4863e8
+runtime.sigpanic()
+	/snap/go/11382/src/runtime/signal_unix.go:945 +0x285 fp=0x211b48e89e08 sp=0x211b48e89da8 pc=0x487e05
+github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.mcHorRefineAVX2(0x74d7ba403ffc, 0x4, 0x74d7ba406ff9, 0x9, 0x4, 0x1)
+	/tmp/h264-parity-target-20261022/center-filter-stack-tuned-next/pkg/h264/internal/common/mc_refine_horizontal_amd64.s:130 +0x210 fp=0x211b48e89e10 sp=0x211b48e89e08 pc=0x589f90
+github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McHorVer20_avx2({0x74d7ba406ff7?, 0x9?, 0x9?}, 0x75d260?, 0x9?, {0x74d7ba403ffc?, 0x4?, 0x6b8718?}, 0x5d4b4c?, 0x4, ...)
+	/tmp/h264-parity-target-20261022/center-filter-stack-tuned-next/pkg/h264/internal/common/mc_avx2_amd64.go:66 +0x265 fp=0x211b48e89e90 sp=0x211b48e89e10 pc=0x54fe25
+github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.TestMcAVX2RefinementGuardPages.func1(0x211b49003688)
+	/tmp/h264-parity-target-20261022/center-filter-stack-tuned-next/pkg/h264/internal/common/mc_refine_guard_linux_amd64_test.go:35 +0x271 fp=0x211b48e89f70 sp=0x211b48e89e90 pc=0x580d91
+testing.tRunner(0x211b49003688, 0x211b48f22ab0)
+	/snap/go/11382/src/testing/testing.go:2195 +0xea fp=0x211b48e89fc0 sp=0x211b48e89f70 pc=0x4efe4a
+testing.(*T).Run.gowrap1()
+	/snap/go/11382/src/testing/testing.go:2260 +0x1b fp=0x211b48e89fe0 sp=0x211b48e89fc0 pc=0x4f5a3b
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e89fe8 sp=0x211b48e89fe0 pc=0x48c9e1
+created by testing.(*T).Run in goroutine 4001
+	/snap/go/11382/src/testing/testing.go:2260 +0x4d4
+
+goroutine 1 gp=0x211b48e1a1e0 m=nil [chan receive]:
+runtime.gopark(0x74d8011a42f8?, 0x74d8011ac420?, 0x80?, 0xe8?, 0x735f30?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48f6d908 sp=0x211b48f6d8e8 pc=0x48650a
+runtime.chanrecv(0x211b4920f980, 0x211b48f6d9ef, 0x1)
+	/snap/go/11382/src/runtime/chan.go:667 +0x4ae fp=0x211b48f6d980 sp=0x211b48f6d908 pc=0x41622e
+runtime.chanrecv1(0x18?, 0x744f58?)
+	/snap/go/11382/src/runtime/chan.go:509 +0x12 fp=0x211b48f6d9a8 sp=0x211b48f6d980 pc=0x415d72
+testing.(*T).Run(0x211b48f7c008, {0x5a78ff?, 0x211b48f6daa0?}, 0x75bef0)
+	/snap/go/11382/src/testing/testing.go:2268 +0x4f2 fp=0x211b48f6da80 sp=0x211b48f6d9a8 pc=0x4f03b2
+testing.runTests.func1(0x211b48f7c008)
+	/snap/go/11382/src/testing/testing.go:2744 +0x37 fp=0x211b48f6dac0 sp=0x211b48f6da80 pc=0x4f5cb7
+testing.tRunner(0x211b48f7c008, 0x211b48f6dbc8)
+	/snap/go/11382/src/testing/testing.go:2195 +0xea fp=0x211b48f6db10 sp=0x211b48f6dac0 pc=0x4efe4a
+testing.runTests({0x5aa8cb, 0x26}, {0x5aeaa5, 0x3f}, 0x211b48f200d8, {0x77f630, 0x5a, 0x5a}, {0xc2aea6599a0896ff, 0x8bb2cc8647, ...})
+	/snap/go/11382/src/testing/testing.go:2742 +0x510 fp=0x211b48f6dbf8 sp=0x211b48f6db10 pc=0x4f2390
+testing.(*M).Run(0x211b48f1e140)
+	/snap/go/11382/src/testing/testing.go:2602 +0x6af fp=0x211b48f6de38 sp=0x211b48f6dbf8 pc=0x4f0f4f
+main.main()
+	_testmain.go:264 +0x9b fp=0x211b48f6deb8 sp=0x211b48f6de38 pc=0x58dc1b
+runtime.main()
+	/snap/go/11382/src/runtime/proc.go:302 +0x427 fp=0x211b48f6dfe0 sp=0x211b48f6deb8 pc=0x44ea67
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48f6dfe8 sp=0x211b48f6dfe0 pc=0x48c9e1
+
+goroutine 2 gp=0x211b48e1a780 m=nil [force gc (idle)]:
+runtime.gopark(0x0?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e64fa8 sp=0x211b48e64f88 pc=0x48650a
+runtime.goparkunlock(...)
+	/snap/go/11382/src/runtime/proc.go:480
+runtime.forcegchelper()
+	/snap/go/11382/src/runtime/proc.go:387 +0xb3 fp=0x211b48e64fe0 sp=0x211b48e64fa8 pc=0x44ed33
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e64fe8 sp=0x211b48e64fe0 pc=0x48c9e1
+created by runtime.init.7 in goroutine 1
+	/snap/go/11382/src/runtime/proc.go:375 +0x1a
+
+goroutine 3 gp=0x211b48e1ad20 m=nil [GC sweep wait]:
+runtime.gopark(0x1?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e65788 sp=0x211b48e65768 pc=0x48650a
+runtime.goparkunlock(...)
+	/snap/go/11382/src/runtime/proc.go:480
+runtime.bgsweep(0x211b48e7c000)
+	/snap/go/11382/src/runtime/mgcsweep.go:324 +0x151 fp=0x211b48e657c8 sp=0x211b48e65788 pc=0x4382d1
+runtime.gcenable.gowrap1()
+	/snap/go/11382/src/runtime/mgc.go:214 +0x17 fp=0x211b48e657e0 sp=0x211b48e657c8 pc=0x47d0d7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e657e8 sp=0x211b48e657e0 pc=0x48c9e1
+created by runtime.gcenable in goroutine 1
+	/snap/go/11382/src/runtime/mgc.go:214 +0x66
+
+goroutine 4 gp=0x211b48e1af00 m=nil [sleep]:
+runtime.gopark(0x211b48e98000?, 0x4e34e3308473?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e65f38 sp=0x211b48e65f18 pc=0x48650a
+runtime.goparkunlock(...)
+	/snap/go/11382/src/runtime/proc.go:480
+runtime.(*scavengerState).sleep(0x782b60, 0x40ea858000000000)
+	/snap/go/11382/src/runtime/mgcscavenge.go:504 +0xf6 fp=0x211b48e65fa8 sp=0x211b48e65f38 pc=0x435f96
+runtime.bgscavenge(0x211b48e7c000)
+	/snap/go/11382/src/runtime/mgcscavenge.go:662 +0x74 fp=0x211b48e65fc8 sp=0x211b48e65fa8 pc=0x436354
+runtime.gcenable.gowrap2()
+	/snap/go/11382/src/runtime/mgc.go:215 +0x17 fp=0x211b48e65fe0 sp=0x211b48e65fc8 pc=0x47d097
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e65fe8 sp=0x211b48e65fe0 pc=0x48c9e1
+created by runtime.gcenable in goroutine 1
+	/snap/go/11382/src/runtime/mgc.go:215 +0xa5
+
+goroutine 17 gp=0x211b48f043c0 m=nil [GOMAXPROCS updater (idle)]:
+runtime.gopark(0x0?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e60788 sp=0x211b48e60768 pc=0x48650a
+runtime.goparkunlock(...)
+	/snap/go/11382/src/runtime/proc.go:480
+runtime.updateMaxProcsGoroutine()
+	/snap/go/11382/src/runtime/proc.go:7146 +0xe7 fp=0x211b48e607e0 sp=0x211b48e60788 pc=0x45c1a7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e607e8 sp=0x211b48e607e0 pc=0x48c9e1
+created by runtime.defaultGOMAXPROCSUpdateEnable in goroutine 1
+	/snap/go/11382/src/runtime/proc.go:7134 +0x37
+
+goroutine 18 gp=0x211b48f045a0 m=nil [finalizer wait]:
+runtime.gopark(0x0?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e60e20 sp=0x211b48e60e00 pc=0x48650a
+runtime.runFinalizers()
+	/snap/go/11382/src/runtime/mfinal.go:210 +0x107 fp=0x211b48e60fe0 sp=0x211b48e60e20 pc=0x4293c7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e60fe8 sp=0x211b48e60fe0 pc=0x48c9e1
+created by runtime.createfing in goroutine 1
+	/snap/go/11382/src/runtime/mfinal.go:172 +0x3d
+
+goroutine 4001 gp=0x211b48f04780 m=nil [chan receive]:
+runtime.gopark(0x74d8011a42f8?, 0x74d8011ac420?, 0xbf?, 0x1?, 0x735f30?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e8cca0 sp=0x211b48e8cc80 pc=0x48650a
+runtime.chanrecv(0x211b4920fa80, 0x211b48e8cd87, 0x1)
+	/snap/go/11382/src/runtime/chan.go:667 +0x4ae fp=0x211b48e8cd18 sp=0x211b48e8cca0 pc=0x41622e
+runtime.chanrecv1(0x18?, 0x744f58?)
+	/snap/go/11382/src/runtime/chan.go:509 +0x12 fp=0x211b48e8cd40 sp=0x211b48e8cd18 pc=0x415d72
+testing.(*T).Run(0x211b49003208, {0x211b48f8f098?, 0x211b48e8cf08?}, 0x211b48f22ab0)
+	/snap/go/11382/src/testing/testing.go:2268 +0x4f2 fp=0x211b48e8ce18 sp=0x211b48e8cd40 pc=0x4f03b2
+github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.TestMcAVX2RefinementGuardPages(0x211b49003208)
+	/tmp/h264-parity-target-20261022/center-filter-stack-tuned-next/pkg/h264/internal/common/mc_refine_guard_linux_amd64_test.go:22 +0x285 fp=0x211b48e8cf70 sp=0x211b48e8ce18 pc=0x569985
+testing.tRunner(0x211b49003208, 0x75bef0)
+	/snap/go/11382/src/testing/testing.go:2195 +0xea fp=0x211b48e8cfc0 sp=0x211b48e8cf70 pc=0x4efe4a
+testing.(*T).Run.gowrap1()
+	/snap/go/11382/src/testing/testing.go:2260 +0x1b fp=0x211b48e8cfe0 sp=0x211b48e8cfc0 pc=0x4f5a3b
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e8cfe8 sp=0x211b48e8cfe0 pc=0x48c9e1
+created by testing.(*T).Run in goroutine 1
+	/snap/go/11382/src/testing/testing.go:2260 +0x4d4
+
+goroutine 76 gp=0x211b48f04b40 m=nil [GC worker (idle)]:
+runtime.gopark(0x4e34a733c74e?, 0x211b48e61760?, 0xd0?, 0xc0?, 0x211b4917f1f8?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e61740 sp=0x211b48e61720 pc=0x48650a
+runtime.gcBgMarkWorker(0x211b4927e4d0)
+	/snap/go/11382/src/runtime/mgc.go:1807 +0xeb fp=0x211b48e617c8 sp=0x211b48e61740 pc=0x42c76b
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/snap/go/11382/src/runtime/mgc.go:1711 +0x17 fp=0x211b48e617e0 sp=0x211b48e617c8 pc=0x47d5d7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e617e8 sp=0x211b48e617e0 pc=0x48c9e1
+created by runtime.gcBgMarkStartWorkers in goroutine 75
+	/snap/go/11382/src/runtime/mgc.go:1711 +0xfc
+
+goroutine 77 gp=0x211b48f04d20 m=nil [GC worker (idle)]:
+runtime.gopark(0x4e34a731116b?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e61f40 sp=0x211b48e61f20 pc=0x48650a
+runtime.gcBgMarkWorker(0x211b4927e4d0)
+	/snap/go/11382/src/runtime/mgc.go:1807 +0xeb fp=0x211b48e61fc8 sp=0x211b48e61f40 pc=0x42c76b
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/snap/go/11382/src/runtime/mgc.go:1711 +0x17 fp=0x211b48e61fe0 sp=0x211b48e61fc8 pc=0x47d5d7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e61fe8 sp=0x211b48e61fe0 pc=0x48c9e1
+created by runtime.gcBgMarkStartWorkers in goroutine 75
+	/snap/go/11382/src/runtime/mgc.go:1711 +0xfc
+
+goroutine 78 gp=0x211b48f04f00 m=nil [GC worker (idle)]:
+runtime.gopark(0x4e34a733cb34?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e62740 sp=0x211b48e62720 pc=0x48650a
+runtime.gcBgMarkWorker(0x211b4927e4d0)
+	/snap/go/11382/src/runtime/mgc.go:1807 +0xeb fp=0x211b48e627c8 sp=0x211b48e62740 pc=0x42c76b
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/snap/go/11382/src/runtime/mgc.go:1711 +0x17 fp=0x211b48e627e0 sp=0x211b48e627c8 pc=0x47d5d7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e627e8 sp=0x211b48e627e0 pc=0x48c9e1
+created by runtime.gcBgMarkStartWorkers in goroutine 75
+	/snap/go/11382/src/runtime/mgc.go:1711 +0xfc
+
+goroutine 79 gp=0x211b48f050e0 m=nil [GC worker (idle)]:
+runtime.gopark(0x4e34a7311ece?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/snap/go/11382/src/runtime/proc.go:474 +0xca fp=0x211b48e62f40 sp=0x211b48e62f20 pc=0x48650a
+runtime.gcBgMarkWorker(0x211b4927e4d0)
+	/snap/go/11382/src/runtime/mgc.go:1807 +0xeb fp=0x211b48e62fc8 sp=0x211b48e62f40 pc=0x42c76b
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/snap/go/11382/src/runtime/mgc.go:1711 +0x17 fp=0x211b48e62fe0 sp=0x211b48e62fc8 pc=0x47d5d7
+runtime.goexit({})
+	/snap/go/11382/src/runtime/asm_amd64.s:1264 +0x1 fp=0x211b48e62fe8 sp=0x211b48e62fe0 pc=0x48c9e1
+created by runtime.gcBgMarkStartWorkers in goroutine 75
+	/snap/go/11382/src/runtime/mgc.go:1711 +0xfc
+FAIL	github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common	0.294s
+FAIL

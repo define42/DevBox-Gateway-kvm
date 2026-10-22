@@ -1,0 +1,76 @@
+{
+  "reason": "First run four-slice confidence ranges were very wide for all three binaries",
+  "frames": 80,
+  "warmup": 16,
+  "repetitions": 6,
+  "baseline": "round9-avc.test",
+  "candidate": "round10-avc.test",
+  "cases": [
+    [
+      {
+        "name": "ShortClip",
+        "file": "/tmp/openh264-comparison-20261021/clip1080p.i420",
+        "width": 1920,
+        "height": 1080,
+        "qp": 20
+      },
+      4
+    ],
+    [
+      {
+        "name": "Road",
+        "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+        "width": 1920,
+        "height": 1080,
+        "qp": 20
+      },
+      4
+    ],
+    [
+      {
+        "name": "Road",
+        "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+        "width": 1920,
+        "height": 1080,
+        "qp": 32
+      },
+      4
+    ],
+    [
+      {
+        "name": "PDF",
+        "file": "/tmp/h264-native-parity-20261021/pdf1080.i420",
+        "width": 1920,
+        "height": 1080,
+        "qp": 20
+      },
+      4
+    ],
+    [
+      {
+        "name": "Road",
+        "file": "/tmp/h264-native-parity-20261021/road720.i420",
+        "width": 1280,
+        "height": 720,
+        "qp": 20
+      },
+      4
+    ],
+    [
+      {
+        "name": "Road",
+        "file": "/tmp/h264-native-parity-20261021/road1080.i420",
+        "width": 1920,
+        "height": 1080,
+        "qp": 20
+      },
+      1
+    ]
+  ],
+  "affinity": {
+    "1": "2",
+    "4": "0-3"
+  },
+  "host_settings_changed": false,
+  "samples_discarded": false
+}

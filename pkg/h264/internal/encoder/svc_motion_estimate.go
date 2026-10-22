@@ -140,6 +140,26 @@ func WelsMotionEstimateInitialPoint(pFuncList *SWelsFuncPtrList, pMe *SWelsME, p
 	pRefMb = pMe.pRefMb
 	iRefMbOff = pMe.iRefMbOff + int(int32(sMv.iMvY)*iStrideRef+int32(sMv.iMvX))
 
+	// A distinct sole MVC needs exactly two SADs. The direct helper shares the
+	// encoded loads and validation without passing local state through callbacks.
+	if kuiMvcNum == 1 && (pMe.uiBlockSize <= BLOCK_8x8 || pMe.uiBlockSize == BLOCK_8x4) &&
+		pFuncList.sSampleDealingFuncs.bSampleSadTwo {
+		mvc := SMVUnitXY{
+			iMvX: int16(common.WELS_CLIP3((2+int32(kpMvcList[0].iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX))),
+			iMvY: int16(common.WELS_CLIP3((2+int32(kpMvcList[0].iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY))),
+		}
+		if mvc == sMv {
+			// Built-in SAD callbacks cannot change the MVC. Do the initial SAD
+			// and MVD lookup below, but omit the known duplicate's loop work.
+			// Leave the externally visible count unchanged for later callbacks.
+			kuiMvcNum = 0
+		} else if bestMv, bestOff, bestCost, ok := meInitialSadTwo(pMe, sMv, mvc, iRefMbOff, iStrideEnc, iStrideRef); ok {
+			sMv, iRefMbOff, iBestSadCost = bestMv, bestOff, bestCost
+			// Ineligible shapes and multi-MVC searches take the original path
+			// below without an additional batched-status branch.
+			goto checkDirectional
+		}
+	}
 	iBestSadCost = pSad(kpEncMb, kiEncMbOff, iStrideEnc, pRefMb, iRefMbOff, iStrideRef)
 	iBestSadCost += COST_MVD(kpMvdCost, kiMvdCostOff, (int32(sMv.iMvX)*(1<<2))-int32(ksMvp.iMvX),
 		(int32(sMv.iMvY)*(1<<2))-int32(ksMvp.iMvY))
@@ -165,6 +185,7 @@ func WelsMotionEstimateInitialPoint(pFuncList *SWelsFuncPtrList, pMe *SWelsME, p
 		}
 	}
 
+checkDirectional:
 	if pFuncList.pfCheckDirectionalMv(pSad, pMe, ksMvStartMin, ksMvStartMax, iStrideEnc, iStrideRef, &pMe.iDirectionalSadCost) {
 		sMv = pMe.sDirectionalMv
 		pRefMb = pMe.pColoRefMb
@@ -196,33 +217,32 @@ func NotCalculateSatdCost(pSatd PSampleSadSatdCostFunc, pMe *SWelsME, kiEncStrid
 
 // iSadCost: int32_t[4]; kpMvdCost: negatively indexed MVD cost table -> (slice, offset).
 func WelsMeSadCostSelect(iSadCost []int32, kpMvdCost []uint16, iMvdCostOff int, pBestCost *int32, kiDx int32, kiDy int32, pIx *int32, pIy *int32) bool {
-	var iTempSadCost [4]int32
 	iInputSadCost := *pBestCost
-	iTempSadCost[0] = iSadCost[0] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx, kiDy-4)
-	iTempSadCost[1] = iSadCost[1] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx, kiDy+4)
-	iTempSadCost[2] = iSadCost[2] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx-4, kiDy)
-	iTempSadCost[3] = iSadCost[3] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx+4, kiDy)
+	topCost := iSadCost[0] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx, kiDy-4)
+	bottomCost := iSadCost[1] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx, kiDy+4)
+	leftCost := iSadCost[2] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx-4, kiDy)
+	rightCost := iSadCost[3] + COST_MVD(kpMvdCost, iMvdCostOff, kiDx+4, kiDy)
 
-	if iTempSadCost[0] < *pBestCost {
-		*pBestCost = iTempSadCost[0]
+	if topCost < *pBestCost {
+		*pBestCost = topCost
 		*pIx = 0
 		*pIy = 1
 	}
 
-	if iTempSadCost[1] < *pBestCost {
-		*pBestCost = iTempSadCost[1]
+	if bottomCost < *pBestCost {
+		*pBestCost = bottomCost
 		*pIx = 0
 		*pIy = -1
 	}
 
-	if iTempSadCost[2] < *pBestCost {
-		*pBestCost = iTempSadCost[2]
+	if leftCost < *pBestCost {
+		*pBestCost = leftCost
 		*pIx = 1
 		*pIy = 0
 	}
 
-	if iTempSadCost[3] < *pBestCost {
-		*pBestCost = iTempSadCost[3]
+	if rightCost < *pBestCost {
+		*pBestCost = rightCost
 		*pIx = -1
 		*pIy = 0
 	}

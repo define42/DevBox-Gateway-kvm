@@ -1,0 +1,127 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                       │ /tmp/h264-parity-target-20261022/chroma-skip-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-skip-review/after.txt │
+                                       │                            sec/op                            │                 sec/op                   vs base              │
+ChromaSkipCaller/QP0/UV1/Zero-4                                                          36.55n ±  1%                              36.51n ±  2%       ~ (p=0.485 n=6)
+ChromaSkipCaller/QP0/UV1/DCReject-4                                                      16.80n ±  6%                              16.98n ±  7%       ~ (p=0.589 n=6)
+ChromaSkipCaller/QP0/UV1/DCBoundary-4                                                    55.42n ±  3%                              54.51n ±  1%       ~ (p=0.223 n=6)
+ChromaSkipCaller/QP0/UV1/SparseAC-4                                                      36.45n ±  3%                              36.12n ±  9%       ~ (p=0.394 n=6)
+ChromaSkipCaller/QP0/UV1/ACReject-4                                                      35.24n ±  3%                              34.54n ±  4%       ~ (p=0.132 n=6)
+ChromaSkipCaller/QP0/UV1/Dense-4                                                         16.54n ± 10%                              17.47n ±  8%  +5.65% (p=0.037 n=6)
+ChromaSkipCaller/QP0/UV2/Zero-4                                                          39.79n ±  4%                              37.45n ±  2%  -5.88% (p=0.002 n=6)
+ChromaSkipCaller/QP0/UV2/DCReject-4                                                      18.49n ±  3%                              17.79n ±  1%  -3.79% (p=0.002 n=6)
+ChromaSkipCaller/QP0/UV2/DCBoundary-4                                                    55.66n ±  3%                              55.78n ±  3%       ~ (p=0.509 n=6)
+ChromaSkipCaller/QP0/UV2/SparseAC-4                                                      39.51n ±  6%                              37.16n ±  1%  -5.95% (p=0.002 n=6)
+ChromaSkipCaller/QP0/UV2/ACReject-4                                                      36.88n ±  4%                              34.92n ±  4%  -5.34% (p=0.009 n=6)
+ChromaSkipCaller/QP0/UV2/Dense-4                                                         18.30n ± 13%                              17.89n ±  2%  -2.24% (p=0.041 n=6)
+ChromaSkipCaller/QP26/UV1/Zero-4                                                         36.81n ±  3%                              36.40n ±  3%       ~ (p=0.394 n=6)
+ChromaSkipCaller/QP26/UV1/DCReject-4                                                     16.68n ±  3%                              17.11n ± 12%  +2.58% (p=0.017 n=6)
+ChromaSkipCaller/QP26/UV1/DCBoundary-4                                                   54.90n ±  6%                              54.69n ±  3%       ~ (p=0.699 n=6)
+ChromaSkipCaller/QP26/UV1/SparseAC-4                                                     36.41n ±  1%                              36.16n ±  3%       ~ (p=0.394 n=6)
+ChromaSkipCaller/QP26/UV1/ACReject-4                                                     34.76n ±  2%                              33.92n ±  3%       ~ (p=0.093 n=6)
+ChromaSkipCaller/QP26/UV1/Dense-4                                                        16.61n ±  5%                              17.52n ±  2%  +5.51% (p=0.013 n=6)
+ChromaSkipCaller/QP26/UV2/Zero-4                                                         37.55n ±  4%                              36.59n ±  3%       ~ (p=0.132 n=6)
+ChromaSkipCaller/QP26/UV2/DCReject-4                                                     17.41n ±  4%                              17.67n ±  4%       ~ (p=0.091 n=6)
+ChromaSkipCaller/QP26/UV2/DCBoundary-4                                                   54.86n ±  4%                              56.06n ±  5%       ~ (p=0.093 n=6)
+ChromaSkipCaller/QP26/UV2/SparseAC-4                                                     37.45n ±  3%                              37.13n ±  3%       ~ (p=0.258 n=6)
+ChromaSkipCaller/QP26/UV2/ACReject-4                                                     35.40n ±  3%                              34.75n ±  3%       ~ (p=0.065 n=6)
+ChromaSkipCaller/QP26/UV2/Dense-4                                                        17.57n ±  4%                              17.62n ±  8%       ~ (p=0.818 n=6)
+ChromaSkipCaller/QP51/UV1/Zero-4                                                         36.27n ±  2%                              36.42n ±  5%       ~ (p=0.589 n=6)
+ChromaSkipCaller/QP51/UV1/DCReject-4                                                     16.19n ±  4%                              17.40n ±  3%  +7.51% (p=0.002 n=6)
+ChromaSkipCaller/QP51/UV1/DCBoundary-4                                                   54.76n ±  2%                              54.48n ±  4%       ~ (p=0.937 n=6)
+ChromaSkipCaller/QP51/UV1/SparseAC-4                                                     36.44n ±  9%                              36.10n ±  4%       ~ (p=0.394 n=6)
+ChromaSkipCaller/QP51/UV1/ACReject-4                                                     34.32n ±  4%                              34.81n ±  1%       ~ (p=0.394 n=6)
+ChromaSkipCaller/QP51/UV1/Dense-4                                                        16.24n ±  5%                              17.01n ±  3%  +4.74% (p=0.013 n=6)
+ChromaSkipCaller/QP51/UV2/Zero-4                                                         38.04n ±  5%                              36.69n ±  2%  -3.55% (p=0.009 n=6)
+ChromaSkipCaller/QP51/UV2/DCReject-4                                                     17.17n ±  4%                              17.69n ±  4%       ~ (p=0.223 n=6)
+ChromaSkipCaller/QP51/UV2/DCBoundary-4                                                   54.95n ±  3%                              55.99n ±  3%       ~ (p=0.310 n=6)
+ChromaSkipCaller/QP51/UV2/SparseAC-4                                                     37.80n ±  2%                              37.11n ±  2%       ~ (p=0.132 n=6)
+ChromaSkipCaller/QP51/UV2/ACReject-4                                                     35.24n ±  3%                              35.10n ±  3%       ~ (p=0.669 n=6)
+ChromaSkipCaller/QP51/UV2/Dense-4                                                        17.40n ± 16%                              17.87n ±  3%       ~ (p=0.394 n=6)
+geomean                                                                                  30.44n                                    30.39n        -0.16%
+
+                                       │ /tmp/h264-parity-target-20261022/chroma-skip-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-skip-review/after.txt │
+                                       │                             B/op                             │                 B/op                   vs base                │
+ChromaSkipCaller/QP0/UV1/Zero-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/DCReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/DCBoundary-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/SparseAC-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/ACReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/Dense-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/Zero-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/DCReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/DCBoundary-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/SparseAC-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/ACReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/Dense-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                             ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                       │ /tmp/h264-parity-target-20261022/chroma-skip-review/base.txt │ /tmp/h264-parity-target-20261022/chroma-skip-review/after.txt │
+                                       │                          allocs/op                           │               allocs/op                vs base                │
+ChromaSkipCaller/QP0/UV1/Zero-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/DCReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/DCBoundary-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/SparseAC-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/ACReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV1/Dense-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/Zero-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/DCReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/DCBoundary-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/SparseAC-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/ACReject-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP0/UV2/Dense-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV1/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP26/UV2/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV1/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/Zero-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/DCReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/DCBoundary-4                                                   0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/SparseAC-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/ACReject-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSkipCaller/QP51/UV2/Dense-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                             ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

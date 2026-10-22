@@ -1,0 +1,234 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntra4Directional/HD/stride32/Scalar-4         	11149458	        20.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride32/Dispatched-4     	20520735	        11.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Scalar-4       	12294817	        19.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Dispatched-4   	19196193	        11.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Scalar-4         	14322133	        16.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Dispatched-4     	26473334	         8.982 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Scalar-4       	13709085	        17.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Dispatched-4   	21959518	         9.199 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Scalar-4         	12129792	        19.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Dispatched-4     	19804362	        12.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Scalar-4       	12353041	        19.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Dispatched-4   	18735148	        12.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride32_32-4         	   81265	      2829 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride32_32-4       	   68353	      3559 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride32_32-4        	   63912	      3639 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride32_32-4    	   70843	      3390 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride32_32-4      	   73058	      3216 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride32_32-4      	   75897	      3345 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride32_32-4     	   93812	      2752 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride32_32-4   	 1400846	       176.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride32_32-4         	 3743526	        64.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride32_32-4        	   66813	      3983 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride32_32-4               	   49632	      4604 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride1920_1984-4              	   95911	      2650 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride1920_1984-4            	   69117	      3483 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride1920_1984-4             	   70239	      3424 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride1920_1984-4         	   66514	      3475 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride1920_1984-4           	   76530	      3126 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride1920_1984-4           	   70251	      3300 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride1920_1984-4          	   87666	      2775 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride1920_1984-4        	 1427284	       167.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride1920_1984-4     	 3453628	        66.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride1920_1984-4    	   64340	      3606 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride1920_1984-4           	   53762	      4524 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntra4Directional/HD/stride32/Scalar-4         	12051333	        20.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride32/Dispatched-4     	22043119	        11.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Scalar-4       	12333178	        19.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Dispatched-4   	21341029	        12.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Scalar-4         	13590650	        17.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Dispatched-4     	29482384	         9.282 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Scalar-4       	14033164	        17.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Dispatched-4   	28273053	         8.864 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Scalar-4         	12984962	        19.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Dispatched-4     	18373048	        12.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Scalar-4       	12459998	        20.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Dispatched-4   	17962926	        12.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride32_32-4         	   85704	      2767 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride32_32-4       	   68211	      3433 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride32_32-4        	   67863	      3445 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride32_32-4    	   68134	      3458 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride32_32-4      	   80031	      3153 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride32_32-4      	   69188	      3361 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride32_32-4     	   77065	      2956 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride32_32-4   	 1441119	       166.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride32_32-4         	 3731551	        64.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride32_32-4        	   64466	      3643 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride32_32-4               	   53196	      4508 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride1920_1984-4              	   83654	      2675 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride1920_1984-4            	   69918	      3413 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride1920_1984-4             	   58107	      3686 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride1920_1984-4         	   66015	      3625 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride1920_1984-4           	   72902	      3858 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride1920_1984-4           	   69138	      3442 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride1920_1984-4          	   77048	      2806 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride1920_1984-4        	 1410651	       169.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride1920_1984-4     	 3337032	        67.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride1920_1984-4    	   59458	      3748 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride1920_1984-4           	   53744	      4466 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntra4Directional/HD/stride32/Scalar-4         	11655817	        20.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride32/Dispatched-4     	21814699	        11.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Scalar-4       	12370590	        19.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Dispatched-4   	20007500	        11.85 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Scalar-4         	14498742	        17.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Dispatched-4     	24890223	         9.476 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Scalar-4       	14485120	        17.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Dispatched-4   	26108041	         8.937 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Scalar-4         	12038002	        19.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Dispatched-4     	20473870	        11.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Scalar-4       	12580194	        20.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Dispatched-4   	18556467	        12.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride32_32-4         	   83330	      2860 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride32_32-4       	   68582	      3583 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride32_32-4        	   65895	      3597 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride32_32-4    	   71797	      3612 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride32_32-4      	   59124	      3619 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride32_32-4      	   74566	      3431 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride32_32-4     	   86234	      2835 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride32_32-4   	 1394941	       173.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride32_32-4         	 3578480	        67.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride32_32-4        	   69620	      3648 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride32_32-4               	   42949	      5579 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride1920_1984-4              	   89407	      2921 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride1920_1984-4            	   68977	      3570 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride1920_1984-4             	   67256	      3581 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride1920_1984-4         	   65059	      3772 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride1920_1984-4           	   73383	      3282 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride1920_1984-4           	   76281	      3286 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride1920_1984-4          	   90706	      2727 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride1920_1984-4        	 1480712	       166.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride1920_1984-4     	 3663489	        65.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride1920_1984-4    	   65943	      3681 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride1920_1984-4           	   49543	      4687 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntra4Directional/HD/stride32/Scalar-4         	10840585	        20.04 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride32/Dispatched-4     	20757369	        11.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Scalar-4       	12365572	        19.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Dispatched-4   	20245086	        11.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Scalar-4         	13952886	        17.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Dispatched-4     	29414064	         8.923 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Scalar-4       	13788770	        17.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Dispatched-4   	27358922	         8.950 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Scalar-4         	12900086	        19.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Dispatched-4     	20604804	        11.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Scalar-4       	12689788	        19.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Dispatched-4   	22206724	        12.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride32_32-4         	   73257	      2795 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride32_32-4       	   72286	      3389 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride32_32-4        	   72158	      3554 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride32_32-4    	   74310	      3454 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride32_32-4      	   74448	      3219 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride32_32-4      	   72072	      3326 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride32_32-4     	   84368	      2768 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride32_32-4   	 1432390	       167.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride32_32-4         	 3787737	        63.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride32_32-4        	   65384	      3616 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride32_32-4               	   52092	      4656 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride1920_1984-4              	   72738	      2818 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride1920_1984-4            	   68007	      3473 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride1920_1984-4             	   64957	      3418 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride1920_1984-4         	   65731	      3524 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride1920_1984-4           	   76048	      3318 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride1920_1984-4           	   76928	      3342 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride1920_1984-4          	   91726	      2716 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride1920_1984-4        	 1395446	       173.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride1920_1984-4     	 3839235	        62.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride1920_1984-4    	   60372	      3890 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride1920_1984-4           	   56096	      4493 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntra4Directional/HD/stride32/Scalar-4         	11831980	        19.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride32/Dispatched-4     	20599675	        12.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Scalar-4       	12258960	        20.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Dispatched-4   	21033796	        12.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Scalar-4         	13757109	        17.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Dispatched-4     	25720130	         8.681 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Scalar-4       	14371892	        17.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Dispatched-4   	27792445	         8.841 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Scalar-4         	12904075	        19.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Dispatched-4     	22217959	        11.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Scalar-4       	12274402	        19.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Dispatched-4   	21226580	        11.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride32_32-4         	   87852	      2756 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride32_32-4       	   67155	      3622 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride32_32-4        	   67890	      3468 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride32_32-4    	   69144	      3459 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride32_32-4      	   74556	      3264 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride32_32-4      	   70838	      3369 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride32_32-4     	   71947	      2792 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride32_32-4   	 1434003	       165.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride32_32-4         	 3711291	        64.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride32_32-4        	   63694	      3762 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride32_32-4               	   53652	      4535 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride1920_1984-4              	   80821	      3092 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride1920_1984-4            	   70125	      3407 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride1920_1984-4             	   63240	      3585 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride1920_1984-4         	   66002	      3591 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride1920_1984-4           	   78460	      3404 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride1920_1984-4           	   73161	      3265 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride1920_1984-4          	   72933	      2836 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride1920_1984-4        	 1429546	       166.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride1920_1984-4     	 3580896	        66.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride1920_1984-4    	   64564	      3674 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride1920_1984-4           	   52546	      4595 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntra4Directional/HD/stride32/Scalar-4         	11572022	        20.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride32/Dispatched-4     	21256550	        11.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Scalar-4       	12058896	        19.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HD/stride1984/Dispatched-4   	22288819	        11.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Scalar-4         	13959867	        17.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride32/Dispatched-4     	29310291	         9.047 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Scalar-4       	12808431	        17.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/HU/stride1984/Dispatched-4   	26716236	         9.051 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Scalar-4         	12411770	        19.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride32/Dispatched-4     	21270051	        11.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Scalar-4       	12454197	        19.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4Directional/VR/stride1984/Dispatched-4   	20267878	        12.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride32_32-4         	   91339	      2770 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride32_32-4       	   73142	      3400 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride32_32-4        	   72502	      3490 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride32_32-4    	   71431	      3461 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride32_32-4      	   74130	      3254 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride32_32-4      	   69177	      3482 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride32_32-4     	   95467	      2778 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride32_32-4   	 1521801	       159.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride32_32-4         	 3811328	        63.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride32_32-4        	   65824	      3636 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride32_32-4               	   54234	      4530 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FlatFull/stride1920_1984-4              	   87352	      2893 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SmoothFull/stride1920_1984-4            	   66522	      3505 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseFull/stride1920_1984-4             	   71265	      3397 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/NoiseQP32Full/stride1920_1984-4         	   60888	      3668 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/LeftTopFull/stride1920_1984-4           	   72930	      3265 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/TopOnlyFull/stride1920_1984-4           	   66541	      3462 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFull/stride1920_1984-4          	   87758	      2661 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/FirstBlockExit/stride1920_1984-4        	 1354630	       178.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/IsolatedFirstExit/stride1920_1984-4     	 3286820	        67.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/WrappedCostControl/stride1920_1984-4    	   65526	      3781 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntra4SadCaller/SATDControl/stride1920_1984-4           	   52512	      4840 ns/op	       0 B/op	       0 allocs/op
+PASS

@@ -1,0 +1,67 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                          │ /tmp/h264-parity-target-20261022/intra4-scratch-review/base.txt │ /tmp/h264-parity-target-20261022/intra4-scratch-review/after.txt │
+                                                          │                             sec/op                              │                  sec/op                    vs base               │
+Intra4ScratchWorkers/workers1/Flat/stride32_32-4                                                               2.610µ ± 14%                                2.653µ ±  5%        ~ (p=0.615 n=6)
+Intra4ScratchWorkers/workers1/Smooth/stride32_32-4                                                             3.432µ ± 17%                                3.248µ ±  8%   -5.35% (p=0.026 n=6)
+Intra4ScratchWorkers/workers1/Noise/stride32_32-4                                                              3.273µ ±  3%                                3.259µ ± 12%        ~ (p=0.699 n=6)
+Intra4ScratchWorkers/workers1/FirstExit/stride32_32-4                                                          166.3n ±  5%                                163.9n ±  9%        ~ (p=0.699 n=6)
+Intra4ScratchWorkers/workers1/Flat/stride1920_1984-4                                                           2.675µ ±  6%                                2.594µ ±  3%        ~ (p=0.093 n=6)
+Intra4ScratchWorkers/workers1/Smooth/stride1920_1984-4                                                         3.528µ ±  7%                                3.292µ ±  4%   -6.68% (p=0.026 n=6)
+Intra4ScratchWorkers/workers1/Noise/stride1920_1984-4                                                          3.274µ ±  2%                                3.274µ ±  3%        ~ (p=0.699 n=6)
+Intra4ScratchWorkers/workers1/FirstExit/stride1920_1984-4                                                      167.6n ± 30%                                162.5n ±  5%        ~ (p=0.225 n=6)
+Intra4ScratchWorkers/workers4/Flat/stride32_32-4                                                              1618.0n ±  4%                                674.8n ±  3%  -58.29% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/Smooth/stride32_32-4                                                            1902.0n ±  0%                                860.1n ±  6%  -54.78% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/Noise/stride32_32-4                                                             1913.0n ±  2%                                894.1n ± 11%  -53.26% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/FirstExit/stride32_32-4                                                         109.70n ±  2%                                43.25n ±  6%  -60.57% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/Flat/stride1920_1984-4                                                          1617.5n ± 26%                                673.7n ±  9%  -58.35% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/Smooth/stride1920_1984-4                                                        1917.0n ±  3%                                845.0n ± 11%  -55.92% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/Noise/stride1920_1984-4                                                         1954.0n ±  3%                                837.3n ± 41%  -57.15% (p=0.002 n=6)
+Intra4ScratchWorkers/workers4/FirstExit/stride1920_1984-4                                                     109.05n ±  2%                                42.64n ± 21%  -60.90% (p=0.002 n=6)
+geomean                                                                                                        1.160µ                                      747.7n        -35.55%
+
+                                                          │ /tmp/h264-parity-target-20261022/intra4-scratch-review/base.txt │ /tmp/h264-parity-target-20261022/intra4-scratch-review/after.txt │
+                                                          │                              B/op                               │                   B/op                    vs base                │
+Intra4ScratchWorkers/workers1/Flat/stride32_32-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Smooth/stride32_32-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Noise/stride32_32-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/FirstExit/stride32_32-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Flat/stride1920_1984-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Smooth/stride1920_1984-4                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Noise/stride1920_1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/FirstExit/stride1920_1984-4                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Flat/stride32_32-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Smooth/stride32_32-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Noise/stride32_32-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/FirstExit/stride32_32-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Flat/stride1920_1984-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Smooth/stride1920_1984-4                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Noise/stride1920_1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/FirstExit/stride1920_1984-4                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                   ²                                             +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                          │ /tmp/h264-parity-target-20261022/intra4-scratch-review/base.txt │ /tmp/h264-parity-target-20261022/intra4-scratch-review/after.txt │
+                                                          │                            allocs/op                            │                allocs/op                  vs base                │
+Intra4ScratchWorkers/workers1/Flat/stride32_32-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Smooth/stride32_32-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Noise/stride32_32-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/FirstExit/stride32_32-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Flat/stride1920_1984-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Smooth/stride1920_1984-4                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/Noise/stride1920_1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers1/FirstExit/stride1920_1984-4                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Flat/stride32_32-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Smooth/stride32_32-4                                                             0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Noise/stride32_32-4                                                              0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/FirstExit/stride32_32-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Flat/stride1920_1984-4                                                           0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Smooth/stride1920_1984-4                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/Noise/stride1920_1984-4                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4ScratchWorkers/workers4/FirstExit/stride1920_1984-4                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                   ²                                             +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

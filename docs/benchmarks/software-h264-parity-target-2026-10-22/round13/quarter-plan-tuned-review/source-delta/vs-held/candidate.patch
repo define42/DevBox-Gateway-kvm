@@ -1,0 +1,275 @@
+--- a/pkg/h264/internal/encoder/md.go
++++ b/pkg/h264/internal/encoder/md.go
+@@ -621,11 +621,94 @@
+ 		COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-1-iMvpX, int32(iHalfMvy)-iMvpY),
+ 		COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)+1-iMvpX, int32(iHalfMvy)-iMvpY),
+ 	}
+-	quarterCost, quarterMode, compact := meRefineQuarterPlan(pFunc, pMe, pMeRefine,
+-		iWidth, iHeight, pRef, iRefOff, kiStrideEnc, kiStrideRef, iBestHalfPix, iBestCost, lms)
++	quarterCost, quarterMode := iBestCost, int32(ME_NO_BEST_QUAR_PIXEL)
++	compact := false
++	// Keep unsupported/custom routes out of the compact helper's stack frame.
++	// Read capabilities here, after the center callback and ordered MVD reads.
++	if iWidth >= 8 {
++		samples := &pFunc.sSampleDealingFuncs
++		if samples.bSampleAvgSatdFour && samples.pfSampleAvgSatdValidated != nil &&
++			samples.pfSampleAvgSatd != nil && samples.pfMeCost == &samples.pfSampleSatd {
++			quarterCost, quarterMode, compact = meRefineQuarterPlan(pFunc, pMe, pMeRefine,
++				iWidth, iHeight, pRef, iRefOff, kiStrideEnc, kiStrideRef, iBestHalfPix, iBestCost, lms)
++		}
++	}
+ 	if !compact {
+-		quarterCost, quarterMode = meRefineQuarterPlanLegacy(pFunc, pMe, pMeRefine,
+-			iWidth, iHeight, pRef, iRefOff, kiStrideEnc, kiStrideRef, iBestHalfPix, iBestCost, lms)
++		var sParams SQuarRefineParams
++		sParams.iBestCost = iBestCost
++		sParams.iBestHalfPix = iBestHalfPix
++		sParams.pRef = pRef
++		sParams.iRefOff = iRefOff
++		sParams.iBestQuarPix = ME_NO_BEST_QUAR_PIXEL
++
++		// Keep the original descriptor construction inline for every fallback.
++		if REFINE_ME_NO_BEST_HALF_PIXEL == iBestHalfPix {
++			sParams.iStrideA = kiStrideRef
++			sParams.iStrideB = kiStrideRef
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
++			sParams.pSrcA[1], sParams.iSrcAOff[1] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++			sParams.pSrcA[2], sParams.iSrcAOff[2] = pMeRefine.pHalfPixH, 0
++			sParams.pSrcA[3], sParams.iSrcAOff[3] = pMeRefine.pHalfPixH, 1
++
++			for k := 0; k < 4; k++ {
++				sParams.pSrcB[k], sParams.iSrcBOff[k] = pRef, iRefOff
++			}
++		} else {
++			switch iBestHalfPix {
++			case REFINE_ME_HALF_PIXEL_LEFT:
++				sParams.iStrideA = ME_REFINE_BUF_STRIDE
++				sParams.iStrideB = kiStrideRef
++				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 0
++				for k := 1; k < 4; k++ {
++					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++				}
++				sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 0
++				sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
++				sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff-1
++				sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff
++
++			case REFINE_ME_HALF_PIXEL_RIGHT:
++				sParams.iStrideA = ME_REFINE_BUF_STRIDE
++				sParams.iStrideB = kiStrideRef
++				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 1
++				for k := 1; k < 4; k++ {
++					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++				}
++				sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 1
++				sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, 1+ME_REFINE_BUF_STRIDE
++				sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff
++				sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff+1
++
++			case REFINE_ME_HALF_PIXEL_TOP:
++				sParams.iStrideA = kiStrideRef
++				sParams.iStrideB = ME_REFINE_BUF_STRIDE
++				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
++				for k := 1; k < 4; k++ {
++					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++				}
++				sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff-kiStrideRefI
++				sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff
++				sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, 0
++				sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, 1
++
++			case REFINE_ME_HALF_PIXEL_BOTTOM:
++				sParams.iStrideA = kiStrideRef
++				sParams.iStrideB = ME_REFINE_BUF_STRIDE
++				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++				for k := 1; k < 4; k++ {
++					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++				}
++				sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff
++				sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff+kiStrideRefI
++				sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
++				sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE+1
++
++			default:
++			}
++		}
++		sParams.iLms = lms
++		MeRefineQuarPixel(pFunc, pMe, pMeRefine, iWidth, iHeight, &sParams, kiStrideEnc)
++		quarterCost, quarterMode = sParams.iBestCost, sParams.iBestQuarPix
+ 	}
+ 	if iBestCost > quarterCost {
+ 		pBestPredInter = pMeRefine.pQuarPixBest
+--- a/pkg/h264/internal/encoder/quarter_refine_plan.go
++++ /dev/null
+@@ -1,84 +0,0 @@
+-package encoder
+-
+-// Keep the full slice-based descriptor off the compact production path. This
+-// builder retains the existing public scorer, callback and fallback behavior.
+-func meRefineQuarterPlanLegacy(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *SMeRefinePointer,
+-	iWidth, iHeight int32, pRef []byte, iRefOff int, kiStrideEnc, kiStrideRef int32,
+-	iBestHalfPix, iBestCost int32, lms [4]int32) (int32, int32) {
+-	var sParams SQuarRefineParams
+-	kiStrideRefI := int(kiStrideRef)
+-	sParams.iBestCost = iBestCost
+-	sParams.iBestHalfPix = iBestHalfPix
+-	sParams.pRef = pRef
+-	sParams.iRefOff = iRefOff
+-	sParams.iBestQuarPix = ME_NO_BEST_QUAR_PIXEL
+-
+-	// Retain the exact round11 descriptor mapping for every fallback.
+-	if REFINE_ME_NO_BEST_HALF_PIXEL == iBestHalfPix {
+-		sParams.iStrideA = kiStrideRef
+-		sParams.iStrideB = kiStrideRef
+-		sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
+-		sParams.pSrcA[1], sParams.iSrcAOff[1] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
+-		sParams.pSrcA[2], sParams.iSrcAOff[2] = pMeRefine.pHalfPixH, 0
+-		sParams.pSrcA[3], sParams.iSrcAOff[3] = pMeRefine.pHalfPixH, 1
+-
+-		for k := 0; k < 4; k++ {
+-			sParams.pSrcB[k], sParams.iSrcBOff[k] = pRef, iRefOff
+-		}
+-	} else {
+-		switch iBestHalfPix {
+-		case REFINE_ME_HALF_PIXEL_LEFT:
+-			sParams.iStrideA = ME_REFINE_BUF_STRIDE
+-			sParams.iStrideB = kiStrideRef
+-			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 0
+-			for k := 1; k < 4; k++ {
+-				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+-			}
+-			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 0
+-			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
+-			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff-1
+-			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff
+-
+-		case REFINE_ME_HALF_PIXEL_RIGHT:
+-			sParams.iStrideA = ME_REFINE_BUF_STRIDE
+-			sParams.iStrideB = kiStrideRef
+-			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 1
+-			for k := 1; k < 4; k++ {
+-				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+-			}
+-			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 1
+-			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, 1+ME_REFINE_BUF_STRIDE
+-			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff
+-			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff+1
+-
+-		case REFINE_ME_HALF_PIXEL_TOP:
+-			sParams.iStrideA = kiStrideRef
+-			sParams.iStrideB = ME_REFINE_BUF_STRIDE
+-			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
+-			for k := 1; k < 4; k++ {
+-				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+-			}
+-			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff-kiStrideRefI
+-			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff
+-			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, 0
+-			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, 1
+-
+-		case REFINE_ME_HALF_PIXEL_BOTTOM:
+-			sParams.iStrideA = kiStrideRef
+-			sParams.iStrideB = ME_REFINE_BUF_STRIDE
+-			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
+-			for k := 1; k < 4; k++ {
+-				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+-			}
+-			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff
+-			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff+kiStrideRefI
+-			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
+-			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE+1
+-
+-		default:
+-		}
+-	}
+-	sParams.iLms = lms
+-	MeRefineQuarPixel(pFunc, pMe, pMeRefine, iWidth, iHeight, &sParams, kiStrideEnc)
+-	return sParams.iBestCost, sParams.iBestQuarPix
+-}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quarter_refine_plan_test.go
+@@ -0,0 +1,84 @@
++package encoder
++
++// Keep the full slice-based descriptor off the compact production path. This
++// builder retains the existing public scorer, callback and fallback behavior.
++func meRefineQuarterPlanLegacy(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *SMeRefinePointer,
++	iWidth, iHeight int32, pRef []byte, iRefOff int, kiStrideEnc, kiStrideRef int32,
++	iBestHalfPix, iBestCost int32, lms [4]int32) (int32, int32) {
++	var sParams SQuarRefineParams
++	kiStrideRefI := int(kiStrideRef)
++	sParams.iBestCost = iBestCost
++	sParams.iBestHalfPix = iBestHalfPix
++	sParams.pRef = pRef
++	sParams.iRefOff = iRefOff
++	sParams.iBestQuarPix = ME_NO_BEST_QUAR_PIXEL
++
++	// Retain the exact round11 descriptor mapping for every fallback.
++	if REFINE_ME_NO_BEST_HALF_PIXEL == iBestHalfPix {
++		sParams.iStrideA = kiStrideRef
++		sParams.iStrideB = kiStrideRef
++		sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
++		sParams.pSrcA[1], sParams.iSrcAOff[1] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++		sParams.pSrcA[2], sParams.iSrcAOff[2] = pMeRefine.pHalfPixH, 0
++		sParams.pSrcA[3], sParams.iSrcAOff[3] = pMeRefine.pHalfPixH, 1
++
++		for k := 0; k < 4; k++ {
++			sParams.pSrcB[k], sParams.iSrcBOff[k] = pRef, iRefOff
++		}
++	} else {
++		switch iBestHalfPix {
++		case REFINE_ME_HALF_PIXEL_LEFT:
++			sParams.iStrideA = ME_REFINE_BUF_STRIDE
++			sParams.iStrideB = kiStrideRef
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 0
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 0
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff-1
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff
++
++		case REFINE_ME_HALF_PIXEL_RIGHT:
++			sParams.iStrideA = ME_REFINE_BUF_STRIDE
++			sParams.iStrideB = kiStrideRef
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 1
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 1
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, 1+ME_REFINE_BUF_STRIDE
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff+1
++
++		case REFINE_ME_HALF_PIXEL_TOP:
++			sParams.iStrideA = kiStrideRef
++			sParams.iStrideB = ME_REFINE_BUF_STRIDE
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff-kiStrideRefI
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, 0
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, 1
++
++		case REFINE_ME_HALF_PIXEL_BOTTOM:
++			sParams.iStrideA = kiStrideRef
++			sParams.iStrideB = ME_REFINE_BUF_STRIDE
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff+kiStrideRefI
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE+1
++
++		default:
++		}
++	}
++	sParams.iLms = lms
++	MeRefineQuarPixel(pFunc, pMe, pMeRefine, iWidth, iHeight, &sParams, kiStrideEnc)
++	return sParams.iBestCost, sParams.iBestQuarPix
++}

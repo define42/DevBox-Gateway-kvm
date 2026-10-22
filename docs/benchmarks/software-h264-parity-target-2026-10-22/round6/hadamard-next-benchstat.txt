@@ -1,0 +1,142 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                    │ /tmp/h264-parity-target-20261022/hadamard-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/hadamard-next-hadamard-next.txt │
+                                                    │                                  sec/op                                  │                  sec/op                    vs base               │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                                161.8n ±  2%                                150.9n ±  3%   -6.73% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                               163.2n ±  3%                                150.6n ±  2%   -7.69% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                               145.3n ±  2%                                137.6n ± 20%        ~ (p=0.063 n=6)
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                                 120.5n ±  4%                                108.1n ±  4%  -10.29% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                                 153.5n ± 31%                                143.2n ±  2%   -6.68% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                                153.5n ±  4%                                148.5n ±  5%        ~ (p=0.093 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                                142.7n ±  7%                                135.7n ± 34%        ~ (p=0.065 n=6)
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                                  117.5n ±  2%                                104.6n ±  2%  -10.90% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                                161.8n ±  2%                                149.3n ±  2%   -7.72% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                               159.6n ±  4%                                151.7n ±  2%   -4.95% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                               120.9n ±  3%                                106.5n ± 10%  -11.87% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                                 120.1n ±  3%                                109.0n ±  9%   -9.24% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                                 160.6n ± 17%                                152.9n ±  9%   -4.86% (p=0.037 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                                161.6n ±  2%                                153.5n ±  2%   -4.95% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                                124.8n ±  3%                                112.6n ±  4%   -9.78% (p=0.002 n=6)
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                                  122.0n ±  3%                                110.9n ±  2%   -9.06% (p=0.002 n=6)
+HadamardQuant2x2/QP0/Zero/checked=false-4                                                                         20.69n ±  3%                                21.12n ±  3%        ~ (p=0.240 n=6)
+HadamardQuant2x2/QP0/Zero/checked=true-4                                                                          20.84n ±  3%                                11.51n ±  3%  -44.81% (p=0.002 n=6)
+HadamardQuant2x2/QP0/Dense/checked=false-4                                                                        21.00n ±  7%                                21.04n ±  4%        ~ (p=0.818 n=6)
+HadamardQuant2x2/QP0/Dense/checked=true-4                                                                         20.62n ±  2%                                11.46n ±  8%  -44.40% (p=0.002 n=6)
+HadamardQuant2x2/QP0/Extremes/checked=false-4                                                                     20.97n ±  2%                                20.82n ±  2%        ~ (p=0.180 n=6)
+HadamardQuant2x2/QP0/Extremes/checked=true-4                                                                      20.62n ±  3%                                11.50n ±  4%  -44.24% (p=0.002 n=6)
+HadamardQuant2x2/QP26/Zero/checked=false-4                                                                        20.93n ±  1%                                20.88n ±  2%        ~ (p=0.818 n=6)
+HadamardQuant2x2/QP26/Zero/checked=true-4                                                                         20.73n ±  5%                                11.46n ±  4%  -44.68% (p=0.002 n=6)
+HadamardQuant2x2/QP26/Dense/checked=false-4                                                                       20.71n ±  2%                                20.88n ±  7%        ~ (p=0.699 n=6)
+HadamardQuant2x2/QP26/Dense/checked=true-4                                                                        20.57n ±  5%                                11.46n ±  3%  -44.30% (p=0.002 n=6)
+HadamardQuant2x2/QP26/Extremes/checked=false-4                                                                    20.79n ±  3%                                20.91n ±  6%        ~ (p=0.394 n=6)
+HadamardQuant2x2/QP26/Extremes/checked=true-4                                                                     20.62n ±  2%                                11.51n ±  3%  -44.19% (p=0.002 n=6)
+HadamardQuant2x2/QP51/Zero/checked=false-4                                                                        20.95n ±  3%                                20.91n ±  6%        ~ (p=0.669 n=6)
+HadamardQuant2x2/QP51/Zero/checked=true-4                                                                         20.62n ±  3%                                11.41n ±  4%  -44.68% (p=0.002 n=6)
+HadamardQuant2x2/QP51/Dense/checked=false-4                                                                       20.73n ±  1%                                21.07n ±  2%   +1.64% (p=0.026 n=6)
+HadamardQuant2x2/QP51/Dense/checked=true-4                                                                        20.62n ±  5%                                11.57n ± 15%  -43.90% (p=0.002 n=6)
+HadamardQuant2x2/QP51/Extremes/checked=false-4                                                                    20.86n ±  7%                                20.83n ±  2%        ~ (p=0.554 n=6)
+HadamardQuant2x2/QP51/Extremes/checked=true-4                                                                     20.69n ±  3%                                11.41n ±  5%  -44.82% (p=0.002 n=6)
+geomean                                                                                                           51.28n                                      42.38n        -17.36%
+
+                                                    │ /tmp/h264-parity-target-20261022/hadamard-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/hadamard-next-hadamard-next.txt │
+                                                    │                                planes/op                                 │                planes/op                  vs base                │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                                  2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                                 2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                                 2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                                   2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                                   2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                                  2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                                  2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                                    2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                                  2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                                 2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                                 2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                                   2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                                   2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                                  2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                                  2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                                    2.000 ± 0%                                 2.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                             2.000                                      2.000       +0.00%
+¹ all samples are equal
+
+                                                    │ /tmp/h264-parity-target-20261022/hadamard-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/hadamard-next-hadamard-next.txt │
+                                                    │                                   B/op                                   │                   B/op                    vs base                │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                                  0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                                  0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Zero/checked=false-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Zero/checked=true-4                                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Dense/checked=false-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Dense/checked=true-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Extremes/checked=false-4                                                                     0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Extremes/checked=true-4                                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Zero/checked=false-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Zero/checked=true-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Dense/checked=false-4                                                                       0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Dense/checked=true-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Extremes/checked=false-4                                                                    0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Extremes/checked=true-4                                                                     0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Zero/checked=false-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Zero/checked=true-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Dense/checked=false-4                                                                       0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Dense/checked=true-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Extremes/checked=false-4                                                                    0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Extremes/checked=true-4                                                                     0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                      ²                                             +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                    │ /tmp/h264-parity-target-20261022/hadamard-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/hadamard-next-hadamard-next.txt │
+                                                    │                                allocs/op                                 │                allocs/op                  vs base                │
+ChromaCoefficientEncoding/QP20/intra=false/Dense-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Motion-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Sparse-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=false/Zero-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Dense-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Motion-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Sparse-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP20/intra=true/Zero-4                                                                  0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Dense-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Motion-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Sparse-4                                                               0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=false/Zero-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Dense-4                                                                 0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Motion-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Sparse-4                                                                0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaCoefficientEncoding/QP32/intra=true/Zero-4                                                                  0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Zero/checked=false-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Zero/checked=true-4                                                                          0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Dense/checked=false-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Dense/checked=true-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Extremes/checked=false-4                                                                     0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP0/Extremes/checked=true-4                                                                      0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Zero/checked=false-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Zero/checked=true-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Dense/checked=false-4                                                                       0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Dense/checked=true-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Extremes/checked=false-4                                                                    0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP26/Extremes/checked=true-4                                                                     0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Zero/checked=false-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Zero/checked=true-4                                                                         0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Dense/checked=false-4                                                                       0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Dense/checked=true-4                                                                        0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Extremes/checked=false-4                                                                    0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+HadamardQuant2x2/QP51/Extremes/checked=true-4                                                                     0.000 ± 0%                                   0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                      ²                                             +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

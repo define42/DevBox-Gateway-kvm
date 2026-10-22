@@ -1,0 +1,228 @@
+--- base/pkg/h264/internal/encoder/cavlc_native_full_test.go
++++ candidate/pkg/h264/internal/encoder/cavlc_native_full_test.go
+@@ -0,0 +1,225 @@
++package encoder
++
++import (
++	"bufio"
++	"bytes"
++	"encoding/binary"
++	"fmt"
++	"io"
++	"os"
++	"os/exec"
++	"testing"
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++const cavlcNativeBufferSize = 4096
++
++// Keep coefficient arrays first and the same 64-byte stride as native Block.
++// The loader verifies 16-byte alignment before native-compatible measurement.
++type cavlcNativeBlock struct {
++	coeff    [16]int16
++	end      int32
++	property int32
++	flag     int32
++	nc       int8
++	_        [3]byte
++	expected int32
++	_        [12]byte
++}
++
++type cavlcNativeSuite struct {
++	name        string
++	prefix      int32
++	prefixValue uint32
++	timed       bool
++	blocks      []cavlcNativeBlock
++}
++
++func cavlcNativeFixturePath() string {
++	if path := os.Getenv("CAVLC_NATIVE_FIXTURES"); path != "" {
++		return path
++	}
++	return "testdata/cavlc_native_fixtures.txt"
++}
++
++func loadCavlcNativeFixtures(t testing.TB) []cavlcNativeSuite {
++	t.Helper()
++	file, err := os.Open(cavlcNativeFixturePath())
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer file.Close()
++	input := bufio.NewReaderSize(file, 1<<20)
++	var magic string
++	var count int
++	if _, err := fmt.Fscan(input, &magic, &count); err != nil || magic != "cavlc-native-v1" || count < 0 || count > 10000 {
++		t.Fatalf("invalid fixture header: %q %d, %v", magic, count, err)
++	}
++	if unsafe.Sizeof(cavlcNativeBlock{}) != 64 {
++		t.Fatal("unexpected Go/native fixture block stride")
++	}
++	suites := make([]cavlcNativeSuite, count)
++	for si := range suites {
++		suite := &suites[si]
++		var timed, blocks int
++		if _, err := fmt.Fscan(input, &suite.name, &suite.prefix, &suite.prefixValue, &timed, &blocks); err != nil ||
++			suite.prefix < 0 || suite.prefix > 31 || uint64(suite.prefixValue) >= uint64(1)<<uint(suite.prefix) ||
++			(timed != 0 && timed != 1) || blocks < 1 || blocks > 32 {
++			t.Fatalf("invalid suite%d: %v", si, err)
++		}
++		suite.timed = timed != 0
++		suite.blocks = make([]cavlcNativeBlock, blocks)
++		for bi := range suite.blocks {
++			block := &suite.blocks[bi]
++			var nc int
++			if _, err := fmt.Fscan(input, &block.end, &block.property, &nc, &block.flag, &block.expected); err != nil ||
++				(block.end != 3 && block.end != 14 && block.end != 15) || nc < 0 || nc > 17 ||
++				(block.flag != 0 && block.flag != 1) || (block.expected != 0 && block.expected != ENC_RETURN_VLCOVERFLOWFOUND) ||
++				(block.expected != 0 && (suite.timed || bi+1 != blocks)) {
++				t.Fatalf("invalid %s block%d metadata: %v", suite.name, bi, err)
++			}
++			if (block.end == 3 && (block.property != int32(CHROMA_DC) || nc != 17)) ||
++				(block.end != 3 && (block.property == int32(CHROMA_DC) || nc > 16)) {
++				t.Fatalf("invalid native nC/property in %s block%d", suite.name, bi)
++			}
++			block.nc = int8(nc)
++			for i := range block.coeff {
++				if _, err := fmt.Fscan(input, &block.coeff[i]); err != nil ||
++					((i > int(block.end) || block.flag == 0) && block.coeff[i] != 0) {
++					t.Fatalf("invalid native coefficient/padding in %s block%d index%d: %v", suite.name, bi, i, err)
++				}
++			}
++			if uintptr(unsafe.Pointer(&block.coeff[0]))&15 != 0 {
++				t.Fatalf("Go fixture %s block%d is not 16-byte aligned", suite.name, bi)
++			}
++		}
++	}
++	var extra string
++	if _, err := fmt.Fscan(input, &extra); err != io.EOF {
++		t.Fatalf("unexpected trailing fixture data: %q %v", extra, err)
++	}
++	return suites
++}
++
++func cavlcNativeInitialize(bits *common.SBitStringAux, buffer []byte, suite *cavlcNativeSuite) {
++	common.InitBits(bits, buffer, 0, int32(len(buffer)))
++	bits.UiCurBits = suite.prefixValue
++	bits.ILeftBits = 32 - suite.prefix
++	bits.IBits = 0x1234
++	bits.IIndex = -17
++}
++
++func cavlcNativeEncodeSequence(functions *SWelsFuncPtrList, suite *cavlcNativeSuite, buffer []byte, bits *common.SBitStringAux) int32 {
++	cavlcNativeInitialize(bits, buffer, suite)
++	for bi := range suite.blocks {
++		block := &suite.blocks[bi]
++		if result := WriteBlockResidualCavlc(functions, block.coeff[:], block.end, block.flag, block.property, block.nc, bits); result != 0 {
++			return result
++		}
++	}
++	return 0
++}
++
++type cavlcNativeRecord struct {
++	Suite   uint32
++	Block   uint32
++	Result  int32
++	Cursor  int32
++	Current uint32
++	Left    int32
++	Start   int32
++	End     int32
++	IBits   int32
++	Index   int64
++}
++
++func cavlcNativeState(si, bi int, result int32, bits *common.SBitStringAux) cavlcNativeRecord {
++	return cavlcNativeRecord{uint32(si), uint32(bi), result, int32(bits.PCurBuf), bits.UiCurBits, bits.ILeftBits,
++		int32(bits.PStartBuf), int32(bits.PEndBuf), bits.IBits, int64(bits.IIndex)}
++}
++
++// Validate the fixture expectations against the independent arithmetic writer
++// before using this corpus for either cross-language timing or native parity.
++func TestCavlcNativeFixtures(t *testing.T) {
++	suites := loadCavlcNativeFixtures(t)
++	var functions SWelsFuncPtrList
++	InitCoeffFunc(&functions, common.WelsCPUFeatureDetect(nil), 0)
++	for si := range suites {
++		suite := &suites[si]
++		var gotBuffer, wantBuffer [cavlcNativeBufferSize]byte
++		for i := range gotBuffer {
++			gotBuffer[i], wantBuffer[i] = 0xa5, 0xa5
++		}
++		var gotBits, wantBits common.SBitStringAux
++		cavlcNativeInitialize(&gotBits, gotBuffer[:], suite)
++		cavlcNativeInitialize(&wantBits, wantBuffer[:], suite)
++		for bi := range suite.blocks {
++			block := &suite.blocks[bi]
++			before := block.coeff
++			got := WriteBlockResidualCavlc(&functions, block.coeff[:], block.end, block.flag, block.property, block.nc, &gotBits)
++			want := writeBlockResidualCavlcReference(&functions, block.coeff[:], block.end, block.flag, block.property, block.nc, &wantBits)
++			if got != block.expected || want != block.expected || gotBuffer != wantBuffer || block.coeff != before ||
++				cavlcNativeState(si, bi, got, &gotBits) != cavlcNativeState(si, bi, want, &wantBits) {
++				t.Fatalf("%s block%d: return%d/%d expected%d, output/state/input parity failed", suite.name, bi, got, want, block.expected)
++			}
++		}
++	}
++}
++
++func TestCavlcNativeFullParity(t *testing.T) {
++	native := os.Getenv("CAVLC_NATIVE_BINARY")
++	if native == "" {
++		t.Skip("set CAVLC_NATIVE_BINARY to the isolated native_cavlc executable")
++	}
++	suites := loadCavlcNativeFixtures(t)
++	var functions SWelsFuncPtrList
++	InitCoeffFunc(&functions, common.WelsCPUFeatureDetect(nil), 0)
++	for _, mode := range []string{"auto", "scalar"} {
++		t.Run(mode, func(t *testing.T) {
++			command := exec.Command(native, "dump", cavlcNativeFixturePath(), mode)
++			var stderr bytes.Buffer
++			command.Stderr = &stderr
++			output, err := command.Output()
++			if err != nil {
++				t.Fatalf("native dump: %v\n%s", err, stderr.String())
++			}
++			t.Logf("%s", stderr.String())
++			if len(output) < 16 || string(output[:8]) != "CAVLCD01" || binary.LittleEndian.Uint32(output[8:12]) != cavlcNativeBufferSize ||
++				int(binary.LittleEndian.Uint32(output[12:16])) != len(suites) {
++				t.Fatal("invalid native dump header")
++			}
++			input := bytes.NewReader(output[16:])
++			for si := range suites {
++				suite := &suites[si]
++				var buffer [cavlcNativeBufferSize]byte
++				for i := range buffer {
++					buffer[i] = 0xa5
++				}
++				var bits common.SBitStringAux
++				cavlcNativeInitialize(&bits, buffer[:], suite)
++				for bi := range suite.blocks {
++					block := &suite.blocks[bi]
++					before := block.coeff
++					got := WriteBlockResidualCavlc(&functions, block.coeff[:], block.end, block.flag, block.property, block.nc, &bits)
++					var want cavlcNativeRecord
++					var wantBuffer [cavlcNativeBufferSize]byte
++					if err := binary.Read(input, binary.LittleEndian, &want); err != nil {
++						t.Fatal(err)
++					}
++					if _, err := io.ReadFull(input, wantBuffer[:]); err != nil {
++						t.Fatal(err)
++					}
++					state := cavlcNativeState(si, bi, got, &bits)
++					if state != want || buffer != wantBuffer || block.coeff != before {
++						t.Fatalf("%s block%d: Go state%+v native%+v, output parity=%t, input preserved=%t", suite.name, bi, state, want, buffer == wantBuffer, block.coeff == before)
++					}
++				}
++			}
++			if input.Len() != 0 {
++				t.Fatalf("unexpected trailing native dump: %d bytes", input.Len())
++			}
++		})
++	}
++}

@@ -1,0 +1,40 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                   │ /tmp/h264-parity-target-20261022/sad-next-component-next-base-results.txt │ /tmp/h264-parity-target-20261022/sad-next-sad-next-results.txt │
+                                   │                                  sec/op                                   │                 sec/op                   vs base               │
+SampleSadPackedRows/8x4-4                                                                          8.333n ± 3%                               7.534n ± 2%   -9.59% (p=0.002 n=6)
+SampleSadPackedRows/8x8-4                                                                         10.290n ± 4%                               8.963n ± 2%  -12.89% (p=0.002 n=6)
+SampleSadPackedRows/8x16-4                                                                         12.25n ± 1%                               12.09n ± 4%        ~ (p=0.132 n=6)
+SampleSadPackedRows/4x4-4                                                                          8.409n ± 2%                               7.930n ± 1%   -5.71% (p=0.002 n=6)
+SampleSadPackedRows/4x8-4                                                                         10.335n ± 4%                               9.304n ± 3%   -9.98% (p=0.002 n=6)
+SampleSadPackedRows/16x8Control-4                                                                  11.04n ± 2%                               10.44n ± 4%   -5.52% (p=0.002 n=6)
+SampleSadPackedRows/16x16Control-4                                                                 14.63n ± 2%                               14.29n ± 2%   -2.36% (p=0.017 n=6)
+geomean                                                                                            10.57n                                    9.848n        -6.84%
+
+                                   │ /tmp/h264-parity-target-20261022/sad-next-component-next-base-results.txt │ /tmp/h264-parity-target-20261022/sad-next-sad-next-results.txt │
+                                   │                                   B/op                                    │                  B/op                   vs base                │
+SampleSadPackedRows/8x4-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x8-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x16-4                                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x4-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x8-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x8Control-4                                                                 0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x16Control-4                                                                0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                      ²                                           +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                   │ /tmp/h264-parity-target-20261022/sad-next-component-next-base-results.txt │ /tmp/h264-parity-target-20261022/sad-next-sad-next-results.txt │
+                                   │                                 allocs/op                                 │               allocs/op                 vs base                │
+SampleSadPackedRows/8x4-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x8-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x16-4                                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x4-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x8-4                                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x8Control-4                                                                 0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x16Control-4                                                                0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                      ²                                           +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

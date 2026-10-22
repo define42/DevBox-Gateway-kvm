@@ -1,0 +1,71 @@
+{
+  "status": "frozen_for_one_component_comparison",
+  "repetitions": 6,
+  "benchtime": "200ms",
+  "candidate_source_digest": "3d5fa8e0ffe276e61d1ae565112e160dda44ab7d9d99afe263ff23f6a0cee253",
+  "changes": {
+    "pkg/h264/internal/encoder/initial_mvc_dedup.go": "83e63ee319a35fd608d49d387a4a6507138aa0651f77b9df8d9d4d61bd867848",
+    "pkg/h264/internal/encoder/initial_mvc_dedup_amd64_test.go": "b0a67592e3578515594ecb4b655557a313e3c759aa015d3e5ef0f14378fe21fa",
+    "pkg/h264/internal/encoder/initial_mvc_dedup_reference_test.go": "9b3912d82b91ecb91028a33866a378d518b0398501965e390101a098d82df1f4",
+    "pkg/h264/internal/encoder/svc_motion_estimate.go": "c5e4beb3fc163f6121ec05a39417a57edb0a1a86e6bced608e9d36e07bd1fb64"
+  },
+  "benchmark_overlay": {
+    "path": "/tmp/h264-parity-target-20261022/initial_mvc_dedup_bench_amd64_test.go",
+    "destination": "pkg/h264/internal/encoder/z_initial_mvc_dedup_bench_amd64_test.go",
+    "sha256": "a817d1d4f5ed67d1116e401430b6a805afa1b3d087eec51b0ee526b18426c876"
+  },
+  "expected_cases": [
+    "BenchmarkInitialMVCDedup/stride32/unique1/mvpWins",
+    "BenchmarkInitialMVCDedup/stride32/unique2/mvpWins",
+    "BenchmarkInitialMVCDedup/stride32/unique2/laterWins",
+    "BenchmarkInitialMVCDedup/stride32/unique3/mvpWins",
+    "BenchmarkInitialMVCDedup/stride32/unique3/laterWins",
+    "BenchmarkInitialMVCDedup/stride32/unique4/mvpWins",
+    "BenchmarkInitialMVCDedup/stride32/unique4/laterWins",
+    "BenchmarkInitialMVCDedup/stride32/unique5/mvpWins",
+    "BenchmarkInitialMVCDedup/stride32/unique5/laterWins",
+    "BenchmarkInitialMVCDedup/stride32/unique6/mvpWins",
+    "BenchmarkInitialMVCDedup/stride32/unique6/laterWins",
+    "BenchmarkInitialMVCDedup/stride32/control/capabilityOff",
+    "BenchmarkInitialMVCDedup/stride32/control/scalar",
+    "BenchmarkInitialMVCDedup/stride32/control/custom",
+    "BenchmarkInitialMVCDedup/stride32/control/count0",
+    "BenchmarkInitialMVCDedup/stride32/control/count1",
+    "BenchmarkInitialMVCDedup/stride32/control/narrow",
+    "BenchmarkInitialMVCDedup/stride2048/unique1/mvpWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique2/mvpWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique2/laterWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique3/mvpWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique3/laterWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique4/mvpWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique4/laterWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique5/mvpWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique5/laterWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique6/mvpWins",
+    "BenchmarkInitialMVCDedup/stride2048/unique6/laterWins",
+    "BenchmarkInitialMVCDedup/stride2048/control/capabilityOff",
+    "BenchmarkInitialMVCDedup/stride2048/control/scalar",
+    "BenchmarkInitialMVCDedup/stride2048/control/custom",
+    "BenchmarkInitialMVCDedup/stride2048/control/count0",
+    "BenchmarkInitialMVCDedup/stride2048/control/count1",
+    "BenchmarkInitialMVCDedup/stride2048/control/narrow"
+  ],
+  "benchmark_pattern": "^BenchmarkInitialMVCDedup$",
+  "focused_tests": "^TestInitialMVCDedup",
+  "required_race_tests": [
+    "TestInitialMVCDedupCompleteCaller",
+    "TestInitialMVCDedupMalformed",
+    "TestInitialMVCDedupCustomCallbacks",
+    "TestInitialMVCDedupAliases",
+    "TestInitialMVCDedupNoAdditionalAllocs",
+    "TestInitialMVCDedupEligibility"
+  ],
+  "evidence_sha256": {
+    "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/summary.json": "d18678f54d85b038d5756b609dc54e0b9051fb999b33b1f49c66f02a761a5346",
+    "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/provenance.json": "2e089c16b2a347bc6a3d065b2da29ce5dfaa24bdbac66600e432403fb0ee6b27",
+    "/tmp/h264-parity-target-20261022/round12-review/current-sources.sha256": "afc44590421a4dbe77f31bd8238d33b3204456f20ace5a1870ac8341c629da4c",
+    "/tmp/h264-parity-target-20261022/round12-decision.json": "85d076455e2aa76abcd0aa93c61d0c0e892209a154a006cb3300215055b7800c",
+    "/tmp/h264-parity-target-20261022/initial-mvc-dedup-source-manifest.json": "08fa08707815d9dda38dce98d946dc46213260e427d8cc2c84fbcf6a04ff9a44"
+  },
+  "decision_rule": "Require significant complete-caller benefit with no significant regression in any declared target or control. Any significant increase or all-inconclusive result holds the candidate. Use all six predeclared alternating pairs without pooling, sample exclusions, retiming or further source tuning. Only a component pass may proceed to the existing full stream/decoder/codec/EncodeDamage/native gate; no component result is a frame speedup."
+}

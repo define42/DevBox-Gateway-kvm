@@ -1,0 +1,262 @@
+{
+  "status": "held",
+  "rationale": "The single source-directed fallback tune improves18 of20 supported wide complete-callers, but fails the predeclared fallback controls. The4x4 stride32/motionfalse regression persists (+3.38%, p=.028), as does16x16 stride32/validated-off (+2.99%, p=.015); the16x16 stride32 scalar case also slows1.90% (p=.002). The7 unchanged public scorer controls are now inconclusive. Correctness, focused race, CPU-off, ARM64 build and zero-allocation gates pass, but this is not selected or merged. No more quarter tuning or timing repeat is planned in this round; no full-frame/native gain is claimed.",
+  "counts": {
+    "significant_reductions": 18,
+    "significant_regressions": 3,
+    "inconclusive": 26
+  },
+  "rows": [
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride32/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride32/validated-off-4",
+      "significant_change_percent": null,
+      "p": 0.18
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride32/scalar-4",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride2048/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.485
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride2048/validated-off-4",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride2048/scalar-4",
+      "significant_change_percent": null,
+      "p": 0.589
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride32/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.093
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride32/validated-off-4",
+      "significant_change_percent": 2.99,
+      "p": 0.015
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride32/scalar-4",
+      "significant_change_percent": 1.9,
+      "p": 0.002
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride2048/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.937
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride2048/validated-off-4",
+      "significant_change_percent": null,
+      "p": 0.31
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride2048/scalar-4",
+      "significant_change_percent": null,
+      "p": 0.818
+    },
+    {
+      "name": "QuarterRefineLocalParams/16x16-4",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "QuarterRefineLocalParams/16x8-4",
+      "significant_change_percent": null,
+      "p": 0.18
+    },
+    {
+      "name": "QuarterRefineLocalParams/8x16-4",
+      "significant_change_percent": null,
+      "p": 0.485
+    },
+    {
+      "name": "QuarterRefineLocalParams/8x8-4",
+      "significant_change_percent": null,
+      "p": 0.31
+    },
+    {
+      "name": "QuarterRefineLocalParams/8x4-4",
+      "significant_change_percent": null,
+      "p": 0.121
+    },
+    {
+      "name": "QuarterRefineLocalParams/4x4-4",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "QuarterRefineLocalParams/4x8-4",
+      "significant_change_percent": null,
+      "p": 0.619
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride32/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride32/motiontrue-4",
+      "significant_change_percent": -2.82,
+      "p": 0.015
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride2048/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.058
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride2048/motiontrue-4",
+      "significant_change_percent": -4.98,
+      "p": 0.041
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride32/motionfalse-4",
+      "significant_change_percent": -8.65,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride32/motiontrue-4",
+      "significant_change_percent": -8.74,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride2048/motionfalse-4",
+      "significant_change_percent": -10.25,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride2048/motiontrue-4",
+      "significant_change_percent": -6.93,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride32/motionfalse-4",
+      "significant_change_percent": -7.6,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride32/motiontrue-4",
+      "significant_change_percent": -6.59,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride2048/motionfalse-4",
+      "significant_change_percent": -5.32,
+      "p": 0.004
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride2048/motiontrue-4",
+      "significant_change_percent": -4.04,
+      "p": 0.017
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride32/motionfalse-4",
+      "significant_change_percent": -9.77,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride32/motiontrue-4",
+      "significant_change_percent": -9.42,
+      "p": 0.041
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride2048/motionfalse-4",
+      "significant_change_percent": -9.17,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride2048/motiontrue-4",
+      "significant_change_percent": -6.75,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride32/motionfalse-4",
+      "significant_change_percent": -4.83,
+      "p": 0.006
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride32/motiontrue-4",
+      "significant_change_percent": -7.68,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride2048/motionfalse-4",
+      "significant_change_percent": -8.59,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride2048/motiontrue-4",
+      "significant_change_percent": -8.21,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride32/motionfalse-4",
+      "significant_change_percent": 3.38,
+      "p": 0.028
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride32/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride2048/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.853
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride2048/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.061
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride32/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride32/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride2048/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride2048/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.31
+    }
+  ],
+  "candidate_merged": false,
+  "full_frame_or_native_timing_performed": false,
+  "main_milestone": "round12",
+  "retained_groups": 34,
+  "native_speed_parity_achieved": false,
+  "schema_version": 1,
+  "latest_main_milestone": "round12",
+  "evidence_sha256": {
+    "summary.json": "23d57424c8c1c216b119f8aa0dc087e5f5e1ecab6959b3ce7fc09bcc88d237fc",
+    "benchstat.txt": "06b4b36e9e63285812a0456ac18cac02083dbeaeae4c768d9acee71dc5262fbd",
+    "samples.json": "a88da7e7249563744e60705c015622b4a97316e8c949a74c4d015bd18421de0c",
+    "commands.json": "78b9d9b534ae836f7aee9e799d98cd6ed56cc200853f6819de128a4b59f3b87e",
+    "provenance.json": "b3f9271ce51003153bb388bb00b81038562073d6a520e9d989c36f8492facb8d",
+    "changes-vs-round11.json": "6879fad15226724e1490f8dea2077c62d2f2357e2f66ad979c8e783e226fabf9",
+    "harness/quarter-plan-tuned-next-README.txt": "e3ea191260ed937b98395dae818531f81e68f39467a782e9de962cde5e5f829c"
+  }
+}

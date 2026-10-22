@@ -1,0 +1,527 @@
+--- /dev/null
++++ b/pkg/h264/internal/encoder/initial_mvc_dedup.go
+@@ -0,0 +1,65 @@
++package encoder
++
++import (
++	"reflect"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++var initialSadFiveSSE2PC = reflect.ValueOf(common.WelsSampleSad16x16_sse2).Pointer()
++
++func initialSadFiveBuiltin(fn PSampleSadSatdCostFunc) bool {
++	return fn != nil && reflect.ValueOf(fn).Pointer() == initialSadFiveSSE2PC
++}
++
++// The caller admits only five-MVC 16x16 searches with the exact built-in SAD.
++// Keep seen state in this direct helper to avoid placing the seen array in
++// every search caller. No local state crosses an indirect callback or an unchecked API.
++func meInitialSadFiveDedup(me *SWelsME, slice *SSlice, initial SMVUnitXY, initialOff int,
++	encStride, refStride int32) (best SMVUnitXY, bestOff int, bestCost int32) {
++	enc, encOff := me.pEncMb, me.iEncMbOff
++	ref, refOff := me.pRefMb, me.iRefMbOff
++	mvd, mvdOff := me.pMvdCost, me.iMvdCostOff
++	mvp := me.sMvp
++	minMV, maxMV := slice.sMvStartMin, slice.sMvStartMax
++	mvc := slice.sMvc[:]
++
++	best, bestOff = initial, initialOff
++	bestCost = common.WelsSampleSad16x16_sse2(enc, encOff, encStride, ref, initialOff, refStride)
++	bestCost += COST_MVD(mvd, mvdOff, int32(initial.iMvX)*4-int32(mvp.iMvX), int32(initial.iMvY)*4-int32(mvp.iMvY))
++	var seen [6]SMVUnitXY
++	seen[0] = initial
++	n := 1
++	for i := 0; i < 5; i++ {
++		candidate := SMVUnitXY{
++			iMvX: int16(common.WELS_CLIP3((2+int32(mvc[i].iMvX))>>2, int32(minMV.iMvX), int32(maxMV.iMvX))),
++			iMvY: int16(common.WELS_CLIP3((2+int32(mvc[i].iMvY))>>2, int32(minMV.iMvY), int32(maxMV.iMvY))),
++		}
++		if candidate == best {
++			continue
++		}
++		duplicate := false
++		for _, previous := range seen[:n] {
++			if candidate == previous {
++				duplicate = true
++				break
++			}
++		}
++		if duplicate {
++			continue
++		}
++		// Retain the first occurrence's checked SAD followed by its MVD reads.
++		// A repeated successfully evaluated MV has the same cost: both sources
++		// are read-only until the later directional callback, and strict '<'
++		// makes the best signed cost monotonic. No aggregate preflight is needed.
++		off := refOff + int(int32(candidate.iMvY)*refStride+int32(candidate.iMvX))
++		cost := common.WelsSampleSad16x16_sse2(enc, encOff, encStride, ref, off, refStride) +
++			COST_MVD(mvd, mvdOff, int32(candidate.iMvX)*4-int32(mvp.iMvX), int32(candidate.iMvY)*4-int32(mvp.iMvY))
++		seen[n] = candidate
++		n++
++		if cost < bestCost {
++			best, bestOff, bestCost = candidate, off, cost
++		}
++	}
++	return best, bestOff, bestCost
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/initial_mvc_dedup_amd64_test.go
+@@ -0,0 +1,350 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"math"
++	"reflect"
++	"slices"
++	"testing"
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++func newInitialMVCDedupFixture(stride int32, unique int, later bool) *initialTwoFixture {
++	f := newInitialTwoFixture(16, 16, BLOCK_16x16, stride, "mvpWins")
++	points := [6]SMVUnitXY{{}, {-1, 0}, {0, -1}, {1, 0}, {0, 1}, {1, 1}}
++	f.slice.uiMvcNum = 5
++	for i := range f.slice.sMvc {
++		p := points[(i+1)%unique]
++		f.slice.sMvc[i] = SMVUnitXY{4 * p.iMvX, 4 * p.iMvY}
++	}
++	clear(f.me.pMvdCost)
++	if later {
++		p := points[unique-1]
++		off := f.me.iRefMbOff + int(int32(p.iMvY)*stride+int32(p.iMvX))
++		for y := range 16 {
++			copy(f.me.pEncMb[f.me.iEncMbOff+y*int(stride):][:16], f.me.pRefMb[off+y*int(stride):][:16])
++		}
++	}
++	return f
++}
++
++type initialMVCDedupOutcome struct {
++	me             SWelsME
++	mvc            [5]SMVUnitXY
++	min, max       SMVUnitXY
++	count          uint8
++	caps           [4]int
++	early          bool
++	panicText      string
++	events         []string
++	enc, ref, colo []byte
++	mvd            []uint16
++}
++
++func initialMVCDedupRun(f *initialTwoFixture, reference bool, events *[]string) (out initialMVCDedupOutcome) {
++	// Keep entry backing arrays visible even when a callback replaces a header.
++	enc, ref, colo, mvd := f.me.pEncMb, f.me.pRefMb, f.me.pColoRefMb, f.me.pMvdCost
++	defer func() {
++		if value := recover(); value != nil {
++			out.panicText = fmt.Sprintf("%T: %v", value, value)
++		}
++		out.me, out.mvc, out.min, out.max, out.count = f.me, f.slice.sMvc, f.slice.sMvStartMin, f.slice.sMvStartMax, f.slice.uiMvcNum
++		out.caps = [4]int{cap(f.me.pEncMb), cap(f.me.pRefMb), cap(f.me.pColoRefMb), cap(f.me.pMvdCost)}
++		out.enc, out.ref, out.colo, out.mvd = slices.Clone(enc), slices.Clone(ref), slices.Clone(colo), slices.Clone(mvd)
++		out.events = slices.Clone(*events)
++	}()
++	if reference {
++		out.early = initialMVCDedupReference(&f.funcs, &f.me, &f.slice, f.stride, f.stride)
++	} else {
++		out.early = WelsMotionEstimateInitialPoint(&f.funcs, &f.me, &f.slice, f.stride, f.stride)
++	}
++	return out
++}
++
++func initialMVCDedupCompare(t *testing.T, makeFixture func(*[]string) *initialTwoFixture, wantPanic bool) initialMVCDedupOutcome {
++	t.Helper()
++	var out [2]initialMVCDedupOutcome
++	for route := range out {
++		var events []string
++		f := makeFixture(&events)
++		out[route] = initialMVCDedupRun(f, route == 0, &events)
++	}
++	if (out[0].panicText != "") != wantPanic || !reflect.DeepEqual(out[0], out[1]) {
++		t.Fatalf("reference=%+v\ncandidate=%+v", out[0], out[1])
++	}
++	return out[1]
++}
++
++func initialMVCDedupDirection(f *initialTwoFixture, events *[]string, mode int) {
++	f.funcs.pfCheckDirectionalMv = func(sad PSampleSadSatdCostFunc, me *SWelsME, min, max SMVUnitXY, encStride, refStride int32, cost *int32) bool {
++		*events = append(*events, fmt.Sprintf("direction:%v/%v/%d/%d/%d/%v/%v/%d/%d/%d", me.sMv, me.sDirectionalMv, me.iRefMbOff, me.uiSadCost, *cost, min, max, encStride, refStride, f.slice.uiMvcNum))
++		if mode != 0 {
++			// Mutation is observable even when this callback declines the MV.
++			me.sDirectionalMv = SMVUnitXY{2, -1}
++			me.pColoRefMb = slices.Clone(me.pRefMb)
++			me.iColoRefMbOff += 1
++			me.pRefMb = []byte{23, 47}
++			me.sMv = SMVUnitXY{7, 8}
++			*cost = -123
++			f.slice.uiMvcNum = 0
++			f.slice.sMvc[0] = SMVUnitXY{111, 222}
++		}
++		return mode == 2
++	}
++}
++
++func TestInitialMVCDedupCompleteCaller(t *testing.T) {
++	for _, stride := range []int32{32, 2048} {
++		for unique := 1; unique <= 6; unique++ {
++			for _, later := range []bool{false, true} {
++				for direction := range 3 {
++					for _, early := range []uint32{0, 90000, math.MaxUint32} {
++						t.Run(fmt.Sprintf("stride%d/unique%d/later%v/direction%d/early%d", stride, unique, later, direction, early), func(t *testing.T) {
++							initialMVCDedupCompare(t, func(events *[]string) *initialTwoFixture {
++								f := newInitialMVCDedupFixture(stride, unique, later)
++								f.me.uSadPredISatd = early
++								initialMVCDedupDirection(f, events, direction)
++								return f
++							}, false)
++						})
++					}
++				}
++			}
++		}
++	}
++	for _, scenario := range []string{"tie", "repeatedLoser", "replacedWinner", "clipping", "negativeRound", "extremeMVP", "maxMVD", "zeroStride", "overlapStride", "negativeStride", "capabilityOff", "scalar", "count0", "count1", "narrow"} {
++		t.Run(scenario, func(t *testing.T) {
++			out := initialMVCDedupCompare(t, func(events *[]string) *initialTwoFixture {
++				f := newInitialMVCDedupFixture(32, 6, false)
++				switch scenario {
++				case "tie":
++					clear(f.me.pRefMb)
++					clear(f.me.pEncMb)
++				case "repeatedLoser", "replacedWinner":
++					clear(f.me.pRefMb)
++					clear(f.me.pEncMb)
++					f.slice.sMvc = [5]SMVUnitXY{{-4, 0}, {0, -4}, {-4, 0}, {}, {0, -4}}
++					f.me.pMvdCost[508], f.me.pMvdCost[512] = 20, 1
++					if scenario == "replacedWinner" {
++						// Initial cost=200, A=120, B=100, then A reappears.
++						f.me.pMvdCost[512] = 100
++						f.slice.sMvc[1], f.slice.sMvc[4] = SMVUnitXY{4, 4}, SMVUnitXY{4, 4}
++						f.me.pMvdCost[516] = 50
++					}
++				case "clipping":
++					f.slice.sMvStartMin, f.slice.sMvStartMax = SMVUnitXY{}, SMVUnitXY{1, 1}
++					f.slice.sMvc = [5]SMVUnitXY{{-32768, 32767}, {-4, 300}, {32767, -32768}, {111, -4}, {32767, 32767}}
++				case "negativeRound":
++					f.me.sMvp = SMVUnitXY{-3, -6}
++					f.slice.sMvc = [5]SMVUnitXY{{-5, -7}, {-4, -8}, {-3, -6}, {-6, -6}, {-5, -7}}
++				case "extremeMVP":
++					f.me.sMvp = SMVUnitXY{math.MaxInt16, math.MinInt16}
++					f.me.pMvdCost, f.me.iMvdCostOff = make([]uint16, 131073), 65536
++				case "maxMVD":
++					for i := range f.me.pMvdCost {
++						f.me.pMvdCost[i] = math.MaxUint16
++					}
++				case "zeroStride":
++					f.stride = 0
++				case "overlapStride":
++					f.stride = 3
++				case "negativeStride":
++					f.stride, f.me.iEncMbOff, f.me.iRefMbOff = -32, 15*32+3, 20*32+8
++				case "capabilityOff":
++					f.funcs.sSampleDealingFuncs.bSampleSadTwo = false
++				case "scalar":
++					WelsInitSampleSadFunc(&f.funcs, 0)
++				case "count0":
++					f.slice.uiMvcNum = 0
++				case "count1":
++					f.slice.uiMvcNum = 1
++				case "narrow":
++					f.me.uiBlockSize = BLOCK_4x4
++				}
++				initialMVCDedupDirection(f, events, 0)
++				return f
++			}, scenario == "negativeStride")
++			if scenario == "tie" && out.me.sMv != (SMVUnitXY{}) {
++				t.Fatalf("tie replaced MVP: %v", out.me.sMv)
++			}
++			if scenario == "replacedWinner" && out.me.sMv != (SMVUnitXY{1, 1}) {
++				t.Fatalf("winner was not replaced: %v", out.me.sMv)
++			}
++		})
++	}
++}
++
++func TestInitialMVCDedupMalformed(t *testing.T) {
++	for _, scenario := range []string{"shortEnc", "nilEnc", "shortRefInitial", "shortRefLater", "negativeEncOff", "negativeRefOff", "negativeStride", "hugeStride", "maxRefOff", "minRefOff", "int32MultiplyWrap", "mvdFirst", "mvdLater", "sadBeforeMVD", "tooManyMVC", "badBlock", "nilSAD", "directionPanic"} {
++		t.Run(scenario, func(t *testing.T) {
++			initialMVCDedupCompare(t, func(events *[]string) *initialTwoFixture {
++				f := newInitialMVCDedupFixture(32, 6, false)
++				switch scenario {
++				case "shortEnc":
++					f.me.pEncMb = f.me.pEncMb[:len(f.me.pEncMb)-1]
++				case "nilEnc":
++					f.me.pEncMb = nil
++				case "shortRefInitial":
++					f.me.pRefMb = f.me.pRefMb[:f.me.iRefMbOff+15*32+15]
++				case "shortRefLater":
++					f.me.pRefMb = f.me.pRefMb[:f.me.iRefMbOff+15*32+16]
++				case "negativeEncOff":
++					f.me.iEncMbOff = -1
++				case "negativeRefOff":
++					f.me.iRefMbOff = -1
++				case "negativeStride":
++					f.stride = -32
++				case "hugeStride":
++					f.stride = math.MaxInt32
++				case "maxRefOff":
++					f.me.iRefMbOff, f.me.sMvp = math.MaxInt, SMVUnitXY{4, 4}
++				case "minRefOff":
++					f.me.iRefMbOff, f.me.sMvp = math.MinInt, SMVUnitXY{-4, -4}
++				case "int32MultiplyWrap":
++					f.stride, f.me.sMvp = math.MaxInt32, SMVUnitXY{0, 8}
++				case "mvdFirst":
++					f.me.iMvdCostOff = -1
++				case "mvdLater":
++					f.me.pMvdCost = f.me.pMvdCost[:513]
++				case "sadBeforeMVD":
++					f.me.pRefMb = f.me.pRefMb[:f.me.iRefMbOff+15*32+16]
++					f.me.pMvdCost = f.me.pMvdCost[:513]
++				case "tooManyMVC":
++					f.slice.uiMvcNum = 6
++				case "badBlock":
++					f.me.uiBlockSize = 255
++				case "nilSAD":
++					f.funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] = nil
++				}
++				initialMVCDedupDirection(f, events, 0)
++				if scenario == "directionPanic" {
++					f.funcs.pfCheckDirectionalMv = func(_ PSampleSadSatdCostFunc, me *SWelsME, _, _ SMVUnitXY, _, _ int32, cost *int32) bool {
++						me.uiSadCost, *cost = 12, -7
++						*events = append(*events, "direction panic")
++						panic("direction")
++					}
++				}
++				return f
++			}, true)
++		})
++	}
++}
++
++func TestInitialMVCDedupCustomCallbacks(t *testing.T) {
++	for _, scenario := range []string{"decreasing", "mutateHeaders", "panicThird"} {
++		t.Run(scenario, func(t *testing.T) {
++			out := initialMVCDedupCompare(t, func(events *[]string) *initialTwoFixture {
++				f := newInitialMVCDedupFixture(32, 3, false)
++				calls := 0
++				f.funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] = func(enc []byte, encOff int, encStride int32, ref []byte, refOff int, refStride int32) int32 {
++					calls++
++					*events = append(*events, fmt.Sprintf("sad%d:%d/%d/%d/%d/%d/%d/%d/%d", calls, len(enc), encOff, encStride, len(ref), refOff, refStride, enc[0], ref[0]))
++					if calls == 1 && scenario == "mutateHeaders" {
++						f.slice.sMvc = [5]SMVUnitXY{{-4, 4}, {4, 0}, {-4, 4}, {}, {4, 0}}
++						f.slice.uiMvcNum = 0
++						f.slice.sMvStartMin, f.slice.sMvStartMax = SMVUnitXY{}, SMVUnitXY{}
++						f.me.pEncMb, f.me.iEncMbOff = []byte{77}, 123
++						f.me.pRefMb, f.me.iRefMbOff = slices.Clone(ref), refOff+1
++						f.me.pRefMb[0] = 55
++						f.me.pMvdCost[512] = 123
++						f.me.pMvdCost, f.me.iMvdCostOff = []uint16{444}, -44
++						f.me.sMvp = SMVUnitXY{321, -321}
++						// The captured callback remains authoritative for this search.
++						f.funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] = nil
++					}
++					if calls == 3 && scenario == "panicThird" {
++						panic("third SAD")
++					}
++					return int32(1000 - 100*calls)
++				}
++				initialMVCDedupDirection(f, events, 0)
++				return f
++			}, scenario == "panicThird")
++			if scenario == "decreasing" && len(out.events) != 7 {
++				t.Fatalf("custom repeated callbacks were skipped: %v", out.events)
++			}
++		})
++	}
++}
++
++func TestInitialMVCDedupAliases(t *testing.T) {
++	for _, scenario := range []string{"encRef", "refColo", "mvdRef", "mvdEnc", "mvdMVC"} {
++		t.Run(scenario, func(t *testing.T) {
++			initialMVCDedupCompare(t, func(events *[]string) *initialTwoFixture {
++				f := newInitialMVCDedupFixture(32, 3, true)
++				switch scenario {
++				case "encRef":
++					f.me.pEncMb, f.me.iEncMbOff = f.me.pRefMb, f.me.iRefMbOff+1
++				case "refColo":
++					f.me.pColoRefMb, f.me.iColoRefMbOff = f.me.pRefMb[1:], f.me.iRefMbOff-1
++				case "mvdRef", "mvdEnc":
++					words := make([]uint16, 2048)
++					for i := range words {
++						words[i] = uint16(i*71 + 3)
++					}
++					bytes := unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(words))), 2*len(words))
++					f.me.pMvdCost, f.me.iMvdCostOff = words, 512
++					if scenario == "mvdRef" {
++						f.me.pRefMb = bytes
++					} else {
++						f.me.pEncMb = bytes
++					}
++				case "mvdMVC":
++					// -4/0 deltas fit this ten-word view. Both arrays are read-only.
++					f.me.pMvdCost = unsafe.Slice((*uint16)(unsafe.Pointer(&f.slice.sMvc[0])), 10)
++					f.me.iMvdCostOff = 5
++				}
++				initialMVCDedupDirection(f, events, 0)
++				return f
++			}, false)
++		})
++	}
++}
++
++func TestInitialMVCDedupNoAdditionalAllocs(t *testing.T) {
++	f := newInitialMVCDedupFixture(32, 3, true)
++	base := f.me
++	want := testing.AllocsPerRun(20, func() {
++		f.me = base
++		initialMVCDedupReference(&f.funcs, &f.me, &f.slice, f.stride, f.stride)
++	})
++	got := testing.AllocsPerRun(20, func() {
++		f.me = base
++		WelsMotionEstimateInitialPoint(&f.funcs, &f.me, &f.slice, f.stride, f.stride)
++	})
++	if want != 0 || got != want {
++		t.Fatalf("persistent caller allocs reference=%v candidate=%v", want, got)
++	}
++	// Baseline directional callbacks can already make local ME state escape.
++	// Compare two direct callers, without adding an indirect test dispatch.
++	want = testing.AllocsPerRun(20, func() {
++		me := base
++		initialMVCDedupReference(&f.funcs, &me, &f.slice, f.stride, f.stride)
++	})
++	got = testing.AllocsPerRun(20, func() {
++		me := base
++		WelsMotionEstimateInitialPoint(&f.funcs, &me, &f.slice, f.stride, f.stride)
++	})
++	if got != want {
++		t.Fatalf("local caller allocs reference=%v candidate=%v", want, got)
++	}
++}
++
++func TestInitialMVCDedupEligibility(t *testing.T) {
++	if !initialSadFiveBuiltin(common.WelsSampleSad16x16_sse2) {
++		t.Fatal("built-in SAD rejected")
++	}
++	if initialSadFiveBuiltin(nil) || initialSadFiveBuiltin(common.WelsSampleSad16x16_c) {
++		t.Fatal("nil/scalar SAD admitted")
++	}
++	custom := func(a []byte, ao int, as int32, b []byte, bo int, bs int32) int32 {
++		return common.WelsSampleSad16x16_sse2(a, ao, as, b, bo, bs)
++	}
++	if initialSadFiveBuiltin(custom) {
++		t.Fatal("custom wrapper admitted")
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/initial_mvc_dedup_reference_test.go
+@@ -0,0 +1,90 @@
++package encoder
++
++import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++
++// Frozen round12 complete caller, renamed only. Never calls the dedup helper.
++func initialMVCDedupReference(pFuncList *SWelsFuncPtrList, pMe *SWelsME, pSlice *SSlice, iStrideEnc int32, iStrideRef int32) bool {
++	pSad := pFuncList.sSampleDealingFuncs.pfSampleSad[pMe.uiBlockSize]
++	kpMvdCost, kiMvdCostOff := pMe.pMvdCost, pMe.iMvdCostOff
++	kpEncMb, kiEncMbOff := pMe.pEncMb, pMe.iEncMbOff
++	var iMvc0, iMvc1 int16
++	var iSadCost int32
++	var iBestSadCost int32
++	var pRefMb []uint8
++	var iRefMbOff int
++	kuiMvcNum := uint32(pSlice.uiMvcNum)
++	kpMvcList := pSlice.sMvc[:]
++	ksMvStartMin := pSlice.sMvStartMin
++	ksMvStartMax := pSlice.sMvStartMax
++	ksMvp := pMe.sMvp
++	var sMv SMVUnitXY
++
++	//  Step 1: Initial point prediction
++	// init with sMvp
++	sMv.iMvX = int16(common.WELS_CLIP3((2+int32(ksMvp.iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX)))
++	sMv.iMvY = int16(common.WELS_CLIP3((2+int32(ksMvp.iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY)))
++
++	pRefMb = pMe.pRefMb
++	iRefMbOff = pMe.iRefMbOff + int(int32(sMv.iMvY)*iStrideRef+int32(sMv.iMvX))
++
++	// A distinct sole MVC needs exactly two SADs. The direct helper shares the
++	// encoded loads and validation without passing local state through callbacks.
++	if kuiMvcNum == 1 && (pMe.uiBlockSize <= BLOCK_8x8 || pMe.uiBlockSize == BLOCK_8x4) &&
++		pFuncList.sSampleDealingFuncs.bSampleSadTwo {
++		mvc := SMVUnitXY{
++			iMvX: int16(common.WELS_CLIP3((2+int32(kpMvcList[0].iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX))),
++			iMvY: int16(common.WELS_CLIP3((2+int32(kpMvcList[0].iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY))),
++		}
++		if mvc == sMv {
++			// Built-in SAD callbacks cannot change the MVC. Do the initial SAD
++			// and MVD lookup below, but omit the known duplicate's loop work.
++			// Leave the externally visible count unchanged for later callbacks.
++			kuiMvcNum = 0
++		} else if bestMv, bestOff, bestCost, ok := meInitialSadTwo(pMe, sMv, mvc, iRefMbOff, iStrideEnc, iStrideRef); ok {
++			sMv, iRefMbOff, iBestSadCost = bestMv, bestOff, bestCost
++			// Ineligible shapes and multi-MVC searches take the original path
++			// below without an additional batched-status branch.
++			goto checkDirectional
++		}
++	}
++	iBestSadCost = pSad(kpEncMb, kiEncMbOff, iStrideEnc, pRefMb, iRefMbOff, iStrideRef)
++	iBestSadCost += COST_MVD(kpMvdCost, kiMvdCostOff, (int32(sMv.iMvX)*(1<<2))-int32(ksMvp.iMvX),
++		(int32(sMv.iMvY)*(1<<2))-int32(ksMvp.iMvY))
++
++	for i := uint32(0); i < kuiMvcNum; i++ {
++		//clipping here is essential since some pOut-of-range MVC may happen here (i.e., refer to baseMV)
++		iMvc0 = int16(common.WELS_CLIP3((2+int32(kpMvcList[i].iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX)))
++		iMvc1 = int16(common.WELS_CLIP3((2+int32(kpMvcList[i].iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY)))
++
++		if (int32(iMvc0)-int32(sMv.iMvX)) != 0 || (int32(iMvc1)-int32(sMv.iMvY)) != 0 {
++			iFref2Off := pMe.iRefMbOff + int(int32(iMvc1)*iStrideRef+int32(iMvc0))
++
++			iSadCost = pSad(kpEncMb, kiEncMbOff, iStrideEnc, pMe.pRefMb, iFref2Off, iStrideRef) +
++				COST_MVD(kpMvdCost, kiMvdCostOff, (int32(iMvc0)*(1<<2))-int32(ksMvp.iMvX), (int32(iMvc1)*(1<<2))-int32(ksMvp.iMvY))
++
++			if iSadCost < iBestSadCost {
++				sMv.iMvX = iMvc0
++				sMv.iMvY = iMvc1
++				pRefMb = pMe.pRefMb
++				iRefMbOff = iFref2Off
++				iBestSadCost = iSadCost
++			}
++		}
++	}
++
++checkDirectional:
++	if pFuncList.pfCheckDirectionalMv(pSad, pMe, ksMvStartMin, ksMvStartMax, iStrideEnc, iStrideRef, &pMe.iDirectionalSadCost) {
++		sMv = pMe.sDirectionalMv
++		pRefMb = pMe.pColoRefMb
++		iRefMbOff = pMe.iColoRefMbOff + int(int32(sMv.iMvY)*iStrideRef+int32(sMv.iMvX))
++		iBestSadCost = pMe.iDirectionalSadCost
++	}
++
++	UpdateMeResults(sMv, uint32(iBestSadCost), pRefMb, iRefMbOff, pMe)
++	if iBestSadCost < int32(pMe.uSadPredISatd) {
++		//Initial point early Stop
++		MeEndIntepelSearch(pMe)
++		return true
++	}
++	return false
++}
+--- a/pkg/h264/internal/encoder/svc_motion_estimate.go
++++ b/pkg/h264/internal/encoder/svc_motion_estimate.go
+@@ -159,6 +159,10 @@
+ 			// below without an additional batched-status branch.
+ 			goto checkDirectional
+ 		}
++	} else if kuiMvcNum == 5 && pMe.uiBlockSize == BLOCK_16x16 &&
++		pFuncList.sSampleDealingFuncs.bSampleSadTwo && initialSadFiveBuiltin(pSad) {
++		sMv, iRefMbOff, iBestSadCost = meInitialSadFiveDedup(pMe, pSlice, sMv, iRefMbOff, iStrideEnc, iStrideRef)
++		goto checkDirectional
+ 	}
+ 	iBestSadCost = pSad(kpEncMb, kiEncMbOff, iStrideEnc, pRefMb, iRefMbOff, iStrideRef)
+ 	iBestSadCost += COST_MVD(kpMvdCost, kiMvdCostOff, (int32(sMv.iMvX)*(1<<2))-int32(ksMvp.iMvX),

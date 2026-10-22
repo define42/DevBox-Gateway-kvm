@@ -1,12 +1,12 @@
 #include "textflag.h"
 
-// Slice arguments retain all buffers across the assembly call.
-TEXT ·idctT4RecSSE2(SB), NOSPLIT, $0-88
-	MOVQ rec_base+0(FP), BX
-	MOVQ recStride+24(FP), CX
-	MOVQ pred_base+32(FP), DX
-	MOVQ predStride+56(FP), SI
-	MOVQ coeff_base+64(FP), AX
+// Typed pointer arguments retain all buffers across the assembly call.
+TEXT ·idctT4RecSSE2(SB), NOSPLIT, $0-40
+	MOVQ rec+0(FP), BX
+	MOVQ recStride+8(FP), CX
+	MOVQ pred+16(FP), DX
+	MOVQ predStride+24(FP), SI
+	MOVQ coeff+32(FP), AX
 	JMP idctT4RecKernel<>(SB)
 
 TEXT ·idctFourT4RecSSE2(SB), NOSPLIT, $0-88

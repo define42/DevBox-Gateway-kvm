@@ -1,0 +1,120 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                          │ /tmp/h264-parity-target-20261022/cavlc-packed-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/cavlc-packed-next-cavlc-packed-next.txt │
+                                                          │                                    sec/op                                    │                       sec/op                        vs base              │
+CavlcLevelWriter/end14/medium/small-4                                                                                       1.696µ ±  3%                                         1.685µ ±  1%       ~ (p=0.167 n=6)
+CavlcLevelWriter/end14/medium/boundary-4                                                                                    2.216µ ±  3%                                         2.178µ ±  5%       ~ (p=0.290 n=6)
+CavlcLevelWriter/end14/medium/mixed-4                                                                                       1.960µ ± 14%                                         1.953µ ± 12%       ~ (p=0.699 n=6)
+CavlcLevelWriter/end14/dense/small-4                                                                                        1.613µ ±  1%                                         1.548µ ±  5%  -4.03% (p=0.043 n=6)
+CavlcLevelWriter/end14/dense/boundary-4                                                                                     2.435µ ±  3%                                         2.402µ ±  3%       ~ (p=0.117 n=6)
+CavlcLevelWriter/end14/dense/mixed-4                                                                                        2.111µ ±  2%                                         2.027µ ±  5%  -3.98% (p=0.024 n=6)
+CavlcLevelWriter/end15/medium/small-4                                                                                       1.781µ ±  2%                                         1.760µ ±  3%       ~ (p=0.240 n=6)
+CavlcLevelWriter/end15/medium/boundary-4                                                                                    2.355µ ±  7%                                         2.318µ ±  2%       ~ (p=0.180 n=6)
+CavlcLevelWriter/end15/medium/mixed-4                                                                                       2.104µ ± 18%                                         2.066µ ±  1%  -1.83% (p=0.015 n=6)
+CavlcLevelWriter/end15/dense/small-4                                                                                        1.705µ ±  2%                                         1.610µ ±  2%  -5.57% (p=0.002 n=6)
+CavlcLevelWriter/end15/dense/boundary-4                                                                                     2.590µ ±  4%                                         2.552µ ±  1%  -1.45% (p=0.002 n=6)
+CavlcLevelWriter/end15/dense/mixed-4                                                                                        2.203µ ± 11%                                         2.135µ ±  4%       ~ (p=0.065 n=6)
+CavlcExtractionResidual/end14/zero/scalar=false-4                                                                           22.88n ±  2%                                         22.68n ±  8%       ~ (p=0.394 n=6)
+CavlcExtractionResidual/end14/dc/scalar=false-4                                                                             34.12n ±  4%                                         33.15n ± 14%       ~ (p=0.065 n=6)
+CavlcExtractionResidual/end14/sparse-low/scalar=false-4                                                                     48.11n ±  2%                                         46.32n ±  3%  -3.71% (p=0.004 n=6)
+CavlcExtractionResidual/end14/sparse-wide/scalar=false-4                                                                    52.86n ±  2%                                         52.04n ±  3%       ~ (p=0.132 n=6)
+CavlcExtractionResidual/end14/medium/scalar=false-4                                                                         95.58n ±  1%                                         93.95n ±  3%       ~ (p=0.093 n=6)
+CavlcExtractionResidual/end14/nearly-dense/scalar=false-4                                                                   130.5n ±  1%                                         129.9n ±  8%       ~ (p=0.422 n=6)
+CavlcExtractionResidual/end14/one-zero/scalar=false-4                                                                       137.2n ±  4%                                         130.8n ± 16%       ~ (p=0.065 n=6)
+CavlcExtractionResidual/end14/dense/scalar=false-4                                                                          98.23n ±  4%                                         94.59n ±  3%  -3.70% (p=0.011 n=6)
+CavlcExtractionResidual/end15/zero/scalar=false-4                                                                           22.88n ±  2%                                         23.03n ±  2%       ~ (p=0.394 n=6)
+CavlcExtractionResidual/end15/dc/scalar=false-4                                                                             33.51n ±  2%                                         33.36n ±  2%       ~ (p=0.310 n=6)
+CavlcExtractionResidual/end15/sparse-low/scalar=false-4                                                                     47.53n ±  1%                                         46.35n ±  6%       ~ (p=0.093 n=6)
+CavlcExtractionResidual/end15/sparse-wide/scalar=false-4                                                                    63.22n ±  4%                                         61.92n ± 12%       ~ (p=0.065 n=6)
+CavlcExtractionResidual/end15/medium/scalar=false-4                                                                         96.47n ±  3%                                         93.67n ± 12%       ~ (p=0.589 n=6)
+CavlcExtractionResidual/end15/nearly-dense/scalar=false-4                                                                   129.4n ±  1%                                         128.0n ±  4%       ~ (p=0.310 n=6)
+CavlcExtractionResidual/end15/one-zero/scalar=false-4                                                                       126.5n ±  2%                                         120.4n ±  2%  -4.82% (p=0.002 n=6)
+CavlcExtractionResidual/end15/dense/scalar=false-4                                                                          96.97n ±  3%                                         91.50n ±  2%  -5.64% (p=0.002 n=6)
+geomean                                                                                                                     286.3n                                               279.6n        -2.33%
+
+                                         │ /tmp/h264-parity-target-20261022/cavlc-packed-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/cavlc-packed-next-cavlc-packed-next.txt │
+                                         │                                  blocks/op                                   │                    blocks/op                      vs base                │
+CavlcLevelWriter/end14/medium/small-4                                                                        16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary-4                                                                     16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed-4                                                                        16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small-4                                                                         16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary-4                                                                      16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed-4                                                                         16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small-4                                                                        16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary-4                                                                     16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed-4                                                                        16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small-4                                                                         16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary-4                                                                      16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed-4                                                                         16.00 ± 0%                                         16.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                      16.00                                              16.00       +0.00%
+¹ all samples are equal
+
+                                                          │ /tmp/h264-parity-target-20261022/cavlc-packed-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/cavlc-packed-next-cavlc-packed-next.txt │
+                                                          │                                     B/op                                     │                       B/op                        vs base                │
+CavlcLevelWriter/end14/medium/small-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary-4                                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary-4                                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary-4                                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary-4                                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/zero/scalar=false-4                                                                           0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dc/scalar=false-4                                                                             0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-low/scalar=false-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-wide/scalar=false-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/medium/scalar=false-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/nearly-dense/scalar=false-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/one-zero/scalar=false-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dense/scalar=false-4                                                                          0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/zero/scalar=false-4                                                                           0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dc/scalar=false-4                                                                             0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-low/scalar=false-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-wide/scalar=false-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/medium/scalar=false-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/nearly-dense/scalar=false-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/one-zero/scalar=false-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dense/scalar=false-4                                                                          0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                                ²                                                     +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                          │ /tmp/h264-parity-target-20261022/cavlc-packed-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/cavlc-packed-next-cavlc-packed-next.txt │
+                                                          │                                  allocs/op                                   │                    allocs/op                      vs base                │
+CavlcLevelWriter/end14/medium/small-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary-4                                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary-4                                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary-4                                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed-4                                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary-4                                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed-4                                                                                        0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/zero/scalar=false-4                                                                           0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dc/scalar=false-4                                                                             0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-low/scalar=false-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-wide/scalar=false-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/medium/scalar=false-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/nearly-dense/scalar=false-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/one-zero/scalar=false-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dense/scalar=false-4                                                                          0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/zero/scalar=false-4                                                                           0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dc/scalar=false-4                                                                             0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-low/scalar=false-4                                                                     0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-wide/scalar=false-4                                                                    0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/medium/scalar=false-4                                                                         0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/nearly-dense/scalar=false-4                                                                   0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/one-zero/scalar=false-4                                                                       0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dense/scalar=false-4                                                                          0.000 ± 0%                                           0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                                ²                                                     +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

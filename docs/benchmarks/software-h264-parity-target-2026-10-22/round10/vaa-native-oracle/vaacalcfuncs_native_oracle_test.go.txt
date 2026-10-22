@@ -1,0 +1,173 @@
+//go:build amd64 && integration
+
+package processing
+
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"io"
+	"os"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"golang.org/x/sys/cpu"
+)
+
+type vaaNativeOracleCall struct {
+	name string
+	call VAACalcSadFunc
+}
+
+// An optional file registers the candidate AVX2 entry. This file alone also
+// compiles in the frozen SSE2-only baseline.
+var vaaNativeOracleCalls = []vaaNativeOracleCall{
+	{"Scalar", VAACalcSad_c},
+	{"SSE2", VAACalcSad_sse2},
+}
+
+type vaaNativeOracleFixture struct {
+	name                                           string
+	width, height, stride, curOff, refOff, pattern int
+	seed                                           uint32
+	frame                                          int32
+	sad                                            [][4]int32
+}
+
+func vaaNativeOraclePixel(x, y int, seed uint32, pattern int, plane uint32) byte {
+	ux, uy := uint32(x), uint32(y)
+	switch pattern {
+	case 0:
+		plane = 0
+	case 1:
+		return byte(plane * 255)
+	case 2:
+		return byte(((ux ^ uy ^ plane) & 1) * 255)
+	case 3:
+		return byte(ux*13 + uy*7 + plane*(ux*3+uy*11+29) + seed)
+	case 5:
+		if plane == 0 {
+			return 0
+		}
+		quadrant := ((uy>>3)&1)*2 + ((ux >> 3) & 1)
+		return byte((ux>>4)*19 + (uy>>4)*37 + quadrant*53 + 1)
+	}
+	v := seed ^ ((ux + 1) * 0x9e3779b9) ^ ((uy + 1) * 0x85ebca6b) ^ (plane * 0xc2b2ae35)
+	v ^= v >> 16
+	v *= 0x7feb352d
+	v ^= v >> 15
+	v *= 0x846ca68b
+	v ^= v >> 16
+	return byte(v)
+}
+
+func vaaNativeOraclePlane(f vaaNativeOracleFixture, off int, plane uint32) ([]byte, []byte) {
+	length := off + (f.height-1)*f.stride + f.width
+	backing := bytes.Repeat([]byte{0xa5}, length+64)
+	for y := range f.height {
+		for x := range f.width {
+			backing[off+y*f.stride+x] = vaaNativeOraclePixel(x, y, f.seed, f.pattern, plane)
+		}
+	}
+	return backing[:length:length], backing
+}
+
+func vaaNativeOracleLoad(t *testing.T) []vaaNativeOracleFixture {
+	t.Helper()
+	path := os.Getenv("VAA_NATIVE_ORACLE")
+	if path == "" {
+		t.Fatal("VAA_NATIVE_ORACLE must name native-vaa's validated output file")
+	}
+	input, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	in := bufio.NewReader(input)
+	var magic string
+	var count int
+	if _, err := fmt.Fscan(in, &magic, &count); err != nil || magic != "vaa-native-v1" || count < 1 || count > 1000 {
+		t.Fatalf("invalid native header: %q count=%d err=%v", magic, count, err)
+	}
+	fixtures := make([]vaaNativeOracleFixture, count)
+	seen := make(map[string]bool, count)
+	for i := range fixtures {
+		f := &fixtures[i]
+		var quadrants int
+		_, err := fmt.Fscan(in, &f.name, &f.width, &f.height, &f.stride, &f.curOff, &f.refOff,
+			&f.pattern, &f.seed, &f.frame, &quadrants)
+		if err != nil || f.width < 16 || f.height < 16 || f.width&15 != 0 || f.height&15 != 0 ||
+			f.width > 4096 || f.height > 4096 || f.stride < f.width || f.stride > 8192 ||
+			f.curOff < 0 || f.curOff > 64 || f.refOff < 0 || f.refOff > 64 ||
+			f.pattern < 0 || f.pattern > 5 || quadrants != (f.width/16)*(f.height/16)*4 ||
+			int64(f.width)*int64(f.height)*255 > 1<<31-1 || seen[f.name] {
+			t.Fatalf("invalid fixture %d: %+v quadrants=%d err=%v", i, f, quadrants, err)
+		}
+		seen[f.name] = true
+		f.sad = make([][4]int32, quadrants/4)
+		var sum int64
+		for mb := range f.sad {
+			for q := range 4 {
+				if _, err := fmt.Fscan(in, &f.sad[mb][q]); err != nil || f.sad[mb][q] < 0 || f.sad[mb][q] > 64*255 {
+					t.Fatalf("invalid quadrant: case=%s mb=%d q=%d err=%v", f.name, mb, q, err)
+				}
+				sum += int64(f.sad[mb][q])
+			}
+		}
+		if sum != int64(f.frame) {
+			t.Fatalf("native frame sum inconsistent in %s: %d != %d", f.name, sum, f.frame)
+		}
+	}
+	var extra string
+	if _, err := fmt.Fscan(in, &extra); err != io.EOF {
+		t.Fatalf("trailing native data: %q err=%v", extra, err)
+	}
+	return fixtures
+}
+
+func TestVAANativeOutputOracle(t *testing.T) {
+	fixtures := vaaNativeOracleLoad(t)
+	flags := int32(common.WELS_CPU_SSE2)
+	if cpu.X86.HasAVX2 {
+		flags |= common.WELS_CPU_AVX2
+	}
+	dispatched := NewCVAACalculation(flags).m_sVaaFuncs.pfVAACalcSad
+	calls := append([]vaaNativeOracleCall(nil), vaaNativeOracleCalls...)
+	calls = append(calls, vaaNativeOracleCall{"Dispatch", dispatched})
+	const canary int32 = 0x5a1739c1
+	for _, f := range fixtures {
+		t.Run(f.name, func(t *testing.T) {
+			for _, kernel := range calls {
+				t.Run(kernel.name, func(t *testing.T) {
+					cur, curBacking := vaaNativeOraclePlane(f, f.curOff, 0)
+					ref, refBacking := vaaNativeOraclePlane(f, f.refOff, 1)
+					curBefore, refBefore := bytes.Clone(curBacking), bytes.Clone(refBacking)
+					guarded := make([][4]int32, len(f.sad)+2)
+					for i := range guarded {
+						guarded[i] = [4]int32{canary, canary, canary, canary}
+					}
+					frameGuard := [3]int32{canary, -999, canary}
+					out := guarded[1 : 1+len(f.sad) : 1+len(f.sad)]
+					kernel.call(cur, f.curOff, ref, f.refOff, int32(f.width), int32(f.height),
+						int32(f.stride), &frameGuard[1], out)
+					if frameGuard != [3]int32{canary, f.frame, canary} {
+						t.Fatalf("frame/guard differs: got %v want total=%d", frameGuard, f.frame)
+					}
+					for mb, want := range f.sad {
+						if out[mb] != want {
+							t.Fatalf("macroblock %d: got %v native %v", mb, out[mb], want)
+						}
+					}
+					wantGuard := [4]int32{canary, canary, canary, canary}
+					if guarded[0] != wantGuard || guarded[len(guarded)-1] != wantGuard {
+						t.Fatal("output guard changed")
+					}
+					if !bytes.Equal(curBacking, curBefore) || !bytes.Equal(refBacking, refBefore) {
+						t.Fatal("source/canary changed")
+					}
+				})
+			}
+		})
+	}
+	t.Logf("matched %d actual-native AVX2 fixtures against %d checked Go paths", len(fixtures), len(calls))
+}

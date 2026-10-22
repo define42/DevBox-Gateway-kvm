@@ -28,4 +28,6 @@ func WelsSampleSatd16x16_avx2(a []uint8, aOff int, aStride int32, ref []uint8, r
 
 func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
 	s.pfSampleAvgSatd = nil
+	s.pfSampleAvgSatdValidated = nil
+	s.bSampleAvgSatdFour = false
 }

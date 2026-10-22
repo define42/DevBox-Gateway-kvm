@@ -1,0 +1,37 @@
+--- base/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
++++ candidate/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+@@ -127,20 +127,22 @@
+ 	} else {
+ 		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+ 	}
+-	// Extraction is completed exactly once: its input may alias emitted bytes.
+-	// The checked leaf leaves this private state and the extracted arrays intact
+-	// on fallback, so the existing Go body can replay any identical prefix.
+-	if iTotalCoeffs != 0 {
+-		switch cavlcEmit(&bs, &iLevel, &uiRun, pBs, iTotalCoeffs, iTotalZeros, iEndIdx, iResidualProperty, int32(iNC)) {
+-		case cavlcEmitSuccess:
+-			bs.uninit(pBs)
+-			return ENC_RETURN_SUCCESS
+-		case cavlcEmitOverflow:
+-			return ENC_RETURN_VLCOVERFLOWFOUND
+-		}
+-	}
+ 	if iTotalCoeffs > 3 {
+ 		iCount = 3
++		// Restrict the checked emitter to longer blocks to amortize its
++		// fixed guard/ABI cost. Keep short blocks on the existing classification
++		// path, and reuse this branch rather than adding a zero/sparse test.
++		// Extraction is completed once even if output aliases coefficients;
++		// fallback replays the unchanged Go body from the private snapshot.
++		if iEndIdx == 14 || iEndIdx == 15 {
++			switch cavlcEmit(&bs, &iLevel, &uiRun, pBs, iTotalCoeffs, iTotalZeros, iEndIdx, iResidualProperty, int32(iNC)) {
++			case cavlcEmitSuccess:
++				bs.uninit(pBs)
++				return ENC_RETURN_SUCCESS
++			case cavlcEmitOverflow:
++				return ENC_RETURN_VLCOVERFLOWFOUND
++			}
++		}
+ 	} else {
+ 		iCount = iTotalCoeffs
+ 	}

@@ -1,0 +1,86 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.sadTwoSSE2.abi0(SB) /tmp/h264-parity-target-20261022/sad-two-next/pkg/h264/internal/encoder/sample_initial_two_amd64.s
+  sample_initial_two_amd64.s:10	0x6d5760		488b442408		MOVQ 0x8(SP), AX	
+  sample_initial_two_amd64.s:11	0x6d5765		488b4c2410		MOVQ 0x10(SP), CX	
+  sample_initial_two_amd64.s:12	0x6d576a		488b542418		MOVQ 0x18(SP), DX	
+  sample_initial_two_amd64.s:13	0x6d576f		488b742420		MOVQ 0x20(SP), SI	
+  sample_initial_two_amd64.s:14	0x6d5774		488b5c2428		MOVQ 0x28(SP), BX	
+  sample_initial_two_amd64.s:15	0x6d5779		488b7c2438		MOVQ 0x38(SP), DI	
+  sample_initial_two_amd64.s:16	0x6d577e		48c1ef02		SHRQ $0x2, DI		
+  sample_initial_two_amd64.s:17	0x6d5782		4c8d0449		LEAQ 0(CX)(CX*2), R8	
+  sample_initial_two_amd64.s:18	0x6d5786		4c8d0c5b		LEAQ 0(BX)(BX*2), R9	
+  sample_initial_two_amd64.s:19	0x6d578a		660feff6		PXOR X6, X6		
+  sample_initial_two_amd64.s:20	0x6d578e		660fefff		PXOR X7, X7		
+  sample_initial_two_amd64.s:21	0x6d5792		66450fefc0		PXOR X8, X8		
+  sample_initial_two_amd64.s:22	0x6d5797		66450fefc9		PXOR X9, X9		
+  sample_initial_two_amd64.s:23	0x6d579c		48837c243010		CMPQ 0x30(SP), $0x10	
+  sample_initial_two_amd64.s:24	0x6d57a2		746e			JE 0x6d5812		
+  sample_initial_two_amd64.s:26	0x6d57a4		f30f7e00		MOVQ 0(AX), X0		
+  sample_initial_two_amd64.s:27	0x6d57a8		f30f7e0c08		MOVQ 0(AX)(CX*1), X1	
+  sample_initial_two_amd64.s:28	0x6d57ad		0f160448		MOVHPS 0(AX)(CX*2), X0	
+  sample_initial_two_amd64.s:29	0x6d57b1		420f160c00		MOVHPS 0(AX)(R8*1), X1	
+  sample_initial_two_amd64.s:30	0x6d57b6		f30f7e12		MOVQ 0(DX), X2		
+  sample_initial_two_amd64.s:31	0x6d57ba		f30f7e1c1a		MOVQ 0(DX)(BX*1), X3	
+  sample_initial_two_amd64.s:32	0x6d57bf		0f16145a		MOVHPS 0(DX)(BX*2), X2	
+  sample_initial_two_amd64.s:33	0x6d57c3		420f161c0a		MOVHPS 0(DX)(R9*1), X3	
+  sample_initial_two_amd64.s:34	0x6d57c8		f30f7e26		MOVQ 0(SI), X4		
+  sample_initial_two_amd64.s:35	0x6d57cc		f30f7e2c1e		MOVQ 0(SI)(BX*1), X5	
+  sample_initial_two_amd64.s:36	0x6d57d1		0f16245e		MOVHPS 0(SI)(BX*2), X4	
+  sample_initial_two_amd64.s:37	0x6d57d5		420f162c0e		MOVHPS 0(SI)(R9*1), X5	
+  sample_initial_two_amd64.s:38	0x6d57da		660ff6d0		PSADBW X0, X2		
+  sample_initial_two_amd64.s:39	0x6d57de		660ff6d9		PSADBW X1, X3		
+  sample_initial_two_amd64.s:40	0x6d57e2		660ff6e0		PSADBW X0, X4		
+  sample_initial_two_amd64.s:41	0x6d57e6		660ff6e9		PSADBW X1, X5		
+  sample_initial_two_amd64.s:42	0x6d57ea		660ffef2		PADDD X2, X6		
+  sample_initial_two_amd64.s:43	0x6d57ee		660ffefb		PADDD X3, X7		
+  sample_initial_two_amd64.s:44	0x6d57f2		66440ffec4		PADDD X4, X8		
+  sample_initial_two_amd64.s:45	0x6d57f7		66440ffecd		PADDD X5, X9		
+  sample_initial_two_amd64.s:46	0x6d57fc		488d0488		LEAQ 0(AX)(CX*4), AX	
+  sample_initial_two_amd64.s:47	0x6d5800		488d149a		LEAQ 0(DX)(BX*4), DX	
+  sample_initial_two_amd64.s:48	0x6d5804		488d349e		LEAQ 0(SI)(BX*4), SI	
+  sample_initial_two_amd64.s:49	0x6d5808		48ffcf			DECQ DI			
+  sample_initial_two_amd64.s:50	0x6d580b		7597			JNE 0x6d57a4		
+  sample_initial_two_amd64.s:51	0x6d580d		e995000000		JMP 0x6d58a7		
+  sample_initial_two_amd64.s:53	0x6d5812		f30f6f00		MOVDQU 0(AX), X0	
+  sample_initial_two_amd64.s:54	0x6d5816		f30f6f12		MOVDQU 0(DX), X2	
+  sample_initial_two_amd64.s:55	0x6d581a		f30f6f26		MOVDQU 0(SI), X4	
+  sample_initial_two_amd64.s:56	0x6d581e		660ff6d0		PSADBW X0, X2		
+  sample_initial_two_amd64.s:57	0x6d5822		660ff6e0		PSADBW X0, X4		
+  sample_initial_two_amd64.s:58	0x6d5826		660ffef2		PADDD X2, X6		
+  sample_initial_two_amd64.s:59	0x6d582a		66440ffec4		PADDD X4, X8		
+  sample_initial_two_amd64.s:60	0x6d582f		f30f6f0408		MOVDQU 0(AX)(CX*1), X0	
+  sample_initial_two_amd64.s:61	0x6d5834		f30f6f141a		MOVDQU 0(DX)(BX*1), X2	
+  sample_initial_two_amd64.s:62	0x6d5839		f30f6f241e		MOVDQU 0(SI)(BX*1), X4	
+  sample_initial_two_amd64.s:63	0x6d583e		660ff6d0		PSADBW X0, X2		
+  sample_initial_two_amd64.s:64	0x6d5842		660ff6e0		PSADBW X0, X4		
+  sample_initial_two_amd64.s:65	0x6d5846		660ffefa		PADDD X2, X7		
+  sample_initial_two_amd64.s:66	0x6d584a		66440ffecc		PADDD X4, X9		
+  sample_initial_two_amd64.s:67	0x6d584f		f30f6f0448		MOVDQU 0(AX)(CX*2), X0	
+  sample_initial_two_amd64.s:68	0x6d5854		f30f6f145a		MOVDQU 0(DX)(BX*2), X2	
+  sample_initial_two_amd64.s:69	0x6d5859		f30f6f245e		MOVDQU 0(SI)(BX*2), X4	
+  sample_initial_two_amd64.s:70	0x6d585e		660ff6d0		PSADBW X0, X2		
+  sample_initial_two_amd64.s:71	0x6d5862		660ff6e0		PSADBW X0, X4		
+  sample_initial_two_amd64.s:72	0x6d5866		660ffef2		PADDD X2, X6		
+  sample_initial_two_amd64.s:73	0x6d586a		66440ffec4		PADDD X4, X8		
+  sample_initial_two_amd64.s:74	0x6d586f		f3420f6f0400		MOVDQU 0(AX)(R8*1), X0	
+  sample_initial_two_amd64.s:75	0x6d5875		f3420f6f140a		MOVDQU 0(DX)(R9*1), X2	
+  sample_initial_two_amd64.s:76	0x6d587b		f3420f6f240e		MOVDQU 0(SI)(R9*1), X4	
+  sample_initial_two_amd64.s:77	0x6d5881		660ff6d0		PSADBW X0, X2		
+  sample_initial_two_amd64.s:78	0x6d5885		660ff6e0		PSADBW X0, X4		
+  sample_initial_two_amd64.s:79	0x6d5889		660ffefa		PADDD X2, X7		
+  sample_initial_two_amd64.s:80	0x6d588d		66440ffecc		PADDD X4, X9		
+  sample_initial_two_amd64.s:81	0x6d5892		488d0488		LEAQ 0(AX)(CX*4), AX	
+  sample_initial_two_amd64.s:82	0x6d5896		488d149a		LEAQ 0(DX)(BX*4), DX	
+  sample_initial_two_amd64.s:83	0x6d589a		488d349e		LEAQ 0(SI)(BX*4), SI	
+  sample_initial_two_amd64.s:84	0x6d589e		48ffcf			DECQ DI			
+  sample_initial_two_amd64.s:85	0x6d58a1		0f856bffffff		JNE 0x6d5812		
+  sample_initial_two_amd64.s:87	0x6d58a7		660ffef7		PADDD X7, X6		
+  sample_initial_two_amd64.s:88	0x6d58ab		66450ffec1		PADDD X9, X8		
+  sample_initial_two_amd64.s:89	0x6d58b0		f30f6fc6		MOVDQU X6, X0		
+  sample_initial_two_amd64.s:90	0x6d58b4		f3410f6fc8		MOVDQU X8, X1		
+  sample_initial_two_amd64.s:91	0x6d58b9		660f73d808		PSRLDQ $0x8, X0		
+  sample_initial_two_amd64.s:92	0x6d58be		660f73d908		PSRLDQ $0x8, X1		
+  sample_initial_two_amd64.s:93	0x6d58c3		660ffef0		PADDD X0, X6		
+  sample_initial_two_amd64.s:94	0x6d58c7		66440ffec1		PADDD X1, X8		
+  sample_initial_two_amd64.s:95	0x6d58cc		660fd6742440		MOVQ X6, 0x40(SP)	
+  sample_initial_two_amd64.s:96	0x6d58d2		66440fd6442444		MOVQ X8, 0x44(SP)	
+  sample_initial_two_amd64.s:97	0x6d58d9		c3			RET			

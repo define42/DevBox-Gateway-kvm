@@ -1,0 +1,84 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                             │ /tmp/h264-parity-target-20261022/cavlc-bounds-round6.txt │ /tmp/h264-parity-target-20261022/cavlc-bounds-cavlc-bounds-next.txt │
+                                             │                          sec/op                          │                    sec/op                      vs base              │
+CavlcResidual/sparse=true/reference=true-4                                                 93.02n ±  3%                                    93.08n ±  9%       ~ (p=0.485 n=6)
+CavlcResidual/sparse=true/reference=false-4                                                61.01n ±  3%                                    60.94n ±  3%       ~ (p=0.818 n=6)
+CavlcResidual/sparse=false/reference=true-4                                                217.5n ± 10%                                    218.9n ± 14%       ~ (p=0.240 n=6)
+CavlcResidual/sparse=false/reference=false-4                                               144.9n ±  2%                                    139.1n ±  1%  -4.07% (p=0.002 n=6)
+CavlcLevelWriter/end14/medium/small-4                                                      1.693µ ±  4%                                    1.609µ ±  2%  -4.99% (p=0.002 n=6)
+CavlcLevelWriter/end14/medium/boundary-4                                                   2.176µ ±  3%                                    2.212µ ±  2%       ~ (p=0.240 n=6)
+CavlcLevelWriter/end14/medium/mixed-4                                                      1.959µ ±  2%                                    1.943µ ±  2%       ~ (p=1.000 n=6)
+CavlcLevelWriter/end14/dense/small-4                                                       1.540µ ±  6%                                    1.497µ ±  6%       ~ (p=0.087 n=6)
+CavlcLevelWriter/end14/dense/boundary-4                                                    2.380µ ±  4%                                    2.412µ ±  3%       ~ (p=0.937 n=6)
+CavlcLevelWriter/end14/dense/mixed-4                                                       2.016µ ±  5%                                    1.990µ ±  8%       ~ (p=0.485 n=6)
+CavlcLevelWriter/end15/medium/small-4                                                      1.768µ ±  5%                                    1.723µ ±  3%  -2.55% (p=0.002 n=6)
+CavlcLevelWriter/end15/medium/boundary-4                                                   2.349µ ±  4%                                    2.280µ ±  2%       ~ (p=0.065 n=6)
+CavlcLevelWriter/end15/medium/mixed-4                                                      2.061µ ±  4%                                    2.035µ ±  2%       ~ (p=0.145 n=6)
+CavlcLevelWriter/end15/dense/small-4                                                       1.612µ ±  7%                                    1.548µ ±  2%  -3.97% (p=0.002 n=6)
+CavlcLevelWriter/end15/dense/boundary-4                                                    2.599µ ± 11%                                    2.549µ ±  3%  -1.90% (p=0.017 n=6)
+CavlcLevelWriter/end15/dense/mixed-4                                                       2.188µ ±  9%                                    2.101µ ±  3%  -3.98% (p=0.037 n=6)
+geomean                                                                                    982.0n                                          965.2n        -1.71%
+
+                                             │ /tmp/h264-parity-target-20261022/cavlc-bounds-round6.txt │ /tmp/h264-parity-target-20261022/cavlc-bounds-cavlc-bounds-next.txt │
+                                             │                           B/op                           │                    B/op                      vs base                │
+CavlcResidual/sparse=true/reference=true-4                                                 0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=true/reference=false-4                                                0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=false/reference=true-4                                                0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=false/reference=false-4                                               0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/small-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary-4                                                   0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary-4                                                    0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary-4                                                   0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary-4                                                    0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                               ²                                                +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                             │ /tmp/h264-parity-target-20261022/cavlc-bounds-round6.txt │ /tmp/h264-parity-target-20261022/cavlc-bounds-cavlc-bounds-next.txt │
+                                             │                        allocs/op                         │                  allocs/op                   vs base                │
+CavlcResidual/sparse=true/reference=true-4                                                 0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=true/reference=false-4                                                0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=false/reference=true-4                                                0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcResidual/sparse=false/reference=false-4                                               0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/small-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary-4                                                   0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary-4                                                    0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary-4                                                   0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed-4                                                      0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary-4                                                    0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed-4                                                       0.000 ± 0%                                      0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                               ²                                                +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                         │ /tmp/h264-parity-target-20261022/cavlc-bounds-round6.txt │ /tmp/h264-parity-target-20261022/cavlc-bounds-cavlc-bounds-next.txt │
+                                         │                        blocks/op                         │                  blocks/op                   vs base                │
+CavlcLevelWriter/end14/medium/small-4                                                    16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/boundary-4                                                 16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/medium/mixed-4                                                    16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/small-4                                                     16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/boundary-4                                                  16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end14/dense/mixed-4                                                     16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/small-4                                                    16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/boundary-4                                                 16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/medium/mixed-4                                                    16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/small-4                                                     16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/boundary-4                                                  16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcLevelWriter/end15/dense/mixed-4                                                     16.00 ± 0%                                    16.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                  16.00                                         16.00       +0.00%
+¹ all samples are equal

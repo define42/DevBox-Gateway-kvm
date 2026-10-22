@@ -3,7 +3,6 @@
 package encoder
 
 import (
-	"math"
 	"math/bits"
 
 	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
@@ -38,20 +37,22 @@ func WelsEncRecI16x16Y(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) {
 
 	WelsDctMb(pRes, pMbCache.SPicData.pEncMb[0], pMbCache.SPicData.iEncMbOff[0], kiEncStride, pBestPred, 0, pEncCtx.pFuncList.pfDctFourT4)
 
-	WelsHadamardT4Dc_c(aDctT4Dc[:], pRes)
+	hadamardT4Dc(aDctT4Dc[:], pRes)
 	WelsQuant4x4Dc_sse2(aDctT4Dc[:], int16(int32(pFF[0])<<1), pMF[0]>>1)
 	dcMask := coefficientScanMask(pMbCache.pDct.iLumaI16x16Dc[:], aDctT4Dc[:], false)
 	uiCountI16x16Dc = uint32(bits.OnesCount16(dcMask))
 	var masks [16]uint16
 
-	for i := 0; i < 4; i++ {
-		r := pRes[i*64:]
-		b := pBlock[i*64:]
-		pFuncList.pfQuantizationFour4x4(r, pFF, pMF)
-		masks[i*4] = coefficientScanMask(b, r, true)
-		masks[i*4+1] = coefficientScanMask(b[16:], r[16:], true)
-		masks[i*4+2] = coefficientScanMask(b[32:], r[32:], true)
-		masks[i*4+3] = coefficientScanMask(b[48:], r[48:], true)
+	if !tryQuantScanIntraLuma(pFuncList, pRes, pBlock, pFF, pMF, &masks) {
+		for i := 0; i < 4; i++ {
+			r := pRes[i*64:]
+			b := pBlock[i*64:]
+			pFuncList.pfQuantizationFour4x4(r, pFF, pMF)
+			masks[i*4] = coefficientScanMask(b, r, true)
+			masks[i*4+1] = coefficientScanMask(b[16:], r[16:], true)
+			masks[i*4+2] = coefficientScanMask(b[32:], r[32:], true)
+			masks[i*4+3] = coefficientScanMask(b[48:], r[48:], true)
+		}
 	}
 
 	for i := 0; i < 16; i++ {
@@ -65,7 +66,7 @@ func WelsEncRecI16x16Y(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) {
 			WelsIHadamard4x4Dc(aDctT4Dc[:])
 			WelsDequantLumaDc4x4(aDctT4Dc[:], int32(uiQp))
 		} else {
-			WelsDequantIHadamard4x4_c(aDctT4Dc[:], common.G_kuiDequantCoeff[uiQp][0]>>2)
+			dequantIHadamard4x4(aDctT4Dc[:], common.G_kuiDequantCoeff[uiQp][0]>>2)
 		}
 	}
 
@@ -156,61 +157,54 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
 	pfSetMemZeroSize64 := pFuncList.pfSetMemZeroSize64
 	pfDequantizationFour4x4 := pFuncList.pfDequantizationFour4x4
 	pRes := pMbCache.pCoeffLevel
-	iSingleCtrMb := int32(0)
-	var iSingleCtr8x8 [4]int32
 	pBlock := pMbCache.pDct.iLumaBlock[:]
 	uiQp := pCurMb.uiLumaQp
 	pMF := g_kiQuantMF[uiQp][:]
 	pFF := g_kiQuantInterFF[uiQp][:]
-	var aMax [16]int16
+	var maxima [16]int16
 	var masks [16]uint16
-	iNoneZeroCount := int32(0)
+	quantScanLuma(pRes, pBlock, pFF, pMF, maxima[:], masks[:])
 
-	quantScanLuma(pRes, pBlock, pFF, pMF, aMax[:], masks[:])
-
-	iResOff := 0
-	iBlockOff := 0
-	for i := 0; i < 4; i++ {
-		iSingleCtr8x8[i] = 0
-		for j := 0; j < 4; j++ {
-			if aMax[(i<<2)+j] != 0 {
-				mask := masks[(i<<2)+j]
-				if aMax[(i<<2)+j] > 1 {
-					iSingleCtr8x8[i] += 9
-				} else if iSingleCtr8x8[i] < 6 {
-					iSingleCtr8x8[i] += coefficientScoreMask(mask)
+	var groupScores [4]int32
+	var totalScore int32
+	for group := range 4 {
+		// Fixed groups expose the four-block bounds to the compiler. Keep the
+		// score local while preserving the original magnitude and run tests.
+		groupMaxima := (*[4]int16)(maxima[group*4:])
+		groupMasks := (*[4]uint16)(masks[group*4:])
+		var score int32
+		for block, maximum := range groupMaxima {
+			if maximum != 0 {
+				if maximum > 1 {
+					score += 9
+				} else if score < 6 {
+					score += coefficientScoreMask(groupMasks[block])
 				}
 			}
-			iResOff += 16
-			iBlockOff += 16
 		}
-		iSingleCtrMb += iSingleCtr8x8[i]
+		groupScores[group] = score
+		totalScore += score
 	}
-	iBlockOff -= 256
-	iResOff -= 256
 
 	clear(pCurMb.pNonZeroCount[:16])
-
-	if iSingleCtrMb < 6 { //from JVT-O079
-		pfSetMemZeroSize64(pRes[iResOff:], 768) // confirmed_safe_unsafe_usage
-	} else {
-		kpNoneZeroCountIdx := common.G_kuiMbCountScan4Idx[:]
-		for i := 0; i < 4; i++ {
-			if iSingleCtr8x8[i] >= 4 {
-				for j := 0; j < 4; j++ {
-					iNoneZeroCount = int32(bits.OnesCount16(masks[(i<<2)+j]))
-					pCurMb.pNonZeroCount[kpNoneZeroCountIdx[0]] = int8(iNoneZeroCount)
-					kpNoneZeroCountIdx = kpNoneZeroCountIdx[1:]
-					iBlockOff += 16
-				}
-				pfDequantizationFour4x4(pRes[iResOff:], common.G_kuiDequantCoeff[uiQp][:])
-				pCurMb.uiCbp |= uint8(1 << i)
-			} else { // set zero for an 8x8 pBlock
-				pfSetMemZeroSize64(pRes[iResOff:], 128) // confirmed_safe_unsafe_usage
-				kpNoneZeroCountIdx = kpNoneZeroCountIdx[4:]
-				iBlockOff += 64
-			}
-			iResOff += 64
+	if totalScore < 6 { //from JVT-O079
+		pfSetMemZeroSize64(pRes, 768) // confirmed_safe_unsafe_usage
+		return
+	}
+	for group, score := range groupScores {
+		offset := group * 64
+		if score >= 4 {
+			groupMasks := (*[4]uint16)(masks[group*4:])
+			indices := (*[4]uint8)(common.G_kuiMbCountScan4Idx[group*4:])
+			counts := pCurMb.pNonZeroCount
+			counts[indices[0]] = int8(bits.OnesCount16(groupMasks[0]))
+			counts[indices[1]] = int8(bits.OnesCount16(groupMasks[1]))
+			counts[indices[2]] = int8(bits.OnesCount16(groupMasks[2]))
+			counts[indices[3]] = int8(bits.OnesCount16(groupMasks[3]))
+			pfDequantizationFour4x4(pRes[offset:], common.G_kuiDequantCoeff[uiQp][:])
+			pCurMb.uiCbp |= uint8(1 << group)
+		} else {
+			pfSetMemZeroSize64(pRes[offset:], 128) // confirmed_safe_unsafe_usage
 		}
 	}
 }
@@ -238,45 +232,45 @@ func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, 
 	}
 	pFF := g_kiQuantInterFF[iIntraFlag*6+int32(kiQp)][:]
 
-	uiNoneZeroCountMbDc = uint8(WelsHadamardQuant2x2_c(pRes, int16(int32(pFF[0])<<1), pMF[0]>>1, aDct2x2[:], iChromaDc))
+	uiNoneZeroCountMbDc = uint8(hadamardQuant2x2(pRes, int16(int32(pFF[0])<<1), pMF[0]>>1, aDct2x2[:], iChromaDc))
 
 	quantScanFour4x4(pRes, pBlock, pFF, pMF, aMax[:], masks[:], true)
 
-	iResOff := 0
-	iBlockOff := 0
-	for j := 0; j < 4; j++ {
-		if aMax[j] != 0 {
-			mask := masks[j]
-			if kiInterFlag != 0 {
-				if aMax[j] > 1 {
-					iSingleCtr8x8 += 9
-				} else if iSingleCtr8x8 < 7 {
-					iSingleCtr8x8 += coefficientScoreMask(mask)
-				}
-			} else {
-				iSingleCtr8x8 = math.MaxInt32
-			}
+	// Quantization and scanning have already written all four blocks. Only
+	// the keep/drop decision remains, so stop once the threshold is reached.
+	for j, maximum := range aMax {
+		if maximum == 0 {
+			continue
 		}
-		iResOff += 16
-		iBlockOff += 16
+		if kiInterFlag == 0 {
+			iSingleCtr8x8 = 7
+			break
+		}
+		if maximum > 1 {
+			iSingleCtr8x8 += 9
+		} else {
+			// Keep the signed comparison: negative maxima followed this
+			// same run-score path before the decision was shortened.
+			iSingleCtr8x8 += coefficientScoreMask(masks[j])
+		}
+		if iSingleCtr8x8 >= 7 {
+			break
+		}
 	}
-	iResOff -= 64
 
 	if iSingleCtr8x8 < 7 { //from JVT-O079
-		pfSetMemZeroSize64(pRes[iResOff:], 128) // confirmed_safe_unsafe_usage
+		pfSetMemZeroSize64(pRes, 128) // confirmed_safe_unsafe_usage
 		pCurMb.pNonZeroCount[16+uiNoneZeroCountOffset] = 0
 		pCurMb.pNonZeroCount[16+uiNoneZeroCountOffset+1] = 0
 		pCurMb.pNonZeroCount[20+uiNoneZeroCountOffset] = 0
 		pCurMb.pNonZeroCount[20+uiNoneZeroCountOffset+1] = 0
 	} else {
 		kpNoneZeroCountIdx := common.G_kuiMbCountScan4Idx[uiSubMbIdx:]
-		iBlockOff -= 64
 		for i := 0; i < 4; i++ {
 			uiNoneZeroCount = uint8(bits.OnesCount16(masks[i]))
 			pCurMb.pNonZeroCount[kpNoneZeroCountIdx[i]] = int8(uiNoneZeroCount)
-			iBlockOff += 16
 		}
-		pfDequantizationFour4x4(pRes[iResOff:], common.G_kuiDequantCoeff[pCurMb.uiChromaQp][:])
+		pfDequantizationFour4x4(pRes, common.G_kuiDequantCoeff[pCurMb.uiChromaQp][:])
 		pCurMb.uiCbp &= 0x0F
 		pCurMb.uiCbp |= 0x20
 	}
@@ -286,10 +280,10 @@ func WelsEncRecUV(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache, 
 		if 2 != (pCurMb.uiCbp >> 4) {
 			pCurMb.uiCbp |= (0x01 << 4)
 		}
-		pRes[iResOff+0] = aDct2x2[0]
-		pRes[iResOff+16] = aDct2x2[1]
-		pRes[iResOff+32] = aDct2x2[2]
-		pRes[iResOff+48] = aDct2x2[3]
+		pRes[0] = aDct2x2[0]
+		pRes[16] = aDct2x2[1]
+		pRes[32] = aDct2x2[2]
+		pRes[48] = aDct2x2[3]
 	}
 }
 
@@ -327,6 +321,9 @@ func welsTryPYskipPixels(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache) 
 	stride := pEncCtx.pCurDqLayer.iEncStride[0]
 	source := pMbCache.SPicData.pEncMb[0]
 	sourceOffset := pMbCache.SPicData.iEncMbOff[0]
+	if handled, accepted := trySkipDctQuantPixels(pEncCtx, pMbCache, source, sourceOffset, stride, qp); handled {
+		return accepted
+	}
 	for group := 0; group < 4; group++ {
 		x, y := (group&1)*8, (group>>1)*8
 		offset := group * 64
@@ -373,7 +370,7 @@ func WelsTryPUVskip(pEncCtx *sWelsEncCtx, pCurMb *SMB, pMbCache *SMbCache, iUV i
 	pMF := g_kiQuantMF[kuiQp][:]
 	pFF := g_kiQuantInterFF[kuiQp][:]
 
-	if WelsHadamardQuant2x2Skip_c(pRes, int16(int32(pFF[0])<<1), pMF[0]>>1) != 0 {
+	if hadamardQuant2x2SkipQP(pRes, kuiQp, int16(int32(pFF[0])<<1), pMF[0]>>1) != 0 {
 		return false
 	} else {
 		var aMax [4]int16 // uint16_t aMax[4] in C, passed as (int16_t*)

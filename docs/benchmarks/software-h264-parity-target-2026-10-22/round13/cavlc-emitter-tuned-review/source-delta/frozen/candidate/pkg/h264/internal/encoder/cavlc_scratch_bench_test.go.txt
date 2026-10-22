@@ -1,0 +1,127 @@
+package encoder
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// This complete file is baseline-compatible and needs no new production helper.
+type cavlcScratchMbCase struct {
+	name   string
+	intra  bool
+	cbp    uint8
+	blocks int
+}
+
+var cavlcScratchMbCases = []cavlcScratchMbCase{
+	{"NoResidual", false, 0, 0},
+	{"I16DC", true, 0, 1},
+	{"ChromaDC", false, 0x10, 2},
+	{"InterOne", false, 1, 4},
+	{"InterOneChromaDC", false, 0x11, 6},
+	{"ChromaAll", false, 0x20, 10},
+	{"InterLuma", false, 0x0f, 16},
+	{"I16Luma", true, 0x0f, 17},
+	{"InterAll", false, 0x2f, 26},
+	{"I16All", true, 0x2f, 27},
+}
+
+type cavlcScratchMbFixture struct {
+	funcs  SWelsFuncPtrList
+	cache  SMbCache
+	mb     SMB
+	dct    SDCTCoeff
+	bits   common.SBitStringAux
+	buffer [4096]byte
+}
+
+func fillCavlcScratchBlock(block []int16, end, index int, pattern string) int8 {
+	clear(block)
+	if pattern == "Mixed" {
+		pattern = []string{"Dense", "Zero", "Sparse", "One", "Dense", "Sparse"}[index%6]
+	}
+	switch pattern {
+	case "Sparse":
+		block[0], block[end] = int16(index%3+1), -1
+	case "One":
+		block[(index*5)%(end+1)] = int16(1 - 2*(index&1))
+	case "Dense":
+		for i := 0; i <= end; i++ {
+			value := int16((index+i)%7 + 1)
+			if (i+index)&1 != 0 {
+				value = -value
+			}
+			block[i] = value
+		}
+	}
+	var count int8
+	for _, value := range block[:end+1] {
+		if value != 0 {
+			count++
+		}
+	}
+	return count
+}
+
+func newCavlcScratchMbFixture(tc cavlcScratchMbCase, pattern string) *cavlcScratchMbFixture {
+	f := &cavlcScratchMbFixture{}
+	f.mb.uiMbType, f.mb.uiCbp = common.MB_TYPE_16x16, tc.cbp
+	if tc.intra {
+		f.mb.uiMbType = common.MB_TYPE_INTRA16x16
+	}
+	f.cache.pDct = &f.dct
+	for i := range f.cache.iNonZeroCoeffCount {
+		f.cache.iNonZeroCoeffCount[i] = -1
+	}
+	end := 15
+	if tc.intra {
+		end = 14
+	}
+	for block := 0; block < 16; block++ {
+		count := fillCavlcScratchBlock(f.dct.iLumaBlock[block*16:block*16+16], end, block, pattern)
+		f.cache.iNonZeroCoeffCount[common.G_kuiCache48CountScan4Idx[block]] = count
+	}
+	fillCavlcScratchBlock(f.dct.iLumaI16x16Dc[:], 15, 16, pattern)
+	for block := 0; block < 8; block++ {
+		count := fillCavlcScratchBlock(f.dct.iChromaBlock[block*16:block*16+16], 14, block+17, pattern)
+		f.cache.iNonZeroCoeffCount[common.G_kuiCache48CountScan4Idx[block+16]] = count
+	}
+	for plane := range 2 {
+		fillCavlcScratchBlock(f.dct.iChromaDc[plane][:], 3, plane+25, pattern)
+	}
+	for i := range f.buffer {
+		f.buffer[i] = 0xa5
+	}
+	f.reset(17)
+	return f
+}
+
+func (f *cavlcScratchMbFixture) reset(prefix int32) {
+	common.InitBits(&f.bits, f.buffer[:], 0, int32(len(f.buffer)))
+	if prefix != 0 {
+		common.BsWriteBits(&f.bits, prefix, uint32(1)<<uint(prefix)-1)
+	}
+}
+
+var cavlcScratchMbBenchmarkSink int32
+
+func BenchmarkCavlcMacroblock(b *testing.B) {
+	for _, tc := range cavlcScratchMbCases {
+		for _, pattern := range []string{"Zero", "Sparse", "Dense", "Mixed"} {
+			b.Run(fmt.Sprintf("%s/%s", tc.name, pattern), func(b *testing.B) {
+				f := newCavlcScratchMbFixture(tc, pattern)
+				if ret := WelsWriteMbResidual(&f.funcs, &f.cache, &f.mb, &f.bits); ret != ENC_RETURN_SUCCESS {
+					b.Fatalf("fixture failed: %d", ret)
+				}
+				b.ReportAllocs()
+				for b.Loop() {
+					f.reset(17)
+					cavlcScratchMbBenchmarkSink = WelsWriteMbResidual(&f.funcs, &f.cache, &f.mb, &f.bits)
+				}
+				b.ReportMetric(float64(tc.blocks), "blocks/op")
+			})
+		}
+	}
+}

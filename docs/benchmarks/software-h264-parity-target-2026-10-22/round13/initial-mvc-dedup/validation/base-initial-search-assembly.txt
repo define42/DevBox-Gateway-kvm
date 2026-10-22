@@ -1,0 +1,701 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.meInitialSadTwo(SB) /tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base/pkg/h264/internal/encoder/sample_initial_two_amd64.go
+  sample_initial_two_amd64.go:26	0x6008c0		493b6610		CMPQ SP, 0x10(R14)										
+  sample_initial_two_amd64.go:26	0x6008c4		0f8601030000		JBE 0x600bcb											
+  sample_initial_two_amd64.go:26	0x6008ca		55			PUSHQ BP											
+  sample_initial_two_amd64.go:26	0x6008cb		4889e5			MOVQ SP, BP											
+  sample_initial_two_amd64.go:26	0x6008ce		4883ec60		SUBQ $0x60, SP											
+  sample_initial_two_amd64.go:29	0x6008d2		0fb65038		MOVZX 0x38(AX), DX										
+  sample_initial_two_amd64.go:29	0x6008d6		80fa01			CMPL DL, $0x1											
+  sample_initial_two_amd64.go:32	0x6008d9		771e			JA 0x6008f9											
+  sample_initial_two_amd64.go:30	0x6008db		84d2			TESTL DL, DL											
+  sample_initial_two_amd64.go:30	0x6008dd		750d			JNE 0x6008ec											
+  sample_initial_two_amd64.go:30	0x6008df		ba10000000		MOVL $0x10, DX											
+  sample_initial_two_amd64.go:30	0x6008e4		41bb10000000		MOVL $0x10, R11											
+  sample_initial_two_amd64.go:31	0x6008ea		eb48			JMP 0x600934											
+  sample_initial_two_amd64.go:31	0x6008ec		ba08000000		MOVL $0x8, DX											
+  sample_initial_two_amd64.go:31	0x6008f1		41bb10000000		MOVL $0x10, R11											
+  sample_initial_two_amd64.go:33	0x6008f7		eb3b			JMP 0x600934											
+  sample_initial_two_amd64.go:34	0x6008f9		80fa02			CMPL DL, $0x2											
+  sample_initial_two_amd64.go:34	0x6008fc		750d			JNE 0x60090b											
+  sample_initial_two_amd64.go:34	0x6008fe		ba10000000		MOVL $0x10, DX											
+  sample_initial_two_amd64.go:34	0x600903		41bb08000000		MOVL $0x8, R11											
+  sample_initial_two_amd64.go:35	0x600909		eb29			JMP 0x600934											
+  sample_initial_two_amd64.go:36	0x60090b		80fa03			CMPL DL, $0x3											
+  sample_initial_two_amd64.go:36	0x60090e		7510			JNE 0x600920											
+  sample_initial_two_amd64.go:36	0x600910		ba08000000		MOVL $0x8, DX											
+  sample_initial_two_amd64.go:36	0x600915		41bb08000000		MOVL $0x8, R11											
+  sample_initial_two_amd64.go:36	0x60091b		eb17			JMP 0x600934											
+  sample_initial_two_amd64.go:36	0x60091d		0f1f00			NOPL 0(AX)											
+  sample_initial_two_amd64.go:37	0x600920		80fa05			CMPL DL, $0x5											
+  sample_initial_two_amd64.go:37	0x600923		0f8569020000		JNE 0x600b92											
+  sample_initial_two_amd64.go:37	0x600929		ba04000000		MOVL $0x4, DX											
+  sample_initial_two_amd64.go:37	0x60092e		41bb08000000		MOVL $0x8, R11											
+  sample_initial_two_amd64.go:32	0x600934		6689742446		MOVW SI, 0x46(SP)										
+  sample_initial_two_amd64.go:32	0x600939		66897c2444		MOVW DI, 0x44(SP)										
+  sample_initial_two_amd64.go:43	0x60093e		4c0fbfe6		MOVSX SI, R12											
+  sample_initial_two_amd64.go:43	0x600942		4589d5			MOVL R10, R13											
+  sample_initial_two_amd64.go:43	0x600945		450fafd4		IMULL R12, R10											
+  sample_initial_two_amd64.go:43	0x600949		4c0fbfff		MOVSX DI, R15											
+  sample_initial_two_amd64.go:43	0x60094d		4501fa			ADDL R15, R10											
+  sample_initial_two_amd64.go:43	0x600950		4d63d2			MOVSXD R10, R10											
+  sample_initial_two_amd64.go:18	0x600953		488d72ff		LEAQ -0x1(DX), SI										
+  sample_initial_two_amd64.go:18	0x600957		4963f9			MOVSXD R9, DI											
+  sample_initial_two_amd64.go:18	0x60095a		480faffe		IMULQ SI, DI											
+  sample_initial_two_amd64.go:43	0x60095e		4c035078		ADDQ 0x78(AX), R10										
+  sample_initial_two_amd64.go:18	0x600962		4c01df			ADDQ R11, DI											
+  sample_initial_two_amd64.go:19	0x600965		4585c9			TESTL R9, R9											
+  sample_initial_two_amd64.go:19	0x600968		0f8c14020000		JL 0x600b82											
+  sample_initial_two_amd64.go:43	0x60096e		448964244c		MOVL R12, 0x4c(SP)										
+  sample_initial_two_amd64.go:44	0x600973		4c8b6058		MOVQ 0x58(AX), R12										
+  sample_initial_two_amd64.go:44	0x600977		660f1f840000000000	NOPW 0(AX)(AX*1)										
+  sample_initial_two_amd64.go:19	0x600980		4d85e4			TESTQ R12, R12											
+  sample_initial_two_amd64.go:19	0x600983		0f8cf9010000		JL 0x600b82											
+  sample_initial_two_amd64.go:43	0x600989		44897c2448		MOVL R15, 0x48(SP)										
+  sample_initial_two_amd64.go:44	0x60098e		4c8b7848		MOVQ 0x48(AX), R15										
+  sample_initial_two_amd64.go:44	0x600992		4c897c2458		MOVQ R15, 0x58(SP)										
+  sample_initial_two_amd64.go:19	0x600997		4929ff			SUBQ DI, R15											
+  sample_initial_two_amd64.go:19	0x60099a		660f1f440000		NOPW 0(AX)(AX*1)										
+  sample_initial_two_amd64.go:19	0x6009a0		4d39fc			CMPQ R12, R15											
+  sample_initial_two_amd64.go:44	0x6009a3		0f8fd9010000		JG 0x600b82											
+  sample_initial_two_amd64.go:18	0x6009a9		4d63fd			MOVSXD R13, R15											
+  sample_initial_two_amd64.go:18	0x6009ac		4c0faffe		IMULQ SI, R15											
+  sample_initial_two_amd64.go:18	0x6009b0		4d01df			ADDQ R11, R15											
+  sample_initial_two_amd64.go:19	0x6009b3		4585ed			TESTL R13, R13											
+  sample_initial_two_amd64.go:19	0x6009b6		0f8cc6010000		JL 0x600b82											
+  sample_initial_two_amd64.go:19	0x6009bc		0f1f4000		NOPL 0(AX)											
+  sample_initial_two_amd64.go:19	0x6009c0		4d85c0			TESTQ R8, R8											
+  sample_initial_two_amd64.go:19	0x6009c3		0f8cb9010000		JL 0x600b82											
+  sample_initial_two_amd64.go:19	0x6009c9		488b7068		MOVQ 0x68(AX), SI										
+  sample_initial_two_amd64.go:19	0x6009cd		4889f7			MOVQ SI, DI											
+  sample_initial_two_amd64.go:19	0x6009d0		4c29fe			SUBQ R15, SI											
+  sample_initial_two_amd64.go:19	0x6009d3		4939f0			CMPQ R8, SI											
+  sample_initial_two_amd64.go:45	0x6009d6		0f8fa6010000		JG 0x600b82											
+  sample_initial_two_amd64.go:45	0x6009dc		0f1f4000		NOPL 0(AX)											
+  sample_initial_two_amd64.go:19	0x6009e0		4d85d2			TESTQ R10, R10											
+  sample_initial_two_amd64.go:19	0x6009e3		0f8c99010000		JL 0x600b82											
+  sample_initial_two_amd64.go:19	0x6009e9		4939f2			CMPQ R10, SI											
+  sample_initial_two_amd64.go:46	0x6009ec		0f8f90010000		JG 0x600b82											
+  sample_initial_two_amd64.go:49	0x6009f2		488b742458		MOVQ 0x58(SP), SI										
+  sample_initial_two_amd64.go:49	0x6009f7		660f1f840000000000	NOPW 0(AX)(AX*1)										
+  sample_initial_two_amd64.go:49	0x600a00		4c39e6			CMPQ SI, R12											
+  sample_initial_two_amd64.go:49	0x600a03		0f86bc010000		JBE 0x600bc5											
+  sample_initial_two_amd64.go:44	0x600a09		488b7040		MOVQ 0x40(AX), SI										
+  sample_initial_two_amd64.go:49	0x600a0d		4c01e6			ADDQ R12, SI											
+  sample_initial_two_amd64.go:50	0x600a10		4939f8			CMPQ R8, DI											
+  sample_initial_two_amd64.go:50	0x600a13		0f83a2010000		JAE 0x600bbb											
+  sample_initial_two_amd64.go:45	0x600a19		4c8b6060		MOVQ 0x60(AX), R12										
+  sample_initial_two_amd64.go:50	0x600a1d		4f8d3c04		LEAQ 0(R12)(R8*1), R15										
+  sample_initial_two_amd64.go:50	0x600a21		4c39d7			CMPQ DI, R10											
+  sample_initial_two_amd64.go:50	0x600a24		0f868c010000		JBE 0x600bb6											
+  sample_initial_two_amd64.go:32	0x600a2a		4889442470		MOVQ AX, 0x70(SP)										
+  sample_initial_two_amd64.go:32	0x600a2f		4c89842480000000	MOVQ R8, 0x80(SP)										
+  sample_initial_two_amd64.go:43	0x600a37		4c89542450		MOVQ R10, 0x50(SP)										
+  sample_initial_two_amd64.go:32	0x600a3c		66894c2442		MOVW CX, 0x42(SP)										
+  sample_initial_two_amd64.go:32	0x600a41		66895c2440		MOVW BX, 0x40(SP)										
+  sample_initial_two_amd64.go:49	0x600a46		48893424		MOVQ SI, 0(SP)											
+  sample_initial_two_amd64.go:49	0x600a4a		4963c1			MOVSXD R9, AX											
+  sample_initial_two_amd64.go:49	0x600a4d		4889442408		MOVQ AX, 0x8(SP)										
+  sample_initial_two_amd64.go:49	0x600a52		4c897c2410		MOVQ R15, 0x10(SP)										
+  sample_initial_two_amd64.go:50	0x600a57		4b8d0414		LEAQ 0(R12)(R10*1), AX										
+  sample_initial_two_amd64.go:49	0x600a5b		4889442418		MOVQ AX, 0x18(SP)										
+  sample_initial_two_amd64.go:50	0x600a60		4963c5			MOVSXD R13, AX											
+  sample_initial_two_amd64.go:49	0x600a63		4889442420		MOVQ AX, 0x20(SP)										
+  sample_initial_two_amd64.go:49	0x600a68		4c895c2428		MOVQ R11, 0x28(SP)										
+  sample_initial_two_amd64.go:49	0x600a6d		4889542430		MOVQ DX, 0x30(SP)										
+  sample_initial_two_amd64.go:49	0x600a72		e8e9231100		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.sadTwoSSE2.abi0(SB)	
+  sample_initial_two_amd64.go:49	0x600a77		450f57ff		XORPS X15, X15											
+  sample_initial_two_amd64.go:49	0x600a7b		644c8b3425f8ffffff	MOVQ FS:0xfffffff8, R14										
+  sample_initial_two_amd64.go:54	0x600a84		488b442470		MOVQ 0x70(SP), AX										
+  sample_initial_two_amd64.go:54	0x600a89		488b4808		MOVQ 0x8(AX), CX										
+  sample_initial_two_amd64.go:54	0x600a8d		488b5018		MOVQ 0x18(AX), DX										
+  sample_initial_two_amd64.go:55	0x600a91		0fb75c2440		MOVZX 0x40(SP), BX										
+  sample_initial_two_amd64.go:55	0x600a96		480fbff3		MOVSX BX, SI											
+  sample_initial_two_amd64.go:55	0x600a9a		c1e602			SHLL $0x2, SI											
+  sample_initial_two_amd64.go:55	0x600a9d		480fbfb8a0000000	MOVSX 0xa0(AX), DI										
+  sample_initial_two_amd64.go:55	0x600aa5		29fe			SUBL DI, SI											
+  sample_initial_two_amd64.go:55	0x600aa7		440fb7442442		MOVZX 0x42(SP), R8										
+  sample_initial_two_amd64.go:55	0x600aad		4d0fbfc8		MOVSX R8, R9											
+  sample_initial_two_amd64.go:55	0x600ab1		41c1e102		SHLL $0x2, R9											
+  sample_initial_two_amd64.go:55	0x600ab5		4c0fbf90a2000000	MOVSX 0xa2(AX), R10										
+  svc_motion_estimate_h.go:114		0x600abd		4863f6			MOVSXD SI, SI											
+  svc_motion_estimate_h.go:114		0x600ac0		4801d6			ADDQ DX, SI											
+  sample_initial_two_amd64.go:55	0x600ac3		4529d1			SUBL R10, R9											
+  svc_motion_estimate_h.go:114		0x600ac6		4839f1			CMPQ CX, SI											
+  svc_motion_estimate_h.go:114		0x600ac9		0f86e2000000		JBE 0x600bb1											
+  sample_initial_two_amd64.go:54	0x600acf		4c8b18			MOVQ 0(AX), R11											
+  svc_motion_estimate_h.go:114		0x600ad2		4d63c9			MOVSXD R9, R9											
+  svc_motion_estimate_h.go:114		0x600ad5		4901d1			ADDQ DX, R9											
+  svc_motion_estimate_h.go:114		0x600ad8		450fb72473		MOVZX 0(R11)(SI*2), R12										
+  svc_motion_estimate_h.go:114		0x600add		0f1f00			NOPL 0(AX)											
+  svc_motion_estimate_h.go:114		0x600ae0		4c39c9			CMPQ CX, R9											
+  svc_motion_estimate_h.go:114		0x600ae3		0f86c3000000		JBE 0x600bac											
+  sample_initial_two_amd64.go:49	0x600ae9		448b6c2438		MOVL 0x38(SP), R13										
+  sample_initial_two_amd64.go:57	0x600aee		448b7c2448		MOVL 0x48(SP), R15										
+  sample_initial_two_amd64.go:57	0x600af3		41c1e702		SHLL $0x2, R15											
+  sample_initial_two_amd64.go:57	0x600af7		4129ff			SUBL DI, R15											
+  sample_initial_two_amd64.go:32	0x600afa		4489c0			MOVL R8, AX											
+  sample_initial_two_amd64.go:57	0x600afd		448b44244c		MOVL 0x4c(SP), R8										
+  sample_initial_two_amd64.go:57	0x600b02		41c1e002		SHLL $0x2, R8											
+  svc_motion_estimate_h.go:114		0x600b06		470fb70c4b		MOVZX 0(R11)(R9*2), R9										
+  svc_motion_estimate_h.go:114		0x600b0b		4501e1			ADDL R12, R9											
+  svc_motion_estimate_h.go:114		0x600b0e		4d63e7			MOVSXD R15, R12											
+  svc_motion_estimate_h.go:114		0x600b11		4901d4			ADDQ DX, R12											
+  sample_initial_two_amd64.go:54	0x600b14		438d7c0d00		LEAL 0(R13)(R9*1), DI										
+  sample_initial_two_amd64.go:57	0x600b19		4529d0			SUBL R10, R8											
+  sample_initial_two_amd64.go:57	0x600b1c		0f1f4000		NOPL 0(AX)											
+  svc_motion_estimate_h.go:114		0x600b20		4c39e1			CMPQ CX, R12											
+  svc_motion_estimate_h.go:114		0x600b23		0f867e000000		JBE 0x600ba7											
+  svc_motion_estimate_h.go:114		0x600b29		4d63c0			MOVSXD R8, R8											
+  svc_motion_estimate_h.go:114		0x600b2c		4c01c2			ADDQ R8, DX											
+  svc_motion_estimate_h.go:114		0x600b2f		470fb70463		MOVZX 0(R11)(R12*2), R8										
+  svc_motion_estimate_h.go:114		0x600b34		4839d1			CMPQ CX, DX											
+  svc_motion_estimate_h.go:114		0x600b37		7669			JBE 0x600ba2											
+  sample_initial_two_amd64.go:49	0x600b39		448b4c243c		MOVL 0x3c(SP), R9										
+  svc_motion_estimate_h.go:114		0x600b3e		410fb71453		MOVZX 0(R11)(DX*2), DX										
+  svc_motion_estimate_h.go:114		0x600b43		4401c2			ADDL R8, DX											
+  sample_initial_two_amd64.go:56	0x600b46		4401ca			ADDL R9, DX											
+  sample_initial_two_amd64.go:58	0x600b49		39fa			CMPL DX, DI											
+  sample_initial_two_amd64.go:58	0x600b4b		7d1c			JGE 0x600b69											
+  sample_initial_two_amd64.go:59	0x600b4d		0fb7442444		MOVZX 0x44(SP), AX										
+  sample_initial_two_amd64.go:59	0x600b52		0fb75c2446		MOVZX 0x46(SP), BX										
+  sample_initial_two_amd64.go:59	0x600b57		488b4c2450		MOVQ 0x50(SP), CX										
+  sample_initial_two_amd64.go:59	0x600b5c		89d7			MOVL DX, DI											
+  sample_initial_two_amd64.go:59	0x600b5e		be01000000		MOVL $0x1, SI											
+  sample_initial_two_amd64.go:59	0x600b63		4883c460		ADDQ $0x60, SP											
+  sample_initial_two_amd64.go:59	0x600b67		5d			POPQ BP												
+  sample_initial_two_amd64.go:59	0x600b68		c3			RET												
+  sample_initial_two_amd64.go:61	0x600b69		488b8c2480000000	MOVQ 0x80(SP), CX										
+  sample_initial_two_amd64.go:61	0x600b71		be01000000		MOVL $0x1, SI											
+  sample_initial_two_amd64.go:32	0x600b76		89c2			MOVL AX, DX											
+  sample_initial_two_amd64.go:61	0x600b78		89d8			MOVL BX, AX											
+  sample_initial_two_amd64.go:61	0x600b7a		89d3			MOVL DX, BX											
+  sample_initial_two_amd64.go:61	0x600b7c		4883c460		ADDQ $0x60, SP											
+  sample_initial_two_amd64.go:61	0x600b80		5d			POPQ BP												
+  sample_initial_two_amd64.go:61	0x600b81		c3			RET												
+  sample_initial_two_amd64.go:47	0x600b82		31c0			XORL AX, AX											
+  sample_initial_two_amd64.go:47	0x600b84		89c3			MOVL AX, BX											
+  sample_initial_two_amd64.go:47	0x600b86		31c9			XORL CX, CX											
+  sample_initial_two_amd64.go:47	0x600b88		31ff			XORL DI, DI											
+  sample_initial_two_amd64.go:47	0x600b8a		31f6			XORL SI, SI											
+  sample_initial_two_amd64.go:47	0x600b8c		4883c460		ADDQ $0x60, SP											
+  sample_initial_two_amd64.go:47	0x600b90		5d			POPQ BP												
+  sample_initial_two_amd64.go:47	0x600b91		c3			RET												
+  sample_initial_two_amd64.go:40	0x600b92		31c0			XORL AX, AX											
+  sample_initial_two_amd64.go:40	0x600b94		89c3			MOVL AX, BX											
+  sample_initial_two_amd64.go:40	0x600b96		31c9			XORL CX, CX											
+  sample_initial_two_amd64.go:40	0x600b98		31ff			XORL DI, DI											
+  sample_initial_two_amd64.go:40	0x600b9a		31f6			XORL SI, SI											
+  sample_initial_two_amd64.go:40	0x600b9c		4883c460		ADDQ $0x60, SP											
+  sample_initial_two_amd64.go:40	0x600ba0		5d			POPQ BP												
+  sample_initial_two_amd64.go:40	0x600ba1		c3			RET												
+  svc_motion_estimate_h.go:114		0x600ba2		e899cce8ff		CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114		0x600ba7		e894cce8ff		CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114		0x600bac		e88fcce8ff		CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114		0x600bb1		e88acce8ff		CALL runtime.panicBounds(SB)									
+  sample_initial_two_amd64.go:50	0x600bb6		e885cce8ff		CALL runtime.panicBounds(SB)									
+  sample_initial_two_amd64.go:50	0x600bbb		0f1f440000		NOPL 0(AX)(AX*1)										
+  sample_initial_two_amd64.go:50	0x600bc0		e87bcce8ff		CALL runtime.panicBounds(SB)									
+  sample_initial_two_amd64.go:49	0x600bc5		e876cce8ff		CALL runtime.panicBounds(SB)									
+  sample_initial_two_amd64.go:49	0x600bca		90			NOPL												
+  sample_initial_two_amd64.go:26	0x600bcb		4889442408		MOVQ AX, 0x8(SP)										
+  sample_initial_two_amd64.go:26	0x600bd0		66895c2410		MOVW BX, 0x10(SP)										
+  sample_initial_two_amd64.go:26	0x600bd5		66894c2412		MOVW CX, 0x12(SP)										
+  sample_initial_two_amd64.go:26	0x600bda		66897c2414		MOVW DI, 0x14(SP)										
+  sample_initial_two_amd64.go:26	0x600bdf		6689742416		MOVW SI, 0x16(SP)										
+  sample_initial_two_amd64.go:26	0x600be4		4c89442418		MOVQ R8, 0x18(SP)										
+  sample_initial_two_amd64.go:26	0x600be9		44894c2420		MOVL R9, 0x20(SP)										
+  sample_initial_two_amd64.go:26	0x600bee		4489542424		MOVL R10, 0x24(SP)										
+  sample_initial_two_amd64.go:26	0x600bf3		e808b0e8ff		CALL runtime.morestack_noctxt.abi0(SB)								
+  sample_initial_two_amd64.go:26	0x600bf8		488b442408		MOVQ 0x8(SP), AX										
+  sample_initial_two_amd64.go:26	0x600bfd		0fb75c2410		MOVZX 0x10(SP), BX										
+  sample_initial_two_amd64.go:26	0x600c02		0fb74c2412		MOVZX 0x12(SP), CX										
+  sample_initial_two_amd64.go:26	0x600c07		0fb77c2414		MOVZX 0x14(SP), DI										
+  sample_initial_two_amd64.go:26	0x600c0c		0fb7742416		MOVZX 0x16(SP), SI										
+  sample_initial_two_amd64.go:26	0x600c11		4c8b442418		MOVQ 0x18(SP), R8										
+  sample_initial_two_amd64.go:26	0x600c16		448b4c2420		MOVL 0x20(SP), R9										
+  sample_initial_two_amd64.go:26	0x600c1b		448b542424		MOVL 0x24(SP), R10										
+  sample_initial_two_amd64.go:26	0x600c20		e99bfcffff		JMP github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.meInitialSadTwo(SB)	
+
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMotionEstimateInitialPoint(SB) /tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base/pkg/h264/internal/encoder/svc_motion_estimate.go
+  svc_motion_estimate.go:119	0x61da20		4c8da42458ffffff	LEAQ 0xffffff58(SP), R12										
+  svc_motion_estimate.go:119	0x61da28		4d3b6610		CMPQ R12, 0x10(R14)											
+  svc_motion_estimate.go:119	0x61da2c		0f8619090000		JBE 0x61e34b												
+  svc_motion_estimate.go:119	0x61da32		55			PUSHQ BP												
+  svc_motion_estimate.go:119	0x61da33		4889e5			MOVQ SP, BP												
+  svc_motion_estimate.go:119	0x61da36		4881ec20010000		SUBQ $0x120, SP												
+  svc_motion_estimate.go:120	0x61da3d		8400			TESTB AL, 0(AX)												
+  svc_motion_estimate.go:120	0x61da3f		440fb66338		MOVZX 0x38(BX), R12											
+  svc_motion_estimate.go:120	0x61da44		4983fc07		CMPQ R12, $0x7												
+  svc_motion_estimate.go:120	0x61da48		0f83f7080000		JAE 0x61e345												
+  svc_motion_estimate.go:120	0x61da4e		4889842430010000	MOVQ AX, 0x130(SP)											
+  svc_motion_estimate.go:128	0x61da56		8401			TESTB AL, 0(CX)												
+  svc_motion_estimate.go:130	0x61da58		440fb7a960270000	MOVZX 0x2760(CX), R13											
+  svc_motion_estimate.go:130	0x61da60		6644896c245e		MOVW R13, 0x5e(SP)											
+  svc_motion_estimate.go:131	0x61da66		440fb7b964270000	MOVZX 0x2764(CX), R15											
+  svc_motion_estimate.go:131	0x61da6e		6644897c245c		MOVW R15, 0x5c(SP)											
+  svc_motion_estimate.go:132	0x61da74		480fbf93a0000000	MOVSX 0xa0(BX), DX											
+  svc_motion_estimate.go:132	0x61da7c		8994249c000000		MOVL DX, 0x9c(SP)											
+  svc_motion_estimate.go:137	0x61da83		448d4202		LEAL 0x2(DX), R8											
+  svc_motion_estimate.go:137	0x61da87		41c1f802		SARL $0x2, R8												
+  svc_motion_estimate.go:137	0x61da8b		4d0fbfcd		MOVSX R13, R9												
+  svc_motion_estimate.go:137	0x61da8f		44898c2498000000	MOVL R9, 0x98(SP)											
+  svc_motion_estimate.go:120	0x61da97		4e8b94e0a8000000	MOVQ 0xa8(AX)(R12*8), R10										
+  svc_motion_estimate.go:121	0x61da9f		4c8b5b08		MOVQ 0x8(BX), R11											
+  svc_motion_estimate.go:121	0x61daa3		4c899c24b0000000	MOVQ R11, 0xb0(SP)											
+  svc_motion_estimate.go:121	0x61daab		4c8b2b			MOVQ 0(BX), R13												
+  svc_motion_estimate.go:121	0x61daae		4c89ac2408010000	MOVQ R13, 0x108(SP)											
+  svc_motion_estimate.go:121	0x61dab6		4c8b6b18		MOVQ 0x18(BX), R13											
+  svc_motion_estimate.go:121	0x61daba		4c89ac24c8000000	MOVQ R13, 0xc8(SP)											
+  svc_motion_estimate.go:122	0x61dac2		4c8b5b40		MOVQ 0x40(BX), R11											
+  svc_motion_estimate.go:122	0x61dac6		4c8b6b48		MOVQ 0x48(BX), R13											
+  svc_motion_estimate.go:122	0x61daca		488b5350		MOVQ 0x50(BX), DX											
+  svc_motion_estimate.go:122	0x61dace		488b4358		MOVQ 0x58(BX), AX											
+  svc_motion_estimate.go:122	0x61dad2		48898424d0000000	MOVQ AX, 0xd0(SP)											
+  svc_motion_estimate.go:137	0x61dada		4d0fbfff		MOVSX R15, R15												
+  svc_motion_estimate.go:137	0x61dade		4489bc2494000000	MOVL R15, 0x94(SP)											
+  macros_h.go:183		0x61dae6		4539c1			CMPL R9, R8												
+  macros_h.go:183		0x61dae9		7f0d			JG 0x61daf8												
+  macros_h.go:186		0x61daeb		4539c7			CMPL R15, R8												
+  macros_h.go:186		0x61daee		7d05			JGE 0x61daf5												
+  svc_motion_estimate.go:137	0x61daf0		4589f9			MOVL R15, R9												
+  svc_motion_estimate.go:137	0x61daf3		eb03			JMP 0x61daf8												
+  svc_motion_estimate.go:137	0x61daf5		4589c1			MOVL R8, R9												
+  svc_motion_estimate.go:130	0x61daf8		440fb7b962270000	MOVZX 0x2762(CX), R15											
+  svc_motion_estimate.go:130	0x61db00		6644897c245a		MOVW R15, 0x5a(SP)											
+  svc_motion_estimate.go:131	0x61db06		440fb78166270000	MOVZX 0x2766(CX), R8											
+  svc_motion_estimate.go:131	0x61db0e		664489442458		MOVW R8, 0x58(SP)											
+  svc_motion_estimate.go:132	0x61db14		480fbf83a2000000	MOVSX 0xa2(BX), AX											
+  svc_motion_estimate.go:132	0x61db1c		89842490000000		MOVL AX, 0x90(SP)											
+  svc_motion_estimate.go:138	0x61db23		83c002			ADDL $0x2, AX												
+  svc_motion_estimate.go:138	0x61db26		c1f802			SARL $0x2, AX												
+  svc_motion_estimate.go:138	0x61db29		4d0fbfff		MOVSX R15, R15												
+  svc_motion_estimate.go:138	0x61db2d		4489bc248c000000	MOVL R15, 0x8c(SP)											
+  svc_motion_estimate.go:138	0x61db35		4d0fbfc0		MOVSX R8, R8												
+  svc_motion_estimate.go:138	0x61db39		4489842488000000	MOVL R8, 0x88(SP)											
+  macros_h.go:183		0x61db41		4139c7			CMPL R15, AX												
+  macros_h.go:183		0x61db44		7f0d			JG 0x61db53												
+  macros_h.go:186		0x61db46		4139c0			CMPL R8, AX												
+  macros_h.go:186		0x61db49		7d05			JGE 0x61db50												
+  svc_motion_estimate.go:138	0x61db4b		4589c7			MOVL R8, R15												
+  svc_motion_estimate.go:138	0x61db4e		eb03			JMP 0x61db53												
+  svc_motion_estimate.go:138	0x61db50		4189c7			MOVL AX, R15												
+  svc_motion_estimate.go:120	0x61db53		48899c2438010000	MOVQ BX, 0x138(SP)											
+  svc_motion_estimate.go:120	0x61db5b		48898c2440010000	MOVQ CX, 0x140(SP)											
+  svc_motion_estimate.go:120	0x61db63		89bc2448010000		MOVL DI, 0x148(SP)											
+  svc_motion_estimate.go:120	0x61db6a		89b4244c010000		MOVL SI, 0x14c(SP)											
+  svc_motion_estimate.go:120	0x61db71		4c899424f8000000	MOVQ R10, 0xf8(SP)											
+  svc_motion_estimate.go:137	0x61db79		44894c2470		MOVL R9, 0x70(SP)											
+  svc_motion_estimate.go:138	0x61db7e		44897c246c		MOVL R15, 0x6c(SP)											
+  svc_motion_estimate.go:122	0x61db83		48899424c0000000	MOVQ DX, 0xc0(SP)											
+  svc_motion_estimate.go:122	0x61db8b		4c89ac24b8000000	MOVQ R13, 0xb8(SP)											
+  svc_motion_estimate.go:122	0x61db93		4c899c2410010000	MOVQ R11, 0x110(SP)											
+  svc_motion_estimate.go:128	0x61db9b		440fb6817c270000	MOVZX 0x277c(CX), R8											
+  svc_motion_estimate.go:141	0x61dba3		4d0fbfff		MOVSX R15, R15												
+  svc_motion_estimate.go:141	0x61dba7		4489bc2484000000	MOVL R15, 0x84(SP)											
+  svc_motion_estimate.go:141	0x61dbaf		440faffe		IMULL SI, R15												
+  svc_motion_estimate.go:141	0x61dbb3		4d0fbfc9		MOVSX R9, R9												
+  svc_motion_estimate.go:141	0x61dbb7		44898c2480000000	MOVL R9, 0x80(SP)											
+  svc_motion_estimate.go:141	0x61dbbf		4501cf			ADDL R9, R15												
+  svc_motion_estimate.go:141	0x61dbc2		4d63ff			MOVSXD R15, R15												
+  svc_motion_estimate.go:140	0x61dbc5		4c8b4b60		MOVQ 0x60(BX), R9											
+  svc_motion_estimate.go:140	0x61dbc9		4c898c2400010000	MOVQ R9, 0x100(SP)											
+  svc_motion_estimate.go:140	0x61dbd1		488b4368		MOVQ 0x68(BX), AX											
+  svc_motion_estimate.go:140	0x61dbd5		48898424a0000000	MOVQ AX, 0xa0(SP)											
+  svc_motion_estimate.go:140	0x61dbdd		488b4b70		MOVQ 0x70(BX), CX											
+  svc_motion_estimate.go:140	0x61dbe1		48898c24a8000000	MOVQ CX, 0xa8(SP)											
+  svc_motion_estimate.go:141	0x61dbe9		4c037b78		ADDQ 0x78(BX), R15											
+  svc_motion_estimate.go:141	0x61dbed		4c89bc24d8000000	MOVQ R15, 0xd8(SP)											
+  svc_motion_estimate.go:145	0x61dbf5		4183f801		CMPL R8, $0x1												
+  svc_motion_estimate.go:145	0x61dbf9		0f8588010000		JNE 0x61dd87												
+  svc_motion_estimate.go:145	0x61dbff		90			NOPL													
+  svc_motion_estimate.go:145	0x61dc00		4180fc03		CMPL R12, $0x3												
+  svc_motion_estimate.go:145	0x61dc04		760a			JBE 0x61dc10												
+  svc_motion_estimate.go:145	0x61dc06		4180fc05		CMPL R12, $0x5												
+  svc_motion_estimate.go:145	0x61dc0a		0f8572010000		JNE 0x61dd82												
+  svc_motion_estimate.go:146	0x61dc10		4c8ba42430010000	MOVQ 0x130(SP), R12											
+  svc_motion_estimate.go:146	0x61dc18		4180bc246201000000	CMPB 0x162(R12), $0x0											
+  svc_motion_estimate.go:146	0x61dc21		0f8456010000		JE 0x61dd7d												
+  svc_motion_estimate.go:148	0x61dc27		4c8ba42440010000	MOVQ 0x140(SP), R12											
+  svc_motion_estimate.go:148	0x61dc2f		4d0fbf842468270000	MOVSX 0x2768(R12), R8											
+  svc_motion_estimate.go:148	0x61dc38		4183c002		ADDL $0x2, R8												
+  svc_motion_estimate.go:148	0x61dc3c		41c1f802		SARL $0x2, R8												
+  macros_h.go:183		0x61dc40		448bac2498000000	MOVL 0x98(SP), R13											
+  macros_h.go:183		0x61dc48		4539c5			CMPL R13, R8												
+  macros_h.go:183		0x61dc4b		7f10			JG 0x61dc5d												
+  macros_h.go:186		0x61dc4d		448bac2494000000	MOVL 0x94(SP), R13											
+  macros_h.go:186		0x61dc55		4539c5			CMPL R13, R8												
+  macros_h.go:186		0x61dc58		7c03			JL 0x61dc5d												
+  svc_motion_estimate.go:149	0x61dc5a		4589c5			MOVL R8, R13												
+  svc_motion_estimate.go:149	0x61dc5d		4d0fbf84246a270000	MOVSX 0x276a(R12), R8											
+  svc_motion_estimate.go:149	0x61dc66		4183c002		ADDL $0x2, R8												
+  svc_motion_estimate.go:149	0x61dc6a		41c1f802		SARL $0x2, R8												
+  macros_h.go:183		0x61dc6e		448ba4248c000000	MOVL 0x8c(SP), R12											
+  macros_h.go:183		0x61dc76		4539c4			CMPL R12, R8												
+  macros_h.go:183		0x61dc79		7e07			JLE 0x61dc82												
+  svc_motion_estimate.go:138	0x61dc7b		4589e0			MOVL R12, R8												
+  svc_motion_estimate.go:138	0x61dc7e		6690			NOPW													
+  svc_motion_estimate.go:149	0x61dc80		eb22			JMP 0x61dca4												
+  macros_h.go:186		0x61dc82		448ba42488000000	MOVL 0x88(SP), R12											
+  macros_h.go:186		0x61dc8a		4539c4			CMPL R12, R8												
+  macros_h.go:186		0x61dc8d		7d0a			JGE 0x61dc99												
+  macros_h.go:183		0x61dc8f		448b84248c000000	MOVL 0x8c(SP), R8											
+  svc_motion_estimate.go:149	0x61dc97		eb0b			JMP 0x61dca4												
+  svc_motion_estimate.go:147	0x61dc99		4589c4			MOVL R8, R12												
+  macros_h.go:183		0x61dc9c		448b84248c000000	MOVL 0x8c(SP), R8											
+  svc_motion_estimate.go:149	0x61dca4		44896c2468		MOVL R13, 0x68(SP)											
+  svc_motion_estimate.go:151	0x61dca9		448b7c2470		MOVL 0x70(SP), R15											
+  svc_motion_estimate.go:151	0x61dcae		664539fd		CMPW R13, R15												
+  svc_motion_estimate.go:151	0x61dcb2		7513			JNE 0x61dcc7												
+  svc_motion_estimate.go:151	0x61dcb4		448b6c246c		MOVL 0x6c(SP), R13											
+  svc_motion_estimate.go:151	0x61dcb9		664539ec		CMPW R12, R13												
+  svc_motion_estimate.go:151	0x61dcbd		750d			JNE 0x61dccc												
+  svc_motion_estimate.go:151	0x61dcbf		4531e4			XORL R12, R12												
+  svc_motion_estimate.go:151	0x61dcc2		e9c3000000		JMP 0x61dd8a												
+  svc_motion_estimate.go:156	0x61dcc7		448b6c246c		MOVL 0x6c(SP), R13											
+  svc_motion_estimate.go:156	0x61dccc		4889d8			MOVQ BX, AX												
+  svc_motion_estimate.go:156	0x61dccf		4489fb			MOVL R15, BX												
+  svc_motion_estimate.go:156	0x61dcd2		4489e9			MOVL R13, CX												
+  svc_motion_estimate.go:156	0x61dcd5		4c8b8424d8000000	MOVQ 0xd8(SP), R8											
+  svc_motion_estimate.go:156	0x61dcdd		4189f9			MOVL DI, R9												
+  svc_motion_estimate.go:156	0x61dce0		4189f2			MOVL SI, R10												
+  svc_motion_estimate.go:156	0x61dce3		8b7c2468		MOVL 0x68(SP), DI											
+  svc_motion_estimate.go:156	0x61dce7		4489e6			MOVL R12, SI												
+  svc_motion_estimate.go:156	0x61dcea		e8d12bfeff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.meInitialSadTwo(SB)		
+  svc_motion_estimate.go:156	0x61dcef		4084f6			TESTL SI, SI												
+  svc_motion_estimate.go:156	0x61dcf2		7560			JNE 0x61dd54												
+  svc_motion_estimate.go:163	0x61dcf4		488b8424a0000000	MOVQ 0xa0(SP), AX											
+  svc_motion_estimate.go:163	0x61dcfc		488b8c24a8000000	MOVQ 0xa8(SP), CX											
+  svc_motion_estimate.go:163	0x61dd04		488b9424c0000000	MOVQ 0xc0(SP), DX											
+  svc_motion_estimate.go:189	0x61dd0c		488b9c2438010000	MOVQ 0x138(SP), BX											
+  svc_motion_estimate.go:163	0x61dd14		8bb4244c010000		MOVL 0x14c(SP), SI											
+  svc_motion_estimate.go:163	0x61dd1b		8bbc2448010000		MOVL 0x148(SP), DI											
+  macros_h.go:183		0x61dd22		448b84248c000000	MOVL 0x8c(SP), R8											
+  svc_motion_estimate.go:163	0x61dd2a		4c8b8c2400010000	MOVQ 0x100(SP), R9											
+  svc_motion_estimate.go:163	0x61dd32		4c8b9424f8000000	MOVQ 0xf8(SP), R10											
+  svc_motion_estimate.go:163	0x61dd3a		4c8b9c2410010000	MOVQ 0x110(SP), R11											
+  svc_motion_estimate.go:167	0x61dd42		448b6c246c		MOVL 0x6c(SP), R13											
+  svc_motion_estimate.go:167	0x61dd47		448b7c2470		MOVL 0x70(SP), R15											
+  svc_motion_estimate.go:167	0x61dd4c		41bc01000000		MOVL $0x1, R12												
+  svc_motion_estimate.go:156	0x61dd52		eb36			JMP 0x61dd8a												
+  svc_motion_estimate.go:189	0x61dd54		4189fc			MOVL DI, R12												
+  svc_motion_estimate.go:189	0x61dd57		4989cd			MOVQ CX, R13												
+  svc_motion_estimate.go:189	0x61dd5a		4189df			MOVL BX, R15												
+  svc_motion_estimate.go:189	0x61dd5d		4189c1			MOVL AX, R9												
+  svc_motion_estimate.go:189	0x61dd60		488b8c24a8000000	MOVQ 0xa8(SP), CX											
+  svc_motion_estimate.go:189	0x61dd68		488b8424a0000000	MOVQ 0xa0(SP), AX											
+  svc_motion_estimate.go:189	0x61dd70		4c8b9c2400010000	MOVQ 0x100(SP), R11											
+  svc_motion_estimate.go:160	0x61dd78		e90f040000		JMP 0x61e18c												
+  svc_motion_estimate.go:163	0x61dd7d		4589c4			MOVL R8, R12												
+  svc_motion_estimate.go:146	0x61dd80		eb08			JMP 0x61dd8a												
+  svc_motion_estimate.go:163	0x61dd82		4589c4			MOVL R8, R12												
+  svc_motion_estimate.go:145	0x61dd85		eb03			JMP 0x61dd8a												
+  svc_motion_estimate.go:163	0x61dd87		4589c4			MOVL R8, R12												
+  svc_motion_estimate.go:163	0x61dd8a		4489642474		MOVL R12, 0x74(SP)											
+  svc_motion_estimate.go:163	0x61dd8f		4d8b22			MOVQ 0(R10), R12											
+  svc_motion_estimate.go:163	0x61dd92		893424			MOVL SI, 0(SP)												
+  svc_motion_estimate.go:163	0x61dd95		488b9c24b8000000	MOVQ 0xb8(SP), BX											
+  svc_motion_estimate.go:163	0x61dd9d		89fe			MOVL DI, SI												
+  svc_motion_estimate.go:163	0x61dd9f		4d89c8			MOVQ R9, R8												
+  svc_motion_estimate.go:163	0x61dda2		4989c1			MOVQ AX, R9												
+  svc_motion_estimate.go:163	0x61dda5		4c89d8			MOVQ R11, AX												
+  svc_motion_estimate.go:163	0x61dda8		488bbc24d0000000	MOVQ 0xd0(SP), DI											
+  svc_motion_estimate.go:163	0x61ddb0		4c8b9c24d8000000	MOVQ 0xd8(SP), R11											
+  svc_motion_estimate.go:140	0x61ddb8		4989cd			MOVQ CX, R13												
+  svc_motion_estimate.go:163	0x61ddbb		4889d1			MOVQ DX, CX												
+  svc_motion_estimate.go:120	0x61ddbe		4d89d7			MOVQ R10, R15												
+  svc_motion_estimate.go:163	0x61ddc1		4d89ea			MOVQ R13, R10												
+  svc_motion_estimate.go:163	0x61ddc4		4c89fa			MOVQ R15, DX												
+  svc_motion_estimate.go:163	0x61ddc7		41ffd4			CALL R12												
+  svc_motion_estimate.go:164	0x61ddca		448ba42480000000	MOVL 0x80(SP), R12											
+  svc_motion_estimate.go:164	0x61ddd2		41c1e402		SHLL $0x2, R12												
+  svc_motion_estimate.go:164	0x61ddd6		448bac249c000000	MOVL 0x9c(SP), R13											
+  svc_motion_estimate.go:164	0x61ddde		4529ec			SUBL R13, R12												
+  svc_motion_estimate.go:165	0x61dde1		448bbc2484000000	MOVL 0x84(SP), R15											
+  svc_motion_estimate.go:165	0x61dde9		41c1e702		SHLL $0x2, R15												
+  svc_motion_estimate_h.go:114	0x61dded		4d63e4			MOVSXD R12, R12												
+  svc_motion_estimate_h.go:114	0x61ddf0		4c8bac24c8000000	MOVQ 0xc8(SP), R13											
+  svc_motion_estimate_h.go:114	0x61ddf8		4d01ec			ADDQ R13, R12												
+  svc_motion_estimate.go:121	0x61ddfb		4c89ea			MOVQ R13, DX												
+  svc_motion_estimate.go:165	0x61ddfe		448bac2490000000	MOVL 0x90(SP), R13											
+  svc_motion_estimate.go:165	0x61de06		4529ef			SUBL R13, R15												
+  svc_motion_estimate_h.go:114	0x61de09		4c8bac24b0000000	MOVQ 0xb0(SP), R13											
+  svc_motion_estimate_h.go:114	0x61de11		4d39e5			CMPQ R13, R12												
+  svc_motion_estimate_h.go:114	0x61de14		0f8624050000		JBE 0x61e33e												
+  svc_motion_estimate_h.go:114	0x61de1a		4d63ff			MOVSXD R15, R15												
+  svc_motion_estimate_h.go:114	0x61de1d		4901d7			ADDQ DX, R15												
+  svc_motion_estimate.go:121	0x61de20		4c89ee			MOVQ R13, SI												
+  svc_motion_estimate_h.go:114	0x61de23		4c8bac2408010000	MOVQ 0x108(SP), R13											
+  svc_motion_estimate_h.go:114	0x61de2b		470fb7646500		MOVZX 0(R13)(R12*2), R12										
+  svc_motion_estimate_h.go:114	0x61de31		4c39fe			CMPQ SI, R15												
+  svc_motion_estimate_h.go:114	0x61de34		0f86ff040000		JBE 0x61e339												
+  svc_motion_estimate_h.go:114	0x61de3a		430fb77c7d00		MOVZX 0(R13)(R15*2), DI											
+  svc_motion_estimate_h.go:114	0x61de40		4101fc			ADDL DI, R12												
+  svc_motion_estimate.go:164	0x61de43		4101c4			ADDL AX, R12												
+  svc_motion_estimate.go:167	0x61de46		448b4c2470		MOVL 0x70(SP), R9											
+  svc_motion_estimate.go:167	0x61de4b		448b7c246c		MOVL 0x6c(SP), R15											
+  svc_motion_estimate.go:167	0x61de50		4c8bac24d8000000	MOVQ 0xd8(SP), R13											
+  svc_motion_estimate.go:167	0x61de58		31ff			XORL DI, DI												
+  svc_motion_estimate.go:167	0x61de5a		488b8c24a8000000	MOVQ 0xa8(SP), CX											
+  svc_motion_estimate.go:167	0x61de62		488b8424a0000000	MOVQ 0xa0(SP), AX											
+  svc_motion_estimate.go:167	0x61de6a		4c8b9c2400010000	MOVQ 0x100(SP), R11											
+  svc_motion_estimate.go:167	0x61de72		448b542474		MOVL 0x74(SP), R10											
+  svc_motion_estimate.go:167	0x61de77		488bb42440010000	MOVQ 0x140(SP), SI											
+  svc_motion_estimate.go:167	0x61de7f		8b9c2498000000		MOVL 0x98(SP), BX											
+  svc_motion_estimate.go:167	0x61de86		8b942494000000		MOVL 0x94(SP), DX											
+  svc_motion_estimate.go:167	0x61de8d		448b84248c000000	MOVL 0x8c(SP), R8											
+  svc_motion_estimate.go:167	0x61de95		eb49			JMP 0x61dee0												
+  svc_motion_estimate.go:167	0x61de97		448b6c247c		MOVL 0x7c(SP), R13											
+  svc_motion_estimate.go:167	0x61de9c		41ffc5			INCL R13												
+  macros_h.go:186		0x61de9f		8b942494000000		MOVL 0x94(SP), DX											
+  macros_h.go:183		0x61dea6		8b9c2498000000		MOVL 0x98(SP), BX											
+  svc_motion_estimate.go:169	0x61dead		488bb42440010000	MOVQ 0x140(SP), SI											
+  svc_motion_estimate.go:167	0x61deb5		4c89c1			MOVQ R8, CX												
+  svc_motion_estimate.go:167	0x61deb8		4989c3			MOVQ AX, R11												
+  macros_h.go:183		0x61debb		448b84248c000000	MOVL 0x8c(SP), R8											
+  svc_motion_estimate.go:167	0x61dec3		4889f8			MOVQ DI, AX												
+  svc_motion_estimate.go:167	0x61dec6		4489ef			MOVL R13, DI												
+  svc_motion_estimate.go:167	0x61dec9		4d89fd			MOVQ R15, R13												
+  svc_motion_estimate.go:167	0x61decc		4589cf			MOVL R9, R15												
+  svc_motion_estimate.go:167	0x61decf		4589d1			MOVL R10, R9												
+  svc_motion_estimate.go:167	0x61ded2		448b542474		MOVL 0x74(SP), R10											
+  svc_motion_estimate.go:167	0x61ded7		660f1f840000000000	NOPW 0(AX)(AX*1)											
+  svc_motion_estimate.go:167	0x61dee0		4439d7			CMPL DI, R10												
+  svc_motion_estimate.go:167	0x61dee3		0f83a3020000		JAE 0x61e18c												
+  svc_motion_estimate.go:169	0x61dee9		4883ff05		CMPQ DI, $0x5												
+  svc_motion_estimate.go:169	0x61deed		0f8341040000		JAE 0x61e334												
+  svc_motion_estimate.go:169	0x61def3		4c8d14be		LEAQ 0(SI)(DI*4), R10											
+  svc_motion_estimate.go:169	0x61def7		4d8d9268270000		LEAQ 0x2768(R10), R10											
+  svc_motion_estimate.go:169	0x61defe		4d0fbf12		MOVSX 0(R10), R10											
+  svc_motion_estimate.go:169	0x61df02		4183c202		ADDL $0x2, R10												
+  svc_motion_estimate.go:169	0x61df06		41c1fa02		SARL $0x2, R10												
+  macros_h.go:183		0x61df0a		4439d3			CMPL BX, R10												
+  macros_h.go:183		0x61df0d		7e05			JLE 0x61df14												
+  svc_motion_estimate.go:137	0x61df0f		4189da			MOVL BX, R10												
+  svc_motion_estimate.go:169	0x61df12		eb19			JMP 0x61df2d												
+  macros_h.go:186		0x61df14		4439d2			CMPL DX, R10												
+  macros_h.go:186		0x61df17		7d09			JGE 0x61df22												
+  macros_h.go:183		0x61df19		4189da			MOVL BX, R10												
+  svc_motion_estimate.go:169	0x61df1c		89d3			MOVL DX, BX												
+  svc_motion_estimate.go:169	0x61df1e		6690			NOPW													
+  svc_motion_estimate.go:169	0x61df20		eb0b			JMP 0x61df2d												
+  svc_motion_estimate.go:169	0x61df22		4489d3			MOVL R10, BX												
+  macros_h.go:183		0x61df25		448b942498000000	MOVL 0x98(SP), R10											
+  svc_motion_estimate.go:167	0x61df2d		4489642478		MOVL R12, 0x78(SP)											
+  svc_motion_estimate.go:170	0x61df32		488d14be		LEAQ 0(SI)(DI*4), DX											
+  svc_motion_estimate.go:170	0x61df36		488d926a270000		LEAQ 0x276a(DX), DX											
+  svc_motion_estimate.go:170	0x61df3d		480fbf12		MOVSX 0(DX), DX												
+  svc_motion_estimate.go:170	0x61df41		83c202			ADDL $0x2, DX												
+  svc_motion_estimate.go:170	0x61df44		c1fa02			SARL $0x2, DX												
+  macros_h.go:183		0x61df47		4139d0			CMPL R8, DX												
+  macros_h.go:183		0x61df4a		7f24			JG 0x61df70												
+  macros_h.go:186		0x61df4c		448ba42488000000	MOVL 0x88(SP), R12											
+  macros_h.go:186		0x61df54		4139d4			CMPL R12, DX												
+  macros_h.go:186		0x61df57		7d0f			JGE 0x61df68												
+  macros_h.go:186		0x61df59		448b642478		MOVL 0x78(SP), R12											
+  svc_motion_estimate.go:170	0x61df5e		448b842488000000	MOVL 0x88(SP), R8											
+  svc_motion_estimate.go:170	0x61df66		eb08			JMP 0x61df70												
+  svc_motion_estimate.go:170	0x61df68		448b642478		MOVL 0x78(SP), R12											
+  svc_motion_estimate.go:170	0x61df6d		4189d0			MOVL DX, R8												
+  svc_motion_estimate.go:167	0x61df70		897c247c		MOVL DI, 0x7c(SP)											
+  svc_motion_estimate.go:169	0x61df74		895c2464		MOVL BX, 0x64(SP)											
+  svc_motion_estimate.go:167	0x61df78		48898c24f0000000	MOVQ CX, 0xf0(SP)											
+  svc_motion_estimate.go:167	0x61df80		4c899c2418010000	MOVQ R11, 0x118(SP)											
+  svc_motion_estimate.go:167	0x61df88		48898424e8000000	MOVQ AX, 0xe8(SP)											
+  svc_motion_estimate.go:167	0x61df90		6644897c2454		MOVW R15, 0x54(SP)											
+  svc_motion_estimate.go:167	0x61df96		6644894c2456		MOVW R9, 0x56(SP)											
+  svc_motion_estimate.go:167	0x61df9c		4c89ac24e0000000	MOVQ R13, 0xe0(SP)											
+  svc_motion_estimate.go:172	0x61dfa4		480fbfdb		MOVSX BX, BX												
+  svc_motion_estimate.go:172	0x61dfa8		899c2484000000		MOVL BX, 0x84(SP)											
+  svc_motion_estimate.go:172	0x61dfaf		490fbfd1		MOVSX R9, DX												
+  svc_motion_estimate.go:172	0x61dfb3		39da			CMPL DX, BX												
+  svc_motion_estimate.go:172	0x61dfb5		755e			JNE 0x61e015												
+  svc_motion_estimate.go:172	0x61dfb7		490fbfd0		MOVSX R8, DX												
+  svc_motion_estimate.go:172	0x61dfbb		490fbfdf		MOVSX R15, BX												
+  svc_motion_estimate.go:172	0x61dfbf		90			NOPL													
+  svc_motion_estimate.go:172	0x61dfc0		39d3			CMPL BX, DX												
+  svc_motion_estimate.go:172	0x61dfc2		754a			JNE 0x61e00e												
+  svc_motion_estimate.go:176	0x61dfc4		8b8c249c000000		MOVL 0x9c(SP), CX											
+  svc_motion_estimate_h.go:114	0x61dfcb		488b9424c8000000	MOVQ 0xc8(SP), DX											
+  svc_motion_estimate.go:176	0x61dfd3		8b9c2490000000		MOVL 0x90(SP), BX											
+  svc_motion_estimate_h.go:114	0x61dfda		488bb424b0000000	MOVQ 0xb0(SP), SI											
+  svc_motion_estimate.go:189	0x61dfe2		4c8b9c2438010000	MOVQ 0x138(SP), R11											
+  svc_motion_estimate.go:189	0x61dfea		4589f9			MOVL R15, R9												
+  svc_motion_estimate.go:189	0x61dfed		440fb7542456		MOVZX 0x56(SP), R10											
+  svc_motion_estimate.go:189	0x61dff3		4c8b8424f0000000	MOVQ 0xf0(SP), R8											
+  svc_motion_estimate.go:189	0x61dffb		4889c7			MOVQ AX, DI												
+  svc_motion_estimate.go:189	0x61dffe		4d89ef			MOVQ R13, R15												
+  svc_motion_estimate.go:189	0x61e001		488b842418010000	MOVQ 0x118(SP), AX											
+  svc_motion_estimate.go:172	0x61e009		e989feffff		JMP 0x61de97												
+  svc_motion_estimate.go:173	0x61e00e		8b9c2484000000		MOVL 0x84(SP), BX											
+  svc_motion_estimate.go:170	0x61e015		4489442460		MOVL R8, 0x60(SP)											
+  svc_motion_estimate.go:173	0x61e01a		4d0fbfe0		MOVSX R8, R12												
+  svc_motion_estimate.go:173	0x61e01e		4489a42480000000	MOVL R12, 0x80(SP)											
+  svc_motion_estimate.go:173	0x61e026		448bac244c010000	MOVL 0x14c(SP), R13											
+  svc_motion_estimate.go:173	0x61e02e		4589ef			MOVL R13, R15												
+  svc_motion_estimate.go:173	0x61e031		450fafec		IMULL R12, R13												
+  svc_motion_estimate.go:173	0x61e035		468d242b		LEAL 0(BX)(R13*1), R12											
+  svc_motion_estimate.go:173	0x61e039		4d63dc			MOVSXD R12, R11												
+  svc_motion_estimate.go:173	0x61e03c		4c8ba42438010000	MOVQ 0x138(SP), R12											
+  svc_motion_estimate.go:173	0x61e044		4d035c2478		ADDQ 0x78(R12), R11											
+  svc_motion_estimate.go:173	0x61e049		4c899c24d8000000	MOVQ R11, 0xd8(SP)											
+  svc_motion_estimate.go:175	0x61e051		488b9424f8000000	MOVQ 0xf8(SP), DX											
+  svc_motion_estimate.go:175	0x61e059		4c8b2a			MOVQ 0(DX), R13												
+  svc_motion_estimate.go:175	0x61e05c		4d8b442460		MOVQ 0x60(R12), R8											
+  svc_motion_estimate.go:175	0x61e061		4d8b4c2468		MOVQ 0x68(R12), R9											
+  svc_motion_estimate.go:175	0x61e066		4d8b542470		MOVQ 0x70(R12), R10											
+  svc_motion_estimate.go:175	0x61e06b		44893c24		MOVL R15, 0(SP)												
+  svc_motion_estimate.go:175	0x61e06f		488b842410010000	MOVQ 0x110(SP), AX											
+  svc_motion_estimate.go:175	0x61e077		488b9c24b8000000	MOVQ 0xb8(SP), BX											
+  svc_motion_estimate.go:175	0x61e07f		488b8c24c0000000	MOVQ 0xc0(SP), CX											
+  svc_motion_estimate.go:175	0x61e087		488bbc24d0000000	MOVQ 0xd0(SP), DI											
+  svc_motion_estimate.go:175	0x61e08f		8bb42448010000		MOVL 0x148(SP), SI											
+  svc_motion_estimate.go:175	0x61e096		41ffd5			CALL R13												
+  svc_motion_estimate.go:176	0x61e099		448ba42484000000	MOVL 0x84(SP), R12											
+  svc_motion_estimate.go:176	0x61e0a1		41c1e402		SHLL $0x2, R12												
+  svc_motion_estimate.go:176	0x61e0a5		448bac249c000000	MOVL 0x9c(SP), R13											
+  svc_motion_estimate.go:176	0x61e0ad		4529ec			SUBL R13, R12												
+  svc_motion_estimate.go:176	0x61e0b0		448bbc2480000000	MOVL 0x80(SP), R15											
+  svc_motion_estimate.go:176	0x61e0b8		41c1e702		SHLL $0x2, R15												
+  svc_motion_estimate_h.go:114	0x61e0bc		4d63e4			MOVSXD R12, R12												
+  svc_motion_estimate.go:132	0x61e0bf		4489e9			MOVL R13, CX												
+  svc_motion_estimate_h.go:114	0x61e0c2		4c8bac24c8000000	MOVQ 0xc8(SP), R13											
+  svc_motion_estimate_h.go:114	0x61e0ca		4d01ec			ADDQ R13, R12												
+  svc_motion_estimate.go:121	0x61e0cd		4c89ea			MOVQ R13, DX												
+  svc_motion_estimate.go:176	0x61e0d0		448bac2490000000	MOVL 0x90(SP), R13											
+  svc_motion_estimate.go:176	0x61e0d8		4529ef			SUBL R13, R15												
+  svc_motion_estimate.go:132	0x61e0db		4489eb			MOVL R13, BX												
+  svc_motion_estimate_h.go:114	0x61e0de		4c8bac24b0000000	MOVQ 0xb0(SP), R13											
+  svc_motion_estimate_h.go:114	0x61e0e6		4d39e5			CMPQ R13, R12												
+  svc_motion_estimate_h.go:114	0x61e0e9		0f8640020000		JBE 0x61e32f												
+  svc_motion_estimate_h.go:114	0x61e0ef		4d63ff			MOVSXD R15, R15												
+  svc_motion_estimate_h.go:114	0x61e0f2		4901d7			ADDQ DX, R15												
+  svc_motion_estimate.go:121	0x61e0f5		4c89ee			MOVQ R13, SI												
+  svc_motion_estimate_h.go:114	0x61e0f8		4c8bac2408010000	MOVQ 0x108(SP), R13											
+  svc_motion_estimate_h.go:114	0x61e100		470fb7646500		MOVZX 0(R13)(R12*2), R12										
+  svc_motion_estimate_h.go:114	0x61e106		4c39fe			CMPQ SI, R15												
+  svc_motion_estimate_h.go:114	0x61e109		0f861b020000		JBE 0x61e32a												
+  svc_motion_estimate_h.go:114	0x61e10f		470fb77c7d00		MOVZX 0(R13)(R15*2), R15										
+  svc_motion_estimate_h.go:114	0x61e115		4501fc			ADDL R15, R12												
+  svc_motion_estimate.go:175	0x61e118		4101c4			ADDL AX, R12												
+  svc_motion_estimate.go:178	0x61e11b		448b7c2478		MOVL 0x78(SP), R15											
+  svc_motion_estimate.go:178	0x61e120		4539e7			CMPL R15, R12												
+  svc_motion_estimate.go:178	0x61e123		7e2b			JLE 0x61e150												
+  svc_motion_estimate.go:181	0x61e125		4c8b9c2438010000	MOVQ 0x138(SP), R11											
+  svc_motion_estimate.go:181	0x61e12d		498b4360		MOVQ 0x60(R11), AX											
+  svc_motion_estimate.go:181	0x61e131		498b7b68		MOVQ 0x68(R11), DI											
+  svc_motion_estimate.go:181	0x61e135		4d8b4370		MOVQ 0x70(R11), R8											
+  svc_motion_estimate.go:181	0x61e139		448b4c2460		MOVL 0x60(SP), R9											
+  svc_motion_estimate.go:181	0x61e13e		448b542464		MOVL 0x64(SP), R10											
+  svc_motion_estimate.go:181	0x61e143		4c8bbc24d8000000	MOVQ 0xd8(SP), R15											
+  svc_motion_estimate.go:183	0x61e14b		e947fdffff		JMP 0x61de97												
+  svc_motion_estimate.go:189	0x61e150		4c8b9c2438010000	MOVQ 0x138(SP), R11											
+  svc_motion_estimate.go:189	0x61e158		440fb74c2454		MOVZX 0x54(SP), R9											
+  svc_motion_estimate.go:189	0x61e15e		440fb7542456		MOVZX 0x56(SP), R10											
+  svc_motion_estimate.go:189	0x61e164		4589fc			MOVL R15, R12												
+  svc_motion_estimate.go:189	0x61e167		4c8b8424f0000000	MOVQ 0xf0(SP), R8											
+  svc_motion_estimate.go:189	0x61e16f		488bbc24e8000000	MOVQ 0xe8(SP), DI											
+  svc_motion_estimate.go:189	0x61e177		4c8bbc24e0000000	MOVQ 0xe0(SP), R15											
+  svc_motion_estimate.go:189	0x61e17f		488b842418010000	MOVQ 0x118(SP), AX											
+  svc_motion_estimate.go:178	0x61e187		e90bfdffff		JMP 0x61de97												
+  svc_motion_estimate.go:189	0x61e18c		48898c24a8000000	MOVQ CX, 0xa8(SP)											
+  svc_motion_estimate.go:189	0x61e194		48898424a0000000	MOVQ AX, 0xa0(SP)											
+  svc_motion_estimate.go:189	0x61e19c		6644897c2454		MOVW R15, 0x54(SP)											
+  svc_motion_estimate.go:189	0x61e1a2		4c899c2400010000	MOVQ R11, 0x100(SP)											
+  svc_motion_estimate.go:189	0x61e1aa		6644894c2456		MOVW R9, 0x56(SP)											
+  svc_motion_estimate.go:189	0x61e1b0		4c89ac24d8000000	MOVQ R13, 0xd8(SP)											
+  svc_motion_estimate.go:189	0x61e1b8		4489642478		MOVL R12, 0x78(SP)											
+  svc_motion_estimate.go:189	0x61e1bd		4c8ba42430010000	MOVQ 0x130(SP), R12											
+  svc_motion_estimate.go:189	0x61e1c5		498b942400030000	MOVQ 0x300(R12), DX											
+  svc_motion_estimate.go:189	0x61e1cd		4c8b22			MOVQ 0(DX), R12												
+  svc_motion_estimate.go:189	0x61e1d0		4c8b9c2438010000	MOVQ 0x138(SP), R11											
+  svc_motion_estimate.go:189	0x61e1d8		4d8d6b3c		LEAQ 0x3c(R11), R13											
+  svc_motion_estimate.go:189	0x61e1dc		488b8424f8000000	MOVQ 0xf8(SP), AX											
+  svc_motion_estimate.go:189	0x61e1e4		4c89db			MOVQ R11, BX												
+  svc_motion_estimate.go:189	0x61e1e7		0fb74c245e		MOVZX 0x5e(SP), CX											
+  svc_motion_estimate.go:189	0x61e1ec		0fb77c245a		MOVZX 0x5a(SP), DI											
+  svc_motion_estimate.go:189	0x61e1f1		0fb774245c		MOVZX 0x5c(SP), SI											
+  svc_motion_estimate.go:189	0x61e1f6		440fb7442458		MOVZX 0x58(SP), R8											
+  svc_motion_estimate.go:189	0x61e1fc		448b8c2448010000	MOVL 0x148(SP), R9											
+  svc_motion_estimate.go:189	0x61e204		448b94244c010000	MOVL 0x14c(SP), R10											
+  svc_motion_estimate.go:189	0x61e20c		4d89eb			MOVQ R13, R11												
+  svc_motion_estimate.go:189	0x61e20f		41ffd4			CALL R12												
+  svc_motion_estimate.go:189	0x61e212		84c0			TESTL AL, AL												
+  svc_motion_estimate.go:189	0x61e214		7451			JE 0x61e267												
+  svc_motion_estimate.go:190	0x61e216		488b942438010000	MOVQ 0x138(SP), DX											
+  svc_motion_estimate.go:190	0x61e21e		440fb7baaa000000	MOVZX 0xaa(DX), R15											
+  svc_motion_estimate.go:190	0x61e226		440fb78aa8000000	MOVZX 0xa8(DX), R9											
+  svc_motion_estimate.go:192	0x61e22e		490fbfdf		MOVSX R15, BX												
+  svc_motion_estimate.go:192	0x61e232		8bb4244c010000		MOVL 0x14c(SP), SI											
+  svc_motion_estimate.go:192	0x61e239		0fafde			IMULL SI, BX												
+  svc_motion_estimate.go:192	0x61e23c		490fbff1		MOVSX R9, SI												
+  svc_motion_estimate.go:192	0x61e240		01f3			ADDL SI, BX												
+  svc_motion_estimate.go:192	0x61e242		4c63eb			MOVSXD BX, R13												
+  svc_motion_estimate.go:191	0x61e245		4c8b9a80000000		MOVQ 0x80(DX), R11											
+  svc_motion_estimate.go:191	0x61e24c		488b8288000000		MOVQ 0x88(DX), AX											
+  svc_motion_estimate.go:191	0x61e253		488b8a90000000		MOVQ 0x90(DX), CX											
+  svc_motion_estimate.go:192	0x61e25a		4c03aa98000000		ADDQ 0x98(DX), R13											
+  svc_motion_estimate.go:193	0x61e261		448b623c		MOVL 0x3c(DX), R12											
+  svc_motion_estimate.go:193	0x61e265		eb39			JMP 0x61e2a0												
+  svc_motion_estimate.go:28	0x61e267		488b942438010000	MOVQ 0x138(SP), DX											
+  svc_motion_estimate.go:196	0x61e26f		440fb77c2454		MOVZX 0x54(SP), R15											
+  svc_motion_estimate.go:196	0x61e275		440fb74c2456		MOVZX 0x56(SP), R9											
+  svc_motion_estimate.go:196	0x61e27b		488b8c24a8000000	MOVQ 0xa8(SP), CX											
+  svc_motion_estimate.go:196	0x61e283		488b8424a0000000	MOVQ 0xa0(SP), AX											
+  svc_motion_estimate.go:196	0x61e28b		448b642478		MOVL 0x78(SP), R12											
+  svc_motion_estimate.go:196	0x61e290		4c8bac24d8000000	MOVQ 0xd8(SP), R13											
+  svc_motion_estimate.go:196	0x61e298		4c8b9c2400010000	MOVQ 0x100(SP), R11											
+  svc_motion_estimate.go:28	0x61e2a0		6644898ab8000000	MOVW R9, 0xb8(DX)											
+  svc_motion_estimate.go:28	0x61e2a8		664489baba000000	MOVW R15, 0xba(DX)											
+  svc_motion_estimate.go:29	0x61e2b0		48894268		MOVQ AX, 0x68(DX)											
+  svc_motion_estimate.go:29	0x61e2b4		48894a70		MOVQ CX, 0x70(DX)											
+  svc_motion_estimate.go:29	0x61e2b8		833d210e4a0000		CMPL runtime.writeBarrier(SB), $0x0									
+  svc_motion_estimate.go:29	0x61e2bf		90			NOPL													
+  svc_motion_estimate.go:29	0x61e2c0		7416			JE 0x61e2d8												
+  svc_motion_estimate.go:29	0x61e2c2		488b4a60		MOVQ 0x60(DX), CX											
+  svc_motion_estimate.go:196	0x61e2c6		4c89d8			MOVQ R11, AX												
+  svc_motion_estimate.go:29	0x61e2c9		e8d2f1e6ff		CALL runtime.gcWriteBarrier2(SB)									
+  svc_motion_estimate.go:29	0x61e2ce		498903			MOVQ AX, 0(R11)												
+  svc_motion_estimate.go:29	0x61e2d1		49894b08		MOVQ CX, 0x8(R11)											
+  svc_motion_estimate.go:29	0x61e2d5		4989c3			MOVQ AX, R11												
+  svc_motion_estimate.go:29	0x61e2d8		4c895a60		MOVQ R11, 0x60(DX)											
+  svc_motion_estimate.go:30	0x61e2dc		4c896a78		MOVQ R13, 0x78(DX)											
+  svc_motion_estimate.go:31	0x61e2e0		44896224		MOVL R12, 0x24(DX)											
+  svc_motion_estimate.go:197	0x61e2e4		44396220		CMPL 0x20(DX), R12											
+  svc_motion_estimate.go:197	0x61e2e8		7e35			JLE 0x61e31f												
+  svc_motion_estimate.go:36	0x61e2ea		0fb78ab8000000		MOVZX 0xb8(DX), CX											
+  svc_motion_estimate.go:36	0x61e2f1		c1e102			SHLL $0x2, CX												
+  svc_motion_estimate.go:199	0x61e2f4		90			NOPL													
+  svc_motion_estimate.go:36	0x61e2f5		66898ab8000000		MOVW CX, 0xb8(DX)											
+  svc_motion_estimate.go:37	0x61e2fc		0fb78aba000000		MOVZX 0xba(DX), CX											
+  svc_motion_estimate.go:37	0x61e303		c1e102			SHLL $0x2, CX												
+  svc_motion_estimate.go:37	0x61e306		66898aba000000		MOVW CX, 0xba(DX)											
+  svc_motion_estimate.go:38	0x61e30d		44896228		MOVL R12, 0x28(DX)											
+  svc_motion_estimate.go:200	0x61e311		b801000000		MOVL $0x1, AX												
+  svc_motion_estimate.go:200	0x61e316		4881c420010000		ADDQ $0x120, SP												
+  svc_motion_estimate.go:200	0x61e31d		5d			POPQ BP													
+  svc_motion_estimate.go:200	0x61e31e		c3			RET													
+  svc_motion_estimate.go:202	0x61e31f		31c0			XORL AX, AX												
+  svc_motion_estimate.go:202	0x61e321		4881c420010000		ADDQ $0x120, SP												
+  svc_motion_estimate.go:202	0x61e328		5d			POPQ BP													
+  svc_motion_estimate.go:202	0x61e329		c3			RET													
+  svc_motion_estimate_h.go:114	0x61e32a		e811f5e6ff		CALL runtime.panicBounds(SB)										
+  svc_motion_estimate_h.go:114	0x61e32f		e80cf5e6ff		CALL runtime.panicBounds(SB)										
+  svc_motion_estimate.go:169	0x61e334		e807f5e6ff		CALL runtime.panicBounds(SB)										
+  svc_motion_estimate_h.go:114	0x61e339		e802f5e6ff		CALL runtime.panicBounds(SB)										
+  svc_motion_estimate_h.go:114	0x61e33e		6690			NOPW													
+  svc_motion_estimate_h.go:114	0x61e340		e8fbf4e6ff		CALL runtime.panicBounds(SB)										
+  svc_motion_estimate.go:120	0x61e345		e8f6f4e6ff		CALL runtime.panicBounds(SB)										
+  svc_motion_estimate.go:120	0x61e34a		90			NOPL													
+  svc_motion_estimate.go:119	0x61e34b		4889442408		MOVQ AX, 0x8(SP)											
+  svc_motion_estimate.go:119	0x61e350		48895c2410		MOVQ BX, 0x10(SP)											
+  svc_motion_estimate.go:119	0x61e355		48894c2418		MOVQ CX, 0x18(SP)											
+  svc_motion_estimate.go:119	0x61e35a		897c2420		MOVL DI, 0x20(SP)											
+  svc_motion_estimate.go:119	0x61e35e		89742424		MOVL SI, 0x24(SP)											
+  svc_motion_estimate.go:119	0x61e362		e899d8e6ff		CALL runtime.morestack_noctxt.abi0(SB)									
+  svc_motion_estimate.go:119	0x61e367		488b442408		MOVQ 0x8(SP), AX											
+  svc_motion_estimate.go:119	0x61e36c		488b5c2410		MOVQ 0x10(SP), BX											
+  svc_motion_estimate.go:119	0x61e371		488b4c2418		MOVQ 0x18(SP), CX											
+  svc_motion_estimate.go:119	0x61e376		8b7c2420		MOVL 0x20(SP), DI											
+  svc_motion_estimate.go:119	0x61e37a		8b742424		MOVL 0x24(SP), SI											
+  svc_motion_estimate.go:119	0x61e37e		6690			NOPW													
+  svc_motion_estimate.go:119	0x61e380		e99bf6ffff		JMP github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMotionEstimateInitialPoint(SB)	

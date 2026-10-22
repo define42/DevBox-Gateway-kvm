@@ -8,14 +8,26 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
+// Typed pointers retain the checked buffers without passing unused slice
+// lengths and capacities into the single-block kernel.
+//
 //go:noescape
-func idctT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
+func idctT4RecSSE2(rec *byte, recStride int, pred *byte, predStride int, coeff *[16]int16)
 
 //go:noescape
 func idctFourT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
 
+// The previous two-block sequence remains the fallback when reconstructed
+// pixels overlap coefficient storage and later loads must observe earlier writes.
+//
 //go:noescape
 func idctFourT4RecAVX2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
+
+// The caller validates the full 8x8 spans and excludes shifted prediction and
+// coefficient/output aliases before loading all four coefficient blocks.
+//
+//go:noescape
+func idctFourT4RecPackedAVX2(rec *byte, recStride int, pred *byte, predStride int, coeff *[64]int16)
 
 // WelsIDctT4Rec_sse2 preserves the scalar transform's wrapping horizontal
 // int16 intermediates and its widened vertical arithmetic.
@@ -27,7 +39,7 @@ func WelsIDctT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte, pr
 		WelsIDctT4Rec_c(rec, recOff, recStride, pred, predOff, predStride, coeff)
 		return
 	}
-	idctT4RecSSE2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
+	idctT4RecSSE2(&rec[recOff], int(recStride), &pred[predOff], int(predStride), (*[16]int16)(coeff))
 }
 
 // WelsIDctFourT4Rec_sse2 reconstructs an 8x8 block, with coefficients ordered
@@ -41,7 +53,11 @@ func WelsIDctFourT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte
 		return
 	}
 	if cpu.X86.HasAVX2 {
-		idctFourT4RecAVX2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
+		if idctFourCoefficientAlias(&rec[recOff], int(recStride), (*[64]int16)(coeff)) {
+			idctFourT4RecAVX2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
+		} else {
+			idctFourT4RecPackedAVX2(&rec[recOff], int(recStride), &pred[predOff], int(predStride), (*[64]int16)(coeff))
+		}
 		return
 	}
 	idctFourT4RecSSE2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
@@ -75,4 +91,12 @@ func idctNeedsScalarAlias(rec []byte, recOff int, recStride int32, pred []byte, 
 	rEnd := r + uintptr((size-1)*int(recStride)+size)
 	pEnd := p + uintptr((size-1)*int(predStride)+size)
 	return r < pEnd && p < rEnd
+}
+
+// Only output writes can change a later coefficient load. Pointer differences
+// detect either ordering without converting arithmetic results into pointers.
+func idctFourCoefficientAlias(rec *byte, stride int, coeff *[64]int16) bool {
+	r := uintptr(unsafe.Pointer(rec))
+	c := uintptr(unsafe.Pointer(coeff))
+	return c-r < uintptr(7*stride+8) || r-c < 128
 }

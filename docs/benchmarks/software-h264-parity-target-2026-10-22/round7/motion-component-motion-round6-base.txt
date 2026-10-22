@@ -1,0 +1,258 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       246.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  939034	       262.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1652146	       145.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1295241	       184.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1592744	       149.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1232293	       194.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1941696	       122.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1529661	       153.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 2185423	       110.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1755680	       135.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winsfalse-4         	 1214523	       197.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winstrue-4          	  942036	       256.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winsfalse-4       	  979472	       265.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winstrue-4        	  703136	       320.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winsfalse-4          	 1730748	       139.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winstrue-4           	 1379186	       174.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winsfalse-4        	 1605726	       149.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winstrue-4         	 1205113	       199.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winsfalse-4          	 1677036	       141.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winstrue-4           	 1277198	       190.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winsfalse-4        	 1000000	       205.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winstrue-4         	  965392	       255.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winsfalse-4           	 2047696	       118.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winstrue-4            	 1707232	       141.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winsfalse-4         	 1871997	       129.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winstrue-4          	 1391407	       172.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winsfalse-4           	 2168950	       108.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winstrue-4            	 1801878	       133.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winsfalse-4         	 2153175	       111.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winstrue-4          	 1618608	       150.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winsfalse-4           	 1000000	       201.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winstrue-4            	 1415962	       170.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winsfalse-4         	 1437123	       166.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winstrue-4          	 1392218	       172.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winsfalse-4           	  830932	       288.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winstrue-4            	  759790	       280.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winsfalse-4         	  893037	       281.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winstrue-4          	  833368	       286.0 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1254228	       192.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  957831	       261.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1665038	       143.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1295542	       184.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1602289	       148.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1223250	       196.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 2050255	       117.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1562808	       152.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 2284497	       104.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1767975	       135.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winsfalse-4         	 1211942	       195.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winstrue-4          	  944082	       255.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winsfalse-4       	  915354	       253.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winstrue-4        	  812708	       308.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winsfalse-4          	 1607566	       145.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winstrue-4           	 1331230	       180.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winsfalse-4        	 1670793	       144.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winstrue-4         	 1264779	       189.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winsfalse-4          	 1623646	       146.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winstrue-4           	 1267566	       190.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winsfalse-4        	 1233268	       194.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winstrue-4         	  876034	       246.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winsfalse-4           	 2127024	       111.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winstrue-4            	 1648028	       143.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winsfalse-4         	 1867030	       129.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winstrue-4          	 1399467	       176.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winsfalse-4           	 2182406	       109.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winstrue-4            	 1785867	       132.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winsfalse-4         	 2182021	       109.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winstrue-4          	 1622056	       148.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winsfalse-4           	 1437357	       168.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winstrue-4            	 1424281	       168.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winsfalse-4         	 1449396	       166.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winstrue-4          	 1399107	       176.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winsfalse-4           	  801074	       300.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winstrue-4            	  889636	       285.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winsfalse-4         	  808156	       312.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winstrue-4          	  836624	       304.8 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1205745	       199.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  916293	       259.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1695108	       142.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1289335	       184.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1576600	       150.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1079782	       211.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1987350	       121.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1561341	       152.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 2091108	       110.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1793394	       134.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winsfalse-4         	 1247923	       196.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winstrue-4          	  901010	       265.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winsfalse-4       	  817818	       260.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winstrue-4        	  736413	       334.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winsfalse-4          	 1713835	       138.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winstrue-4           	 1231594	       191.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winsfalse-4        	 1483314	       162.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winstrue-4         	 1000000	       206.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winsfalse-4          	 1714874	       139.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winstrue-4           	 1256941	       190.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winsfalse-4        	 1000000	       214.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winstrue-4         	  990366	       244.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winsfalse-4           	 2144473	       113.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winstrue-4            	 1666209	       141.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winsfalse-4         	 1844276	       129.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winstrue-4          	 1378396	       174.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winsfalse-4           	 2170138	       109.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winstrue-4            	 1772733	       132.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winsfalse-4         	 1975644	       118.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winstrue-4          	 1578204	       148.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winsfalse-4           	 1430197	       167.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winstrue-4            	 1446352	       167.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winsfalse-4         	 1417722	       167.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winstrue-4          	 1400901	       170.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winsfalse-4           	  917166	       278.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winstrue-4            	  890215	       286.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winsfalse-4         	  828970	       291.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winstrue-4          	  844736	       290.9 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       205.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  912370	       259.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1695109	       142.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1333646	       179.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1563002	       149.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1231176	       193.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1789242	       130.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1580577	       151.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 2313507	       104.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1652324	       141.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winsfalse-4         	 1239120	       192.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winstrue-4          	  932238	       256.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winsfalse-4       	  880064	       251.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winstrue-4        	  728872	       333.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winsfalse-4          	 1506870	       157.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winstrue-4           	 1348873	       178.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winsfalse-4        	 1520410	       154.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winstrue-4         	 1235880	       192.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winsfalse-4          	 1703844	       140.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winstrue-4           	 1280692	       189.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winsfalse-4        	 1215192	       196.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winstrue-4         	  803187	       254.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winsfalse-4           	 2139074	       115.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winstrue-4            	 1666323	       145.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winsfalse-4         	 1880168	       129.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winstrue-4          	 1348484	       176.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winsfalse-4           	 2195137	       109.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winstrue-4            	 1856502	       138.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winsfalse-4         	 2048592	       115.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winstrue-4          	 1659673	       148.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winsfalse-4           	 1421592	       167.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winstrue-4            	 1374421	       174.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winsfalse-4         	 1369882	       174.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winstrue-4          	 1364330	       174.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winsfalse-4           	  824151	       281.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winstrue-4            	  885240	       286.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winsfalse-4         	  891914	       283.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winstrue-4          	  834436	       290.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1000000	       201.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  968932	       281.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1575712	       148.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1310251	       183.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1555563	       149.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1000000	       204.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1965142	       120.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1421892	       162.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 2252197	       106.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1761579	       135.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winsfalse-4         	 1256595	       190.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winstrue-4          	  945541	       254.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winsfalse-4       	  978747	       248.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winstrue-4        	  778828	       324.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winsfalse-4          	 1762382	       136.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winstrue-4           	 1393220	       175.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winsfalse-4        	 1604544	       150.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winstrue-4         	 1259322	       190.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winsfalse-4          	 1680112	       142.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winstrue-4           	 1288831	       186.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winsfalse-4        	 1219915	       196.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winstrue-4         	 1000000	       254.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winsfalse-4           	 2186438	       109.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winstrue-4            	 1686034	       141.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winsfalse-4         	 1939744	       126.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winstrue-4          	 1396383	       172.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winsfalse-4           	 2318509	       104.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winstrue-4            	 1835503	       130.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winsfalse-4         	 2142015	       112.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winstrue-4          	 1690818	       142.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winsfalse-4           	 1450719	       164.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winstrue-4            	 1398410	       171.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winsfalse-4         	 1348879	       174.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winstrue-4          	 1410174	       175.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winsfalse-4           	  916453	       282.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winstrue-4            	  817377	       278.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winsfalse-4         	  880064	       287.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winstrue-4          	  794769	       297.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkQuarterRefineShapes/16x16/wins=false-4         	 1225812	       196.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x16/wins=true-4          	  940891	       259.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=false-4          	 1714594	       143.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/16x8/wins=true-4           	 1327311	       183.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=false-4          	 1629619	       147.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x16/wins=true-4           	 1230048	       198.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=false-4           	 1986393	       119.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x8/wins=true-4            	 1599708	       150.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=false-4           	 2233257	       108.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineShapes/8x4/wins=true-4            	 1781337	       135.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winsfalse-4         	 1232157	       193.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride32/winstrue-4          	  971070	       256.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winsfalse-4       	  967712	       268.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x16/stride2048/winstrue-4        	  633524	       363.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winsfalse-4          	 1742911	       139.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride32/winstrue-4           	 1333990	       179.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winsfalse-4        	 1532419	       156.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/16x8/stride2048/winstrue-4         	 1000000	       203.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winsfalse-4          	 1615795	       145.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride32/winstrue-4           	 1263130	       188.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winsfalse-4        	 1259035	       189.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x16/stride2048/winstrue-4         	  837177	       269.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winsfalse-4           	 2073636	       114.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride32/winstrue-4            	 1680078	       142.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winsfalse-4         	 1839537	       131.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x8/stride2048/winstrue-4          	 1406004	       175.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winsfalse-4           	 2112536	       110.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride32/winstrue-4            	 1781067	       132.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winsfalse-4         	 2180776	       111.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/8x4/stride2048/winstrue-4          	 1652359	       146.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winsfalse-4           	 1445787	       165.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride32/winstrue-4            	 1384119	       172.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winsfalse-4         	 1463380	       164.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x4/stride2048/winstrue-4          	 1383796	       172.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winsfalse-4           	  897980	       282.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride32/winstrue-4            	  883330	       279.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winsfalse-4         	  833182	       284.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkQuarterRefineFourCandidates/4x8/stride2048/winstrue-4          	  789944	       296.6 ns/op	       0 B/op	       0 allocs/op
+PASS

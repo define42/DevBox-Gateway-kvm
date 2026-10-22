@@ -1,0 +1,37 @@
+Source frozen: paired-SAD fallback tuning
+Tree: /tmp/h264-parity-target-20261022/sad-two-tuned-next
+Parent: exact copy of sad-two-next, including root's fixed int32 return stores.
+Main and other experimental trees untouched. No builds/tests/benchmarks run.
+
+Changes:
+- Gate supported 8/16-wide shapes before the private helper.
+- Clip the sole MVC once in the caller; pass the clipped value to the helper.
+- Duplicate MVC omits only its loop iteration, using a local count; pSlice.uiMvcNum remains unchanged.
+- Successful paired computation jumps to the existing directional stage. Generic fallback avoids a second batched-status branch.
+- Preserve scalar fallback, checked SAD/MVD order, visible spans, integer arithmetic, strict ties, and custom callback opt-outs.
+- Tests compare full outcomes and callback-visible MVC count, include clipped/rounded duplicates and malformed duplicate inputs, and verify custom callbacks can mutate MVC/count/bounds in the original order.
+
+Changed files relative to sad-two-next:
+  pkg/h264/internal/encoder/sample_initial_two_amd64.go
+  pkg/h264/internal/encoder/sample_initial_two_amd64_test.go
+  pkg/h264/internal/encoder/sample_initial_two_generic.go
+  pkg/h264/internal/encoder/svc_motion_estimate.go
+
+Unchanged baseline-compatible benchmarks:
+  pkg/h264/internal/encoder/sample_initial_two_bench_amd64_test.go
+  BenchmarkInitialPointTwoCandidates (all wide/narrow shapes, duplicate/fiveMVC controls)
+  BenchmarkInitialPointLocalState (caller-local allocation control)
+
+Root-run commands (serialized):
+  go test ./pkg/h264/internal/encoder -run '^TestInitialSadTwo' -count=1
+  go test ./pkg/h264/internal/encoder -run '^$' -bench '^BenchmarkInitialPoint(TwoCandidates|LocalState)$' -benchmem -benchtime=250ms -count=6 -cpu=1
+  go test ./pkg/h264/... ./internal/rdp/avc
+  GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go test -c -o /tmp/h264-parity-target-20261022/sad-two-tuned-arm64.test ./pkg/h264/internal/encoder
+
+Private helper signature changed on amd64 and generic builds; no assembly/kernel/public signatures changed. Retention still requires measured gains without fallback regressions, plus full streams/native/decoder validation.
+
+Source hashes:
+cfc69fe35a4d8399f0904c4e4976af2f71bf653d43321fa72114cd09c4e9b006  pkg/h264/internal/encoder/sample_initial_two_amd64.go
+72db99109d72529639849ebdeff0d6aa9ff076b7b6648d0f7dbbc94bde3a0bde  pkg/h264/internal/encoder/sample_initial_two_amd64_test.go
+6f5d7030e5d39d1058494767ffa0d402d3817585aae8fc7509873ad9549b2d8d  pkg/h264/internal/encoder/sample_initial_two_generic.go
+8d9334bafcb14d20fde5dae18bdb8aec2895bb221f835d50e6edcf229477896a  pkg/h264/internal/encoder/svc_motion_estimate.go

@@ -1,0 +1,41 @@
+{
+  "baseline_source": "/tmp/h264-parity-target-20261022/cavlc-emitter-round11-base",
+  "benchmark_cpu": 2,
+  "benchtime": "200ms",
+  "candidate_source": "/tmp/h264-parity-target-20261022/cavlc-emitter-tuned-next",
+  "correctness_sha256": "144dd4b06a8389cf8c0fe22a471207e67ee90cc6a43489a4b302a0a6e6ff95fd",
+  "correctness_suites": 447,
+  "driver_sha256": "e1fdff4fbd2e072299a3f92b29c7bcd918170582f6346c5859c1e1c7ca4d8e79",
+  "groups": [
+    [
+      "callers",
+      "^Benchmark(CavlcMacroblock|CavlcLevelWriter)$",
+      52
+    ],
+    [
+      "public",
+      "^BenchmarkCavlcNativeFull$/^end(3|14|15)$/^(zero|known-zero|sparse|dense|mixed)$/^prefix17$",
+      15
+    ],
+    [
+      "density",
+      "^BenchmarkCavlcEmitterDensity$",
+      20
+    ]
+  ],
+  "helper_sha256": "3365c7e5fb97a108aa0c1bd699e650d0708ccb54b4f5e9cedcffc64fcdbd6c35",
+  "initial_evidence": "/tmp/h264-parity-target-20261022/cavlc-emitter-review",
+  "native_binary_sha256": "72b829595c2b660c2ed64ac3bf50a2a878eacadeabed09736cd1d588e18c046b",
+  "native_timing_runs": 0,
+  "pairs": 6,
+  "timing_sha256": "c40cda2ad2d66c1e398e195d9a8f6658d461c88735354c9211cb773b556e195a",
+  "timing_suites": 333,
+  "tuned_manifest_sha256": "735c04bb2697d2280ef923850a972e777374d6ce430b0817c7d06ee54123f6bc",
+  "validation_env": {
+    "CAVLC_NATIVE_BINARY": "/tmp/h264-parity-target-20261022/cavlc-native-review/native_cavlc",
+    "CAVLC_NATIVE_FIXTURES": "/tmp/h264-parity-target-20261022/cavlc-emitter-tuned-review/correctness-fixtures447.txt",
+    "CGO_ENABLED": "0",
+    "GOMAXPROCS": "4",
+    "PATH": "/snap/go/current/bin:/home/define42/.local/bin:/home/define42/.codex/tmp/arg0/codex-arg0unxvQN:/home/define42/.local/bin:/home/define42/.npm-global/bin:/home/define42/.local/bin:/home/define42/.cargo/bin:/home/define42/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/define42/.dotnet/tools:/home/define42/.vscode/extensions/openai.chatgpt-26.917.62051-linux-x64/bin/linux-x86_64"
+  }
+}

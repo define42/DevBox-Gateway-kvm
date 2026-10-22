@@ -1,0 +1,11 @@
+/tmp/h264-parity-target-20261022/cavlc-emitter-review/base.test: go1.27.3
+	path	github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.test
+	mod	github.com/define42/DevBox-Gateway-kvm	(devel)	
+	dep	golang.org/x/sys	v0.48.0	h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=0
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1

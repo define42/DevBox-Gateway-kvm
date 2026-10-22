@@ -1,0 +1,126 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkInterLumaBookkeeping/Dense/QP20-4         	 1637733	       180.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP20-4        	 1707819	       173.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP20-4        	 1922388	       159.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP20-4          	 3030333	       104.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Dense/QP32-4         	 1811646	       166.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP32-4        	 1756617	       167.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP32-4        	 2545485	       115.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP32-4          	 2971476	        99.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborInter-4             	 1743442	       170.1 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborIntra-4             	 3491788	        87.33 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/UpdateMotion16x16-4         	  966426	       319.3 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NonZeroCache-4              	 4441711	        65.32 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborInter-4          	    1560	    191552 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborIntra-4          	    2968	    101924 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/UpdateMotion16x16-4      	    1027	    301570 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NonZeroCache-4           	    4057	     71859 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkInterLumaBookkeeping/Dense/QP20-4         	 1774904	       166.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP20-4        	 1841067	       164.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP20-4        	 1882825	       156.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP20-4          	 3126260	        96.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Dense/QP32-4         	 1828208	       168.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP32-4        	 1847241	       163.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP32-4        	 2604092	       114.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP32-4          	 3072800	        97.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborInter-4             	 1794276	       165.9 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborIntra-4             	 3371439	        88.61 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/UpdateMotion16x16-4         	  957165	       321.1 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NonZeroCache-4              	 4458556	        63.09 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborInter-4          	    1563	    190915 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborIntra-4          	    3181	    103205 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/UpdateMotion16x16-4      	     921	    295691 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NonZeroCache-4           	    4298	     76195 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkInterLumaBookkeeping/Dense/QP20-4         	 1560144	       182.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP20-4        	 1837334	       163.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP20-4        	 1926532	       162.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP20-4          	 2260178	       113.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Dense/QP32-4         	 1835859	       163.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP32-4        	 1790840	       165.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP32-4        	 2608809	       115.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP32-4          	 3135430	        96.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborInter-4             	 1864075	       162.9 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborIntra-4             	 2963256	        95.55 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/UpdateMotion16x16-4         	  967861	       325.7 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NonZeroCache-4              	 4720483	        64.46 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborInter-4          	    1627	    200948 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborIntra-4          	    3106	    102109 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/UpdateMotion16x16-4      	    1038	    290797 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NonZeroCache-4           	    4288	     73128 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkInterLumaBookkeeping/Dense/QP20-4         	 1765819	       175.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP20-4        	 1720168	       170.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP20-4        	 1826872	       161.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP20-4          	 3085664	        97.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Dense/QP32-4         	 1834987	       162.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP32-4        	 1859850	       163.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP32-4        	 2603002	       115.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP32-4          	 3027847	        98.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborInter-4             	 1772858	       169.6 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborIntra-4             	 3452246	        86.57 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/UpdateMotion16x16-4         	  960355	       312.0 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NonZeroCache-4              	 4929133	        62.28 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborInter-4          	    1573	    190818 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborIntra-4          	    3042	     98961 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/UpdateMotion16x16-4      	     944	    292567 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NonZeroCache-4           	    4116	     72799 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkInterLumaBookkeeping/Dense/QP20-4         	 1833112	       162.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP20-4        	 1828828	       164.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP20-4        	 1841200	       159.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP20-4          	 3184268	       100.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Dense/QP32-4         	 1790986	       165.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP32-4        	 1815294	       163.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP32-4        	 2467428	       118.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP32-4          	 3082195	        97.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborInter-4             	 1808120	       165.0 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborIntra-4             	 3574485	        87.85 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/UpdateMotion16x16-4         	  969051	       323.5 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NonZeroCache-4              	 4795257	        62.20 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborInter-4          	    1539	    190573 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborIntra-4          	    3039	    101639 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/UpdateMotion16x16-4      	     992	    300300 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NonZeroCache-4           	    4245	     71587 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkInterLumaBookkeeping/Dense/QP20-4         	 1761092	       168.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP20-4        	 1856905	       161.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP20-4        	 1955120	       159.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP20-4          	 3139435	        95.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Dense/QP32-4         	 1799827	       166.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Motion/QP32-4        	 1806302	       164.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Sparse/QP32-4        	 2573234	       116.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkInterLumaBookkeeping/Zero/QP32-4          	 3078355	        96.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborInter-4             	 1837344	       163.8 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NeighborIntra-4             	 3446420	        85.78 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/UpdateMotion16x16-4         	  834570	       322.1 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/3x3/NonZeroCache-4              	 4679733	        61.98 ns/op	       176.0 bytes/SMB	         9.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborInter-4          	    1605	    191558 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NeighborIntra-4          	    2816	    102987 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/UpdateMotion16x16-4      	    1034	    285623 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkSMBLayout/120x68/NonZeroCache-4           	    4383	     72703 ns/op	       176.0 bytes/SMB	      8160 macroblocks/op	       0 B/op	       0 allocs/op
+PASS

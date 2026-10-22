@@ -1,0 +1,54 @@
+SOURCE FROZEN: skip-dct-quant-next, cloned from frozen round7.
+No Go builds/tests/benchmarks/profiles run by this agent. Source edits and gofmt only.
+Native OpenH264 does NOT have this DCT+quant/max fusion; this experiment amortizes Go calls/validation and removes an intermediate coefficient write/reload.
+
+PRODUCTION
+- svc_encode_mb.go: three-line architecture helper dispatch at lazy skip entry; original loop untouched.
+- skip_dct_quant_amd64.go: cheap AVX2/nil gate, exact builtin DCT identity via reflect once per attempt, non-mutating full-span/QP/alias preflight, fused group loop with unchanged score/scan exits. No function-table ABI change.
+- skip_dct_quant_amd64.s: exact 8-byte pixel loads, same AVX2 DCT arithmetic, in-register unsigned-saturating quantization and signed maxima semantics from existing quantFour4x4MaxAVX2, 128-byte coefficient output + 8-byte maxima.
+- skip_dct_quant_generic.go: returns unhandled; original implementation on other architectures.
+
+VALIDATION (root owns CPU scheduling)
+cd /tmp/h264-parity-target-20261022/skip-dct-quant-next
+/snap/go/current/bin/go test ./pkg/h264/internal/encoder -run '^Test(SkipDctQuant|LazySkip)' -count=1
+/snap/go/current/bin/go test ./pkg/h264/... -count=1
+/snap/go/current/bin/go test -race ./pkg/h264/internal/encoder -run '^TestSkipDctQuant' -count=1
+GOOS=linux GOARCH=arm64 /snap/go/current/bin/go test ./pkg/h264/internal/encoder -run '^$' -exec=true
+
+BASELINE-COMPATIBLE BENCHMARK FILES (copy BOTH, no further new-file dependencies)
+pkg/h264/internal/encoder/skip_dct_quant_bench_test.go
+pkg/h264/internal/encoder/skip_dct_quant_caller_bench_test.go
+They contain their own fixture setup and call only existing welsTryPYskipPixels / WelsMdPSkipEnc entry points. Compare against round7 in an isolated baseline copy.
+/snap/go/current/bin/go test ./pkg/h264/internal/encoder -run '^$' -bench '^BenchmarkSkipDctQuant(Pixels|Caller)$' -benchmem -count=6
+First-group rejection and all-zero paths are included; wrapped and backwards-stride controls expose dispatch overhead. Full-caller Direct/threshold controls do not invoke lazy transforms.
+
+OPTIONAL RAW DIAGNOSTIC
+Candidate BenchmarkSkipDctQuantRaw is in skip_dct_quant_amd64_test.go and cannot be copied directly to baseline.
+Adapted standalone baseline file: /tmp/h264-parity-target-20261022/skip-dct-quant-raw-baseline_test.go
+Copy it to the baseline encoder directory as skip_dct_quant_raw_bench_amd64_test.go; identical names/fixtures call existing welsDctFourT4AVX2 then quantFour4x4MaxAVX2.
+Do not infer whole-caller benefit from raw timings.
+
+TEST SCOPE
+Independent frozen lazy path/group helper and complete WelsMdPSkipEnc caller.
+All QPs and pixel patterns, zero/overlapping/negative strides, 32/1984 stride benchmarks.
+Score 5 versus 6 at QP12, crossing group boundaries, every group rejection, zero-max scan scratch preservation.
+Every int16 FF/MF bit pattern; scalar DCT + historical SSE2 quantizer oracle; extreme QP/pixel cases.
+Exact guard pages for pixels, 64 coefficients, 8-word tables and 4 maxima; complete 16x16 guarded caller.
+Custom callback trace/replacement/state mutations, source/prediction/coefficient/level aliases, nil/short/capacity-only/extreme inputs and partial panic writes.
+Zero lazy-caller allocations; complete-caller allocations compared with the independent previous implementation.
+
+RISK / GATE
+Reflect identity and whole-span preflight overhead may outweigh fusion on first-group rejects. Both are inside timed callers. Prototype duplicates DCT assembly arithmetic and skip score loop; parity tests freeze their independent previous behavior. Native/frame/streamhash/decoder gates remain required before selection.
+
+SOURCE MANIFEST SHA256
+89d71fa62d5a7b595a657d80aebce050602a45cca60e62a1bbc9eec230b532d4  pkg/h264/internal/encoder/svc_encode_mb.go
+e0b7826f92353e33978ced42cd8a087816959f07967761798b1c498e937d59ac  pkg/h264/internal/encoder/skip_dct_quant_amd64.go
+293183a71cbcee3b84bc45966bd4cc2c5db591d4a5de030d4edc84e86d0b95c5  pkg/h264/internal/encoder/skip_dct_quant_amd64.s
+fe32f9063c80eead9e80c04be09d3151f76ec07ee818d31958d5912c4901e121  pkg/h264/internal/encoder/skip_dct_quant_amd64_test.go
+508a5bf329ed11f115144cd533af963626046a589db40867f8ef8bf8630ced66  pkg/h264/internal/encoder/skip_dct_quant_bench_test.go
+548b83cf0650036e028aa8abc5b8327523e0fab0c7f8baba4cc5f344c806a4c8  pkg/h264/internal/encoder/skip_dct_quant_caller_bench_test.go
+fc56ecd2084c579565b8ee6bddd97c61bdd63f70dc910cb35059747f2ef664c3  pkg/h264/internal/encoder/skip_dct_quant_caller_test.go
+66dc677b302cdb031681f571203ecaea8bf593f386c283271fe9c2fa1caf5288  pkg/h264/internal/encoder/skip_dct_quant_generic.go
+910adc1ca76698d5c77a000e5a9077c09ede2d563dc7ceaa29f2986e7118ce4c  pkg/h264/internal/encoder/skip_dct_quant_guard_linux_amd64_test.go
+5bfdc8833c7a01ab3b704470c341b46f2c697016c727b2d613f5d18a9b56fe9c  pkg/h264/internal/encoder/skip_dct_quant_reference_test.go
+c16febbdc22ff55b17ad12b4f6fe5e3d2e603a3fc4f527407db6e7abd82d6d96  pkg/h264/internal/encoder/skip_dct_quant_test.go

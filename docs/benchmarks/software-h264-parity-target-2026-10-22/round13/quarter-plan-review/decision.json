@@ -1,0 +1,249 @@
+{
+  "status": "held",
+  "rationale": "The first compact-plan version has16 significant wide complete-caller reductions, but adds measurable overhead in two narrow caller cases and two wide validated-off cases. One unchanged public-control case also regresses, which cautions against causal attribution of every delta. This version is not merged. A single separate source-directed tune is permitted to restore inline fallback construction and avoid new fast-helper calls when ineligible; it must rerun the complete47-case matrix and correctness gates, preserving this first result.",
+  "counts": {
+    "significant_reductions": 16,
+    "significant_regressions": 5,
+    "inconclusive": 26
+  },
+  "rows": [
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride32/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.589
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride32/validated-off-4",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride32/scalar-4",
+      "significant_change_percent": null,
+      "p": 0.818
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride2048/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride2048/validated-off-4",
+      "significant_change_percent": 1.96,
+      "p": 0.002
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/8x8/stride2048/scalar-4",
+      "significant_change_percent": null,
+      "p": 0.093
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride32/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride32/validated-off-4",
+      "significant_change_percent": 5.24,
+      "p": 0.015
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride32/scalar-4",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride2048/batch-off-4",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride2048/validated-off-4",
+      "significant_change_percent": null,
+      "p": 0.699
+    },
+    {
+      "name": "QuarterPlanFallbackCaller/16x16/stride2048/scalar-4",
+      "significant_change_percent": null,
+      "p": 1.0
+    },
+    {
+      "name": "QuarterRefineLocalParams/16x16-4",
+      "significant_change_percent": 5.2,
+      "p": 0.009
+    },
+    {
+      "name": "QuarterRefineLocalParams/16x8-4",
+      "significant_change_percent": null,
+      "p": 0.669
+    },
+    {
+      "name": "QuarterRefineLocalParams/8x16-4",
+      "significant_change_percent": null,
+      "p": 0.937
+    },
+    {
+      "name": "QuarterRefineLocalParams/8x8-4",
+      "significant_change_percent": null,
+      "p": 0.418
+    },
+    {
+      "name": "QuarterRefineLocalParams/8x4-4",
+      "significant_change_percent": null,
+      "p": 0.937
+    },
+    {
+      "name": "QuarterRefineLocalParams/4x4-4",
+      "significant_change_percent": null,
+      "p": 0.24
+    },
+    {
+      "name": "QuarterRefineLocalParams/4x8-4",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride32/motionfalse-4",
+      "significant_change_percent": -7.6,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride32/motiontrue-4",
+      "significant_change_percent": -3.67,
+      "p": 0.015
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride2048/motionfalse-4",
+      "significant_change_percent": -9.3,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x16/stride2048/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride32/motionfalse-4",
+      "significant_change_percent": -8.83,
+      "p": 0.026
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride32/motiontrue-4",
+      "significant_change_percent": -7.61,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride2048/motionfalse-4",
+      "significant_change_percent": -8.86,
+      "p": 0.004
+    },
+    {
+      "name": "MeRefineFracPixelCaller/16x8/stride2048/motiontrue-4",
+      "significant_change_percent": -6.02,
+      "p": 0.004
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride32/motionfalse-4",
+      "significant_change_percent": -10.03,
+      "p": 0.009
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride32/motiontrue-4",
+      "significant_change_percent": -8.35,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride2048/motionfalse-4",
+      "significant_change_percent": -6.04,
+      "p": 0.041
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x16/stride2048/motiontrue-4",
+      "significant_change_percent": -7.86,
+      "p": 0.004
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride32/motionfalse-4",
+      "significant_change_percent": -11.72,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride32/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.061
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride2048/motionfalse-4",
+      "significant_change_percent": -10.7,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x8/stride2048/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.065
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride32/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.589
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride32/motiontrue-4",
+      "significant_change_percent": -10.13,
+      "p": 0.041
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride2048/motionfalse-4",
+      "significant_change_percent": -10.31,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/8x4/stride2048/motiontrue-4",
+      "significant_change_percent": -6.47,
+      "p": 0.002
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride32/motionfalse-4",
+      "significant_change_percent": 3.11,
+      "p": 0.015
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride32/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride2048/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.18
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x4/stride2048/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.589
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride32/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.394
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride32/motiontrue-4",
+      "significant_change_percent": null,
+      "p": 0.818
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride2048/motionfalse-4",
+      "significant_change_percent": null,
+      "p": 0.132
+    },
+    {
+      "name": "MeRefineFracPixelCaller/4x8/stride2048/motiontrue-4",
+      "significant_change_percent": 5.98,
+      "p": 0.026
+    }
+  ],
+  "candidate_merged": false,
+  "full_frame_or_native_timing_performed": false,
+  "bounded_tune_permitted": true
+}

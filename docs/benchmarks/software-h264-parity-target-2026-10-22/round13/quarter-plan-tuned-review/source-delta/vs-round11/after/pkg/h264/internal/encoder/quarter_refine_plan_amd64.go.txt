@@ -1,0 +1,165 @@
+//go:build amd64
+
+package encoder
+
+// quarterPlanSourceDisjoint validates a union of candidate views. All ranges
+// retain tracked pointers; uintptr comparisons remain inside the overlap call.
+func quarterPlanSourceDisjoint(buf []byte, off int, stride, width, height int32,
+	best, tmp sampleMemoryRange) bool {
+	input, valid := sampleBlockMemoryRange(buf, off, stride, width, height)
+	return valid && !sampleMemoryRangesOverlap(input, best) && !sampleMemoryRangesOverlap(input, tmp)
+}
+
+// meRefineQuarterPlan is a caller-only route. The selected half direction gives
+// exactly three source families, so validate their unions and build the existing
+// four tracked-pointer descriptors directly. The public general-plan API and
+// all custom/non-batch routes retain their original descriptor construction.
+//
+// No source/output write occurs before every check succeeds. A failed preflight
+// returns to the existing quarter scorer after the already-completed center
+// callback; it must never run that callback again or move an MVD lookup.
+func meRefineQuarterPlan(funcs *SWelsFuncPtrList, me *SWelsME, refine *SMeRefinePointer,
+	width, height int32, ref []byte, refOff int, encStride, refStride int32,
+	half, bestCost int32, lms [4]int32) (int32, int32, bool) {
+	samples := &funcs.sSampleDealingFuncs
+	if width < 8 || samples.pfSampleAvgSatd == nil || !samples.bSampleAvgSatdFour ||
+		samples.pfSampleAvgSatdValidated == nil || samples.pfMeCost != &samples.pfSampleSatd {
+		return 0, 0, false
+	}
+	switch me.uiBlockSize {
+	case BLOCK_16x16:
+		if width != 16 || height != 16 {
+			return 0, 0, false
+		}
+	case BLOCK_16x8:
+		if width != 16 || height != 8 {
+			return 0, 0, false
+		}
+	case BLOCK_8x16:
+		if width != 8 || height != 16 {
+			return 0, 0, false
+		}
+	case BLOCK_8x8:
+		if width != 8 || height != 8 {
+			return 0, 0, false
+		}
+	case BLOCK_8x4:
+		if width != 8 || height != 4 {
+			return 0, 0, false
+		}
+	default:
+		return 0, 0, false
+	}
+	best, valid := sampleBlockMemoryRange(refine.pQuarPixBest, 0, ME_REFINE_BUF_STRIDE, width, height)
+	if !valid {
+		return 0, 0, false
+	}
+	tmp, valid := sampleBlockMemoryRange(refine.pQuarPixTmp, 0, ME_REFINE_BUF_STRIDE, width, height)
+	if !valid || sampleMemoryRangesOverlap(best, tmp) ||
+		!quarterPlanSourceDisjoint(me.pEncMb, me.iEncMbOff, encStride, width, height, best, tmp) {
+		return 0, 0, false
+	}
+	var candidates [4]sampleAvgSatdCandidate
+	switch half {
+	case REFINE_ME_NO_BEST_HALF_PIXEL:
+		if !quarterPlanSourceDisjoint(refine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE, width, height+1, best, tmp) ||
+			!quarterPlanSourceDisjoint(refine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE, width+1, height, best, tmp) ||
+			!quarterPlanSourceDisjoint(ref, refOff, refStride, width, height, best, tmp) {
+			return 0, 0, false
+		}
+		candidates = [4]sampleAvgSatdCandidate{
+			{&refine.pHalfPixV[0], &ref[refOff], ME_REFINE_BUF_STRIDE, int(refStride)},
+			{&refine.pHalfPixV[ME_REFINE_BUF_STRIDE], &ref[refOff], ME_REFINE_BUF_STRIDE, int(refStride)},
+			{&refine.pHalfPixH[0], &ref[refOff], ME_REFINE_BUF_STRIDE, int(refStride)},
+			{&refine.pHalfPixH[1], &ref[refOff], ME_REFINE_BUF_STRIDE, int(refStride)},
+		}
+	case REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT:
+		halfOff, integerOff := 0, refOff-1
+		if half == REFINE_ME_HALF_PIXEL_RIGHT {
+			halfOff, integerOff = 1, refOff
+		}
+		if !quarterPlanSourceDisjoint(refine.pHalfPixH, halfOff, ME_REFINE_BUF_STRIDE, width, height, best, tmp) ||
+			!quarterPlanSourceDisjoint(refine.pHalfPixHV, halfOff, ME_REFINE_BUF_STRIDE, width, height+1, best, tmp) ||
+			!quarterPlanSourceDisjoint(ref, integerOff, refStride, width+1, height, best, tmp) {
+			return 0, 0, false
+		}
+		a := &refine.pHalfPixH[halfOff]
+		candidates = [4]sampleAvgSatdCandidate{
+			{a, &refine.pHalfPixHV[halfOff], ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE},
+			{a, &refine.pHalfPixHV[halfOff+ME_REFINE_BUF_STRIDE], ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE},
+			{a, &ref[integerOff], ME_REFINE_BUF_STRIDE, int(refStride)},
+			{a, &ref[integerOff+1], ME_REFINE_BUF_STRIDE, int(refStride)},
+		}
+	case REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM:
+		halfOff, integerOff := 0, refOff-int(refStride)
+		if half == REFINE_ME_HALF_PIXEL_BOTTOM {
+			halfOff, integerOff = ME_REFINE_BUF_STRIDE, refOff
+		}
+		if !quarterPlanSourceDisjoint(refine.pHalfPixV, halfOff, ME_REFINE_BUF_STRIDE, width, height, best, tmp) ||
+			!quarterPlanSourceDisjoint(refine.pHalfPixHV, halfOff, ME_REFINE_BUF_STRIDE, width+1, height, best, tmp) ||
+			!quarterPlanSourceDisjoint(ref, integerOff, refStride, width, height+1, best, tmp) {
+			return 0, 0, false
+		}
+		a := &refine.pHalfPixV[halfOff]
+		candidates = [4]sampleAvgSatdCandidate{
+			{a, &ref[integerOff], ME_REFINE_BUF_STRIDE, int(refStride)},
+			{a, &ref[integerOff+int(refStride)], ME_REFINE_BUF_STRIDE, int(refStride)},
+			{a, &refine.pHalfPixHV[halfOff], ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE},
+			{a, &refine.pHalfPixHV[halfOff+1], ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE},
+		}
+	default:
+		return 0, 0, false
+	}
+	var costs [4]int32
+	satdAvgFourAVX2(&me.pEncMb[me.iEncMbOff], int(encStride), &candidates, int(width), int(height), &costs)
+	modes := [4]int32{ME_QUAR_PIXEL_TOP, ME_QUAR_PIXEL_BOTTOM, ME_QUAR_PIXEL_LEFT, ME_QUAR_PIXEL_RIGHT}
+	bestMode, winner := int32(ME_NO_BEST_QUAR_PIXEL), -1
+	for i, value := range costs {
+		cost := value + lms[i]
+		if cost < bestCost {
+			bestCost, bestMode, winner = cost, modes[i], i
+			refine.pQuarPixBest, refine.pQuarPixTmp = refine.pQuarPixTmp, refine.pQuarPixBest
+		}
+	}
+	if winner >= 0 {
+		// The batch scorer has no callbacks/writes. Only quarter-buffer swaps have
+		// occurred, so these source headers are still the original plan's snapshots.
+		var a, b []byte
+		var aOff, bOff int
+		bStride := refStride
+		switch half {
+		case REFINE_ME_NO_BEST_HALF_PIXEL:
+			b, bOff = ref, refOff
+			if winner < 2 {
+				a, aOff = refine.pHalfPixV, winner*ME_REFINE_BUF_STRIDE
+			} else {
+				a, aOff = refine.pHalfPixH, winner-2
+			}
+		case REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT:
+			a = refine.pHalfPixH
+			bOff = refOff - 1
+			if half == REFINE_ME_HALF_PIXEL_RIGHT {
+				aOff, bOff = 1, refOff
+			}
+			if winner < 2 {
+				b, bOff, bStride = refine.pHalfPixHV, aOff+winner*ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE
+			} else {
+				b, bOff = ref, bOff+winner-2
+			}
+		case REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM:
+			a = refine.pHalfPixV
+			bOff = refOff - int(refStride)
+			if half == REFINE_ME_HALF_PIXEL_BOTTOM {
+				aOff, bOff = ME_REFINE_BUF_STRIDE, refOff
+			}
+			if winner < 2 {
+				b, bOff = ref, bOff+winner*int(refStride)
+			} else {
+				b, bOff, bStride = refine.pHalfPixHV, aOff+winner-2, ME_REFINE_BUF_STRIDE
+			}
+		}
+		funcs.sMcFuncs.PfSampleAveraging(refine.pQuarPixBest, 0, ME_REFINE_BUF_STRIDE,
+			a, aOff, ME_REFINE_BUF_STRIDE, b, bOff, bStride, width, height)
+	}
+	return bestCost, bestMode, true
+}

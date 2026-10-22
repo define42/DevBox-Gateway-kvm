@@ -1,0 +1,120 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                               │ /tmp/h264-parity-target-20261022/transform-abi-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/transform-abi-next-transform-abi-next.txt │
+                                               │                                    sec/op                                     │                       sec/op                         vs base               │
+TransformABI/DCT/Stride4/Checked-4                                                                                18.73n ±  9%                                           16.95n ± 4%   -9.53% (p=0.002 n=6)
+TransformABI/DCT/Stride4/Raw-4                                                                                    14.79n ±  5%                                           12.99n ± 7%  -12.20% (p=0.002 n=6)
+TransformABI/IDCT/Stride4/Checked-4                                                                               22.62n ±  2%                                           20.90n ± 3%   -7.63% (p=0.002 n=6)
+TransformABI/IDCT/Stride4/Raw-4                                                                                   16.42n ±  4%                                           16.02n ± 3%   -2.47% (p=0.004 n=6)
+TransformABI/DCT/Stride64/Checked-4                                                                               18.69n ± 35%                                           17.01n ± 5%   -8.96% (p=0.002 n=6)
+TransformABI/DCT/Stride64/Raw-4                                                                                   13.56n ±  4%                                           10.77n ± 1%  -20.58% (p=0.002 n=6)
+TransformABI/IDCT/Stride64/Checked-4                                                                              23.07n ±  4%                                           20.59n ± 1%  -10.75% (p=0.002 n=6)
+TransformABI/IDCT/Stride64/Raw-4                                                                                  16.18n ±  3%                                           12.71n ± 9%  -21.39% (p=0.002 n=6)
+TransformABI/DCT/Stride1920/Checked-4                                                                             18.67n ±  5%                                           16.98n ± 2%   -9.05% (p=0.002 n=6)
+TransformABI/DCT/Stride1920/Raw-4                                                                                 13.57n ±  4%                                           10.66n ± 1%  -21.48% (p=0.002 n=6)
+TransformABI/IDCT/Stride1920/Checked-4                                                                            22.65n ±  5%                                           20.93n ± 2%   -7.59% (p=0.002 n=6)
+TransformABI/IDCT/Stride1920/Raw-4                                                                                16.05n ±  3%                                           12.63n ± 2%  -21.28% (p=0.002 n=6)
+TransformABI/DCT/Stride1984/Checked-4                                                                             19.08n ±  6%                                           16.83n ± 5%  -11.77% (p=0.002 n=6)
+TransformABI/DCT/Stride1984/Raw-4                                                                                 13.54n ±  2%                                           10.68n ± 4%  -21.19% (p=0.002 n=6)
+TransformABI/IDCT/Stride1984/Checked-4                                                                            22.50n ±  2%                                           20.91n ± 4%   -7.07% (p=0.002 n=6)
+TransformABI/IDCT/Stride1984/Raw-4                                                                                16.19n ±  2%                                           12.46n ± 3%  -23.07% (p=0.002 n=6)
+I4Reconstruction/Zero/QP20/Stride64_64-4                                                                          849.1n ± 43%                                           821.8n ± 6%        ~ (p=0.093 n=6)
+I4Reconstruction/Sparse/QP20/Stride64_64-4                                                                       1078.5n ±  7%                                           965.6n ± 9%  -10.47% (p=0.015 n=6)
+I4Reconstruction/Dense/QP20/Stride64_64-4                                                                         1.100µ ±  3%                                           1.092µ ± 5%        ~ (p=0.589 n=6)
+I4Reconstruction/Zero/QP32/Stride64_64-4                                                                          829.3n ± 10%                                           805.4n ± 5%        ~ (p=0.310 n=6)
+I4Reconstruction/Sparse/QP32/Stride64_64-4                                                                        824.8n ±  3%                                           801.6n ± 5%        ~ (p=0.132 n=6)
+I4Reconstruction/Dense/QP32/Stride64_64-4                                                                         1.104µ ±  3%                                           1.086µ ± 3%        ~ (p=0.193 n=6)
+I4Reconstruction/Zero/QP20/Stride1920_1984-4                                                                      815.2n ±  7%                                           813.1n ± 5%        ~ (p=0.937 n=6)
+I4Reconstruction/Sparse/QP20/Stride1920_1984-4                                                                   1020.0n ±  4%                                           968.5n ± 2%   -5.05% (p=0.002 n=6)
+I4Reconstruction/Dense/QP20/Stride1920_1984-4                                                                     1.139µ ±  9%                                           1.087µ ± 4%        ~ (p=0.132 n=6)
+I4Reconstruction/Zero/QP32/Stride1920_1984-4                                                                      829.6n ± 19%                                           796.1n ± 2%   -4.04% (p=0.009 n=6)
+I4Reconstruction/Sparse/QP32/Stride1920_1984-4                                                                    828.9n ±  3%                                           793.4n ± 2%   -4.28% (p=0.002 n=6)
+I4Reconstruction/Dense/QP32/Stride1920_1984-4                                                                     1.110µ ± 29%                                           1.065µ ± 3%   -4.10% (p=0.009 n=6)
+geomean                                                                                                           97.30n                                                 87.97n        -9.58%
+
+                                               │ /tmp/h264-parity-target-20261022/transform-abi-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/transform-abi-next-transform-abi-next.txt │
+                                               │                                     B/op                                      │                        B/op                         vs base                │
+TransformABI/DCT/Stride4/Checked-4                                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride4/Raw-4                                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride4/Checked-4                                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride4/Raw-4                                                                                   0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride64/Checked-4                                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride64/Raw-4                                                                                   0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride64/Checked-4                                                                              0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride64/Raw-4                                                                                  0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1920/Checked-4                                                                             0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1920/Raw-4                                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1920/Checked-4                                                                            0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1920/Raw-4                                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1984/Checked-4                                                                             0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1984/Raw-4                                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1984/Checked-4                                                                            0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1984/Raw-4                                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP20/Stride64_64-4                                                                          0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP20/Stride64_64-4                                                                        0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP20/Stride64_64-4                                                                         0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP32/Stride64_64-4                                                                          0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP32/Stride64_64-4                                                                        0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP32/Stride64_64-4                                                                         0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP20/Stride1920_1984-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP20/Stride1920_1984-4                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP20/Stride1920_1984-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP32/Stride1920_1984-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP32/Stride1920_1984-4                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP32/Stride1920_1984-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                      ²                                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                               │ /tmp/h264-parity-target-20261022/transform-abi-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/transform-abi-next-transform-abi-next.txt │
+                                               │                                   allocs/op                                   │                     allocs/op                       vs base                │
+TransformABI/DCT/Stride4/Checked-4                                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride4/Raw-4                                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride4/Checked-4                                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride4/Raw-4                                                                                   0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride64/Checked-4                                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride64/Raw-4                                                                                   0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride64/Checked-4                                                                              0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride64/Raw-4                                                                                  0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1920/Checked-4                                                                             0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1920/Raw-4                                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1920/Checked-4                                                                            0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1920/Raw-4                                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1984/Checked-4                                                                             0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/DCT/Stride1984/Raw-4                                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1984/Checked-4                                                                            0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+TransformABI/IDCT/Stride1984/Raw-4                                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP20/Stride64_64-4                                                                          0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP20/Stride64_64-4                                                                        0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP20/Stride64_64-4                                                                         0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP32/Stride64_64-4                                                                          0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP32/Stride64_64-4                                                                        0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP32/Stride64_64-4                                                                         0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP20/Stride1920_1984-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP20/Stride1920_1984-4                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP20/Stride1920_1984-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP32/Stride1920_1984-4                                                                      0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP32/Stride1920_1984-4                                                                    0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP32/Stride1920_1984-4                                                                     0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                      ²                                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                               │ /tmp/h264-parity-target-20261022/transform-abi-next-component-round6-base.txt │ /tmp/h264-parity-target-20261022/transform-abi-next-transform-abi-next.txt │
+                                               │                                   blocks/op                                   │                     blocks/op                       vs base                │
+I4Reconstruction/Zero/QP20/Stride64_64-4                                                                            16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP20/Stride64_64-4                                                                          16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP20/Stride64_64-4                                                                           16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP32/Stride64_64-4                                                                            16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP32/Stride64_64-4                                                                          16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP32/Stride64_64-4                                                                           16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP20/Stride1920_1984-4                                                                        16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP20/Stride1920_1984-4                                                                      16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP20/Stride1920_1984-4                                                                       16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Zero/QP32/Stride1920_1984-4                                                                        16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Sparse/QP32/Stride1920_1984-4                                                                      16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+I4Reconstruction/Dense/QP32/Stride1920_1984-4                                                                       16.00 ± 0%                                           16.00 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                             16.00                                                16.00       +0.00%
+¹ all samples are equal

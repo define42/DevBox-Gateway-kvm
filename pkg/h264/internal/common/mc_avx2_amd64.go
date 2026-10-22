@@ -133,6 +133,18 @@ func McHorVer22_avx2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, 
 	srcStart, srcEnd := iSrcOff-2*stride-2, iSrcOff+(height+2)*stride+width+3
 	checkSIMDSpan(pSrc, int64(srcStart), int64(srcEnd)-1)
 	src := pSrc[srcStart:srcEnd]
+	if width == 4 || width == 5 || width == 8 || width == 9 || width == 16 || width == 17 {
+		// The combined leaf owns its compact scratch, writes every tap before
+		// reading it, and completes all source reads before destination stores.
+		mcCenterRefineAVX2(&dst[0], int(iDstStride), &src[2*stride], stride, width, height)
+		return
+	}
+	mcCenterLegacyAVX2(dst, int(iDstStride), src, stride, width, height)
+}
+
+// Keep the legacy scratch frame off the refinement path. This helper retains
+// the previous kernels and ordering for other positive center-filter widths.
+func mcCenterLegacyAVX2(dst []byte, dstStride int, src []byte, stride, width, height int) {
 	const tapStride = 24
 	var taps [17 * tapStride]int16
 	switch width {
@@ -147,12 +159,10 @@ func McHorVer22_avx2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, 
 			mcVerticalRawAVX2(taps[:], tapStride, src[2*stride:], stride, width+5, height)
 		}
 	}
-	if width == 5 || width == 9 || width == 17 {
-		mcHorRawRefineAVX2(&dst[0], int(iDstStride), &taps[0], tapStride, width, height)
-	} else if width < 8 {
-		mcHorizontalRawToU8SSE2(dst, int(iDstStride), taps[:], tapStride, width, height)
+	if width < 8 {
+		mcHorizontalRawToU8SSE2(dst, dstStride, taps[:], tapStride, width, height)
 	} else {
-		mcHorizontalRawToU8AVX2(dst, int(iDstStride), taps[:], tapStride, width, height)
+		mcHorizontalRawToU8AVX2(dst, dstStride, taps[:], tapStride, width, height)
 	}
 }
 
@@ -174,7 +184,11 @@ func McLuma_avx2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDst
 	x, y := iMvX&3, iMvY&3
 	switch x<<2 | y {
 	case 0:
-		McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+		if iHeight == 16 && (iWidth == 8 || iWidth == 16) {
+			mcCopySSE2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+		} else {
+			McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+		}
 	case 8:
 		McHorVer20_avx2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
 	case 2:

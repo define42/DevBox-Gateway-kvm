@@ -1,0 +1,20 @@
+--- base/pkg/h264/internal/encoder/cavlc_emit_amd64.go
++++ candidate/pkg/h264/internal/encoder/cavlc_emit_amd64.go
+@@ -0,0 +1,17 @@
++//go:build amd64
++
++package encoder
++
++import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++
++// cavlcEmit accepts the already-extracted private levels/runs. The leaf checks
++// canonical dimensions, writer state, visible output capacity and overlap with
++// every object whose later reads/commits could be affected by output stores.
++// It reads live mutable tables at each original symbol stage. Unsupported
++// entries return fallback before that symbol is written; any prior stores are
++// an identical prefix, and private bs/levels/runs stay unchanged for Go replay.
++// Success commits only private bs. Overflow preserves emitted bytes without
++// committing either writer state, matching the Go writer's error contract.
++//
++//go:noescape
++func cavlcEmit(bs *sCavlcBs, levels *[16]int16, runs *[16]uint8, external *common.SBitStringAux, total, zeros, end, property, nc int32) int32

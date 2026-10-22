@@ -1,0 +1,24 @@
+package encoder
+
+import (
+	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+const (
+	cavlcEmitFallback = 0
+	cavlcEmitSuccess  = 1
+	cavlcEmitOverflow = 2
+	// At most token + 16 levels + total zeros + 15 runs. Even an unusual
+	// supported symbol can flush only one word, exactly like sCavlcBs.write.
+	cavlcEmitSpace           = 33 * 4
+	cavlcEmitExternalSize    = unsafe.Sizeof(common.SBitStringAux{})
+	cavlcEmitNcSize          = unsafe.Sizeof(g_kuiEncNcMapTable)
+	cavlcEmitTokenSize       = unsafe.Sizeof(g_kuiVlcCoeffToken)
+	cavlcEmitLevelSize       = unsafe.Sizeof(cavlcLevelTable)
+	cavlcEmitZerosSize       = unsafe.Sizeof(g_kuiVlcTotalZeros)
+	cavlcEmitChromaZerosSize = unsafe.Sizeof(g_kuiVlcTotalZerosChromaDc)
+	cavlcEmitZeroMapSize     = unsafe.Sizeof(g_kuiZeroLeftMap)
+	cavlcEmitRunSize         = unsafe.Sizeof(g_kuiVlcRunBefore)
+)

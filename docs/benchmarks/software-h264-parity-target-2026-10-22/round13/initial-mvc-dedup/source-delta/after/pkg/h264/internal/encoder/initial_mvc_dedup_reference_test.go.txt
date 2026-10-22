@@ -1,0 +1,90 @@
+package encoder
+
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+
+// Frozen round12 complete caller, renamed only. Never calls the dedup helper.
+func initialMVCDedupReference(pFuncList *SWelsFuncPtrList, pMe *SWelsME, pSlice *SSlice, iStrideEnc int32, iStrideRef int32) bool {
+	pSad := pFuncList.sSampleDealingFuncs.pfSampleSad[pMe.uiBlockSize]
+	kpMvdCost, kiMvdCostOff := pMe.pMvdCost, pMe.iMvdCostOff
+	kpEncMb, kiEncMbOff := pMe.pEncMb, pMe.iEncMbOff
+	var iMvc0, iMvc1 int16
+	var iSadCost int32
+	var iBestSadCost int32
+	var pRefMb []uint8
+	var iRefMbOff int
+	kuiMvcNum := uint32(pSlice.uiMvcNum)
+	kpMvcList := pSlice.sMvc[:]
+	ksMvStartMin := pSlice.sMvStartMin
+	ksMvStartMax := pSlice.sMvStartMax
+	ksMvp := pMe.sMvp
+	var sMv SMVUnitXY
+
+	//  Step 1: Initial point prediction
+	// init with sMvp
+	sMv.iMvX = int16(common.WELS_CLIP3((2+int32(ksMvp.iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX)))
+	sMv.iMvY = int16(common.WELS_CLIP3((2+int32(ksMvp.iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY)))
+
+	pRefMb = pMe.pRefMb
+	iRefMbOff = pMe.iRefMbOff + int(int32(sMv.iMvY)*iStrideRef+int32(sMv.iMvX))
+
+	// A distinct sole MVC needs exactly two SADs. The direct helper shares the
+	// encoded loads and validation without passing local state through callbacks.
+	if kuiMvcNum == 1 && (pMe.uiBlockSize <= BLOCK_8x8 || pMe.uiBlockSize == BLOCK_8x4) &&
+		pFuncList.sSampleDealingFuncs.bSampleSadTwo {
+		mvc := SMVUnitXY{
+			iMvX: int16(common.WELS_CLIP3((2+int32(kpMvcList[0].iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX))),
+			iMvY: int16(common.WELS_CLIP3((2+int32(kpMvcList[0].iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY))),
+		}
+		if mvc == sMv {
+			// Built-in SAD callbacks cannot change the MVC. Do the initial SAD
+			// and MVD lookup below, but omit the known duplicate's loop work.
+			// Leave the externally visible count unchanged for later callbacks.
+			kuiMvcNum = 0
+		} else if bestMv, bestOff, bestCost, ok := meInitialSadTwo(pMe, sMv, mvc, iRefMbOff, iStrideEnc, iStrideRef); ok {
+			sMv, iRefMbOff, iBestSadCost = bestMv, bestOff, bestCost
+			// Ineligible shapes and multi-MVC searches take the original path
+			// below without an additional batched-status branch.
+			goto checkDirectional
+		}
+	}
+	iBestSadCost = pSad(kpEncMb, kiEncMbOff, iStrideEnc, pRefMb, iRefMbOff, iStrideRef)
+	iBestSadCost += COST_MVD(kpMvdCost, kiMvdCostOff, (int32(sMv.iMvX)*(1<<2))-int32(ksMvp.iMvX),
+		(int32(sMv.iMvY)*(1<<2))-int32(ksMvp.iMvY))
+
+	for i := uint32(0); i < kuiMvcNum; i++ {
+		//clipping here is essential since some pOut-of-range MVC may happen here (i.e., refer to baseMV)
+		iMvc0 = int16(common.WELS_CLIP3((2+int32(kpMvcList[i].iMvX))>>2, int32(ksMvStartMin.iMvX), int32(ksMvStartMax.iMvX)))
+		iMvc1 = int16(common.WELS_CLIP3((2+int32(kpMvcList[i].iMvY))>>2, int32(ksMvStartMin.iMvY), int32(ksMvStartMax.iMvY)))
+
+		if (int32(iMvc0)-int32(sMv.iMvX)) != 0 || (int32(iMvc1)-int32(sMv.iMvY)) != 0 {
+			iFref2Off := pMe.iRefMbOff + int(int32(iMvc1)*iStrideRef+int32(iMvc0))
+
+			iSadCost = pSad(kpEncMb, kiEncMbOff, iStrideEnc, pMe.pRefMb, iFref2Off, iStrideRef) +
+				COST_MVD(kpMvdCost, kiMvdCostOff, (int32(iMvc0)*(1<<2))-int32(ksMvp.iMvX), (int32(iMvc1)*(1<<2))-int32(ksMvp.iMvY))
+
+			if iSadCost < iBestSadCost {
+				sMv.iMvX = iMvc0
+				sMv.iMvY = iMvc1
+				pRefMb = pMe.pRefMb
+				iRefMbOff = iFref2Off
+				iBestSadCost = iSadCost
+			}
+		}
+	}
+
+checkDirectional:
+	if pFuncList.pfCheckDirectionalMv(pSad, pMe, ksMvStartMin, ksMvStartMax, iStrideEnc, iStrideRef, &pMe.iDirectionalSadCost) {
+		sMv = pMe.sDirectionalMv
+		pRefMb = pMe.pColoRefMb
+		iRefMbOff = pMe.iColoRefMbOff + int(int32(sMv.iMvY)*iStrideRef+int32(sMv.iMvX))
+		iBestSadCost = pMe.iDirectionalSadCost
+	}
+
+	UpdateMeResults(sMv, uint32(iBestSadCost), pRefMb, iRefMbOff, pMe)
+	if iBestSadCost < int32(pMe.uSadPredISatd) {
+		//Initial point early Stop
+		MeEndIntepelSearch(pMe)
+		return true
+	}
+	return false
+}

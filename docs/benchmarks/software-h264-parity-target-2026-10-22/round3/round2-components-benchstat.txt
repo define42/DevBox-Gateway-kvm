@@ -1,0 +1,243 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                     │ /tmp/h264-parity-target-20261022/before-round2-components.txt │ /tmp/h264-parity-target-20261022/round2-round2-components.txt │
+                                     │                            sec/op                             │                 sec/op                  vs base               │
+IntegerMotionCopy/LumaSSE2/8x8-4                                                        20.04n ±  6%                             20.93n ± 10%   +4.44% (p=0.015 n=6)
+IntegerMotionCopy/LumaSSE2/8x16-4                                                       29.65n ±  3%                             23.84n ±  5%  -19.58% (p=0.002 n=6)
+IntegerMotionCopy/LumaSSE2/16x8-4                                                       19.61n ±  1%                             20.50n ±  2%   +4.51% (p=0.002 n=6)
+IntegerMotionCopy/LumaSSE2/16x16-4                                                      32.03n ±  4%                             23.77n ±  4%  -25.78% (p=0.002 n=6)
+IntegerMotionCopy/LumaSSE2/8x4-4                                                        14.45n ±  8%                             16.89n ±  9%  +16.85% (p=0.002 n=6)
+IntegerMotionCopy/LumaSSE2/4x4-4                                                        14.22n ±  8%                             16.31n ±  2%  +14.70% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/8x8-4                                                        19.76n ±  3%                             21.39n ±  2%   +8.25% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/8x16-4                                                       30.21n ±  2%                             24.21n ±  3%  -19.86% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/16x8-4                                                       20.06n ±  3%                             21.45n ± 20%   +6.90% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/16x16-4                                                      32.21n ±  2%                             24.71n ± 18%  -23.28% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/8x4-4                                                        14.09n ±  2%                             18.43n ± 13%  +30.80% (p=0.002 n=6)
+IntegerMotionCopy/LumaAVX2/4x4-4                                                        17.11n ±  4%                             20.21n ±  4%  +18.15% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/8x8-4                                                      31.87n ±  7%                             20.48n ±  1%  -35.72% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/8x16-4                                                     31.74n ±  2%                             23.63n ±  5%  -25.54% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/16x8-4                                                     21.90n ±  4%                             20.51n ±  4%   -6.37% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/16x16-4                                                    32.78n ±  2%                             23.87n ±  4%  -27.17% (p=0.002 n=6)
+IntegerMotionCopy/ChromaSSE2/8x4-4                                                      16.20n ±  5%                             16.93n ± 12%   +4.47% (p=0.041 n=6)
+IntegerMotionCopy/ChromaSSE2/4x4-4                                                      16.90n ±  4%                             16.06n ±  2%   -4.94% (p=0.002 n=6)
+SampleSadFourRows/16x16/stride32-4                                                      34.52n ±  2%                             38.64n ±  2%  +11.95% (p=0.002 n=6)
+SampleSadFourRows/16x16/stride2048-4                                                    44.60n ±  9%                             44.92n ±  8%        ~ (p=0.485 n=6)
+SampleSadFourRows/16x8/stride32-4                                                       24.93n ±  3%                             25.06n ± 21%        ~ (p=0.240 n=6)
+SampleSadFourRows/16x8/stride2048-4                                                     25.24n ±  4%                             25.55n ±  4%        ~ (p=1.000 n=6)
+SampleSadFourRows/8x16/stride32-4                                                       34.53n ±  3%                             31.45n ±  4%   -8.93% (p=0.002 n=6)
+SampleSadFourRows/8x16/stride2048-4                                                     44.27n ±  5%                             40.85n ±  3%   -7.73% (p=0.002 n=6)
+SampleSadFourRows/8x8/stride32-4                                                        24.32n ±  4%                             22.15n ± 13%        ~ (p=0.240 n=6)
+SampleSadFourRows/8x8/stride2048-4                                                      24.24n ±  3%                             22.89n ±  1%   -5.59% (p=0.002 n=6)
+SampleSadFourRows/8x4/stride32-4                                                        19.35n ± 11%                             17.91n ±  3%   -7.44% (p=0.002 n=6)
+SampleSadFourRows/8x4/stride2048-4                                                      19.43n ±  1%                             17.91n ±  3%   -7.82% (p=0.002 n=6)
+SampleSadFourRows/4x8/stride32-4                                                        24.18n ±  2%                             24.02n ±  3%        ~ (p=0.589 n=6)
+SampleSadFourRows/4x8/stride2048-4                                                      24.39n ±  5%                             24.31n ±  6%        ~ (p=0.818 n=6)
+SampleSadFourRows/4x4/stride32-4                                                        19.14n ±  7%                             19.49n ± 10%        ~ (p=0.370 n=6)
+SampleSadFourRows/4x4/stride2048-4                                                      19.07n ±  3%                             18.88n ±  5%        ~ (p=0.619 n=6)
+SampleSadPackedRows/8x4-4                                                               8.796n ±  4%                             8.201n ±  5%   -6.76% (p=0.002 n=6)
+SampleSadPackedRows/8x8-4                                                               10.85n ±  3%                             10.21n ±  5%   -5.90% (p=0.002 n=6)
+SampleSadPackedRows/8x16-4                                                              14.62n ±  3%                             12.40n ±  3%  -15.18% (p=0.002 n=6)
+SampleSadPackedRows/4x4-4                                                               8.713n ±  3%                             8.488n ± 14%        ~ (p=0.093 n=6)
+SampleSadPackedRows/4x8-4                                                               10.84n ±  3%                             10.10n ±  7%   -6.83% (p=0.009 n=6)
+SampleSadPackedRows/16x8Control-4                                                       11.02n ±  3%                             10.92n ±  3%        ~ (p=0.738 n=6)
+SampleSadPackedRows/16x16Control-4                                                      14.88n ±  5%                             14.58n ± 10%        ~ (p=0.240 n=6)
+geomean                                                                                 20.72n                                   19.71n         -4.85%
+
+                                     │ /tmp/h264-parity-target-20261022/before-round2-components.txt │ /tmp/h264-parity-target-20261022/round2-round2-components.txt │
+                                     │                             B/op                              │                 B/op                   vs base                │
+IntegerMotionCopy/LumaSSE2/8x8-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x16-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x8-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x16-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/4x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x8-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x16-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x8-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x16-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/4x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x8-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x16-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x8-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x16-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x4-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/4x4-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride32-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride2048-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride32-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride2048-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride32-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride2048-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x4-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x8-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x16-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x4-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x8-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x8Control-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x16Control-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                            ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                     │ /tmp/h264-parity-target-20261022/before-round2-components.txt │ /tmp/h264-parity-target-20261022/round2-round2-components.txt │
+                                     │                           allocs/op                           │               allocs/op                vs base                │
+IntegerMotionCopy/LumaSSE2/8x8-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x16-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x8-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/16x16-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/8x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaSSE2/4x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x8-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x16-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x8-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/16x16-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/8x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/LumaAVX2/4x4-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x8-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x16-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x8-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/16x16-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/8x4-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntegerMotionCopy/ChromaSSE2/4x4-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride32-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride2048-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride32-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride2048-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride32-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride2048-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride32-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride2048-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x4-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x8-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/8x16-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x4-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/4x8-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x8Control-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadPackedRows/16x16Control-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                            ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+                                                          │ /tmp/h264-parity-target-20261022/before-round2-components.txt │ /tmp/h264-parity-target-20261022/round2-round2-components.txt │
+                                                          │                            sec/op                             │                 sec/op                  vs base               │
+EncodingBlockCopy/8x8-4                                                                                      14.24n ±  3%                             16.06n ±  2%  +12.74% (p=0.002 n=6)
+EncodingBlockCopy/8x16-4                                                                                     29.38n ±  2%                             19.00n ± 13%  -35.34% (p=0.002 n=6)
+EncodingBlockCopy/16x8-4                                                                                     15.11n ±  7%                             16.05n ±  4%   +6.19% (p=0.026 n=6)
+EncodingBlockCopy/16x16-4                                                                                    28.15n ±  3%                             18.62n ±  3%  -33.86% (p=0.002 n=6)
+CavlcExtractionResidual/end3/zero/scalar=false-4                                                             23.28n ±  2%                             22.86n ±  0%   -1.80% (p=0.004 n=6)
+CavlcExtractionResidual/end3/dc/scalar=false-4                                                               33.83n ±  3%                             32.80n ±  1%   -3.06% (p=0.041 n=6)
+CavlcExtractionResidual/end3/sparse-low/scalar=false-4                                                       47.66n ±  9%                             46.92n ±  7%        ~ (p=0.180 n=6)
+CavlcExtractionResidual/end3/sparse-wide/scalar=false-4                                                      42.62n ±  2%                             40.70n ±  2%   -4.50% (p=0.002 n=6)
+CavlcExtractionResidual/end3/medium/scalar=false-4                                                           39.76n ±  1%                             37.95n ±  4%   -4.56% (p=0.002 n=6)
+CavlcExtractionResidual/end3/nearly-dense/scalar=false-4                                                     41.16n ±  5%                             39.64n ±  2%   -3.69% (p=0.009 n=6)
+CavlcExtractionResidual/end3/one-zero/scalar=false-4                                                         40.45n ±  3%                             40.25n ±  1%        ~ (p=0.258 n=6)
+CavlcExtractionResidual/end3/dense/scalar=false-4                                                            40.80n ±  1%                             40.40n ±  6%        ~ (p=0.065 n=6)
+CavlcExtractionResidual/end14/zero/scalar=false-4                                                            23.94n ±  1%                             23.27n ±  3%   -2.76% (p=0.015 n=6)
+CavlcExtractionResidual/end14/dc/scalar=false-4                                                              35.01n ±  3%                             33.08n ± 29%        ~ (p=0.093 n=6)
+CavlcExtractionResidual/end14/sparse-low/scalar=false-4                                                      48.70n ±  8%                             46.74n ±  3%   -4.01% (p=0.009 n=6)
+CavlcExtractionResidual/end14/sparse-wide/scalar=false-4                                                     54.05n ±  3%                             51.89n ±  2%   -4.01% (p=0.009 n=6)
+CavlcExtractionResidual/end14/medium/scalar=false-4                                                          97.19n ±  4%                            103.25n ±  3%   +6.24% (p=0.002 n=6)
+CavlcExtractionResidual/end14/nearly-dense/scalar=false-4                                                    131.8n ±  4%                             145.3n ±  0%  +10.24% (p=0.002 n=6)
+CavlcExtractionResidual/end14/one-zero/scalar=false-4                                                        140.0n ± 11%                             150.2n ±  2%        ~ (p=0.065 n=6)
+CavlcExtractionResidual/end14/dense/scalar=false-4                                                           98.77n ±  4%                            118.45n ± 49%  +19.93% (p=0.002 n=6)
+CavlcExtractionResidual/end15/zero/scalar=false-4                                                            23.61n ±  2%                             23.34n ±  4%        ~ (p=0.394 n=6)
+CavlcExtractionResidual/end15/dc/scalar=false-4                                                              34.94n ±  3%                             33.44n ±  7%        ~ (p=0.180 n=6)
+CavlcExtractionResidual/end15/sparse-low/scalar=false-4                                                      49.31n ±  1%                             46.80n ±  4%   -5.09% (p=0.002 n=6)
+CavlcExtractionResidual/end15/sparse-wide/scalar=false-4                                                     64.56n ± 12%                             73.37n ±  2%  +13.66% (p=0.002 n=6)
+CavlcExtractionResidual/end15/medium/scalar=false-4                                                          95.20n ±  2%                            103.70n ±  1%   +8.92% (p=0.002 n=6)
+CavlcExtractionResidual/end15/nearly-dense/scalar=false-4                                                    129.1n ±  1%                             147.1n ±  1%  +14.03% (p=0.002 n=6)
+CavlcExtractionResidual/end15/one-zero/scalar=false-4                                                        127.4n ± 19%                             144.6n ±  1%        ~ (p=0.061 n=6)
+CavlcExtractionResidual/end15/dense/scalar=false-4                                                           98.88n ±  6%                            115.25n ±  2%  +16.55% (p=0.002 n=6)
+CavlcBitWriter/dense=false/prior=false-4                                                                     335.8n ±  3%                             329.0n ±  4%        ~ (p=0.180 n=6)
+CavlcBitWriter/dense=true/prior=false-4                                                                      495.9n ± 32%                             494.8n ±  2%        ~ (p=0.699 n=6)
+geomean                                                                                                      55.41n                                   55.15n         -0.47%
+
+                                                          │ /tmp/h264-parity-target-20261022/before-round2-components.txt │ /tmp/h264-parity-target-20261022/round2-round2-components.txt │
+                                                          │                             B/op                              │                 B/op                   vs base                │
+EncodingBlockCopy/8x8-4                                                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/8x16-4                                                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x8-4                                                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x16-4                                                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/zero/scalar=false-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dc/scalar=false-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-low/scalar=false-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-wide/scalar=false-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/medium/scalar=false-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/nearly-dense/scalar=false-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/one-zero/scalar=false-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dense/scalar=false-4                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/zero/scalar=false-4                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dc/scalar=false-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-low/scalar=false-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-wide/scalar=false-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/medium/scalar=false-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/nearly-dense/scalar=false-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/one-zero/scalar=false-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dense/scalar=false-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/zero/scalar=false-4                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dc/scalar=false-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-low/scalar=false-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-wide/scalar=false-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/medium/scalar=false-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/nearly-dense/scalar=false-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/one-zero/scalar=false-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dense/scalar=false-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcBitWriter/dense=false/prior=false-4                                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcBitWriter/dense=true/prior=false-4                                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                 ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                          │ /tmp/h264-parity-target-20261022/before-round2-components.txt │ /tmp/h264-parity-target-20261022/round2-round2-components.txt │
+                                                          │                           allocs/op                           │               allocs/op                vs base                │
+EncodingBlockCopy/8x8-4                                                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/8x16-4                                                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x8-4                                                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+EncodingBlockCopy/16x16-4                                                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/zero/scalar=false-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dc/scalar=false-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-low/scalar=false-4                                                       0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/sparse-wide/scalar=false-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/medium/scalar=false-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/nearly-dense/scalar=false-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/one-zero/scalar=false-4                                                         0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end3/dense/scalar=false-4                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/zero/scalar=false-4                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dc/scalar=false-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-low/scalar=false-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/sparse-wide/scalar=false-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/medium/scalar=false-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/nearly-dense/scalar=false-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/one-zero/scalar=false-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end14/dense/scalar=false-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/zero/scalar=false-4                                                            0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dc/scalar=false-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-low/scalar=false-4                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/sparse-wide/scalar=false-4                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/medium/scalar=false-4                                                          0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/nearly-dense/scalar=false-4                                                    0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/one-zero/scalar=false-4                                                        0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcExtractionResidual/end15/dense/scalar=false-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcBitWriter/dense=false/prior=false-4                                                                     0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcBitWriter/dense=true/prior=false-4                                                                      0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                 ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

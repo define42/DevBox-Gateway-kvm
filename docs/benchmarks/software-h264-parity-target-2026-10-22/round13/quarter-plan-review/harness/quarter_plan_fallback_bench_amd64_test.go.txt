@@ -1,0 +1,47 @@
+//go:build amd64
+
+package encoder
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// This benchmark-only overlay is copied unchanged to both frozen round11 and
+// the quarter-plan candidate. The existing fixture supplies identical pixels,
+// filters, MVD tables and per-call reset; only dispatch is changed before timing.
+func BenchmarkQuarterPlanFallbackCaller(b *testing.B) {
+	// The shared fixture performs an AVX2 setup score before dispatch changes.
+	if common.WelsCPUFeatureDetect(nil)&common.WELS_CPU_AVX2 == 0 {
+		b.Skip("AVX2 required for the shared fixture setup")
+	}
+	for _, size := range [][3]int32{{8, 8, BLOCK_8x8}, {16, 16, BLOCK_16x16}} {
+		for _, stride := range []int32{32, 2048} {
+			for _, dispatch := range []string{"batch-off", "validated-off", "scalar"} {
+				b.Run(fmt.Sprintf("%dx%d/stride%d/%s", size[0], size[1], stride, dispatch), func(b *testing.B) {
+					f := newFractionalCallerFixture(size[0], size[1], uint8(size[2]), stride, true)
+					samples := &f.funcs.sSampleDealingFuncs
+					switch dispatch {
+					case "batch-off":
+						samples.bSampleAvgSatdFour = false
+					case "validated-off":
+						samples.pfSampleAvgSatdValidated = nil
+					case "scalar":
+						WelsInitSampleSadFunc(&f.funcs, 0)
+						common.InitMcFunc(&f.funcs.sMcFuncs, 0)
+						samples.pfMeCost = &samples.pfSampleSatd
+						f.me.uSadPredISatd = uint32(samples.pfMeCost[f.me.uiBlockSize](
+							f.me.pEncMb, f.me.iEncMbOff, stride, f.me.pRefMb, f.me.iRefMbOff, stride))
+					}
+					b.ReportAllocs()
+					for b.Loop() {
+						f.run()
+					}
+					sampleSatdBenchmarkSink = int32(f.me.uiSatdCost)
+				})
+			}
+		}
+	}
+}

@@ -1,0 +1,440 @@
+{
+  "status": "complete",
+  "scope": "Component gate only; no native, codec/frame, stream, or live RDP claim",
+  "repetitions": 6,
+  "cases_per_run": 47,
+  "group_case_counts": {
+    "BenchmarkMeRefineFracPixelCaller": 28,
+    "BenchmarkQuarterRefineLocalParams": 7,
+    "BenchmarkQuarterPlanFallbackCaller": 12
+  },
+  "samples_per_binary": 282,
+  "total_samples": 564,
+  "all_samples_zero_allocations": true,
+  "statistical_evidence": "benchstat.txt; median changes alone are not significance claims",
+  "cases": [
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 588.2,
+      "after_median_ns": 533.5,
+      "median_change_percent": -9.29955797347841,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 860.15,
+      "after_median_ns": 822.65,
+      "median_change_percent": -4.359704702668143,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 537.0,
+      "after_median_ns": 496.2,
+      "median_change_percent": -7.597765363128495,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 810.75,
+      "after_median_ns": 781.0,
+      "median_change_percent": -3.6694418748072777,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 388.1,
+      "after_median_ns": 353.70000000000005,
+      "median_change_percent": -8.863694923988652,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 566.4000000000001,
+      "after_median_ns": 532.3,
+      "median_change_percent": -6.020480225988722,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 379.29999999999995,
+      "after_median_ns": 345.8,
+      "median_change_percent": -8.83205905615606,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 552.0,
+      "after_median_ns": 510.0,
+      "median_change_percent": -7.608695652173914,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 382.25,
+      "after_median_ns": 401.0,
+      "median_change_percent": 4.9051667756703665,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 450.9,
+      "after_median_ns": 468.65,
+      "median_change_percent": 3.936571301840752,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 388.6,
+      "after_median_ns": 400.7,
+      "median_change_percent": 3.1137416366443516,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 443.54999999999995,
+      "after_median_ns": 463.75,
+      "median_change_percent": 4.5541652575809,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 653.6,
+      "after_median_ns": 682.25,
+      "median_change_percent": 4.383414932680529,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 740.9000000000001,
+      "after_median_ns": 785.2,
+      "median_change_percent": 5.979214468889182,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 639.05,
+      "after_median_ns": 664.5,
+      "median_change_percent": 3.982473984821233,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 730.25,
+      "after_median_ns": 734.8499999999999,
+      "median_change_percent": 0.6299212598425141,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 497.04999999999995,
+      "after_median_ns": 467.04999999999995,
+      "median_change_percent": -6.035610099587563,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 696.25,
+      "after_median_ns": 641.55,
+      "median_change_percent": -7.8563734290843845,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 447.2,
+      "after_median_ns": 402.35,
+      "median_change_percent": -10.029069767441856,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 664.4,
+      "after_median_ns": 608.9000000000001,
+      "median_change_percent": -8.353401565322082,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 434.45,
+      "after_median_ns": 389.65,
+      "median_change_percent": -10.31188859477501,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 528.9000000000001,
+      "after_median_ns": 494.7,
+      "median_change_percent": -6.466250709018739,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 432.35,
+      "after_median_ns": 428.20000000000005,
+      "median_change_percent": -0.9598704753093545,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 551.0999999999999,
+      "after_median_ns": 495.25,
+      "median_change_percent": -10.134276900743956,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 335.9,
+      "after_median_ns": 299.95,
+      "median_change_percent": -10.702590056564453,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 479.1,
+      "after_median_ns": 447.15,
+      "median_change_percent": -6.668753913587988,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse",
+      "samples_per_binary": 6,
+      "base_median_ns": 323.75,
+      "after_median_ns": 285.8,
+      "median_change_percent": -11.72200772200772,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue",
+      "samples_per_binary": 6,
+      "base_median_ns": 466.15,
+      "after_median_ns": 428.45,
+      "median_change_percent": -8.087525474632628,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/16x16/stride2048/batch-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 870.9,
+      "after_median_ns": 913.95,
+      "median_change_percent": 4.9431622459524815,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/16x16/stride2048/scalar",
+      "samples_per_binary": 6,
+      "base_median_ns": 14101.5,
+      "after_median_ns": 14155.0,
+      "median_change_percent": 0.37939226323440156,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/16x16/stride2048/validated-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 950.3,
+      "after_median_ns": 929.55,
+      "median_change_percent": -2.1835209933705135,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/16x16/stride32/batch-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 847.85,
+      "after_median_ns": 916.55,
+      "median_change_percent": 8.1028483811995,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/16x16/stride32/scalar",
+      "samples_per_binary": 6,
+      "base_median_ns": 13870.5,
+      "after_median_ns": 14582.0,
+      "median_change_percent": 5.129591579250925,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/16x16/stride32/validated-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 873.6,
+      "after_median_ns": 919.4,
+      "median_change_percent": 5.242673992673996,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/8x8/stride2048/batch-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 500.5,
+      "after_median_ns": 508.45,
+      "median_change_percent": 1.5884115884115868,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/8x8/stride2048/scalar",
+      "samples_per_binary": 6,
+      "base_median_ns": 3981.0,
+      "after_median_ns": 4180.5,
+      "median_change_percent": 5.01130369253957,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/8x8/stride2048/validated-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 541.8,
+      "after_median_ns": 552.4000000000001,
+      "median_change_percent": 1.9564414913252337,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/8x8/stride32/batch-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 494.15,
+      "after_median_ns": 503.05,
+      "median_change_percent": 1.8010725488212254,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/8x8/stride32/scalar",
+      "samples_per_binary": 6,
+      "base_median_ns": 3976.0,
+      "after_median_ns": 3992.0,
+      "median_change_percent": 0.4024144869215318,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterPlanFallbackCaller/8x8/stride32/validated-off",
+      "samples_per_binary": 6,
+      "base_median_ns": 540.25,
+      "after_median_ns": 538.35,
+      "median_change_percent": -0.3516890328551514,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/16x16",
+      "samples_per_binary": 6,
+      "base_median_ns": 273.29999999999995,
+      "after_median_ns": 287.5,
+      "median_change_percent": 5.195755579948802,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/16x8",
+      "samples_per_binary": 6,
+      "base_median_ns": 191.3,
+      "after_median_ns": 188.95,
+      "median_change_percent": -1.2284370099320596,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/4x4",
+      "samples_per_binary": 6,
+      "base_median_ns": 192.05,
+      "after_median_ns": 196.2,
+      "median_change_percent": 2.160895600104129,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/4x8",
+      "samples_per_binary": 6,
+      "base_median_ns": 333.15,
+      "after_median_ns": 328.65,
+      "median_change_percent": -1.3507429085997336,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/8x16",
+      "samples_per_binary": 6,
+      "base_median_ns": 210.9,
+      "after_median_ns": 212.8,
+      "median_change_percent": 0.9009009009009139,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/8x4",
+      "samples_per_binary": 6,
+      "base_median_ns": 143.75,
+      "after_median_ns": 144.65,
+      "median_change_percent": 0.6260869565217542,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    },
+    {
+      "case": "BenchmarkQuarterRefineLocalParams/8x8",
+      "samples_per_binary": 6,
+      "base_median_ns": 154.35,
+      "after_median_ns": 159.45,
+      "median_change_percent": 3.3041788143828965,
+      "allocations_per_op": 0,
+      "bytes_per_op": 0
+    }
+  ]
+}

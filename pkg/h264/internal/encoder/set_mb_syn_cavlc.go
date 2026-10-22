@@ -85,6 +85,24 @@ func CavlcParamCal_c(pCoffLevel []int16, pRun []uint8, pLevel []int16, pTotalCoe
 }
 
 func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
+	// Known-zero blocks need only the coefficient token. Return before creating
+	// the extraction scratch arrays. Read the pending state before nC validation
+	// to preserve nil-writer precedence; flush keeps its existing commit behavior.
+	if iCalRunLevelFlag == 0 {
+		bits, left := pBs.UiCurBits, pBs.ILeftBits
+		token := &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[iNC]][0][0]
+		n, value := int32(token[1]), int32(token[0])
+		if n < left {
+			pBs.UiCurBits = (bits << n) | uint32(value)
+			pBs.ILeftBits = left - n
+			return ENC_RETURN_SUCCESS
+		}
+		bs := sCavlcBs{pBuf: pBs.PBuf, pBufPtr: pBs.PCurBuf, uiCurBits: bits, iLeftBits: left}
+		bs.flush(n, value)
+		bs.uninit(pBs)
+		return ENC_RETURN_SUCCESS
+	}
+
 	var iLevel [16]int16
 	var uiRun [16]uint8
 
@@ -101,30 +119,28 @@ func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iE
 
 	/*Step 1: calculate iLevel and iRun and total */
 
-	if iCalRunLevelFlag != 0 {
-		iCount := int32(0)
-		// The scratch arrays are private to this call. A direct, noescape
-		// SIMD call keeps them on the stack and extracts four levels at once.
-		if cavlcExtractSupported(pCoffLevel, iEndIdx) {
-			iTotalZeros = cavlcExtractSSSE3((*[16]int16)(pCoffLevel), &uiRun, &iLevel, &iTotalCoeffs, iEndIdx)
-		} else {
-			iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
-		}
-		if iTotalCoeffs > 3 {
-			iCount = 3
-		} else {
-			iCount = iTotalCoeffs
-		}
-		for i = 0; i < iCount; i++ {
-			if common.WELS_ABS(int32(iLevel[i])) == 1 {
-				iTrailingOnes++
-				uiSign <<= 1
-				if iLevel[i] < 0 {
-					uiSign |= 1
-				}
-			} else {
-				break
+	iCount := int32(0)
+	// The scratch arrays are private to this call. A direct, noescape
+	// SIMD call keeps them on the stack and extracts four levels at once.
+	if cavlcExtractSupported(pCoffLevel, iEndIdx) {
+		iTotalZeros = cavlcExtractSSSE3((*[16]int16)(pCoffLevel), &uiRun, &iLevel, &iTotalCoeffs, iEndIdx)
+	} else {
+		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+	}
+	if iTotalCoeffs > 3 {
+		iCount = 3
+	} else {
+		iCount = iTotalCoeffs
+	}
+	for i = 0; i < iCount; i++ {
+		if common.WELS_ABS(int32(iLevel[i])) == 1 {
+			iTrailingOnes++
+			uiSign <<= 1
+			if iLevel[i] < 0 {
+				uiSign |= 1
 			}
+		} else {
+			break
 		}
 	}
 	/*Step 3: coeff token */
@@ -160,18 +176,21 @@ func WriteBlockResidualCavlc(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iE
 	}
 	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
 		value := int32(iLevel[i])
-		var symbol cavlcLevelSymbol
+		var packed uint32
 		if index := uint32(value + cavlcLevelLimit); index < 2*cavlcLevelLimit {
-			symbol = cavlcLevelTable[adjustment][uiSuffixLength][index]
+			// The suffix starts at 0 or 1 and only advances through the table
+			// or escape calculation to values in 0..6. This mask proves the
+			// internal bound without relaxing any input-dependent checks.
+			packed = cavlcLevelTable[adjustment][uiSuffixLength&7][index]
 		} else {
-			var ok bool
-			symbol, ok = cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
+			symbol, ok := cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
 			if !ok {
 				return ENC_RETURN_VLCOVERFLOWFOUND
 			}
+			packed = packCavlcLevelSymbol(symbol)
 		}
-		bs.write(int32(symbol.length), int32(symbol.code))
-		uiSuffixLength = int32(symbol.nextSuffix)
+		bs.write(int32((packed>>16)&0xff), int32(packed&0xffff))
+		uiSuffixLength = int32(packed >> 24)
 		adjustment = 0
 	}
 

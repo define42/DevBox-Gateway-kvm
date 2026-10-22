@@ -1,0 +1,51 @@
+{
+  "scope": "Component gate only; no native, codec/frame, stream, or live RDP claim",
+  "source_paths": {
+    "base": "/tmp/h264-parity-target-20261022/round11",
+    "after": "/tmp/h264-parity-target-20261022/quarter-plan-next"
+  },
+  "working_paths": {
+    "base": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "after": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after"
+  },
+  "frozen_source_map_sha256": {
+    "base": "c60f1bb69991e68584e2b9512b42acf4a3454c51ec68389da0844825cf95529f",
+    "after": "1ea041b4427a143af820fa73934b7db5e3e5f912c55be3003467800dd86c440e"
+  },
+  "frozen_source_file_counts": {
+    "base": 1010,
+    "after": 1017
+  },
+  "input_sha256": {
+    "/tmp/h264-parity-target-20261022/measure_quarter_plan.py": "efe24afa838bfa23c682214bc2c74377f21698aefc069946142c7fe9c1830903",
+    "/tmp/h264-parity-target-20261022/round11-sources.sha256": "08c290e150913e99884098980b361a7ae784153659a8dd3d044805c0e795c7e1",
+    "/tmp/h264-parity-target-20261022/quarter-plan-next-README.txt": "91285e4253fe0f8a325c7cfd05cc6d21dde46a90ea426dd8a7751eaad6a5c4d7",
+    "/tmp/h264-parity-target-20261022/quarter_plan_fallback_bench_amd64_test.go": "490fef44f3b3d55308e4adbfedecd6dff56415746c506414b774f04d5bb743f5"
+  },
+  "base_environment": {
+    "CGO_ENABLED": "0",
+    "GOMAXPROCS": "4",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "GOAMD64": "v1",
+    "GOWORK": "off"
+  },
+  "timing": {
+    "repetitions": 6,
+    "cpu_affinity": "2",
+    "benchtime": "200ms",
+    "order": "base/after on odd pairs, after/base on even pairs",
+    "groups": {
+      "BenchmarkMeRefineFracPixelCaller": 28,
+      "BenchmarkQuarterRefineLocalParams": 7,
+      "BenchmarkQuarterPlanFallbackCaller": 12
+    },
+    "case_count_per_run": 47,
+    "warmup": "Go benchmark calibration"
+  },
+  "benchmark_overlay": "The external fallback-only fixture is identical in both working copies; frozen trees stay untouched",
+  "binary_sha256": {
+    "base": "3d5c69b9f377b49c731a3ea2edeb358b55d0e7fb7d0e59567cb2ece82464650b",
+    "after": "22ac04fc5b2277c2cfde4a398528e11b765c0c7a2662bb886abce6098fc3a9e5"
+  }
+}

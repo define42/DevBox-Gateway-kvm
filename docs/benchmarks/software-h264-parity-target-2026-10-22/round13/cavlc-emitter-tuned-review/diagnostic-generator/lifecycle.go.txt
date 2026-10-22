@@ -1,0 +1,86 @@
+package encoder
+
+// Diagnostic-only: one encoder, one slice, one invoking goroutine. Counts
+// include warmup; output byte hashes must match an uninstrumented build.
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+var cavlcEmitterDiagEnabled = os.Getenv("H264_CAVLC_EMITTER_DIAGNOSTIC") == "1"
+var cavlcEmitterDiagOwner *CWelsH264SVCEncoder
+var cavlcEmitterDiagFrames uint64
+var cavlcEmitterDiagCounts struct {
+	Calls uint64 `json:"calls"`
+	KnownZero uint64 `json:"known_zero"`
+	ExtractedZero uint64 `json:"extracted_zero"`
+	Nonzero uint64 `json:"nonzero"`
+	EntryEligible uint64 `json:"entry_eligible"`
+	ByProperty [6]uint64 `json:"calls_by_property"`
+	EligibleByProperty [6]uint64 `json:"eligible_by_property"`
+	Reasons map[string]uint64 `json:"entry_reasons"`
+}
+
+func cavlcEmitterDiagReset() {
+	cavlcEmitterDiagCounts.Calls = 0
+	cavlcEmitterDiagCounts.KnownZero = 0
+	cavlcEmitterDiagCounts.ExtractedZero = 0
+	cavlcEmitterDiagCounts.Nonzero = 0
+	cavlcEmitterDiagCounts.EntryEligible = 0
+	cavlcEmitterDiagCounts.ByProperty = [6]uint64{}
+	cavlcEmitterDiagCounts.EligibleByProperty = [6]uint64{}
+	cavlcEmitterDiagCounts.Reasons = make(map[string]uint64)
+	cavlcEmitterDiagFrames = 0
+}
+
+func cavlcEmitterDiagBegin(p *CWelsH264SVCEncoder) {
+	if !cavlcEmitterDiagEnabled || p.m_pEncContext == nil { return }
+	param := p.m_pEncContext.pSvcParam
+	if param == nil || param.ISpatialLayerNum != 1 || param.IMultipleThreadIdc != 1 { panic("CAVLC emitter diagnostic requires one layer and one thread") }
+	slice := param.SSpatialLayers[0].SSliceArgument
+	if slice.UiSliceMode != api.SM_SINGLE_SLICE && !(slice.UiSliceMode == api.SM_FIXEDSLCNUM_SLICE && slice.UiSliceNum == 1) { panic("CAVLC emitter diagnostic requires one slice") }
+	if cavlcEmitterDiagOwner == nil {
+		cavlcEmitterDiagReset()
+		cavlcEmitterDiagOwner = p
+	} else if cavlcEmitterDiagOwner != p { panic("CAVLC emitter diagnostic requires one active encoder") }
+	cavlcEmitterDiagFrames++
+}
+
+func cavlcEmitterDiagRecord(bs *sCavlcBs, levels *[16]int16, runs *[16]uint8, external *common.SBitStringAux, flag, total, zeros, end, property int32) {
+	if !cavlcEmitterDiagEnabled || cavlcEmitterDiagOwner == nil { return }
+	bucket := 5
+	if property >= 0 && property < 5 { bucket = int(property) }
+	cavlcEmitterDiagCounts.Calls++
+	cavlcEmitterDiagCounts.ByProperty[bucket]++
+	if flag == 0 {
+		cavlcEmitterDiagCounts.KnownZero++
+		cavlcEmitterDiagCounts.Reasons["known_zero"]++
+		return
+	}
+	reason := cavlcEmitterEligibilityReason(bs, levels, runs, external, total, zeros, end)
+	cavlcEmitterDiagCounts.Reasons[reason]++
+	if total == 0 { cavlcEmitterDiagCounts.ExtractedZero++ } else { cavlcEmitterDiagCounts.Nonzero++ }
+	if reason == "eligible" {
+		cavlcEmitterDiagCounts.EntryEligible++
+		cavlcEmitterDiagCounts.EligibleByProperty[bucket]++
+	}
+}
+
+func cavlcEmitterDiagFinish(p *CWelsH264SVCEncoder) {
+	if !cavlcEmitterDiagEnabled || cavlcEmitterDiagOwner != p { return }
+	record := struct {
+		Case string `json:"case"`
+		Frames uint64 `json:"frames_including_warmup"`
+		Final bool `json:"final"`
+		Counts any `json:"counts"`
+	}{os.Getenv("COMPARE_CASE"), cavlcEmitterDiagFrames, true, cavlcEmitterDiagCounts}
+	data, err := json.Marshal(record)
+	if err != nil { panic(err) }
+	fmt.Fprintf(os.Stderr, "H264_CAVLC_EMITTER_ELIGIBILITY %s\n", data)
+	cavlcEmitterDiagReset()
+	cavlcEmitterDiagOwner = nil
+}

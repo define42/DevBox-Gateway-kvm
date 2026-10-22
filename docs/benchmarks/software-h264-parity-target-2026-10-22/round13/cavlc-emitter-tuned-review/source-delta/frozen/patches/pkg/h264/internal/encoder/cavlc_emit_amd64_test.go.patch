@@ -1,0 +1,102 @@
+--- base/pkg/h264/internal/encoder/cavlc_emit_amd64_test.go
++++ candidate/pkg/h264/internal/encoder/cavlc_emit_amd64_test.go
+@@ -0,0 +1,99 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"bytes"
++	"reflect"
++	"testing"
++	"unsafe"
++)
++
++func TestCavlcEmitterLeafStatusAndCommit(t *testing.T) {
++	patterns := [][16]int16{{1}, {-1}, {2}, {2, 0, -3, 0, 1}, {32767}, {-32768}, {2, -3, 7, -11, 31, -63, 127, -255, 511, -1023, 3, -2, 1, -1, 1, -1}}
++	for _, end := range []int32{3, 14, 15} {
++		property, nc := int32(LUMA_4x4), int8(3)
++		if end == 3 {
++			property, nc = int32(CHROMA_DC), 17
++		}
++		for _, coeff := range patterns {
++			var levels [16]int16
++			var runs [16]uint8
++			var total int32
++			zeros := CavlcParamCal_c(coeff[:], runs[:], levels[:], &total, end)
++			for left := int32(1); left <= 32; left++ {
++				gotBuf, wantBuf := bytes.Repeat([]byte{0xa5}, 135), bytes.Repeat([]byte{0xa5}, 135)
++				got, want := cavlcEmitterState(gotBuf, left, 0xd3a6815f, 3), cavlcEmitterState(wantBuf, left, 0xd3a6815f, 3)
++				local := cavlcBsInit(&got)
++				before, oldLevels, oldRuns := local, levels, runs
++				status := cavlcEmit(&local, &levels, &runs, &got, total, zeros, end, property, int32(nc))
++				code := writeCavlcEmitterBaseline(nil, coeff[:], end, 1, property, nc, &want)
++				if code == ENC_RETURN_SUCCESS {
++					if status != cavlcEmitSuccess {
++						t.Fatalf("ordinary input fell back: end%d coeff%v left%d status%d", end, coeff, left, status)
++					}
++					local.uninit(&got)
++				} else {
++					if status != cavlcEmitOverflow || !reflect.DeepEqual(local, before) {
++						t.Fatal("overflow changed private state or did not report overflow")
++					}
++				}
++				if levels != oldLevels || runs != oldRuns || !reflect.DeepEqual(got, want) {
++					t.Fatalf("leaf end%d left%d coeff%v differs", end, left, coeff)
++				}
++			}
++		}
++	}
++}
++
++func TestCavlcEmitterLateFallbackState(t *testing.T) {
++	coeff := [16]int16{3, 0, 0, 0, 0, 2}
++	var levels [16]int16
++	var runs [16]uint8
++	var total int32
++	zeros := CavlcParamCal_c(coeff[:], runs[:], levels[:], &total, 15)
++	saved := g_kuiZeroLeftMap[4]
++	g_kuiZeroLeftMap[4] = 255
++	defer func() { g_kuiZeroLeftMap[4] = saved }()
++	buffer := bytes.Repeat([]byte{0xa5}, 256)
++	external := cavlcEmitterState(buffer, 1, 0xd3a6815f, 0)
++	local := cavlcBsInit(&external)
++	before, oldLevels, oldRuns := local, levels, runs
++	if status := cavlcEmit(&local, &levels, &runs, &external, total, zeros, 15, int32(LUMA_4x4), 3); status != cavlcEmitFallback {
++		t.Fatalf("status=%d", status)
++	}
++	if !reflect.DeepEqual(local, before) || levels != oldLevels || runs != oldRuns || external.PCurBuf != 0 || external.ILeftBits != 1 || external.UiCurBits != 0xd3a6815f {
++		t.Fatal("fallback committed state or changed extraction scratch")
++	}
++	if bytes.Equal(buffer, bytes.Repeat([]byte{0xa5}, 256)) {
++		t.Fatal("fixture did not write an identical prefix before fallback")
++	}
++}
++
++func TestCavlcEmitterPrivateAliasPreflight(t *testing.T) {
++	type scratch struct {
++		local  sCavlcBs
++		levels [16]int16
++		runs   [16]uint8
++		tail   [256]byte
++	}
++	for _, which := range []string{"state", "levels", "runs"} {
++		v := new(scratch)
++		var output []byte
++		switch which {
++		case "state":
++			output = unsafe.Slice((*byte)(unsafe.Pointer(&v.local.uiCurBits)), 132)
++		case "levels":
++			output = unsafe.Slice((*byte)(unsafe.Pointer(&v.levels)), 132)
++		case "runs":
++			output = unsafe.Slice((*byte)(unsafe.Pointer(&v.runs)), 132)
++		}
++		external := cavlcEmitterState(output, 1, 0x12345678, 0)
++		v.local = cavlcBsInit(&external)
++		v.levels[0], v.runs[0] = 2, 0
++		before := *v
++		if result := cavlcEmit(&v.local, &v.levels, &v.runs, &external, 1, 0, 15, int32(LUMA_4x4), 3); result != cavlcEmitFallback || !reflect.DeepEqual(*v, before) {
++			t.Fatalf("%s alias was not rejected without writes", which)
++		}
++	}
++}

@@ -1,0 +1,100 @@
+//go:build amd64
+
+#include "textflag.h"
+
+// Two independent SADs with one encoded load per row. Exact-width loads,
+// independent accumulators and four-row bands; no stores to input buffers.
+// Width is 8 or 16; height is a positive multiple of four through 16.
+// func sadTwoSSE2(enc *byte, encStride int, first, second *byte, refStride, width, height int) (firstCost, secondCost int32)
+TEXT ·sadTwoSSE2(SB), NOSPLIT, $0-64
+	MOVQ enc+0(FP), AX
+	MOVQ encStride+8(FP), CX
+	MOVQ first+16(FP), DX
+	MOVQ second+24(FP), SI
+	MOVQ refStride+32(FP), BX
+	MOVQ height+48(FP), DI
+	SHRQ $2, DI
+	LEAQ (CX)(CX*2), R8
+	LEAQ (BX)(BX*2), R9
+	PXOR X6, X6
+	PXOR X7, X7
+	PXOR X8, X8
+	PXOR X9, X9
+	CMPQ width+40(FP), $16
+	JE sad_two_16
+sad_two_8:
+	MOVQ (AX), X0
+	MOVQ (AX)(CX*1), X1
+	MOVHPS (AX)(CX*2), X0
+	MOVHPS (AX)(R8*1), X1
+	MOVQ (DX), X2
+	MOVQ (DX)(BX*1), X3
+	MOVHPS (DX)(BX*2), X2
+	MOVHPS (DX)(R9*1), X3
+	MOVQ (SI), X4
+	MOVQ (SI)(BX*1), X5
+	MOVHPS (SI)(BX*2), X4
+	MOVHPS (SI)(R9*1), X5
+	PSADBW X0, X2
+	PSADBW X1, X3
+	PSADBW X0, X4
+	PSADBW X1, X5
+	PADDD X2, X6
+	PADDD X3, X7
+	PADDD X4, X8
+	PADDD X5, X9
+	LEAQ (AX)(CX*4), AX
+	LEAQ (DX)(BX*4), DX
+	LEAQ (SI)(BX*4), SI
+	DECQ DI
+	JNZ sad_two_8
+	JMP sad_two_reduce
+sad_two_16:
+	MOVOU (AX), X0
+	MOVOU (DX), X2
+	MOVOU (SI), X4
+	PSADBW X0, X2
+	PSADBW X0, X4
+	PADDD X2, X6
+	PADDD X4, X8
+	MOVOU (AX)(CX*1), X0
+	MOVOU (DX)(BX*1), X2
+	MOVOU (SI)(BX*1), X4
+	PSADBW X0, X2
+	PSADBW X0, X4
+	PADDD X2, X7
+	PADDD X4, X9
+	MOVOU (AX)(CX*2), X0
+	MOVOU (DX)(BX*2), X2
+	MOVOU (SI)(BX*2), X4
+	PSADBW X0, X2
+	PSADBW X0, X4
+	PADDD X2, X6
+	PADDD X4, X8
+	MOVOU (AX)(R8*1), X0
+	MOVOU (DX)(R9*1), X2
+	MOVOU (SI)(R9*1), X4
+	PSADBW X0, X2
+	PSADBW X0, X4
+	PADDD X2, X7
+	PADDD X4, X9
+	LEAQ (AX)(CX*4), AX
+	LEAQ (DX)(BX*4), DX
+	LEAQ (SI)(BX*4), SI
+	DECQ DI
+	JNZ sad_two_16
+sad_two_reduce:
+	PADDD X7, X6
+	PADDD X9, X8
+	MOVOU X6, X0
+	MOVOU X8, X1
+	PSRLDQ $8, X0
+	PSRLDQ $8, X1
+	PADDD X0, X6
+	PADDD X1, X8
+	// MOVD is a 64-bit store in the Go assembler; returns are int32.
+	MOVQ X6, AX
+	MOVL AX, firstCost+56(FP)
+	MOVQ X8, AX
+	MOVL AX, secondCost+60(FP)
+	RET

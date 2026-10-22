@@ -1,0 +1,55 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                            │ /tmp/h264-parity-target-20261022/vaa-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/vaa-next-vaa-next.txt │
+                                            │                               sec/op                                │             sec/op               vs base               │
+IntraVaaDispatch/detected/stride16/off0-4                                                            127.95n ± 2%                      14.32n ±  2%  -88.81% (p=0.002 n=6)
+IntraVaaDispatch/detected/stride16/off3-4                                                            127.70n ± 2%                      15.14n ±  2%  -88.14% (p=0.002 n=6)
+IntraVaaDispatch/detected/stride32/off0-4                                                            127.20n ± 3%                      14.30n ±  5%  -88.75% (p=0.002 n=6)
+IntraVaaDispatch/detected/stride32/off3-4                                                            127.20n ± 1%                      14.32n ±  2%  -88.74% (p=0.002 n=6)
+IntraVaaDispatch/detected/stride2048/off0-4                                                          127.20n ± 1%                      14.23n ± 51%  -88.81% (p=0.002 n=6)
+IntraVaaDispatch/detected/stride2048/off3-4                                                          126.40n ± 2%                      14.14n ±  8%  -88.81% (p=0.002 n=6)
+IntraVaaDispatch/scalar/stride16/off0-4                                                               127.5n ± 3%                      127.2n ±  2%        ~ (p=0.732 n=6)
+IntraVaaDispatch/scalar/stride16/off3-4                                                               127.4n ± 1%                      127.5n ±  2%        ~ (p=0.907 n=6)
+IntraVaaDispatch/scalar/stride32/off0-4                                                               126.4n ± 3%                      126.2n ±  3%        ~ (p=0.911 n=6)
+IntraVaaDispatch/scalar/stride32/off3-4                                                               127.0n ± 2%                      127.5n ±  2%        ~ (p=0.169 n=6)
+IntraVaaDispatch/scalar/stride2048/off0-4                                                             127.6n ± 2%                      127.2n ±  4%        ~ (p=0.937 n=6)
+IntraVaaDispatch/scalar/stride2048/off3-4                                                             128.0n ± 3%                      127.1n ±  2%        ~ (p=0.069 n=6)
+geomean                                                                                               127.3n                           42.80n        -66.37%
+
+                                            │ /tmp/h264-parity-target-20261022/vaa-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/vaa-next-vaa-next.txt │
+                                            │                                B/op                                 │              B/op               vs base                │
+IntraVaaDispatch/detected/stride16/off0-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride16/off3-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride32/off0-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride32/off3-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride2048/off0-4                                                          0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride2048/off3-4                                                          0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride16/off0-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride16/off3-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride32/off0-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride32/off3-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride2048/off0-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride2048/off3-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                         ²                                   +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                            │ /tmp/h264-parity-target-20261022/vaa-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/vaa-next-vaa-next.txt │
+                                            │                              allocs/op                              │           allocs/op             vs base                │
+IntraVaaDispatch/detected/stride16/off0-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride16/off3-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride32/off0-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride32/off3-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride2048/off0-4                                                          0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/detected/stride2048/off3-4                                                          0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride16/off0-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride16/off3-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride32/off0-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride32/off3-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride2048/off0-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+IntraVaaDispatch/scalar/stride2048/off3-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                         ²                                   +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

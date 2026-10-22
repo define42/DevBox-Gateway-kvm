@@ -1,0 +1,309 @@
+//go:build amd64
+
+package encoder
+
+import (
+	"bytes"
+	"fmt"
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// Exercise the unchanged half-pair fixture against a frozen COMPLETE round11
+// caller, not against another route through the new quarter-plan builder.
+func runQuarterPlanFixture(shape [3]int32, reference bool, scenario string) (out halfPairOutcome) {
+	f := newFractionalCallerFixture(shape[0], shape[1], uint8(shape[2]), 32, true)
+	f.funcs.sSampleDealingFuncs.bSampleHalfSatdPair = true
+	InitMeRefinePointer(&f.refine, &f.cache, 0)
+	f.me.uiSatdCost = 123456
+	entryEnc, entryRef := f.me.pEncMb, f.me.pRefMb
+	defer func() {
+		if value := recover(); value != nil {
+			out.panicText = fmt.Sprintf("%T: %v", value, value)
+		}
+		out.mv, out.cost = f.me.sMv, f.me.uiSatdCost
+		out.pred, out.scratch = bytes.Clone(f.pred), bytes.Clone(f.cache.pBufferInterPredMe)
+		out.enc, out.ref = bytes.Clone(f.me.pEncMb), bytes.Clone(f.me.pRefMb)
+		out.entryEnc, out.entryRef = bytes.Clone(entryEnc), bytes.Clone(entryRef)
+		out.halfBuffers = [3][]byte{bytes.Clone(f.refine.pHalfPixH), bytes.Clone(f.refine.pHalfPixV), bytes.Clone(f.refine.pHalfPixHV)}
+		out.bufferLengths = [5]int{len(f.refine.pHalfPixH), len(f.refine.pHalfPixV), len(f.refine.pHalfPixHV), len(f.refine.pQuarPixBest), len(f.refine.pQuarPixTmp)}
+	}()
+
+	winner := map[string]SMVUnitXY{"top": {0, -2}, "bottom": {0, 2}, "left": {-2, 0}, "right": {2, 0}}
+	direction := scenario
+	if strings.HasPrefix(scenario, "quarterMvd") {
+		direction = strings.ToLower(strings.TrimPrefix(scenario, "quarterMvd"))
+	}
+	if strings.HasPrefix(scenario, "center") {
+		direction = "top"
+	}
+	_, forceWinner := winner[direction]
+	if forceWinner || scenario == "halfTie" || scenario == "integerTie" {
+		clear(f.me.pMvdCost)
+		f.me.uSadPredISatd = 100000
+		if forceWinner {
+			for y := int32(0); y < shape[1]; y++ {
+				for x := int32(0); x < shape[0]; x++ {
+					f.me.pEncMb[f.me.iEncMbOff+int(y*32+x)] = byte(x*13 + y*7 + 19)
+				}
+			}
+		} else {
+			clear(f.me.pEncMb)
+			clear(f.me.pRefMb)
+			if scenario == "integerTie" {
+				f.me.uSadPredISatd = 0
+			}
+		}
+	}
+	if strings.HasPrefix(scenario, "quarterMvd") {
+		f.me.pMvdCost, f.me.iMvdCostOff = make([]uint16, 5), 2
+	}
+	switch scenario {
+	case "quarterAlias":
+		f.refine.pQuarPixTmp = f.refine.pQuarPixBest
+	case "quarterHalfAlias":
+		f.refine.pQuarPixBest = f.refine.pHalfPixV
+	case "quarterEncAlias":
+		f.me.pEncMb, f.me.iEncMbOff = f.refine.pQuarPixBest, 0
+	case "customValidated":
+		samples := &f.funcs.sSampleDealingFuncs
+		samples.bSampleAvgSatdFour = false
+		original := samples.pfSampleAvgSatdValidated
+		samples.pfSampleAvgSatdValidated = func(enc *byte, encStride int, a *byte, aStride int, b *byte, bStride, width, height int) int {
+			out.events = append(out.events, "validated")
+			return original(enc, encStride, a, aStride, b, bStride, width, height)
+		}
+	case "customUnfused":
+		samples := &f.funcs.sSampleDealingFuncs
+		samples.pfSampleAvgSatd = nil
+		original := samples.pfSampleSatd[shape[2]]
+		samples.bSampleHalfSatdPair = false
+		samples.pfSampleSatd[shape[2]] = func(a []byte, aOff int, aStride int32, b []byte, bOff int, bStride int32) int32 {
+			out.events = append(out.events, "cost")
+			return original(a, aOff, aStride, b, bOff, bStride)
+		}
+	case "recomputeInteger":
+		f.layer.bSatdInMdFlag = false
+	case "sadMetric":
+		f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSad
+	case "zeroStride":
+		f.layer.iEncStride[0] = 0
+	case "overlapStride":
+		f.layer.iEncStride[0] = 3
+	case "negativeStride":
+		f.layer.iEncStride[0] = -32
+		f.me.iEncMbOff += int(shape[1]-1) * 32
+	case "encHalfAlias":
+		f.me.pEncMb, f.me.iEncMbOff = f.cache.pBufferInterPredMe[640:], 0
+	case "axisAlias":
+		f.refine.pHalfPixH = f.refine.pHalfPixV
+	case "shortEnc":
+		f.me.pEncMb = f.me.pEncMb[: len(f.me.pEncMb)-1 : len(f.me.pEncMb)-1]
+	case "mvdTop":
+		f.me.iMvdCostOff = 1
+	case "mvdBottom":
+		f.me.pMvdCost = f.me.pMvdCost[:514]
+	case "mvdLeft":
+		f.me.iMvdCostOff, f.me.sMvp.iMvX = 2, 1
+	case "mvdRight":
+		f.me.iMvdCostOff, f.me.sMvp.iMvX = 2, -1
+		f.me.pMvdCost = f.me.pMvdCost[:5]
+	}
+	wrap := func(name string, original common.PWelsLumaHalfpelMcFunc) common.PWelsLumaHalfpelMcFunc {
+		return func(src []byte, srcOff int, srcStride int32, dst []byte, dstOff int, dstStride, width, height int32) {
+			out.events = append(out.events, name)
+			if forceWinner && name != "C" {
+				for y := int32(0); y < height; y++ {
+					for x := int32(0); x < width; x++ {
+						dst[dstOff+int(y*dstStride+x)] = 231
+					}
+				}
+				if (name == "V" && (direction == "top" || direction == "bottom")) ||
+					(name == "H" && (direction == "left" || direction == "right")) {
+					off := 0
+					if direction == "bottom" {
+						off = ME_REFINE_BUF_STRIDE
+					} else if direction == "right" {
+						off = 1
+					}
+					for y := int32(0); y < shape[1]; y++ {
+						copy(dst[off+int(y*dstStride):][:int(shape[0])], f.me.pEncMb[f.me.iEncMbOff+int(y*32):][:int(shape[0])])
+					}
+				}
+			} else {
+				original(src, srcOff, srcStride, dst, dstOff, dstStride, width, height)
+			}
+			if name == "C" {
+				switch scenario {
+				case "centerMaxEncOffset":
+					f.me.iEncMbOff = int(^uint(0) >> 1)
+				case "centerMinEncOffset":
+					f.me.iEncMbOff = -int(^uint(0)>>1) - 1
+				case "centerReplaceEncHeader":
+					f.me.pEncMb, f.me.iEncMbOff = nil, -1
+				case "centerReplaceQuarterHeader":
+					f.refine.pQuarPixBest = nil
+				case "centerAliasQuarter":
+					f.refine.pQuarPixBest = f.refine.pHalfPixH
+				case "centerReplaceHV":
+					f.refine.pHalfPixHV = bytes.Clone(f.refine.pHalfPixHV)
+					for i := range f.refine.pHalfPixHV {
+						f.refine.pHalfPixHV[i] ^= 127
+					}
+				}
+			}
+			if scenario == "customFilters" {
+				f.me.pEncMb[f.me.iEncMbOff] ^= 255
+				if name == "H" {
+					f.refine.pHalfPixV[0] ^= 127
+				}
+			}
+			// Entry input headers, strides and the scoring callback are snapshots.
+			// Filter output headers remain live and must be read after each filter.
+			if name == "V" {
+				samples := &f.funcs.sSampleDealingFuncs
+				switch scenario {
+				case "replaceEncHeader":
+					f.me.pEncMb, f.me.iEncMbOff = nil, -1
+				case "replaceRefHeader":
+					f.me.pRefMb, f.me.iRefMbOff = nil, -1
+				case "replaceStrides":
+					f.layer.iEncStride[0], f.pic.iLineSize[0] = -32, -32
+				case "replaceFuncList":
+					f.ctx.pFuncList = nil
+				case "replaceCostTable":
+					samples.bSampleHalfSatdPair = false
+					samples.pfMeCost = nil
+				case "replaceCostEntry":
+					samples.bSampleHalfSatdPair = false
+					samples.pfSampleAvgSatd = nil
+					samples.pfSampleSatd[shape[2]] = func([]byte, int, int32, []byte, int, int32) int32 {
+						panic("replacement cost callback")
+					}
+				case "replaceVerticalHeader":
+					f.refine.pHalfPixV = bytes.Clone(f.refine.pHalfPixV)
+					for y := int32(0); y <= shape[1]; y++ {
+						for x := int32(0); x < shape[0]; x++ {
+							f.refine.pHalfPixV[y*ME_REFINE_BUF_STRIDE+x] ^= 255
+						}
+					}
+				}
+			}
+			if scenario == "replaceHorizontalHeader" && name == "H" {
+				f.refine.pHalfPixH = bytes.Clone(f.refine.pHalfPixH)
+				for y := int32(0); y < shape[1]; y++ {
+					for x := int32(0); x <= shape[0]; x++ {
+						f.refine.pHalfPixH[y*ME_REFINE_BUF_STRIDE+x] ^= 255
+					}
+				}
+			}
+			if scenario == "shortVertical" && name == "V" {
+				end := int(shape[1])*ME_REFINE_BUF_STRIDE + int(shape[0]) - 1
+				f.refine.pHalfPixV = f.refine.pHalfPixV[:end:end]
+			}
+			if scenario == "shortHorizontal" && name == "H" {
+				end := int(shape[1]-1)*ME_REFINE_BUF_STRIDE + int(shape[0])
+				f.refine.pHalfPixH = f.refine.pHalfPixH[:end:end]
+			}
+		}
+	}
+	f.funcs.sMcFuncs.PfLumaHalfpelVer = wrap("V", f.funcs.sMcFuncs.PfLumaHalfpelVer)
+	f.funcs.sMcFuncs.PfLumaHalfpelHor = wrap("H", f.funcs.sMcFuncs.PfLumaHalfpelHor)
+	f.funcs.sMcFuncs.PfLumaHalfpelCen = wrap("C", f.funcs.sMcFuncs.PfLumaHalfpelCen)
+	if reference {
+		meRefineFracPixelQuarterPlanReference(&f.ctx, f.pred, 0, &f.me, &f.refine, shape[0], shape[1])
+	} else {
+		MeRefineFracPixel(&f.ctx, f.pred, 0, &f.me, &f.refine, shape[0], shape[1])
+	}
+	return out
+}
+
+func TestQuarterPlanCompleteCaller(t *testing.T) {
+	requireSampleAVX2(t)
+	shapes := [][3]int32{{16, 16, BLOCK_16x16}, {16, 8, BLOCK_16x8}, {8, 16, BLOCK_8x16}, {8, 8, BLOCK_8x8}, {8, 4, BLOCK_8x4}, {4, 4, BLOCK_4x4}, {4, 8, BLOCK_4x8}}
+	scenarios := []string{"motion", "top", "bottom", "left", "right", "halfTie", "integerTie", "recomputeInteger", "sadMetric", "zeroStride", "overlapStride", "negativeStride", "encHalfAlias", "axisAlias", "customFilters", "shortEnc", "shortVertical", "shortHorizontal", "mvdTop", "mvdBottom", "mvdLeft", "mvdRight", "replaceEncHeader", "replaceRefHeader", "replaceStrides", "replaceFuncList", "replaceCostTable", "replaceCostEntry", "replaceVerticalHeader", "replaceHorizontalHeader", "quarterAlias", "quarterHalfAlias", "quarterEncAlias", "customValidated", "customUnfused", "quarterMvdTop", "quarterMvdBottom", "quarterMvdLeft", "quarterMvdRight", "centerMaxEncOffset", "centerMinEncOffset", "centerReplaceEncHeader", "centerReplaceQuarterHeader", "centerAliasQuarter", "centerReplaceHV"}
+	for _, shape := range shapes {
+		for _, scenario := range scenarios {
+			t.Run(fmt.Sprintf("%dx%d/%s", shape[0], shape[1], scenario), func(t *testing.T) {
+				got, want := runQuarterPlanFixture(shape, false, scenario), runQuarterPlanFixture(shape, true, scenario)
+				if !reflect.DeepEqual(got, want) {
+					t.Fatalf("complete caller differs: got mv=%v cost=%d events=%v panic=%q; want mv=%v cost=%d events=%v panic=%q", got.mv, got.cost, got.events, got.panicText, want.mv, want.cost, want.events, want.panicText)
+				}
+				if strings.HasPrefix(scenario, "quarterMvd") {
+					if got.panicText == "" || !reflect.DeepEqual(got.events, []string{"V", "H", "C"}) {
+						t.Fatalf("quarter MVD failure lost center callback/order: %v panic=%q", got.events, got.panicText)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestQuarterPlanScalarCaller(t *testing.T) {
+	// This does not require AVX2: the compact route must stay unavailable when
+	// initialization selected scalar callbacks, including on feature-off runs.
+	for _, shape := range [][3]int32{{16, 16, BLOCK_16x16}, {8, 8, BLOCK_8x8}, {4, 4, BLOCK_4x4}} {
+		makeFixture := func() *fractionalCallerFixture {
+			f := newQuarterPlanScalarFixture(shape[0], shape[1], uint8(shape[2]), 32, true)
+			WelsInitSampleSadFunc(&f.funcs, 0)
+			common.InitMcFunc(&f.funcs.sMcFuncs, 0)
+			f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSatd
+			InitMeRefinePointer(&f.refine, &f.cache, 0)
+			return f
+		}
+		got, want := makeFixture(), makeFixture()
+		MeRefineFracPixel(&got.ctx, got.pred, 0, &got.me, &got.refine, shape[0], shape[1])
+		meRefineFracPixelQuarterPlanReference(&want.ctx, want.pred, 0, &want.me, &want.refine, shape[0], shape[1])
+		if got.me.sMv != want.me.sMv || got.me.uiSatdCost != want.me.uiSatdCost || !bytes.Equal(got.pred, want.pred) || !bytes.Equal(got.cache.pBufferInterPredMe, want.cache.pBufferInterPredMe) {
+			t.Fatalf("scalar complete caller differs: shape=%v", shape)
+		}
+	}
+}
+
+// Build this fixture using scalar functions from the first score onward, so
+// feature-off/non-AVX2 hosts never execute an unsupported setup kernel.
+func newQuarterPlanScalarFixture(width, height int32, block uint8, stride int32, motion bool) *fractionalCallerFixture {
+	f := &fractionalCallerFixture{width: width, height: height, pred: make([]byte, 256)}
+	flags := uint32(0)
+	WelsInitSampleSadFunc(&f.funcs, flags)
+	common.InitMcFunc(&f.funcs.sMcFuncs, flags)
+	f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSatd
+	f.ctx.pFuncList, f.ctx.pCurDqLayer = &f.funcs, &f.layer
+	f.layer.iEncStride[0], f.pic.iLineSize[0] = stride, stride
+	f.layer.pRefPic, f.layer.bSatdInMdFlag = &f.pic, true
+	f.cache.pBufferInterPredMe = make([]byte, 4*640)
+	f.me.uiBlockSize = block
+	f.me.pEncMb, f.me.iEncMbOff = make([]byte, int(height-1)*int(stride)+int(width)+3), 3
+	f.me.pRefMb, f.me.iRefMbOff = make([]byte, int(height+12)*int(stride)), 4*int(stride)+8
+	for i := range f.me.pRefMb {
+		f.me.pRefMb[i] = byte(i*73 + (i/int(stride))*17 + 19)
+	}
+	for y := int32(0); y < height; y++ {
+		for x := int32(0); x < width; x++ {
+			value := f.me.pRefMb[f.me.iRefMbOff+int(y*stride+x)]
+			if motion {
+				value = byte(x*37 + y*29 + x*y*11 + 7)
+			}
+			f.me.pEncMb[f.me.iEncMbOff+int(y*stride+x)] = value
+		}
+	}
+	f.me.pMvdCost, f.me.iMvdCostOff = make([]uint16, 1025), 512
+	for i := range f.me.pMvdCost {
+		distance := i - f.me.iMvdCostOff
+		if distance < 0 {
+			distance = -distance
+		}
+		f.me.pMvdCost[i] = uint16(distance)
+	}
+	f.me.uSadPredISatd = uint32(f.funcs.sSampleDealingFuncs.pfMeCost[block](
+		f.me.pEncMb, f.me.iEncMbOff, stride, f.me.pRefMb, f.me.iRefMbOff, stride))
+	copies := [MAX_BLOCK_TYPE]PCopyFunc{
+		common.WelsCopy16x16_c, common.WelsCopy16x8_c, common.WelsCopy8x16_c,
+		common.WelsCopy8x8_c, common.WelsCopy4x4_c, common.WelsCopy8x4_c, common.WelsCopy4x8_c,
+	}
+	f.refine.pfCopyBlockByMode = copies[block]
+	return f
+}

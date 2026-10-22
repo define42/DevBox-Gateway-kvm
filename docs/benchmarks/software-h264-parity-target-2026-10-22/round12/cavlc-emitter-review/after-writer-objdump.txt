@@ -1,0 +1,635 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WriteBlockResidualCavlc(SB) /tmp/h264-parity-target-20261022/cavlc-emitter-measure-next/pkg/h264/internal/encoder/set_mb_syn_cavlc.go
+  set_mb_syn_cavlc.go:87	0x61a0a0		4c8da42470ffffff	LEAQ 0xffffff70(SP), R12											
+  set_mb_syn_cavlc.go:87	0x61a0a8		4d3b6610		CMPQ R12, 0x10(R14)												
+  set_mb_syn_cavlc.go:87	0x61a0ac		0f86880a0000		JBE 0x61ab3a													
+  set_mb_syn_cavlc.go:87	0x61a0b2		55			PUSHQ BP													
+  set_mb_syn_cavlc.go:87	0x61a0b3		4889e5			MOVQ SP, BP													
+  set_mb_syn_cavlc.go:87	0x61a0b6		4881ec08010000		SUBQ $0x108, SP													
+  set_mb_syn_cavlc.go:87	0x61a0bd		48899c2420010000	MOVQ BX, 0x120(SP)												
+  set_mb_syn_cavlc.go:91	0x61a0c5		4c899c2448010000	MOVQ R11, 0x148(SP)												
+  set_mb_syn_cavlc.go:91	0x61a0cd		4585c0			TESTL R8, R8													
+  set_mb_syn_cavlc.go:91	0x61a0d0		0f8469010000		JE 0x61a23f													
+  set_mb_syn_cavlc.go:91	0x61a0d6		89b42438010000		MOVL SI, 0x138(SP)												
+  set_mb_syn_cavlc.go:91	0x61a0dd		44898c2440010000	MOVL R9, 0x140(SP)												
+  set_mb_syn_cavlc.go:91	0x61a0e5		4488942444010000	MOVB R10, 0x144(SP)												
+  set_mb_syn_cavlc.go:106	0x61a0ed		488d542458		LEAQ 0x58(SP), DX												
+  set_mb_syn_cavlc.go:106	0x61a0f2		440f113a		MOVUPS X15, 0(DX)												
+  set_mb_syn_cavlc.go:106	0x61a0f6		440f117a10		MOVUPS X15, 0x10(DX)												
+  set_mb_syn_cavlc.go:107	0x61a0fb		488d7c2448		LEAQ 0x48(SP), DI												
+  set_mb_syn_cavlc.go:107	0x61a100		440f113f		MOVUPS X15, 0(DI)												
+  set_mb_syn_cavlc.go:109	0x61a104		c784248400000000000000	MOVL $0x0, 0x84(SP)												
+  cavlc_extract_amd64.go:15	0x61a10f		448d46f2		LEAL -0xe(SI), R8												
+  set_mb_syn_cavlc.go:118	0x61a113		4c8da424e0000000	LEAQ 0xe0(SP), R12												
+  set_mb_syn_cavlc.go:118	0x61a11b		450f113c24		MOVUPS X15, 0(R12)												
+  set_mb_syn_cavlc.go:118	0x61a120		450f117c2410		MOVUPS X15, 0x10(R12)												
+  set_mb_syn_cavlc.go:118	0x61a126		450f117c2418		MOVUPS X15, 0x18(R12)												
+  set_mb_syn_cavlc.go:28	0x61a12c		4d8b2b			MOVQ 0(R11), R13												
+  set_mb_syn_cavlc.go:28	0x61a12f		4d8b7b08		MOVQ 0x8(R11), R15												
+  set_mb_syn_cavlc.go:28	0x61a133		498b4310		MOVQ 0x10(R11), AX												
+  set_mb_syn_cavlc.go:28	0x61a137		4c89ac24e0000000	MOVQ R13, 0xe0(SP)												
+  set_mb_syn_cavlc.go:28	0x61a13f		4c89bc24e8000000	MOVQ R15, 0xe8(SP)												
+  set_mb_syn_cavlc.go:28	0x61a147		48898424f0000000	MOVQ AX, 0xf0(SP)												
+  set_mb_syn_cavlc.go:28	0x61a14f		4d8b6b38		MOVQ 0x38(R11), R13												
+  set_mb_syn_cavlc.go:28	0x61a153		4c89ac24f8000000	MOVQ R13, 0xf8(SP)												
+  set_mb_syn_cavlc.go:28	0x61a15b		458b6b40		MOVL 0x40(R11), R13												
+  set_mb_syn_cavlc.go:28	0x61a15f		4489ac2400010000	MOVL R13, 0x100(SP)												
+  set_mb_syn_cavlc.go:28	0x61a167		458b6b44		MOVL 0x44(R11), R13												
+  set_mb_syn_cavlc.go:28	0x61a16b		4489ac2404010000	MOVL R13, 0x104(SP)												
+  set_mb_syn_cavlc.go:118	0x61a173		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:118	0x61a17b		450f103424		MOVUPS 0(R12), X14												
+  set_mb_syn_cavlc.go:118	0x61a180		440f1130		MOVUPS X14, 0(AX)												
+  set_mb_syn_cavlc.go:118	0x61a184		450f10742410		MOVUPS 0x10(R12), X14												
+  set_mb_syn_cavlc.go:118	0x61a18a		440f117010		MOVUPS X14, 0x10(AX)												
+  set_mb_syn_cavlc.go:118	0x61a18f		450f10742418		MOVUPS 0x18(R12), X14												
+  set_mb_syn_cavlc.go:118	0x61a195		440f117018		MOVUPS X14, 0x18(AX)												
+  set_mb_syn_cavlc.go:118	0x61a19a		660f1f440000		NOPW 0(AX)(AX*1)												
+  cavlc_extract_amd64.go:15	0x61a1a0		4183f801		CMPL R8, $0x1													
+  cavlc_extract_amd64.go:15	0x61a1a4		0f878c000000		JA 0x61a236													
+  cavlc_extract_amd64.go:15	0x61a1aa		4883f910		CMPQ CX, $0x10													
+  cavlc_extract_amd64.go:15	0x61a1ae		0f8c82000000		JL 0x61a236													
+  cavlc_extract_amd64.go:15	0x61a1b4		803decae4d0000		CMPB golang.org/x/sys/cpu.X86+103(SB), $0x0									
+  cavlc_extract_amd64.go:15	0x61a1bb		7479			JE 0x61a236													
+  cavlc_extract_amd64.go:15	0x61a1bd		803ddeae4d0000		CMPB golang.org/x/sys/cpu.X86+98(SB), $0x0									
+  set_mb_syn_cavlc.go:125	0x61a1c4		7470			JE 0x61a236													
+  set_mb_syn_cavlc.go:126	0x61a1c6		48891c24		MOVQ BX, 0(SP)													
+  set_mb_syn_cavlc.go:126	0x61a1ca		48897c2408		MOVQ DI, 0x8(SP)												
+  set_mb_syn_cavlc.go:126	0x61a1cf		4889542410		MOVQ DX, 0x10(SP)												
+  set_mb_syn_cavlc.go:126	0x61a1d4		488d842484000000	LEAQ 0x84(SP), AX												
+  set_mb_syn_cavlc.go:126	0x61a1dc		4889442418		MOVQ AX, 0x18(SP)												
+  set_mb_syn_cavlc.go:126	0x61a1e1		89742420		MOVL SI, 0x20(SP)												
+  set_mb_syn_cavlc.go:126	0x61a1e5		e8b61b1100		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.cavlcExtractSSSE3.abi0(SB)		
+  set_mb_syn_cavlc.go:126	0x61a1ea		450f57ff		XORPS X15, X15													
+  set_mb_syn_cavlc.go:126	0x61a1ee		644c8b3425f8ffffff	MOVQ FS:0xfffffff8, R14												
+  set_mb_syn_cavlc.go:126	0x61a1f7		8b442428		MOVL 0x28(SP), AX												
+  set_mb_syn_cavlc.go:106	0x61a1fb		488d542458		LEAQ 0x58(SP), DX												
+  set_mb_syn_cavlc.go:107	0x61a200		488d7c2448		LEAQ 0x48(SP), DI												
+  set_mb_syn_cavlc.go:134	0x61a205		448b842438010000	MOVL 0x138(SP), R8												
+  set_mb_syn_cavlc.go:134	0x61a20d		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:134	0x61a215		440fb6942444010000	MOVZX 0x144(SP), R10												
+  set_mb_syn_cavlc.go:134	0x61a21e		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:133	0x61a226		4189c5			MOVL AX, R13													
+  set_mb_syn_cavlc.go:118	0x61a229		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:126	0x61a231		e9e3010000		JMP 0x61a419													
+  set_mb_syn_cavlc.go:128	0x61a236		90			NOPL														
+  set_mb_syn_cavlc.go:91	0x61a237		4189f0			MOVL SI, R8													
+  set_mb_syn_cavlc.go:66	0x61a23a		e935010000		JMP 0x61a374													
+  set_mb_syn_cavlc.go:92	0x61a23f		418403			TESTB AL, 0(R11)												
+  set_mb_syn_cavlc.go:93	0x61a242		490fbed2		MOVSX R10, DX													
+  set_mb_syn_cavlc.go:93	0x61a246		4883fa12		CMPQ DX, $0x12													
+  set_mb_syn_cavlc.go:93	0x61a24a		0f831d010000		JAE 0x61a36d													
+  set_mb_syn_cavlc.go:93	0x61a250		488d3509ad4800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiEncNcMapTable(SB), SI		
+  set_mb_syn_cavlc.go:93	0x61a257		0fb61416		MOVZX 0(SI)(DX*1), DX												
+  set_mb_syn_cavlc.go:93	0x61a25b		0f1f440000		NOPL 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:93	0x61a260		4883fa05		CMPQ DX, $0x5													
+  set_mb_syn_cavlc.go:93	0x61a264		0f83fe000000		JAE 0x61a368													
+  set_mb_syn_cavlc.go:92	0x61a26a		418b7344		MOVL 0x44(R11), SI												
+  set_mb_syn_cavlc.go:93	0x61a26e		89d7			MOVL DX, DI													
+  set_mb_syn_cavlc.go:93	0x61a270		48c1e207		SHLQ $0x7, DX													
+  set_mb_syn_cavlc.go:93	0x61a274		488d14fa		LEAQ 0(DX)(DI*8), DX												
+  set_mb_syn_cavlc.go:94	0x61a278		488d3d01384900		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiVlcCoeffToken(SB), DI		
+  set_mb_syn_cavlc.go:94	0x61a27f		0fb65c1701		MOVZX 0x1(DI)(DX*1), BX												
+  set_mb_syn_cavlc.go:92	0x61a284		458b4340		MOVL 0x40(R11), R8												
+  set_mb_syn_cavlc.go:94	0x61a288		0fb60c17		MOVZX 0(DI)(DX*1), CX												
+  set_mb_syn_cavlc.go:95	0x61a28c		39de			CMPL SI, BX													
+  set_mb_syn_cavlc.go:95	0x61a28e		7e27			JLE 0x61a2b7													
+  set_mb_syn_cavlc.go:94	0x61a290		89c8			MOVL CX, AX													
+  set_mb_syn_cavlc.go:96	0x61a292		89d9			MOVL BX, CX													
+  set_mb_syn_cavlc.go:96	0x61a294		41d3e0			SHLL CL, R8													
+  set_mb_syn_cavlc.go:97	0x61a297		29ce			SUBL CX, SI													
+  set_mb_syn_cavlc.go:96	0x61a299		83f920			CMPL CX, $0x20													
+  set_mb_syn_cavlc.go:96	0x61a29c		19d2			SBBL DX, DX													
+  set_mb_syn_cavlc.go:96	0x61a29e		4121d0			ANDL DX, R8													
+  set_mb_syn_cavlc.go:96	0x61a2a1		4409c0			ORL R8, AX													
+  set_mb_syn_cavlc.go:96	0x61a2a4		41894340		MOVL AX, 0x40(R11)												
+  set_mb_syn_cavlc.go:97	0x61a2a8		41897344		MOVL SI, 0x44(R11)												
+  set_mb_syn_cavlc.go:98	0x61a2ac		31c0			XORL AX, AX													
+  set_mb_syn_cavlc.go:98	0x61a2ae		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:98	0x61a2b5		5d			POPQ BP														
+  set_mb_syn_cavlc.go:98	0x61a2b6		c3			RET														
+  set_mb_syn_cavlc.go:100	0x61a2b7		488d9424e0000000	LEAQ 0xe0(SP), DX												
+  set_mb_syn_cavlc.go:100	0x61a2bf		440f113a		MOVUPS X15, 0(DX)												
+  set_mb_syn_cavlc.go:100	0x61a2c3		440f117a10		MOVUPS X15, 0x10(DX)												
+  set_mb_syn_cavlc.go:100	0x61a2c8		440f117a18		MOVUPS X15, 0x18(DX)												
+  set_mb_syn_cavlc.go:100	0x61a2cd		498b3b			MOVQ 0(R11), DI													
+  set_mb_syn_cavlc.go:100	0x61a2d0		4d8b4b08		MOVQ 0x8(R11), R9												
+  set_mb_syn_cavlc.go:100	0x61a2d4		4d8b5310		MOVQ 0x10(R11), R10												
+  set_mb_syn_cavlc.go:100	0x61a2d8		4889bc24e0000000	MOVQ DI, 0xe0(SP)												
+  set_mb_syn_cavlc.go:100	0x61a2e0		4c898c24e8000000	MOVQ R9, 0xe8(SP)												
+  set_mb_syn_cavlc.go:100	0x61a2e8		4c899424f0000000	MOVQ R10, 0xf0(SP)												
+  set_mb_syn_cavlc.go:100	0x61a2f0		498b7b38		MOVQ 0x38(R11), DI												
+  set_mb_syn_cavlc.go:100	0x61a2f4		4889bc24f8000000	MOVQ DI, 0xf8(SP)												
+  set_mb_syn_cavlc.go:100	0x61a2fc		4489842400010000	MOVL R8, 0x100(SP)												
+  set_mb_syn_cavlc.go:100	0x61a304		89b42404010000		MOVL SI, 0x104(SP)												
+  set_mb_syn_cavlc.go:100	0x61a30b		488d8424b8000000	LEAQ 0xb8(SP), AX												
+  set_mb_syn_cavlc.go:100	0x61a313		440f1032		MOVUPS 0(DX), X14												
+  set_mb_syn_cavlc.go:100	0x61a317		440f1130		MOVUPS X14, 0(AX)												
+  set_mb_syn_cavlc.go:100	0x61a31b		440f107210		MOVUPS 0x10(DX), X14												
+  set_mb_syn_cavlc.go:100	0x61a320		440f117010		MOVUPS X14, 0x10(AX)												
+  set_mb_syn_cavlc.go:100	0x61a325		440f107218		MOVUPS 0x18(DX), X14												
+  set_mb_syn_cavlc.go:100	0x61a32a		440f117018		MOVUPS X14, 0x18(AX)												
+  set_mb_syn_cavlc.go:101	0x61a32f		e8ccfbffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:33	0x61a334		488b9424d0000000	MOVQ 0xd0(SP), DX												
+  set_mb_syn_cavlc.go:102	0x61a33c		90			NOPL														
+  set_mb_syn_cavlc.go:33	0x61a33d		488bb42448010000	MOVQ 0x148(SP), SI												
+  set_mb_syn_cavlc.go:33	0x61a345		48895638		MOVQ DX, 0x38(SI)												
+  set_mb_syn_cavlc.go:34	0x61a349		8b9424d8000000		MOVL 0xd8(SP), DX												
+  set_mb_syn_cavlc.go:34	0x61a350		895640			MOVL DX, 0x40(SI)												
+  set_mb_syn_cavlc.go:35	0x61a353		8b9424dc000000		MOVL 0xdc(SP), DX												
+  set_mb_syn_cavlc.go:35	0x61a35a		895644			MOVL DX, 0x44(SI)												
+  set_mb_syn_cavlc.go:103	0x61a35d		31c0			XORL AX, AX													
+  set_mb_syn_cavlc.go:103	0x61a35f		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:103	0x61a366		5d			POPQ BP														
+  set_mb_syn_cavlc.go:103	0x61a367		c3			RET														
+  set_mb_syn_cavlc.go:93	0x61a368		e8f352e7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:93	0x61a36d		e8ee52e7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:67	0x61a372		ffce			DECL SI														
+  set_mb_syn_cavlc.go:66	0x61a374		85f6			TESTL SI, SI													
+  set_mb_syn_cavlc.go:66	0x61a376		7c1c			JL 0x61a394													
+  set_mb_syn_cavlc.go:66	0x61a378		4c63e6			MOVSXD SI, R12													
+  set_mb_syn_cavlc.go:66	0x61a37b		0f1f440000		NOPL 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:66	0x61a380		4c39e1			CMPQ CX, R12													
+  set_mb_syn_cavlc.go:66	0x61a383		0f86ab070000		JBE 0x61ab34													
+  set_mb_syn_cavlc.go:66	0x61a389		460fb72463		MOVZX 0(BX)(R12*2), R12												
+  set_mb_syn_cavlc.go:66	0x61a38e		664585e4		TESTW R12, R12													
+  set_mb_syn_cavlc.go:66	0x61a392		74de			JE 0x61a372													
+  set_mb_syn_cavlc.go:66	0x61a394		4531e4			XORL R12, R12													
+  set_mb_syn_cavlc.go:66	0x61a397		4531ed			XORL R13, R13													
+  set_mb_syn_cavlc.go:66	0x61a39a		eb14			JMP 0x61a3b0													
+  set_mb_syn_cavlc.go:80	0x61a39c		46887c1448		MOVB R15, 0x48(SP)(R10*1)											
+  set_mb_syn_cavlc.go:79	0x61a3a1		4501fd			ADDL R15, R13													
+  set_mb_syn_cavlc.go:81	0x61a3a4		41ffc4			INCL R12													
+  set_mb_syn_cavlc.go:134	0x61a3a7		440fb6942444010000	MOVZX 0x144(SP), R10												
+  set_mb_syn_cavlc.go:70	0x61a3b0		85f6			TESTL SI, SI													
+  set_mb_syn_cavlc.go:70	0x61a3b2		7c5d			JL 0x61a411													
+  set_mb_syn_cavlc.go:72	0x61a3b4		4c63fe			MOVSXD SI, R15													
+  set_mb_syn_cavlc.go:72	0x61a3b7		660f1f840000000000	NOPW 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:72	0x61a3c0		4c39f9			CMPQ CX, R15													
+  set_mb_syn_cavlc.go:72	0x61a3c3		0f8666070000		JBE 0x61ab2f													
+  set_mb_syn_cavlc.go:72	0x61a3c9		4d63d4			MOVSXD R12, R10													
+  set_mb_syn_cavlc.go:72	0x61a3cc		460fb73c7b		MOVZX 0(BX)(R15*2), R15												
+  set_mb_syn_cavlc.go:72	0x61a3d1		4983fa10		CMPQ R10, $0x10													
+  set_mb_syn_cavlc.go:72	0x61a3d5		0f834f070000		JAE 0x61ab2a													
+  set_mb_syn_cavlc.go:72	0x61a3db		6646897c5458		MOVW R15, 0x58(SP)(R10*2)											
+  set_mb_syn_cavlc.go:73	0x61a3e1		ffce			DECL SI														
+  set_mb_syn_cavlc.go:75	0x61a3e3		4531ff			XORL R15, R15													
+  set_mb_syn_cavlc.go:75	0x61a3e6		eb0d			JMP 0x61a3f5													
+  set_mb_syn_cavlc.go:76	0x61a3e8		41ffc7			INCL R15													
+  set_mb_syn_cavlc.go:77	0x61a3eb		ffce			DECL SI														
+  set_mb_syn_cavlc.go:134	0x61a3ed		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:75	0x61a3f5		85f6			TESTL SI, SI													
+  set_mb_syn_cavlc.go:75	0x61a3f7		7ca3			JL 0x61a39c													
+  set_mb_syn_cavlc.go:75	0x61a3f9		4c63ce			MOVSXD SI, R9													
+  set_mb_syn_cavlc.go:75	0x61a3fc		460fb70c4b		MOVZX 0(BX)(R9*2), R9												
+  set_mb_syn_cavlc.go:75	0x61a401		664585c9		TESTW R9, R9													
+  set_mb_syn_cavlc.go:75	0x61a405		74e1			JE 0x61a3e8													
+  set_mb_syn_cavlc.go:134	0x61a407		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:75	0x61a40f		eb8b			JMP 0x61a39c													
+  set_mb_syn_cavlc.go:83	0x61a411		4489a42484000000	MOVL R12, 0x84(SP)												
+  set_mb_syn_cavlc.go:133	0x61a419		4489ac2480000000	MOVL R13, 0x80(SP)												
+  set_mb_syn_cavlc.go:133	0x61a421		8bb42484000000		MOVL 0x84(SP), SI												
+  set_mb_syn_cavlc.go:133	0x61a428		85f6			TESTL SI, SI													
+  set_mb_syn_cavlc.go:133	0x61a42a		747f			JE 0x61a4ab													
+  set_mb_syn_cavlc.go:134	0x61a42c		48890424		MOVQ AX, 0(SP)													
+  set_mb_syn_cavlc.go:134	0x61a430		4889542408		MOVQ DX, 0x8(SP)												
+  set_mb_syn_cavlc.go:134	0x61a435		48897c2410		MOVQ DI, 0x10(SP)												
+  set_mb_syn_cavlc.go:134	0x61a43a		4c895c2418		MOVQ R11, 0x18(SP)												
+  set_mb_syn_cavlc.go:134	0x61a43f		89742420		MOVL SI, 0x20(SP)												
+  set_mb_syn_cavlc.go:134	0x61a443		44896c2424		MOVL R13, 0x24(SP)												
+  set_mb_syn_cavlc.go:134	0x61a448		4489442428		MOVL R8, 0x28(SP)												
+  set_mb_syn_cavlc.go:134	0x61a44d		44894c242c		MOVL R9, 0x2c(SP)												
+  set_mb_syn_cavlc.go:134	0x61a452		490fbec2		MOVSX R10, AX													
+  set_mb_syn_cavlc.go:134	0x61a456		89442430		MOVL AX, 0x30(SP)												
+  set_mb_syn_cavlc.go:134	0x61a45a		e861131100		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.cavlcEmit.abi0(SB)			
+  set_mb_syn_cavlc.go:134	0x61a45f		450f57ff		XORPS X15, X15													
+  set_mb_syn_cavlc.go:134	0x61a463		644c8b3425f8ffffff	MOVQ FS:0xfffffff8, R14												
+  set_mb_syn_cavlc.go:134	0x61a46c		8b442438		MOVL 0x38(SP), AX												
+  set_mb_syn_cavlc.go:135	0x61a470		83f801			CMPL AX, $0x1													
+  set_mb_syn_cavlc.go:135	0x61a473		745f			JE 0x61a4d4													
+  set_mb_syn_cavlc.go:138	0x61a475		83f802			CMPL AX, $0x2													
+  set_mb_syn_cavlc.go:138	0x61a478		744c			JE 0x61a4c6													
+  set_mb_syn_cavlc.go:118	0x61a47a		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:211	0x61a482		448b842438010000	MOVL 0x138(SP), R8												
+  set_mb_syn_cavlc.go:212	0x61a48a		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:159	0x61a492		440fb6942444010000	MOVZX 0x144(SP), R10												
+  set_mb_syn_cavlc.go:33	0x61a49b		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:218	0x61a4a3		448bac2480000000	MOVL 0x80(SP), R13												
+  set_mb_syn_cavlc.go:142	0x61a4ab		8b942484000000		MOVL 0x84(SP), DX												
+  set_mb_syn_cavlc.go:142	0x61a4b2		83fa03			CMPL DX, $0x3													
+  set_mb_syn_cavlc.go:147	0x61a4b5		be03000000		MOVL $0x3, SI													
+  set_mb_syn_cavlc.go:147	0x61a4ba		89d7			MOVL DX, DI													
+  set_mb_syn_cavlc.go:147	0x61a4bc		0f4fd6			CMOVG SI, DX													
+  set_mb_syn_cavlc.go:142	0x61a4bf		31f6			XORL SI, SI													
+  set_mb_syn_cavlc.go:142	0x61a4c1		4531e4			XORL R12, R12													
+  set_mb_syn_cavlc.go:142	0x61a4c4		eb5a			JMP 0x61a520													
+  set_mb_syn_cavlc.go:139	0x61a4c6		b840000000		MOVL $0x40, AX													
+  set_mb_syn_cavlc.go:139	0x61a4cb		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:139	0x61a4d2		5d			POPQ BP														
+  set_mb_syn_cavlc.go:139	0x61a4d3		c3			RET														
+  set_mb_syn_cavlc.go:33	0x61a4d4		488b8c24a8000000	MOVQ 0xa8(SP), CX												
+  set_mb_syn_cavlc.go:136	0x61a4dc		90			NOPL														
+  set_mb_syn_cavlc.go:33	0x61a4dd		488b942448010000	MOVQ 0x148(SP), DX												
+  set_mb_syn_cavlc.go:33	0x61a4e5		48894a38		MOVQ CX, 0x38(DX)												
+  set_mb_syn_cavlc.go:34	0x61a4e9		8b8c24b0000000		MOVL 0xb0(SP), CX												
+  set_mb_syn_cavlc.go:34	0x61a4f0		894a40			MOVL CX, 0x40(DX)												
+  set_mb_syn_cavlc.go:35	0x61a4f3		8b8c24b4000000		MOVL 0xb4(SP), CX												
+  set_mb_syn_cavlc.go:35	0x61a4fa		894a44			MOVL CX, 0x44(DX)												
+  set_mb_syn_cavlc.go:137	0x61a4fd		31c0			XORL AX, AX													
+  set_mb_syn_cavlc.go:137	0x61a4ff		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:137	0x61a506		5d			POPQ BP														
+  set_mb_syn_cavlc.go:137	0x61a507		c3			RET														
+  set_mb_syn_cavlc.go:150	0x61a508		01f6			ADDL SI, SI													
+  set_mb_syn_cavlc.go:151	0x61a50a		664585ff		TESTW R15, R15													
+  set_mb_syn_cavlc.go:151	0x61a50e		410f9cc7		SETL R15													
+  set_mb_syn_cavlc.go:151	0x61a512		450fb6ff		MOVZX R15, R15													
+  set_mb_syn_cavlc.go:151	0x61a516		4409fe			ORL R15, SI													
+  set_mb_syn_cavlc.go:149	0x61a519		41ffc4			INCL R12													
+  set_mb_syn_cavlc.go:149	0x61a51c		0f1f4000		NOPL 0(AX)													
+  set_mb_syn_cavlc.go:147	0x61a520		4139d4			CMPL R12, DX													
+  set_mb_syn_cavlc.go:147	0x61a523		7d20			JGE 0x61a545													
+  set_mb_syn_cavlc.go:148	0x61a525		4d63fc			MOVSXD R12, R15													
+  set_mb_syn_cavlc.go:148	0x61a528		460fb77c7c58		MOVZX 0x58(SP)(R15*2), R15											
+  set_mb_syn_cavlc.go:148	0x61a52e		490fbfcf		MOVSX R15, CX													
+  macros_h.go:178		0x61a532		89cb			MOVL CX, BX													
+  macros_h.go:178		0x61a534		f7d9			NEGL CX														
+  macros_h.go:175		0x61a536		85db			TESTL BX, BX													
+  set_mb_syn_cavlc.go:148	0x61a538		0f4fcb			CMOVG BX, CX													
+  set_mb_syn_cavlc.go:148	0x61a53b		0f1f440000		NOPL 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:148	0x61a540		83f901			CMPL CX, $0x1													
+  macros_h.go:175		0x61a543		74c3			JE 0x61a508													
+  set_mb_syn_cavlc.go:159	0x61a545		490fbed2		MOVSX R10, DX													
+  set_mb_syn_cavlc.go:159	0x61a549		4883fa12		CMPQ DX, $0x12													
+  set_mb_syn_cavlc.go:159	0x61a54d		0f83d2050000		JAE 0x61ab25													
+  set_mb_syn_cavlc.go:159	0x61a553		4c8d1506aa4800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiEncNcMapTable(SB), R10		
+  set_mb_syn_cavlc.go:159	0x61a55a		410fb61412		MOVZX 0(R10)(DX*1), DX												
+  set_mb_syn_cavlc.go:159	0x61a55f		90			NOPL														
+  set_mb_syn_cavlc.go:159	0x61a560		4883fa05		CMPQ DX, $0x5													
+  set_mb_syn_cavlc.go:159	0x61a564		0f83b4050000		JAE 0x61ab1e													
+  set_mb_syn_cavlc.go:159	0x61a56a		4189d2			MOVL DX, R10													
+  set_mb_syn_cavlc.go:159	0x61a56d		48c1e207		SHLQ $0x7, DX													
+  set_mb_syn_cavlc.go:159	0x61a571		4a8d14d2		LEAQ 0(DX)(R10*8), DX												
+  set_mb_syn_cavlc.go:159	0x61a575		4c63d7			MOVSXD DI, R10													
+  set_mb_syn_cavlc.go:159	0x61a578		4c8d3d01354900		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiVlcCoeffToken(SB), R15		
+  set_mb_syn_cavlc.go:159	0x61a57f		4c01fa			ADDQ R15, DX													
+  set_mb_syn_cavlc.go:159	0x61a582		4983fa11		CMPQ R10, $0x11													
+  set_mb_syn_cavlc.go:159	0x61a586		0f838d050000		JAE 0x61ab19													
+  set_mb_syn_cavlc.go:159	0x61a58c		4d63fc			MOVSXD R12, R15													
+  set_mb_syn_cavlc.go:159	0x61a58f		4a8d14d2		LEAQ 0(DX)(R10*8), DX												
+  set_mb_syn_cavlc.go:159	0x61a593		4983ff04		CMPQ R15, $0x4													
+  set_mb_syn_cavlc.go:159	0x61a597		0f8377050000		JAE 0x61ab14													
+  set_mb_syn_cavlc.go:160	0x61a59d		4e8d147a		LEAQ 0(DX)(R15*2), R10												
+  set_mb_syn_cavlc.go:161	0x61a5a1		4a8d147a		LEAQ 0(DX)(R15*2), DX												
+  set_mb_syn_cavlc.go:161	0x61a5a5		488d5201		LEAQ 0x1(DX), DX												
+  set_mb_syn_cavlc.go:160	0x61a5a9		410fb60a		MOVZX 0(R10), CX												
+  set_mb_syn_cavlc.go:161	0x61a5ad		0fb61a			MOVZX 0(DX), BX													
+  set_mb_syn_cavlc.go:163	0x61a5b0		85ff			TESTL DI, DI													
+  set_mb_syn_cavlc.go:163	0x61a5b2		0f84bc000000		JE 0x61a674													
+  set_mb_syn_cavlc.go:172	0x61a5b8		4401e3			ADDL R12, BX													
+  set_mb_syn_cavlc.go:173	0x61a5bb		4963d4			MOVSXD R12, DX													
+  set_mb_syn_cavlc.go:160	0x61a5be		89cf			MOVL CX, DI													
+  set_mb_syn_cavlc.go:173	0x61a5c0		4889d1			MOVQ DX, CX													
+  set_mb_syn_cavlc.go:173	0x61a5c3		d3e7			SHLL CL, DI													
+  set_mb_syn_cavlc.go:41	0x61a5c5		448b9424b4000000	MOVL 0xb4(SP), R10												
+  set_mb_syn_cavlc.go:174	0x61a5cd		90			NOPL														
+  set_mb_syn_cavlc.go:173	0x61a5ce		4883f920		CMPQ CX, $0x20													
+  set_mb_syn_cavlc.go:173	0x61a5d2		19d2			SBBL DX, DX													
+  set_mb_syn_cavlc.go:173	0x61a5d4		21d7			ANDL DX, DI													
+  set_mb_syn_cavlc.go:173	0x61a5d6		8d0c3e			LEAL 0(SI)(DI*1), CX												
+  set_mb_syn_cavlc.go:41	0x61a5d9		4139da			CMPL R10, BX													
+  set_mb_syn_cavlc.go:41	0x61a5dc		7e34			JLE 0x61a612													
+  set_mb_syn_cavlc.go:41	0x61a5de		6690			NOPW														
+  set_mb_syn_cavlc.go:42	0x61a5e0		85db			TESTL BX, BX													
+  set_mb_syn_cavlc.go:42	0x61a5e2		0f8c27050000		JL 0x61ab0f													
+  set_mb_syn_cavlc.go:42	0x61a5e8		8b9424b0000000		MOVL 0xb0(SP), DX												
+  set_mb_syn_cavlc.go:173	0x61a5ef		89ce			MOVL CX, SI													
+  set_mb_syn_cavlc.go:42	0x61a5f1		89d9			MOVL BX, CX													
+  set_mb_syn_cavlc.go:42	0x61a5f3		d3e2			SHLL CL, DX													
+  set_mb_syn_cavlc.go:43	0x61a5f5		4129ca			SUBL CX, R10													
+  set_mb_syn_cavlc.go:42	0x61a5f8		83f920			CMPL CX, $0x20													
+  set_mb_syn_cavlc.go:42	0x61a5fb		19ff			SBBL DI, DI													
+  set_mb_syn_cavlc.go:42	0x61a5fd		21d7			ANDL DX, DI													
+  set_mb_syn_cavlc.go:42	0x61a5ff		09fe			ORL DI, SI													
+  set_mb_syn_cavlc.go:42	0x61a601		89b424b0000000		MOVL SI, 0xb0(SP)												
+  set_mb_syn_cavlc.go:43	0x61a608		44899424b4000000	MOVL R10, 0xb4(SP)												
+  set_mb_syn_cavlc.go:43	0x61a610		eb3d			JMP 0x61a64f													
+  set_mb_syn_cavlc.go:147	0x61a612		4489a42488000000	MOVL R12, 0x88(SP)												
+  set_mb_syn_cavlc.go:45	0x61a61a		e8e1f8ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:118	0x61a61f		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:211	0x61a627		448b842438010000	MOVL 0x138(SP), R8												
+  set_mb_syn_cavlc.go:212	0x61a62f		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:33	0x61a637		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:177	0x61a63f		448ba42488000000	MOVL 0x88(SP), R12												
+  set_mb_syn_cavlc.go:218	0x61a647		448bac2480000000	MOVL 0x80(SP), R13												
+  set_mb_syn_cavlc.go:177	0x61a64f		83bc24840000000a	CMPL 0x84(SP), $0xa												
+  set_mb_syn_cavlc.go:177	0x61a657		7e0d			JLE 0x61a666													
+  set_mb_syn_cavlc.go:177	0x61a659		4183fc03		CMPL R12, $0x3													
+  set_mb_syn_cavlc.go:177	0x61a65d		7d07			JGE 0x61a666													
+  set_mb_syn_cavlc.go:177	0x61a65f		b901000000		MOVL $0x1, CX													
+  set_mb_syn_cavlc.go:177	0x61a664		eb02			JMP 0x61a668													
+  set_mb_syn_cavlc.go:177	0x61a666		31c9			XORL CX, CX													
+  set_mb_syn_cavlc.go:186	0x61a668		4183fc03		CMPL R12, $0x3													
+  set_mb_syn_cavlc.go:186	0x61a66c		0f9cc2			SETL DL														
+  set_mb_syn_cavlc.go:189	0x61a66f		0fb6d2			MOVZX DL, DX													
+  set_mb_syn_cavlc.go:189	0x61a672		eb7f			JMP 0x61a6f3													
+  set_mb_syn_cavlc.go:41	0x61a674		8b9424b4000000		MOVL 0xb4(SP), DX												
+  set_mb_syn_cavlc.go:164	0x61a67b		90			NOPL														
+  set_mb_syn_cavlc.go:164	0x61a67c		0f1f4000		NOPL 0(AX)													
+  set_mb_syn_cavlc.go:41	0x61a680		39da			CMPL DX, BX													
+  set_mb_syn_cavlc.go:41	0x61a682		7e28			JLE 0x61a6ac													
+  set_mb_syn_cavlc.go:42	0x61a684		8bb424b0000000		MOVL 0xb0(SP), SI												
+  set_mb_syn_cavlc.go:160	0x61a68b		89c8			MOVL CX, AX													
+  set_mb_syn_cavlc.go:42	0x61a68d		89d9			MOVL BX, CX													
+  set_mb_syn_cavlc.go:42	0x61a68f		d3e6			SHLL CL, SI													
+  set_mb_syn_cavlc.go:43	0x61a691		29ca			SUBL CX, DX													
+  set_mb_syn_cavlc.go:42	0x61a693		83f920			CMPL CX, $0x20													
+  set_mb_syn_cavlc.go:42	0x61a696		19db			SBBL BX, BX													
+  set_mb_syn_cavlc.go:42	0x61a698		21de			ANDL BX, SI													
+  set_mb_syn_cavlc.go:42	0x61a69a		09f0			ORL SI, AX													
+  set_mb_syn_cavlc.go:42	0x61a69c		898424b0000000		MOVL AX, 0xb0(SP)												
+  set_mb_syn_cavlc.go:43	0x61a6a3		899424b4000000		MOVL DX, 0xb4(SP)												
+  set_mb_syn_cavlc.go:43	0x61a6aa		eb0d			JMP 0x61a6b9													
+  set_mb_syn_cavlc.go:45	0x61a6ac		e84ff8ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:33	0x61a6b1		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:33	0x61a6b9		488b8c24a8000000	MOVQ 0xa8(SP), CX												
+  set_mb_syn_cavlc.go:166	0x61a6c1		90			NOPL														
+  set_mb_syn_cavlc.go:33	0x61a6c2		49894b38		MOVQ CX, 0x38(R11)												
+  set_mb_syn_cavlc.go:34	0x61a6c6		8b8c24b0000000		MOVL 0xb0(SP), CX												
+  set_mb_syn_cavlc.go:34	0x61a6cd		41894b40		MOVL CX, 0x40(R11)												
+  set_mb_syn_cavlc.go:35	0x61a6d1		8b8c24b4000000		MOVL 0xb4(SP), CX												
+  set_mb_syn_cavlc.go:35	0x61a6d8		41894b44		MOVL CX, 0x44(R11)												
+  set_mb_syn_cavlc.go:167	0x61a6dc		31c0			XORL AX, AX													
+  set_mb_syn_cavlc.go:167	0x61a6de		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:167	0x61a6e5		5d			POPQ BP														
+  set_mb_syn_cavlc.go:167	0x61a6e6		c3			RET														
+  set_mb_syn_cavlc.go:205	0x61a6e7		8b4c2478		MOVL 0x78(SP), CX												
+  set_mb_syn_cavlc.go:205	0x61a6eb		c1e918			SHRL $0x18, CX													
+  set_mb_syn_cavlc.go:189	0x61a6ee		41ffc4			INCL R12													
+  set_mb_syn_cavlc.go:189	0x61a6f1		31d2			XORL DX, DX													
+  set_mb_syn_cavlc.go:189	0x61a6f3		8bb42484000000		MOVL 0x84(SP), SI												
+  set_mb_syn_cavlc.go:189	0x61a6fa		660f1f440000		NOPW 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:189	0x61a700		4139f4			CMPL R12, SI													
+  set_mb_syn_cavlc.go:189	0x61a703		0f8d4a010000		JGE 0x61a853													
+  set_mb_syn_cavlc.go:190	0x61a709		4963f4			MOVSXD R12, SI													
+  set_mb_syn_cavlc.go:190	0x61a70c		4883fe10		CMPQ SI, $0x10													
+  set_mb_syn_cavlc.go:190	0x61a710		0f83f4030000		JAE 0x61ab0a													
+  set_mb_syn_cavlc.go:189	0x61a716		4489a42488000000	MOVL R12, 0x88(SP)												
+  set_mb_syn_cavlc.go:190	0x61a71e		488d747458		LEAQ 0x58(SP)(SI*2), SI												
+  set_mb_syn_cavlc.go:190	0x61a723		480fbf36		MOVSX 0(SI), SI													
+  set_mb_syn_cavlc.go:192	0x61a727		8d7e40			LEAL 0x40(SI), DI												
+  set_mb_syn_cavlc.go:192	0x61a72a		81ff80000000		CMPL DI, $0x80													
+  set_mb_syn_cavlc.go:192	0x61a730		731f			JAE 0x61a751													
+  set_mb_syn_cavlc.go:196	0x61a732		48c1e20c		SHLQ $0xc, DX													
+  set_mb_syn_cavlc.go:196	0x61a736		488d3523d74d00		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.cavlcLevelTable(SB), SI			
+  set_mb_syn_cavlc.go:196	0x61a73d		4801f2			ADDQ SI, DX													
+  set_mb_syn_cavlc.go:196	0x61a740		83e107			ANDL $0x7, CX													
+  set_mb_syn_cavlc.go:196	0x61a743		48c1e109		SHLQ $0x9, CX													
+  set_mb_syn_cavlc.go:196	0x61a747		4801ca			ADDQ CX, DX													
+  set_mb_syn_cavlc.go:196	0x61a74a		89ff			MOVL DI, DI													
+  set_mb_syn_cavlc.go:196	0x61a74c		8b0cba			MOVL 0(DX)(DI*4), CX												
+  set_mb_syn_cavlc.go:196	0x61a74f		eb65			JMP 0x61a7b6													
+  set_mb_syn_cavlc.go:198	0x61a751		4885d2			TESTQ DX, DX													
+  set_mb_syn_cavlc.go:198	0x61a754		0f95c2			SETNE DL													
+  set_mb_syn_cavlc.go:198	0x61a757		89f0			MOVL SI, AX													
+  set_mb_syn_cavlc.go:198	0x61a759		89cb			MOVL CX, BX													
+  set_mb_syn_cavlc.go:198	0x61a75b		89d1			MOVL DX, CX													
+  set_mb_syn_cavlc.go:198	0x61a75d		0f1f00			NOPL 0(AX)													
+  set_mb_syn_cavlc.go:198	0x61a760		e89b47fcff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.cavlcLevelSymbolSlow(SB)			
+  set_mb_syn_cavlc.go:198	0x61a765		4084ff			TESTL DI, DI													
+  set_mb_syn_cavlc.go:199	0x61a768		0f84d7000000		JE 0x61a845													
+  cavlc_fast.go:41		0x61a76e		0fb6d3			MOVZX BL, DX													
+  cavlc_fast.go:41		0x61a771		c1e210			SHLL $0x10, DX													
+  cavlc_fast.go:41		0x61a774		09c2			ORL AX, DX													
+  cavlc_fast.go:41		0x61a776		0fb6c9			MOVZX CL, CX													
+  cavlc_fast.go:41		0x61a779		c1e118			SHLL $0x18, CX													
+  set_mb_syn_cavlc.go:202	0x61a77c		90			NOPL														
+  cavlc_fast.go:41		0x61a77d		09d1			ORL DX, CX													
+  set_mb_syn_cavlc.go:118	0x61a77f		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:118	0x61a787		488d35d2d64d00		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.cavlcLevelTable(SB), SI			
+  set_mb_syn_cavlc.go:211	0x61a78e		448b842438010000	MOVL 0x138(SP), R8												
+  set_mb_syn_cavlc.go:212	0x61a796		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:33	0x61a79e		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:189	0x61a7a6		448ba42488000000	MOVL 0x88(SP), R12												
+  set_mb_syn_cavlc.go:218	0x61a7ae		448bac2480000000	MOVL 0x80(SP), R13												
+  set_mb_syn_cavlc.go:204	0x61a7b6		894c2478		MOVL CX, 0x78(SP)												
+  set_mb_syn_cavlc.go:204	0x61a7ba		89ca			MOVL CX, DX													
+  set_mb_syn_cavlc.go:204	0x61a7bc		c1ea10			SHRL $0x10, DX													
+  set_mb_syn_cavlc.go:204	0x61a7bf		0fb6da			MOVZX DL, BX													
+  set_mb_syn_cavlc.go:41	0x61a7c2		8bbc24b4000000		MOVL 0xb4(SP), DI												
+  set_mb_syn_cavlc.go:204	0x61a7c9		440fb7d1		MOVZX CX, R10													
+  set_mb_syn_cavlc.go:41	0x61a7cd		39df			CMPL DI, BX													
+  set_mb_syn_cavlc.go:41	0x61a7cf		7e2e			JLE 0x61a7ff													
+  set_mb_syn_cavlc.go:42	0x61a7d1		448bbc24b0000000	MOVL 0xb0(SP), R15												
+  set_mb_syn_cavlc.go:42	0x61a7d9		89d1			MOVL DX, CX													
+  set_mb_syn_cavlc.go:42	0x61a7db		41d3e7			SHLL CL, R15													
+  set_mb_syn_cavlc.go:43	0x61a7de		29df			SUBL BX, DI													
+  set_mb_syn_cavlc.go:42	0x61a7e0		83fb20			CMPL BX, $0x20													
+  set_mb_syn_cavlc.go:42	0x61a7e3		19d2			SBBL DX, DX													
+  set_mb_syn_cavlc.go:42	0x61a7e5		4121d7			ANDL DX, R15													
+  set_mb_syn_cavlc.go:42	0x61a7e8		4509fa			ORL R15, R10													
+  set_mb_syn_cavlc.go:42	0x61a7eb		44899424b0000000	MOVL R10, 0xb0(SP)												
+  set_mb_syn_cavlc.go:43	0x61a7f3		89bc24b4000000		MOVL DI, 0xb4(SP)												
+  set_mb_syn_cavlc.go:43	0x61a7fa		e9e8feffff		JMP 0x61a6e7													
+  set_mb_syn_cavlc.go:45	0x61a7ff		4489d1			MOVL R10, CX													
+  set_mb_syn_cavlc.go:45	0x61a802		e8f9f6ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:118	0x61a807		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:118	0x61a80f		488d354ad64d00		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.cavlcLevelTable(SB), SI			
+  set_mb_syn_cavlc.go:211	0x61a816		448b842438010000	MOVL 0x138(SP), R8												
+  set_mb_syn_cavlc.go:212	0x61a81e		448b8c2440010000	MOVL 0x140(SP), R9												
+  set_mb_syn_cavlc.go:33	0x61a826		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:189	0x61a82e		448ba42488000000	MOVL 0x88(SP), R12												
+  set_mb_syn_cavlc.go:218	0x61a836		448bac2480000000	MOVL 0x80(SP), R13												
+  set_mb_syn_cavlc.go:218	0x61a83e		6690			NOPW														
+  set_mb_syn_cavlc.go:45	0x61a840		e9a2feffff		JMP 0x61a6e7													
+  set_mb_syn_cavlc.go:200	0x61a845		b840000000		MOVL $0x40, AX													
+  set_mb_syn_cavlc.go:200	0x61a84a		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:200	0x61a851		5d			POPQ BP														
+  set_mb_syn_cavlc.go:200	0x61a852		c3			RET														
+  set_mb_syn_cavlc.go:211	0x61a853		418d5001		LEAL 0x1(R8), DX												
+  set_mb_syn_cavlc.go:211	0x61a857		39d6			CMPL SI, DX													
+  set_mb_syn_cavlc.go:211	0x61a859		0f8d30010000		JGE 0x61a98f													
+  set_mb_syn_cavlc.go:211	0x61a85f		90			NOPL														
+  set_mb_syn_cavlc.go:212	0x61a860		4183f903		CMPL R9, $0x3													
+  set_mb_syn_cavlc.go:212	0x61a864		0f849b000000		JE 0x61a905													
+  set_mb_syn_cavlc.go:213	0x61a86a		4863d6			MOVSXD SI, DX													
+  set_mb_syn_cavlc.go:213	0x61a86d		4883fa10		CMPQ DX, $0x10													
+  set_mb_syn_cavlc.go:213	0x61a871		0f838e020000		JAE 0x61ab05													
+  set_mb_syn_cavlc.go:213	0x61a877		48c1e205		SHLQ $0x5, DX													
+  set_mb_syn_cavlc.go:213	0x61a87b		4963f5			MOVSXD R13, SI													
+  set_mb_syn_cavlc.go:213	0x61a87e		488d3d3b0e4900		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiVlcTotalZeros(SB), DI		
+  set_mb_syn_cavlc.go:213	0x61a885		4801fa			ADDQ DI, DX													
+  set_mb_syn_cavlc.go:213	0x61a888		4883fe10		CMPQ SI, $0x10													
+  set_mb_syn_cavlc.go:213	0x61a88c		0f836c020000		JAE 0x61aafe													
+  set_mb_syn_cavlc.go:214	0x61a892		488d3c72		LEAQ 0(DX)(SI*2), DI												
+  set_mb_syn_cavlc.go:214	0x61a896		488d7f01		LEAQ 0x1(DI), DI												
+  set_mb_syn_cavlc.go:214	0x61a89a		0fb61f			MOVZX 0(DI), BX													
+  set_mb_syn_cavlc.go:215	0x61a89d		488d1472		LEAQ 0(DX)(SI*2), DX												
+  set_mb_syn_cavlc.go:41	0x61a8a1		8bb424b4000000		MOVL 0xb4(SP), SI												
+  set_mb_syn_cavlc.go:215	0x61a8a8		0fb60a			MOVZX 0(DX), CX													
+  set_mb_syn_cavlc.go:216	0x61a8ab		90			NOPL														
+  set_mb_syn_cavlc.go:41	0x61a8ac		39de			CMPL SI, BX													
+  set_mb_syn_cavlc.go:41	0x61a8ae		7e30			JLE 0x61a8e0													
+  set_mb_syn_cavlc.go:42	0x61a8b0		8b9424b0000000		MOVL 0xb0(SP), DX												
+  set_mb_syn_cavlc.go:215	0x61a8b7		89cf			MOVL CX, DI													
+  set_mb_syn_cavlc.go:42	0x61a8b9		89d9			MOVL BX, CX													
+  set_mb_syn_cavlc.go:42	0x61a8bb		d3e2			SHLL CL, DX													
+  set_mb_syn_cavlc.go:43	0x61a8bd		29ce			SUBL CX, SI													
+  set_mb_syn_cavlc.go:42	0x61a8bf		83f920			CMPL CX, $0x20													
+  set_mb_syn_cavlc.go:42	0x61a8c2		4519c0			SBBL R8, R8													
+  set_mb_syn_cavlc.go:42	0x61a8c5		4421c2			ANDL R8, DX													
+  set_mb_syn_cavlc.go:42	0x61a8c8		09d7			ORL DX, DI													
+  set_mb_syn_cavlc.go:42	0x61a8ca		89bc24b0000000		MOVL DI, 0xb0(SP)												
+  set_mb_syn_cavlc.go:43	0x61a8d1		89b424b4000000		MOVL SI, 0xb4(SP)												
+  set_mb_syn_cavlc.go:43	0x61a8d8		e9b2000000		JMP 0x61a98f													
+  set_mb_syn_cavlc.go:43	0x61a8dd		0f1f00			NOPL 0(AX)													
+  set_mb_syn_cavlc.go:45	0x61a8e0		e81bf6ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:118	0x61a8e5		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:33	0x61a8ed		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:227	0x61a8f5		448bac2480000000	MOVL 0x80(SP), R13												
+  set_mb_syn_cavlc.go:227	0x61a8fd		0f1f00			NOPL 0(AX)													
+  set_mb_syn_cavlc.go:45	0x61a900		e98a000000		JMP 0x61a98f													
+  set_mb_syn_cavlc.go:218	0x61a905		4863d6			MOVSXD SI, DX													
+  set_mb_syn_cavlc.go:218	0x61a908		4883fa04		CMPQ DX, $0x4													
+  set_mb_syn_cavlc.go:218	0x61a90c		0f83e7010000		JAE 0x61aaf9													
+  set_mb_syn_cavlc.go:218	0x61a912		4963f5			MOVSXD R13, SI													
+  set_mb_syn_cavlc.go:218	0x61a915		488d3d24b04800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiVlcTotalZerosChromaDc(SB), DI	
+  set_mb_syn_cavlc.go:218	0x61a91c		488d14d7		LEAQ 0(DI)(DX*8), DX												
+  set_mb_syn_cavlc.go:218	0x61a920		4883fe04		CMPQ SI, $0x4													
+  set_mb_syn_cavlc.go:218	0x61a924		0f83ca010000		JAE 0x61aaf4													
+  set_mb_syn_cavlc.go:219	0x61a92a		488d3c72		LEAQ 0(DX)(SI*2), DI												
+  set_mb_syn_cavlc.go:219	0x61a92e		488d7f01		LEAQ 0x1(DI), DI												
+  set_mb_syn_cavlc.go:219	0x61a932		0fb61f			MOVZX 0(DI), BX													
+  set_mb_syn_cavlc.go:220	0x61a935		488d1472		LEAQ 0(DX)(SI*2), DX												
+  set_mb_syn_cavlc.go:41	0x61a939		8bb424b4000000		MOVL 0xb4(SP), SI												
+  set_mb_syn_cavlc.go:220	0x61a940		0fb60a			MOVZX 0(DX), CX													
+  set_mb_syn_cavlc.go:221	0x61a943		90			NOPL														
+  set_mb_syn_cavlc.go:41	0x61a944		39de			CMPL SI, BX													
+  set_mb_syn_cavlc.go:41	0x61a946		7e2a			JLE 0x61a972													
+  set_mb_syn_cavlc.go:42	0x61a948		8b9424b0000000		MOVL 0xb0(SP), DX												
+  set_mb_syn_cavlc.go:220	0x61a94f		89cf			MOVL CX, DI													
+  set_mb_syn_cavlc.go:42	0x61a951		89d9			MOVL BX, CX													
+  set_mb_syn_cavlc.go:42	0x61a953		d3e2			SHLL CL, DX													
+  set_mb_syn_cavlc.go:43	0x61a955		29ce			SUBL CX, SI													
+  set_mb_syn_cavlc.go:42	0x61a957		83f920			CMPL CX, $0x20													
+  set_mb_syn_cavlc.go:42	0x61a95a		4519c0			SBBL R8, R8													
+  set_mb_syn_cavlc.go:42	0x61a95d		4421c2			ANDL R8, DX													
+  set_mb_syn_cavlc.go:42	0x61a960		09d7			ORL DX, DI													
+  set_mb_syn_cavlc.go:42	0x61a962		89bc24b0000000		MOVL DI, 0xb0(SP)												
+  set_mb_syn_cavlc.go:43	0x61a969		89b424b4000000		MOVL SI, 0xb4(SP)												
+  set_mb_syn_cavlc.go:43	0x61a970		eb1d			JMP 0x61a98f													
+  set_mb_syn_cavlc.go:45	0x61a972		e889f5ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:118	0x61a977		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:33	0x61a97f		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:227	0x61a987		448bac2480000000	MOVL 0x80(SP), R13												
+  set_mb_syn_cavlc.go:227	0x61a98f		31d2			XORL DX, DX													
+  set_mb_syn_cavlc.go:227	0x61a991		eb05			JMP 0x61a998													
+  set_mb_syn_cavlc.go:233	0x61a993		4129d5			SUBL DX, R13													
+  set_mb_syn_cavlc.go:227	0x61a996		89f2			MOVL SI, DX													
+  set_mb_syn_cavlc.go:227	0x61a998		8d7201			LEAL 0x1(DX), SI												
+  set_mb_syn_cavlc.go:227	0x61a99b		0f1f440000		NOPL 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:227	0x61a9a0		39b42484000000		CMPL 0x84(SP), SI												
+  set_mb_syn_cavlc.go:227	0x61a9a7		0f8e01010000		JLE 0x61aaae													
+  set_mb_syn_cavlc.go:227	0x61a9ad		4585ed			TESTL R13, R13													
+  set_mb_syn_cavlc.go:227	0x61a9b0		0f8ef8000000		JLE 0x61aaae													
+  set_mb_syn_cavlc.go:228	0x61a9b6		4863d2			MOVSXD DX, DX													
+  set_mb_syn_cavlc.go:228	0x61a9b9		0f1f8000000000		NOPL 0(AX)													
+  set_mb_syn_cavlc.go:228	0x61a9c0		4883fa10		CMPQ DX, $0x10													
+  set_mb_syn_cavlc.go:228	0x61a9c4		0f8325010000		JAE 0x61aaef													
+  set_mb_syn_cavlc.go:229	0x61a9ca		4963fd			MOVSXD R13, DI													
+  set_mb_syn_cavlc.go:229	0x61a9cd		4883ff10		CMPQ DI, $0x10													
+  set_mb_syn_cavlc.go:229	0x61a9d1		0f8313010000		JAE 0x61aaea													
+  set_mb_syn_cavlc.go:229	0x61a9d7		4c8d0542a14800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiZeroLeftMap(SB), R8			
+  set_mb_syn_cavlc.go:229	0x61a9de		410fb63c38		MOVZX 0(R8)(DI*1), DI												
+  set_mb_syn_cavlc.go:230	0x61a9e3		4863ff			MOVSXD DI, DI													
+  set_mb_syn_cavlc.go:230	0x61a9e6		4883ff08		CMPQ DI, $0x8													
+  set_mb_syn_cavlc.go:230	0x61a9ea		0f83f5000000		JAE 0x61aae5													
+  set_mb_syn_cavlc.go:228	0x61a9f0		0fb6541448		MOVZX 0x48(SP)(DX*1), DX											
+  set_mb_syn_cavlc.go:230	0x61a9f5		486bff1e		IMULQ $0x1e, DI, DI												
+  set_mb_syn_cavlc.go:230	0x61a9f9		4c8d0d20e54800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiVlcRunBefore(SB), R9			
+  set_mb_syn_cavlc.go:230	0x61aa00		4c01cf			ADDQ R9, DI													
+  set_mb_syn_cavlc.go:230	0x61aa03		4883fa0f		CMPQ DX, $0xf													
+  set_mb_syn_cavlc.go:230	0x61aa07		0f83cf000000		JAE 0x61aadc													
+  set_mb_syn_cavlc.go:230	0x61aa0d		4c8d1457		LEAQ 0(DI)(DX*2), R10												
+  set_mb_syn_cavlc.go:230	0x61aa11		4d8d5201		LEAQ 0x1(R10), R10												
+  set_mb_syn_cavlc.go:230	0x61aa15		410fb61a		MOVZX 0(R10), BX												
+  set_mb_syn_cavlc.go:231	0x61aa19		488d3c57		LEAQ 0(DI)(DX*2), DI												
+  set_mb_syn_cavlc.go:41	0x61aa1d		448b9424b4000000	MOVL 0xb4(SP), R10												
+  set_mb_syn_cavlc.go:231	0x61aa25		0fb60f			MOVZX 0(DI), CX													
+  set_mb_syn_cavlc.go:232	0x61aa28		90			NOPL														
+  set_mb_syn_cavlc.go:41	0x61aa29		4139da			CMPL R10, BX													
+  set_mb_syn_cavlc.go:41	0x61aa2c		7e37			JLE 0x61aa65													
+  set_mb_syn_cavlc.go:42	0x61aa2e		8bbc24b0000000		MOVL 0xb0(SP), DI												
+  set_mb_syn_cavlc.go:231	0x61aa35		4189cc			MOVL CX, R12													
+  set_mb_syn_cavlc.go:42	0x61aa38		89d9			MOVL BX, CX													
+  set_mb_syn_cavlc.go:42	0x61aa3a		d3e7			SHLL CL, DI													
+  set_mb_syn_cavlc.go:43	0x61aa3c		4129ca			SUBL CX, R10													
+  set_mb_syn_cavlc.go:42	0x61aa3f		83f920			CMPL CX, $0x20													
+  set_mb_syn_cavlc.go:42	0x61aa42		4519ff			SBBL R15, R15													
+  set_mb_syn_cavlc.go:42	0x61aa45		4421ff			ANDL R15, DI													
+  set_mb_syn_cavlc.go:42	0x61aa48		4109fc			ORL DI, R12													
+  set_mb_syn_cavlc.go:42	0x61aa4b		4489a424b0000000	MOVL R12, 0xb0(SP)												
+  set_mb_syn_cavlc.go:43	0x61aa53		44899424b4000000	MOVL R10, 0xb4(SP)												
+  set_mb_syn_cavlc.go:43	0x61aa5b		0f1f440000		NOPL 0(AX)(AX*1)												
+  set_mb_syn_cavlc.go:43	0x61aa60		e92effffff		JMP 0x61a993													
+  set_mb_syn_cavlc.go:227	0x61aa65		89b4248c000000		MOVL SI, 0x8c(SP)												
+  set_mb_syn_cavlc.go:228	0x61aa6c		88542447		MOVB DL, 0x47(SP)												
+  set_mb_syn_cavlc.go:227	0x61aa70		44896c247c		MOVL R13, 0x7c(SP)												
+  set_mb_syn_cavlc.go:45	0x61aa75		e886f4ffff		CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).flush(SB)			
+  set_mb_syn_cavlc.go:118	0x61aa7a		488d842490000000	LEAQ 0x90(SP), AX												
+  set_mb_syn_cavlc.go:233	0x61aa82		0fb6542447		MOVZX 0x47(SP), DX												
+  set_mb_syn_cavlc.go:227	0x61aa87		8bb4248c000000		MOVL 0x8c(SP), SI												
+  set_mb_syn_cavlc.go:227	0x61aa8e		4c8d058ba04800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiZeroLeftMap(SB), R8			
+  set_mb_syn_cavlc.go:227	0x61aa95		4c8d0d84e44800		LEAQ github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.g_kuiVlcRunBefore(SB), R9			
+  set_mb_syn_cavlc.go:33	0x61aa9c		4c8b9c2448010000	MOVQ 0x148(SP), R11												
+  set_mb_syn_cavlc.go:233	0x61aaa4		448b6c247c		MOVL 0x7c(SP), R13												
+  set_mb_syn_cavlc.go:45	0x61aaa9		e9e5feffff		JMP 0x61a993													
+  set_mb_syn_cavlc.go:33	0x61aaae		488b8c24a8000000	MOVQ 0xa8(SP), CX												
+  set_mb_syn_cavlc.go:236	0x61aab6		90			NOPL														
+  set_mb_syn_cavlc.go:33	0x61aab7		49894b38		MOVQ CX, 0x38(R11)												
+  set_mb_syn_cavlc.go:34	0x61aabb		8b8c24b0000000		MOVL 0xb0(SP), CX												
+  set_mb_syn_cavlc.go:34	0x61aac2		41894b40		MOVL CX, 0x40(R11)												
+  set_mb_syn_cavlc.go:35	0x61aac6		8b8c24b4000000		MOVL 0xb4(SP), CX												
+  set_mb_syn_cavlc.go:35	0x61aacd		41894b44		MOVL CX, 0x44(R11)												
+  set_mb_syn_cavlc.go:237	0x61aad1		31c0			XORL AX, AX													
+  set_mb_syn_cavlc.go:237	0x61aad3		4881c408010000		ADDQ $0x108, SP													
+  set_mb_syn_cavlc.go:237	0x61aada		5d			POPQ BP														
+  set_mb_syn_cavlc.go:237	0x61aadb		c3			RET														
+  set_mb_syn_cavlc.go:230	0x61aadc		0f1f4000		NOPL 0(AX)													
+  set_mb_syn_cavlc.go:230	0x61aae0		e87b4be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:230	0x61aae5		e8764be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:229	0x61aaea		e8714be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:228	0x61aaef		e86c4be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:218	0x61aaf4		e8674be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:218	0x61aaf9		e8624be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:213	0x61aafe		6690			NOPW														
+  set_mb_syn_cavlc.go:213	0x61ab00		e85b4be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:213	0x61ab05		e8564be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:190	0x61ab0a		e8514be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:42	0x61ab0f		e8ac0fe3ff		CALL runtime.panicshift(SB)											
+  set_mb_syn_cavlc.go:159	0x61ab14		e8474be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:159	0x61ab19		e8424be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:159	0x61ab1e		6690			NOPW														
+  set_mb_syn_cavlc.go:159	0x61ab20		e83b4be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:159	0x61ab25		e8364be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:72	0x61ab2a		e8314be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:72	0x61ab2f		e82c4be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:66	0x61ab34		e8274be7ff		CALL runtime.panicBounds(SB)											
+  set_mb_syn_cavlc.go:66	0x61ab39		90			NOPL														
+  set_mb_syn_cavlc.go:87	0x61ab3a		4889442408		MOVQ AX, 0x8(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab3f		48895c2410		MOVQ BX, 0x10(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab44		48894c2418		MOVQ CX, 0x18(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab49		48897c2420		MOVQ DI, 0x20(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab4e		89742428		MOVL SI, 0x28(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab52		448944242c		MOVL R8, 0x2c(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab57		44894c2430		MOVL R9, 0x30(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab5c		4488542434		MOVB R10, 0x34(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab61		4c895c2438		MOVQ R11, 0x38(SP)												
+  set_mb_syn_cavlc.go:87	0x61ab66		e8b52ee7ff		CALL runtime.morestack_noctxt.abi0(SB)										
+  set_mb_syn_cavlc.go:87	0x61ab6b		488b442408		MOVQ 0x8(SP), AX												
+  set_mb_syn_cavlc.go:87	0x61ab70		488b5c2410		MOVQ 0x10(SP), BX												
+  set_mb_syn_cavlc.go:87	0x61ab75		488b4c2418		MOVQ 0x18(SP), CX												
+  set_mb_syn_cavlc.go:87	0x61ab7a		488b7c2420		MOVQ 0x20(SP), DI												
+  set_mb_syn_cavlc.go:87	0x61ab7f		8b742428		MOVL 0x28(SP), SI												
+  set_mb_syn_cavlc.go:87	0x61ab83		448b44242c		MOVL 0x2c(SP), R8												
+  set_mb_syn_cavlc.go:87	0x61ab88		448b4c2430		MOVL 0x30(SP), R9												
+  set_mb_syn_cavlc.go:87	0x61ab8d		440fb6542434		MOVZX 0x34(SP), R10												
+  set_mb_syn_cavlc.go:87	0x61ab93		4c8b5c2438		MOVQ 0x38(SP), R11												
+  set_mb_syn_cavlc.go:87	0x61ab98		e903f5ffff		JMP github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WriteBlockResidualCavlc(SB)		

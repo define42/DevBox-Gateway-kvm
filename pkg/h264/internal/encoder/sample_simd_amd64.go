@@ -59,19 +59,27 @@ func sampleSatdBlockAVX2(a []byte, aOff int, aStride int32, ref []byte, refOff i
 }
 
 func WelsSampleSatd8x8_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
-	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 8, 8)
+	checkSampleSIMDBlock(a, aOff, aStride, 8, 8)
+	checkSampleSIMDBlock(ref, refOff, refStride, 8, 8)
+	return int32(satdBlockAVX2(&a[aOff], int(aStride), &ref[refOff], int(refStride), 8, 8))
 }
 
 func WelsSampleSatd16x8_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
-	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 16, 8)
+	checkSampleSIMDBlock(a, aOff, aStride, 16, 8)
+	checkSampleSIMDBlock(ref, refOff, refStride, 16, 8)
+	return int32(satdBlockAVX2(&a[aOff], int(aStride), &ref[refOff], int(refStride), 16, 8))
 }
 
 func WelsSampleSatd8x16_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
-	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 8, 16)
+	checkSampleSIMDBlock(a, aOff, aStride, 8, 16)
+	checkSampleSIMDBlock(ref, refOff, refStride, 8, 16)
+	return int32(satdBlockAVX2(&a[aOff], int(aStride), &ref[refOff], int(refStride), 8, 16))
 }
 
 func WelsSampleSatd16x16_avx2(a []uint8, aOff int, aStride int32, ref []uint8, refOff int, refStride int32) int32 {
-	return sampleSatdBlockAVX2(a, aOff, aStride, ref, refOff, refStride, 16, 16)
+	checkSampleSIMDBlock(a, aOff, aStride, 16, 16)
+	checkSampleSIMDBlock(ref, refOff, refStride, 16, 16)
+	return int32(satdBlockAVX2(&a[aOff], int(aStride), &ref[refOff], int(refStride), 16, 16))
 }
 
 func sampleAvgSatdAVX2(enc []byte, encOff int, encStride int32,
@@ -88,7 +96,11 @@ func sampleAvgSatdAVX2(enc []byte, encOff int, encStride int32,
 
 func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
 	s.pfSampleAvgSatd = nil
+	s.pfSampleAvgSatdValidated = nil
+	s.bSampleAvgSatdFour = false
 	if flags&common.WELS_CPU_AVX2 != 0 {
 		s.pfSampleAvgSatd = sampleAvgSatdAVX2
+		s.pfSampleAvgSatdValidated = satdAvgBlockAVX2
+		s.bSampleAvgSatdFour = true
 	}
 }

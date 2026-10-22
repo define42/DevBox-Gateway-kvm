@@ -1,0 +1,27 @@
+{
+  "decision": "HOLD before timing: both simple source forms failed compiler inlineability gate",
+  "baseline": "/tmp/h264-parity-target-20261022/round12-next",
+  "candidate": "/tmp/h264-parity-target-20261022/bswrite-flush-next",
+  "production_delta": [
+    "pkg/h264/internal/common/golomb_common_h.go"
+  ],
+  "unrun_candidate_source_sha256": {
+    "pkg/h264/internal/common/golomb_common_h.go": "7cb43cc039dce9269a7f601a88e47c617309667fef38d2702fc1ae1249551f76",
+    "pkg/h264/internal/common/bswrite_flush_test.go": "f5f162b59541195926f333dc831dc62f139eb868e3a61c9f99bc95862603437e",
+    "pkg/h264/internal/common/bswrite_flush_reference_test.go": "4ba3dac5e4e0e66d3527887d733fd88893ccbe21653c6595f4c8c84621f703d2",
+    "pkg/h264/internal/common/bswrite_flush_bench_test.go": "90caa589448402b6e549d6a6c7330af51c9b677f5d7985a13b7053f7314974f4",
+    "pkg/h264/internal/encoder/bswrite_syntax_reference_test.go": "1a2364cc4810290420823399f8fdf724e0fec8314190060915389e221612b901"
+  },
+  "archive_sha256": {
+    "baseline.go.txt": "3bfc534cddc97b0eb3e0119e67c0cc6fe4e499832278c2cdc60458a73b380afa",
+    "bswrite-flush-inline-precheck.txt": "c943f9038df141c4ebbfcca00e867b4e607dba2aa64af873748a7c6e38eb819f",
+    "bswrite-flush-inline-return-precheck.txt": "ae619df040db8a7a264e4811ebe8f1752b2a61d855d89bf22a3bb5b536e6ec48",
+    "first-pointer-void.go.txt": "e0b54ea296744d5631a01c255d03be83d8c95807bf168ad7f9862edb6923881f",
+    "second-pointer-return.go.txt": "7cb43cc039dce9269a7f601a88e47c617309667fef38d2702fc1ae1249551f76",
+    "unrun-drafts/pkg/h264/internal/common/bswrite_flush_bench_test.go.txt": "90caa589448402b6e549d6a6c7330af51c9b677f5d7985a13b7053f7314974f4",
+    "unrun-drafts/pkg/h264/internal/common/bswrite_flush_reference_test.go.txt": "4ba3dac5e4e0e66d3527887d733fd88893ccbe21653c6595f4c8c84621f703d2",
+    "unrun-drafts/pkg/h264/internal/common/bswrite_flush_test.go.txt": "f5f162b59541195926f333dc831dc62f139eb868e3a61c9f99bc95862603437e",
+    "unrun-drafts/pkg/h264/internal/encoder/bswrite_syntax_reference_test.go.txt": "1a2364cc4810290420823399f8fdf724e0fec8314190060915389e221612b901"
+  },
+  "validation": "Only root compiler prechecks executed. No common/encoder correctness tests, benchmarks, native comparison, or frame measurements for this candidate. Tests and benchmarks are unfinished unexecuted drafts."
+}

@@ -12,6 +12,9 @@ func initVaaSIMDFuncs(funcs *SVaaFuncs, cpuFlags uint32) {
 	if cpuFlags&common.WELS_CPU_SSE2 != 0 {
 		funcs.pfVAACalcSad = VAACalcSad_sse2
 	}
+	if cpuFlags&common.WELS_CPU_AVX2 != 0 {
+		funcs.pfVAACalcSad = VAACalcSad_avx2
+	}
 }
 
 // VAACalcSad_sse2 batches a macroblock row into one checked assembly call.

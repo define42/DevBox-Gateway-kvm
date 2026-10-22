@@ -1,0 +1,529 @@
+diff --git a/pkg/h264/internal/encoder/svc_encode_slice.go b/pkg/h264/internal/encoder/svc_encode_slice.go
+--- a/pkg/h264/internal/encoder/svc_encode_slice.go
++++ b/pkg/h264/internal/encoder/svc_encode_slice.go
+@@ -674,10 +674,11 @@
+ 
+ 	pMbCache.pCoeffLevel = make([]int16, common.MB_COEFF_LIST_SIZE)
+ 	pMbCache.pSkipMb = make([]uint8, 384)
+-	pMbCache.pMemPredBlk4 = make([]uint8, 2*16)
++	intra4Scratch := new(intra4PredictionScratch)
++	pMbCache.pMemPredBlk4 = intra4Scratch.prediction[:]
+ 	pMbCache.pBufferInterPredMe = make([]uint8, 4*640)
+-	pMbCache.pPrevIntra4x4PredModeFlag = make([]bool, 16)
+-	pMbCache.pRemIntra4x4PredModeFlag = make([]int8, 16)
++	pMbCache.pPrevIntra4x4PredModeFlag = intra4Scratch.previous[:]
++	pMbCache.pRemIntra4x4PredModeFlag = intra4Scratch.remaining[:]
+ 	pMbCache.pDct = new(SDCTCoeff)
+ 
+ 	return 0
+diff --git a/pkg/h264/internal/encoder/intra4_scratch.go b/pkg/h264/internal/encoder/intra4_scratch.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/intra4_scratch.go
+@@ -0,0 +1,20 @@
++package encoder
++
++import "golang.org/x/sys/cpu"
++
++// intra4PredictionScratch keeps the frequently written predictor and mode flags
++// private to one slice. Separate 16/32-byte allocations can otherwise share a
++// cache line with another worker's scratch. Both pads matter: the allocation
++// itself need not start on a cache-line boundary.
++//
++// CacheLinePad follows x/sys/cpu's architecture assumption (64 bytes on amd64,
++// 128 on arm64). Isolation is guaranteed for cache lines no larger than that
++// padding; this is not a claim about every processor's cache geometry.
++// The three arrays retain their original lengths, capacities and disjointness.
++type intra4PredictionScratch struct {
++	_          cpu.CacheLinePad
++	prediction [2 * 16]uint8
++	previous   [16]bool
++	remaining  [16]int8
++	_          cpu.CacheLinePad
++}
+diff --git a/pkg/h264/internal/encoder/intra4_scratch_bench_test.go b/pkg/h264/internal/encoder/intra4_scratch_bench_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/intra4_scratch_bench_test.go
+@@ -0,0 +1,173 @@
++package encoder
++
++import (
++	"fmt"
++	"math"
++	"runtime"
++	"sync"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Self-contained and baseline-compatible. Each operation runs the full existing
++// WelsMdI4x4Fast caller (predictions, scoring, transforms and reconstruction).
++// All workers get production-allocated scratch, created serially as in InitSliceList.
++// The parallel microbenchmark isolates this caller; it is not a frame benchmark.
++func BenchmarkIntra4ScratchWorkers(b *testing.B) {
++	for _, workers := range []int{1, 4} {
++		for _, strides := range [][2]int32{{32, 32}, {1920, 1984}} {
++			for _, content := range []string{"Flat", "Smooth", "Noise", "FirstExit"} {
++				b.Run(fmt.Sprintf("workers%d/%s/stride%d_%d", workers, content, strides[0], strides[1]), func(b *testing.B) {
++					if runtime.GOMAXPROCS(0) < workers {
++						b.Skip("benchmark needs at least one P per worker")
++					}
++					fixtures := make([]*intra4ScratchCallerFixture, workers)
++					limit := int32(math.MaxInt32)
++					pattern := content
++					if content == "FirstExit" {
++						limit, pattern = 0, "Noise"
++					}
++					for i := range fixtures {
++						fixtures[i] = newIntra4ScratchCallerFixture(strides[0], strides[1], 20, pattern, 15, 2)
++					}
++					results := make([]int32, workers)
++					start := make(chan struct{})
++					var ready, done sync.WaitGroup
++					ready.Add(workers)
++					done.Add(workers)
++					for worker, fixture := range fixtures {
++						go func() {
++							defer done.Done()
++							ready.Done()
++							<-start
++							var result int32
++							for i := worker; i < b.N; i += workers {
++								fixture.reset(limit)
++								result = WelsMdI4x4Fast(&fixture.ctx, &fixture.md, &fixture.mb, &fixture.cache)
++							}
++							results[worker] = result
++						}()
++					}
++					ready.Wait()
++					b.ReportAllocs()
++					b.ResetTimer()
++					close(start)
++					done.Wait()
++					b.StopTimer()
++					for _, result := range results {
++						intra4ScratchBenchmarkSink += int64(result)
++					}
++				})
++			}
++		}
++	}
++}
++
++var intra4ScratchBenchmarkSink int64
++
++type intra4ScratchCallerFixture struct {
++	functions              SWelsFuncPtrList
++	ctx                    sWelsEncCtx
++	layer                  SDqLayer
++	strides                SStrideTables
++	encOffsets, recOffsets [24]int32
++	md                     SWelsMD
++	mb                     SMB
++	cache                  SMbCache
++	nonzero                [24]int8
++	modes                  [8]int8
++	source, reconstructed  []byte
++	initialPixels          [256]byte
++	initialModes           [48]int8
++}
++
++func newIntra4ScratchCallerFixture(encStride, recStride int32, qp uint8, content string, neighbors uint8, predicted int8) *intra4ScratchCallerFixture {
++	f := new(intra4ScratchCallerFixture)
++	flags := common.WelsCPUFeatureDetect(nil)
++	WelsInitEncodingFuncs(&f.functions, flags)
++	WelsInitReconstructionFuncs(&f.functions, flags)
++	WelsInitIntraPredFuncs(&f.functions, flags)
++	WelsInitSampleSadFunc(&f.functions, flags)
++	SetFastCodingFunc(&f.functions)
++	f.layer.iEncStride[0], f.layer.iCsStride[0] = encStride, recStride
++	WelsGetEncBlockStrideOffset(f.encOffsets[:], encStride, encStride/2)
++	WelsGetEncBlockStrideOffset(f.recOffsets[:], recStride, recStride/2)
++	f.strides.pStrideEncBlockOffset[0] = f.encOffsets[:]
++	f.strides.pStrideDecBlockOffset[0][0], f.strides.pStrideDecBlockOffset[0][1] = f.recOffsets[:], f.recOffsets[:]
++	f.ctx.pFuncList, f.ctx.pCurDqLayer, f.ctx.pStrideTab = &f.functions, &f.layer, &f.strides
++	f.mb.uiMbType, f.mb.uiLumaQp = common.MB_TYPE_INTRA4x4, qp
++	f.mb.pNonZeroCount, f.mb.pIntra4x4PredMode = f.nonzero[:], f.modes[:]
++	AllocMbCacheAligned(&f.cache)
++	f.cache.uiNeighborIntra = neighbors
++	f.md.iLambda = g_kiQpCostTable[qp]
++	f.source = make([]byte, 3+15*int(encStride)+16+7)
++	f.reconstructed = make([]byte, 18*int(recStride)+24)
++	f.cache.SPicData.pEncMb[0], f.cache.SPicData.pCsMb[0] = f.source, f.reconstructed
++	f.cache.SPicData.iEncMbOff[0], f.cache.SPicData.iCsMbOff[0] = 3, int(recStride)+4
++	for i := range f.source {
++		f.source[i] = 0xa7
++	}
++	for i := range f.reconstructed {
++		f.reconstructed[i] = 128
++	}
++	pixel := func(x, y int) byte {
++		switch content {
++		case "Smooth":
++			return byte(96 + 2*x + 3*y)
++		case "Horizontal":
++			return byte(128 + y*5)
++		case "Vertical":
++			return byte(128 + x*7)
++		case "Noise":
++			return byte((x*71 + y*137 + 17) ^ (x * y * 11))
++		case "Extreme":
++			if (x+y)&1 == 0 {
++				return 0
++			}
++			return 255
++		default:
++			return 128
++		}
++	}
++	es, rs, ro := int(encStride), int(recStride), f.cache.SPicData.iCsMbOff[0]
++	for x := -1; x < 24; x++ {
++		f.reconstructed[ro-rs+x] = pixel(x, -1)
++	}
++	for y := 0; y < 16; y++ {
++		f.reconstructed[ro+y*rs-1] = pixel(-1, y)
++		for x := 0; x < 16; x++ {
++			f.source[3+y*es+x] = pixel(x, y)
++			f.initialPixels[y*16+x] = byte(x*13 + y*19 + 7)
++		}
++	}
++	for i := range f.initialModes {
++		f.initialModes[i] = predicted
++	}
++	for i := range f.cache.pCoeffLevel {
++		f.cache.pCoeffLevel[i] = -1234
++	}
++	for i := range f.nonzero {
++		f.nonzero[i] = 13
++	}
++	for i := range f.modes {
++		f.modes[i] = -3
++	}
++	for i := range f.cache.pRemIntra4x4PredModeFlag {
++		f.cache.pRemIntra4x4PredModeFlag[i] = -4
++	}
++	for i := range f.cache.pMemPredBlk4 {
++		f.cache.pMemPredBlk4[i] = byte(i*3 + 9)
++	}
++	f.reset(math.MaxInt32)
++	return f
++}
++
++func (f *intra4ScratchCallerFixture) reset(limit int32) {
++	f.md.iCostLuma, f.mb.uiCbp = limit, 0x30
++	f.cache.iIntraPredMode = f.initialModes
++	ro, stride := f.cache.SPicData.iCsMbOff[0], int(f.layer.iCsStride[0])
++	for y := 0; y < 16; y++ {
++		copy(f.reconstructed[ro+y*stride:ro+y*stride+16], f.initialPixels[y*16:y*16+16])
++	}
++}
+diff --git a/pkg/h264/internal/encoder/intra4_scratch_diagnostic_test.go b/pkg/h264/internal/encoder/intra4_scratch_diagnostic_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/intra4_scratch_diagnostic_test.go
+@@ -0,0 +1,142 @@
++package encoder
++
++import (
++	"fmt"
++	"os"
++	"runtime"
++	"sort"
++	"testing"
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
++	"golang.org/x/sys/cpu"
++)
++
++// This diagnostic is baseline-compatible and uses actual InitializeExt slice
++// allocations. Sharing a line establishes layout, not measured contention.
++// It is opt-in so ordinary package tests do not initialize multiple large codecs.
++func TestIntra4ScratchAllocationDiagnostic(t *testing.T) {
++	if os.Getenv("H264_SCRATCH_DIAGNOSTIC") == "" {
++		t.Skip("set H264_SCRATCH_DIAGNOSTIC=1 for real encoder address diagnostics")
++	}
++	if unsafe.Sizeof(cpu.CacheLinePad{}) == 0 {
++		t.Skip("x/sys/cpu does not specify cache geometry for this architecture")
++	}
++	for _, count := range []int{1, 4} {
++		t.Run(fmt.Sprintf("slices%d", count), func(t *testing.T) {
++			codec := NewCWelsH264SVCEncoder()
++			t.Cleanup(func() { codec.Uninitialize() })
++			quiet := uint32(api.WELS_LOG_QUIET)
++			codec.SetOption(api.ENCODER_OPTION_TRACE_LEVEL, &quiet)
++			var p api.SEncParamExt
++			codec.GetDefaultParams(&p)
++			p.IPicWidth, p.IPicHeight = 1920, 1080
++			p.FMaxFrameRate = 60
++			p.ITargetBitrate = api.UNSPECIFIED_BIT_RATE
++			p.IUsageType = api.CAMERA_VIDEO_REAL_TIME
++			p.IComplexityMode = api.LOW_COMPLEXITY
++			p.ISpatialLayerNum, p.ITemporalLayerNum, p.INumRefFrame = 1, 1, 1
++			p.IRCMode, p.UiIntraPeriod, p.ILoopFilterDisableIdc = api.RC_OFF_MODE, 0, 1
++			p.IMultipleThreadIdc = uint16(count)
++			p.BUseLoadBalancing, p.BEnableFrameSkip, p.BEnableSceneChangeDetect = false, false, false
++			p.BEnableBackgroundDetection, p.BEnableAdaptiveQuant, p.BEnableLongTermReference = false, false, false
++			p.BEnableDenoise, p.IEntropyCodingModeFlag, p.ESpsPpsIdStrategy = false, 0, api.CONSTANT_ID
++			layer := &p.SSpatialLayers[0]
++			layer.IVideoWidth, layer.IVideoHeight, layer.FFrameRate = 1920, 1080, 60
++			layer.ISpatialBitrate, layer.IMaxSpatialBitrate = api.UNSPECIFIED_BIT_RATE, api.UNSPECIFIED_BIT_RATE
++			layer.IDLayerQp, layer.UiProfileIdc = 20, api.PRO_BASELINE
++			layer.SSliceArgument.UiSliceMode, layer.SSliceArgument.UiSliceNum = api.SM_SINGLE_SLICE, 1
++			if count > 1 {
++				layer.SSliceArgument.UiSliceMode, layer.SSliceArgument.UiSliceNum = api.SM_FIXEDSLCNUM_SLICE, uint32(count)
++			}
++			layer.BVideoSignalTypePresent, layer.BFullRange, layer.BColorDescriptionPresent = true, true, true
++			layer.UiVideoFormat = uint8(api.VF_UNDEF)
++			layer.UiColorPrimaries, layer.UiTransferCharacteristics, layer.UiColorMatrix = uint8(api.CP_BT709), uint8(api.TRC_BT709), uint8(api.CM_BT709)
++			if status := codec.InitializeExt(&p); status != 0 {
++				t.Fatalf("InitializeExt=%d", status)
++			}
++			ctx := codec.m_pEncContext
++			actual := int(ctx.pSvcParam.SSpatialLayers[0].SSliceArgument.UiSliceNum)
++			if actual != count {
++				t.Fatalf("initialized slices=%d, want=%d", actual, count)
++			}
++			slices := ctx.ppDqLayerList[0].ppSliceInLayer[:actual]
++			var spans []intra4ScratchAddressSpan
++			for id, slice := range slices {
++				spans = append(spans, intra4ScratchCacheSpans(id, &slice.sMbCacheInfo)...)
++				spans = append(spans,
++					intra4ScratchAddressSpan{id, "MD state", uintptr(unsafe.Pointer(&slice.sMdScratch)), unsafe.Sizeof(slice.sMdScratch), false},
++					intra4ScratchAddressSpan{id, "MB cache", uintptr(unsafe.Pointer(&slice.sMbCacheInfo)), unsafe.Sizeof(slice.sMbCacheInfo), false},
++					intra4ScratchAddressSpan{id, "bit writer", uintptr(unsafe.Pointer(&slice.sSliceBs.sBsWrite)), unsafe.Sizeof(slice.sSliceBs.sBsWrite), false},
++				)
++				if ctx.pSliceThreading != nil && ctx.pSliceThreading.pThreadBsBuffer[id] != nil {
++					buf := ctx.pSliceThreading.pThreadBsBuffer[id]
++					spans = append(spans, intra4ScratchAddressSpan{id, "thread bitstream", uintptr(unsafe.Pointer(unsafe.SliceData(buf))), uintptr(len(buf)), false})
++				}
++			}
++			lineSize := unsafe.Sizeof(cpu.CacheLinePad{})
++			for _, span := range spans {
++				t.Logf("slice=%d buffer=%s start=%#x bytes=%d line_offset=%d", span.owner, span.name, span.start, span.size, span.start%lineSize)
++			}
++			all, small := intra4ScratchSharedLines(spans, lineSize)
++			t.Logf("SUMMARY slices=%d cache_line_assumption=%d cross_slice_shared_lines=%d shared_lines_involving_small_scratch=%d", count, lineSize, len(all), len(small))
++			keys := make([]uintptr, 0, len(all))
++			for line := range all {
++				keys = append(keys, line)
++			}
++			sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
++			for _, line := range keys {
++				t.Logf("SHARED line=%#x owners/buffers=%s small_scratch=%t", line*lineSize, all[line], small[line])
++			}
++			// Address arithmetic is diagnostic-only; retain every backing
++			// allocation until the final uintptr comparison and log complete.
++			runtime.KeepAlive(slices)
++			runtime.KeepAlive(ctx)
++			runtime.KeepAlive(codec)
++		})
++	}
++}
++
++type intra4ScratchAddressSpan struct {
++	owner int
++	name  string
++	start uintptr
++	size  uintptr
++	small bool
++}
++
++func intra4ScratchCacheSpans(owner int, cache *SMbCache) []intra4ScratchAddressSpan {
++	return []intra4ScratchAddressSpan{
++		{owner, "prediction4", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pMemPredBlk4))), uintptr(len(cache.pMemPredBlk4)), true},
++		{owner, "previous modes", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pPrevIntra4x4PredModeFlag))), uintptr(len(cache.pPrevIntra4x4PredModeFlag)), true},
++		{owner, "remaining modes", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pRemIntra4x4PredModeFlag))), uintptr(len(cache.pRemIntra4x4PredModeFlag)), true},
++		{owner, "prediction MB", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pMemPredMb))), uintptr(len(cache.pMemPredMb)), false},
++		{owner, "coefficients", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pCoeffLevel))), uintptr(len(cache.pCoeffLevel)) * 2, false},
++		{owner, "skip prediction", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pSkipMb))), uintptr(len(cache.pSkipMb)), false},
++		{owner, "fractional prediction", uintptr(unsafe.Pointer(unsafe.SliceData(cache.pBufferInterPredMe))), uintptr(len(cache.pBufferInterPredMe)), false},
++		{owner, "DCT output", uintptr(unsafe.Pointer(cache.pDct)), unsafe.Sizeof(SDCTCoeff{}), false},
++	}
++}
++
++func intra4ScratchSharedLines(spans []intra4ScratchAddressSpan, lineSize uintptr) (map[uintptr][]string, map[uintptr]bool) {
++	all, small := make(map[uintptr][]string), make(map[uintptr]bool)
++	for i, a := range spans {
++		if a.size == 0 {
++			continue
++		}
++		for _, b := range spans[i+1:] {
++			if a.owner == b.owner || b.size == 0 {
++				continue
++			}
++			first := max(a.start/lineSize, b.start/lineSize)
++			last := min((a.start+a.size-1)/lineSize, (b.start+b.size-1)/lineSize)
++			for line := first; line <= last; line++ {
++				all[line] = append(all[line], fmt.Sprintf("%d:%s / %d:%s", a.owner, a.name, b.owner, b.name))
++				if a.small || b.small {
++					small[line] = true
++				}
++			}
++		}
++	}
++	return all, small
++}
+diff --git a/pkg/h264/internal/encoder/intra4_scratch_test.go b/pkg/h264/internal/encoder/intra4_scratch_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/intra4_scratch_test.go
+@@ -0,0 +1,156 @@
++package encoder
++
++import (
++	"bytes"
++	"fmt"
++	"math"
++	"reflect"
++	"runtime"
++	"sync"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestIntra4ScratchAllocationContract(t *testing.T) {
++	var cache SMbCache
++	if result := AllocMbCacheAligned(&cache); result != 0 {
++		t.Fatalf("allocation status=%d", result)
++	}
++	if len(cache.pMemPredBlk4) != 32 || cap(cache.pMemPredBlk4) != 32 ||
++		len(cache.pPrevIntra4x4PredModeFlag) != 16 || cap(cache.pPrevIntra4x4PredModeFlag) != 16 ||
++		len(cache.pRemIntra4x4PredModeFlag) != 16 || cap(cache.pRemIntra4x4PredModeFlag) != 16 {
++		t.Fatal("original lengths/capacities changed")
++	}
++	if !bytes.Equal(cache.pMemPredBlk4, make([]byte, 32)) ||
++		!reflect.DeepEqual(cache.pPrevIntra4x4PredModeFlag, make([]bool, 16)) ||
++		!reflect.DeepEqual(cache.pRemIntra4x4PredModeFlag, make([]int8, 16)) {
++		t.Fatal("new scratch was not zero initialized")
++	}
++	for i := range cache.pMemPredBlk4 {
++		cache.pMemPredBlk4[i] = byte(i + 1)
++	}
++	for i := range cache.pPrevIntra4x4PredModeFlag {
++		cache.pPrevIntra4x4PredModeFlag[i] = i%2 == 0
++		cache.pRemIntra4x4PredModeFlag[i] = int8(i - 8)
++	}
++	oldPred := cache.pMemPredBlk4
++	oldPrevious := cache.pPrevIntra4x4PredModeFlag
++	oldRemaining := cache.pRemIntra4x4PredModeFlag
++	// Full-cap appends must allocate rather than overwrite the following field.
++	appendedPred := append(cache.pMemPredBlk4, 255)
++	appendedPrevious := append(cache.pPrevIntra4x4PredModeFlag, true)
++	appendedRemaining := append(cache.pRemIntra4x4PredModeFlag, -128)
++	appendedPred[0], appendedPrevious[0], appendedRemaining[0] = 0, false, 127
++	if cache.pMemPredBlk4[0] != 1 || !cache.pPrevIntra4x4PredModeFlag[0] || cache.pRemIntra4x4PredModeFlag[0] != -8 {
++		t.Fatal("full-cap append retained or overwrote a scratch field")
++	}
++	for i := 0; i < 16; i++ {
++		if cache.pPrevIntra4x4PredModeFlag[i] != (i%2 == 0) || cache.pRemIntra4x4PredModeFlag[i] != int8(i-8) {
++			t.Fatal("scratch fields overlap")
++		}
++	}
++	cache.pBestPredI4x4Blk4 = cache.pMemPredBlk4[16:]
++	FreeMbCache(&cache)
++	if cache.pMemPredBlk4 != nil || cache.pPrevIntra4x4PredModeFlag != nil || cache.pRemIntra4x4PredModeFlag != nil || cache.pDct != nil || cache.pCoeffLevel != nil {
++		t.Fatal("FreeMbCache retained an owned buffer field")
++	}
++	// FreeMbCache historically leaves this derived slice untouched.
++	if !bytes.Equal(cache.pBestPredI4x4Blk4, oldPred[16:]) {
++		t.Fatal("free changed the existing derived prediction view")
++	}
++	AllocMbCacheAligned(&cache)
++	cache.pMemPredBlk4[0], cache.pPrevIntra4x4PredModeFlag[0], cache.pRemIntra4x4PredModeFlag[0] = 99, false, 99
++	if oldPred[0] != 1 || !oldPrevious[0] || oldRemaining[0] != -8 {
++		t.Fatal("reallocation reused a still-live previous backing array")
++	}
++}
++
++func TestIntra4ScratchCacheLineIsolation(t *testing.T) {
++	line := unsafe.Sizeof(cpu.CacheLinePad{})
++	if line == 0 {
++		t.Skip("x/sys/cpu does not specify cache geometry for this architecture")
++	}
++	var shape intra4PredictionScratch
++	start := unsafe.Offsetof(shape.prediction)
++	end := unsafe.Offsetof(shape.remaining) + unsafe.Sizeof(shape.remaining)
++	if start < line || unsafe.Sizeof(shape)-end < line {
++		t.Fatal("active scratch is missing its leading/trailing cache-line guard")
++	}
++	caches := make([]SMbCache, 32)
++	var spans []intra4ScratchAddressSpan
++	for i := range caches {
++		AllocMbCacheAligned(&caches[i])
++		spans = append(spans, intra4ScratchCacheSpans(i, &caches[i])...)
++	}
++	all, small := intra4ScratchSharedLines(spans, line)
++	if len(small) != 0 {
++		t.Fatalf("small scratch shares %d cache lines across owners: %v", len(small), all)
++	}
++	runtime.KeepAlive(caches)
++}
++
++func TestIntra4ScratchCallerParity(t *testing.T) {
++	for _, qp := range []uint8{0, 20, 51} {
++		for _, content := range []string{"Flat", "Smooth", "Noise", "Extreme"} {
++			for _, neighbors := range []uint8{0, 2, 7, 15} {
++				for _, limit := range []int32{0, math.MaxInt32} {
++					t.Run(fmt.Sprintf("qp%d/%s/neighbors%d/limit%d", qp, content, neighbors, limit), func(t *testing.T) {
++						got := newIntra4ScratchCallerFixture(32, 48, qp, content, neighbors, 2)
++						want := newIntra4ScratchCallerFixture(32, 48, qp, content, neighbors, 2)
++						// Restore the original independent allocations with all
++						// current contents and exact visible capacities intact.
++						prediction, previous, remaining := make([]byte, 32), make([]bool, 16), make([]int8, 16)
++						copy(prediction, want.cache.pMemPredBlk4)
++						copy(previous, want.cache.pPrevIntra4x4PredModeFlag)
++						copy(remaining, want.cache.pRemIntra4x4PredModeFlag)
++						want.cache.pMemPredBlk4, want.cache.pPrevIntra4x4PredModeFlag, want.cache.pRemIntra4x4PredModeFlag = prediction, previous, remaining
++						got.reset(limit)
++						want.reset(limit)
++						gotCost := WelsMdI4x4Fast(&got.ctx, &got.md, &got.mb, &got.cache)
++						wantCost := WelsMdI4x4Fast(&want.ctx, &want.md, &want.mb, &want.cache)
++						if gotCost != wantCost || !reflect.DeepEqual(got.cache, want.cache) || !reflect.DeepEqual(got.mb, want.mb) || !reflect.DeepEqual(got.md, want.md) || !bytes.Equal(got.reconstructed, want.reconstructed) {
++							t.Fatalf("complete I4 caller differs: costs=%d/%d", gotCost, wantCost)
++						}
++					})
++				}
++			}
++		}
++	}
++}
++
++func TestIntra4ScratchConcurrentCaller(t *testing.T) {
++	const workers, iterations = 4, 32
++	var fixtures [workers]*intra4ScratchCallerFixture
++	var expected [workers]*intra4ScratchCallerFixture
++	var gotCosts, wantCosts [workers]int32
++	for i := range fixtures {
++		fixtures[i] = newIntra4ScratchCallerFixture(64, 80, uint8(18+i), "Noise", 15, 2)
++		expected[i] = newIntra4ScratchCallerFixture(64, 80, uint8(18+i), "Noise", 15, 2)
++	}
++	var done sync.WaitGroup
++	done.Add(workers)
++	for i := range fixtures {
++		go func() {
++			defer done.Done()
++			f := fixtures[i]
++			var cost int32
++			for n := 0; n < iterations; n++ {
++				f.reset(math.MaxInt32)
++				cost = WelsMdI4x4Fast(&f.ctx, &f.md, &f.mb, &f.cache)
++			}
++			gotCosts[i] = cost
++		}()
++	}
++	done.Wait()
++	for i, f := range expected {
++		for n := 0; n < iterations; n++ {
++			f.reset(math.MaxInt32)
++			wantCosts[i] = WelsMdI4x4Fast(&f.ctx, &f.md, &f.mb, &f.cache)
++		}
++		if gotCosts[i] != wantCosts[i] || !reflect.DeepEqual(fixtures[i].cache, f.cache) || !reflect.DeepEqual(fixtures[i].mb, f.mb) || !bytes.Equal(fixtures[i].reconstructed, f.reconstructed) {
++			t.Fatalf("worker %d differs from independent serial state", i)
++		}
++	}
++}

@@ -1,0 +1,348 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcCenterWholeCaller/5x5/stride48-4         	 5570949	        42.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x5/stride2048-4       	 5899126	        41.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride48-4         	 3688788	        65.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride2048-4       	 3545020	        65.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride48-4       	 1568037	       152.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride2048-4     	 1548076	       155.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride48-4        	 2141628	       112.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride2048-4      	 2010469	       118.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride48-4        	 2425377	        94.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride2048-4      	 2660637	        89.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride48-4         	 4186382	        64.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride2048-4       	 4128640	        60.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride48-4         	 5234552	        45.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride2048-4       	 5204731	        46.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride48-4         	 3955556	        62.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride2048-4       	 3953047	        61.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride48-4         	 2750635	        87.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride2048-4       	 2719113	        86.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride48-4       	 1274383	       186.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride2048-4     	 1287082	       186.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4         	  448680	       491.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4          	  342724	       749.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4       	  464414	       548.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4        	  318134	       769.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4          	  729196	       374.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4           	  483570	       497.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4        	  647384	       355.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4         	  450381	       516.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4          	  631710	       391.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4           	  446193	       583.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4        	  560496	       438.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4         	  356358	       635.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4           	  765558	       297.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4            	  574831	       421.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4         	  828007	       322.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4          	  571609	       438.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4           	  598503	       413.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4            	  553687	       475.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4         	  639248	       379.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4          	  515481	       478.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4           	  670004	       357.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4            	  536878	       439.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4         	  585942	       361.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4          	  598696	       400.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4           	  426600	       571.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4            	  384799	       646.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4         	  412288	       578.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4          	  325654	       665.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcCenterWholeCaller/5x5/stride48-4         	 5720236	        42.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x5/stride2048-4       	 5944498	        41.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride48-4         	 3646257	        65.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride2048-4       	 3729586	        65.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride48-4       	 1554764	       153.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride2048-4     	 1535721	       156.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride48-4        	 2212246	       108.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride2048-4      	 1999899	       122.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride48-4        	 2591656	        91.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride2048-4      	 2640166	        89.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride48-4         	 4061686	        57.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride2048-4       	 4063178	        59.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride48-4         	 5083591	        46.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride2048-4       	 4987440	        46.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride48-4         	 3730171	        61.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride2048-4       	 3691120	        67.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride48-4         	 2770609	        86.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride2048-4       	 2753292	        87.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride48-4       	 1292377	       183.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride2048-4     	 1287298	       187.3 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4         	  469675	       503.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4          	  311517	       745.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4       	  395194	       531.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4        	  311715	       793.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4          	  733048	       347.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4           	  454410	       499.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4        	  637542	       353.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4         	  477896	       532.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4          	  581304	       403.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4           	  406611	       587.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4        	  470602	       479.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4         	  402400	       635.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4           	  775274	       298.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4            	  573687	       416.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4         	  807489	       299.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4          	  507170	       428.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4           	  618404	       389.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4            	  475332	       483.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4         	  626865	       385.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4          	  532692	       482.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4           	  712698	       350.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4            	  600651	       396.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4         	  696428	       341.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4          	  613639	       391.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4           	  423417	       562.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4            	  366363	       640.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4         	  455685	       582.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4          	  369834	       688.4 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcCenterWholeCaller/5x5/stride48-4         	 5511104	        43.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x5/stride2048-4       	 5736439	        40.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride48-4         	 3630016	        68.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride2048-4       	 3671822	        67.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride48-4       	 1562623	       152.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride2048-4     	 1555024	       155.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride48-4        	 2208704	       109.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride2048-4      	 1981743	       120.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride48-4        	 2691885	        90.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride2048-4      	 2731693	        88.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride48-4         	 4016377	        59.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride2048-4       	 3903789	        61.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride48-4         	 5283165	        46.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride2048-4       	 5267942	        46.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride48-4         	 3825486	        64.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride2048-4       	 3933190	        62.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride48-4         	 2692964	        88.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride2048-4       	 2866101	        84.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride48-4       	 1272230	       187.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride2048-4     	 1262094	       189.2 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4         	  456154	       505.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4          	  338352	       730.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4       	  484472	       513.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4        	  303589	       767.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4          	  629610	       343.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4           	  498849	       496.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4        	  678697	       365.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4         	  462675	       527.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4          	  615157	       402.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4           	  394612	       581.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4        	  519844	       520.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4         	  360424	       653.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4           	  859418	       295.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4            	  578953	       416.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4         	  801128	       316.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4          	  561018	       434.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4           	  600469	       435.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4            	  517629	       467.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4         	  610503	       374.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4          	  493521	       491.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4           	  729906	       343.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4            	  604536	       411.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4         	  673887	       347.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4          	  595292	       400.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4           	  399199	       574.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4            	  352381	       653.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4         	  397663	       594.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4          	  333435	       647.6 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcCenterWholeCaller/5x5/stride48-4         	 5156221	        43.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x5/stride2048-4       	 5894848	        42.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride48-4         	 3621348	        65.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride2048-4       	 3620010	        65.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride48-4       	 1574068	       152.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride2048-4     	 1523685	       156.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride48-4        	 2214218	       107.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride2048-4      	 2001607	       119.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride48-4        	 2628122	        90.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride2048-4      	 2711234	        91.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride48-4         	 4045257	        58.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride2048-4       	 4146205	        58.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride48-4         	 5295801	        45.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride2048-4       	 5272360	        46.04 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride48-4         	 3905364	        61.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride2048-4       	 3907870	        60.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride48-4         	 2910568	        84.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride2048-4       	 2789472	        87.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride48-4       	 1290338	       186.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride2048-4     	 1301847	       185.1 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4         	  495561	       487.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4          	  319798	       739.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4       	  438009	       538.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4        	  308646	       767.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4          	  665408	       348.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4           	  494832	       511.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4        	  728716	       355.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4         	  412563	       524.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4          	  605560	       398.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4           	  419493	       616.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4        	  543847	       438.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4         	  345176	       675.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4           	  852846	       298.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4            	  584312	       424.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4         	  809977	       308.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4          	  555951	       427.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4           	  636832	       377.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4            	  471843	       475.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4         	  575697	       377.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4          	  531895	       472.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4           	  708421	       348.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4            	  644589	       393.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4         	  763018	       336.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4          	  650035	       389.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4           	  454446	       551.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4            	  369264	       641.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4         	  402786	       585.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4          	  334119	       693.2 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcCenterWholeCaller/5x5/stride48-4         	 5009589	        44.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x5/stride2048-4       	 5746924	        41.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride48-4         	 3663212	        65.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride2048-4       	 3604348	        67.04 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride48-4       	 1542316	       158.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride2048-4     	 1503823	       158.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride48-4        	 2185288	       110.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride2048-4      	 1969743	       121.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride48-4        	 2608182	        90.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride2048-4      	 2643357	        90.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride48-4         	 4190774	        58.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride2048-4       	 3988178	        58.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride48-4         	 5260195	        47.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride2048-4       	 5147325	        46.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride48-4         	 3824437	        61.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride2048-4       	 3606138	        64.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride48-4         	 2814954	        86.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride2048-4       	 2779147	        86.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride48-4       	 1278607	       187.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride2048-4     	 1265936	       193.4 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4         	  439287	       495.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4          	  331656	       750.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4       	  428216	       534.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4        	  293574	       806.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4          	  589249	       349.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4           	  457406	       521.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4        	  656517	       357.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4         	  439131	       514.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4          	  562096	       410.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4           	  355470	       594.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4        	  518566	       520.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4         	  394897	       706.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4           	  800421	       309.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4            	  540516	       423.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4         	  785136	       312.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4          	  562293	       437.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4           	  652904	       392.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4            	  523202	       474.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4         	  637452	       381.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4          	  502887	       473.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4           	  733846	       342.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4            	  595842	       393.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4         	  687064	       345.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4          	  610693	       425.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4           	  423514	       568.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4            	  400758	       642.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4         	  419968	       575.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4          	  356541	       668.7 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMcCenterWholeCaller/5x5/stride48-4         	 5607183	        41.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x5/stride2048-4       	 5907184	        41.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride48-4         	 3684800	        65.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x9/stride2048-4       	 3712785	        64.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride48-4       	 1595919	       150.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x17/stride2048-4     	 1537392	       158.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride48-4        	 2246275	       107.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x17/stride2048-4      	 2030389	       119.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride48-4        	 2475954	        92.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/17x9/stride2048-4      	 2729010	        89.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride48-4         	 4185724	        58.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/5x9/stride2048-4       	 4127782	        58.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride48-4         	 5231658	        46.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/9x5/stride2048-4       	 5210404	        45.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride48-4         	 3848886	        62.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/4x4/stride2048-4       	 3861853	        63.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride48-4         	 2159115	       103.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/8x8/stride2048-4       	 2724390	        88.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride48-4       	 1144464	       201.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMcCenterWholeCaller/16x16/stride2048-4     	 1268802	       187.4 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motionfalse-4         	  490815	       506.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride32/motiontrue-4          	  324567	       750.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motionfalse-4       	  468810	       523.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x16/stride2048/motiontrue-4        	  278355	       843.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motionfalse-4          	  737276	       346.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride32/motiontrue-4           	  495662	       512.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motionfalse-4        	  665395	       368.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/16x8/stride2048/motiontrue-4         	  442773	       517.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motionfalse-4          	  635385	       399.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride32/motiontrue-4           	  407863	       578.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motionfalse-4        	  596212	       434.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x16/stride2048/motiontrue-4         	  385264	       634.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motionfalse-4           	  872901	       311.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride32/motiontrue-4            	  471447	       430.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motionfalse-4         	  749348	       314.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x8/stride2048/motiontrue-4          	  559772	       438.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motionfalse-4           	  655167	       400.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride32/motiontrue-4            	  526404	       464.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motionfalse-4         	  643720	       384.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/8x4/stride2048/motiontrue-4          	  554509	       471.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motionfalse-4           	  656630	       347.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride32/motiontrue-4            	  605532	       397.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motionfalse-4         	  708726	       347.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x4/stride2048/motiontrue-4          	  638196	       390.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motionfalse-4           	  437396	       567.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride32/motiontrue-4            	  390958	       633.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motionfalse-4         	  421611	       584.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMeRefineFracPixelCaller/4x8/stride2048/motiontrue-4          	  373047	       657.9 ns/op	       0 B/op	       0 allocs/op
+PASS

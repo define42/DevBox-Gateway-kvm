@@ -1,0 +1,269 @@
+package encoder
+
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+
+// Frozen round11 public writer, including packed mutable tables and extraction.
+// This is the independent replay/failure oracle; production retains one Go body.
+func writeCavlcEmitterBaseline(pFuncList *SWelsFuncPtrList, pCoffLevel []int16, iEndIdx int32, iCalRunLevelFlag int32, iResidualProperty int32, iNC int8, pBs *common.SBitStringAux) int32 {
+	// Known-zero blocks need only the coefficient token. Return before creating
+	// the extraction scratch arrays. Read the pending state before nC validation
+	// to preserve nil-writer precedence; flush keeps its existing commit behavior.
+	if iCalRunLevelFlag == 0 {
+		bits, left := pBs.UiCurBits, pBs.ILeftBits
+		token := &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[iNC]][0][0]
+		n, value := int32(token[1]), int32(token[0])
+		if n < left {
+			pBs.UiCurBits = (bits << n) | uint32(value)
+			pBs.ILeftBits = left - n
+			return ENC_RETURN_SUCCESS
+		}
+		bs := sCavlcBs{pBuf: pBs.PBuf, pBufPtr: pBs.PCurBuf, uiCurBits: bits, iLeftBits: left}
+		bs.flush(n, value)
+		bs.uninit(pBs)
+		return ENC_RETURN_SUCCESS
+	}
+
+	var iLevel [16]int16
+	var uiRun [16]uint8
+
+	iTotalCoeffs := int32(0)
+	iTrailingOnes := int32(0)
+	iTotalZeros, iZerosLeft := int32(0), int32(0)
+	uiSign := uint32(0)
+	var uiSuffixLength int32
+	var iValue, iZeroLeft int32
+	var n int32
+	var i int32
+
+	bs := cavlcBsInit(pBs)
+
+	/*Step 1: calculate iLevel and iRun and total */
+
+	iCount := int32(0)
+	// The scratch arrays are private to this call. A direct, noescape
+	// SIMD call keeps them on the stack and extracts four levels at once.
+	if cavlcExtractSupported(pCoffLevel, iEndIdx) {
+		iTotalZeros = cavlcExtractSSSE3((*[16]int16)(pCoffLevel), &uiRun, &iLevel, &iTotalCoeffs, iEndIdx)
+	} else {
+		iTotalZeros = CavlcParamCal_c(pCoffLevel, uiRun[:], iLevel[:], &iTotalCoeffs, iEndIdx)
+	}
+	if iTotalCoeffs > 3 {
+		iCount = 3
+	} else {
+		iCount = iTotalCoeffs
+	}
+	for i = 0; i < iCount; i++ {
+		if common.WELS_ABS(int32(iLevel[i])) == 1 {
+			iTrailingOnes++
+			uiSign <<= 1
+			if iLevel[i] < 0 {
+				uiSign |= 1
+			}
+		} else {
+			break
+		}
+	}
+	/*Step 3: coeff token */
+	upCoeffToken := &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[iNC]][iTotalCoeffs][iTrailingOnes]
+	iValue = int32(upCoeffToken[0])
+	n = int32(upCoeffToken[1])
+
+	if iTotalCoeffs == 0 {
+		bs.write(n, iValue)
+
+		bs.uninit(pBs)
+		return ENC_RETURN_SUCCESS
+	}
+
+	/* Step 4: */
+	/*  trailing */
+	n += iTrailingOnes
+	iValue = int32(uint32(iValue<<uint(iTrailingOnes)) + uiSign)
+	bs.write(n, iValue)
+
+	/*  levels */
+	if iTotalCoeffs > 10 && iTrailingOnes < 3 {
+		uiSuffixLength = 1
+	} else {
+		uiSuffixLength = 0
+	}
+
+	// The first non-trailing level has a distinct code adjustment. Keeping
+	// both forms in the small table also supplies the next suffix length.
+	adjustment := 0
+	if iTrailingOnes < 3 {
+		adjustment = 1
+	}
+	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
+		value := int32(iLevel[i])
+		var packed uint32
+		if index := uint32(value + cavlcLevelLimit); index < 2*cavlcLevelLimit {
+			// The suffix starts at 0 or 1 and only advances through the table
+			// or escape calculation to values in 0..6. This mask proves the
+			// internal bound without relaxing any input-dependent checks.
+			packed = cavlcLevelTable[adjustment][uiSuffixLength&7][index]
+		} else {
+			symbol, ok := cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
+			if !ok {
+				return ENC_RETURN_VLCOVERFLOWFOUND
+			}
+			packed = packCavlcLevelSymbol(symbol)
+		}
+		bs.write(int32((packed>>16)&0xff), int32(packed&0xffff))
+		uiSuffixLength = int32(packed >> 24)
+		adjustment = 0
+	}
+
+	/* Step 5: total zeros */
+
+	if iTotalCoeffs < iEndIdx+1 {
+		if int32(CHROMA_DC) != iResidualProperty {
+			upTotalZeros := &g_kuiVlcTotalZeros[iTotalCoeffs][iTotalZeros]
+			n = int32(upTotalZeros[1])
+			iValue = int32(upTotalZeros[0])
+			bs.write(n, iValue)
+		} else {
+			upTotalZeros := &g_kuiVlcTotalZerosChromaDc[iTotalCoeffs][iTotalZeros]
+			n = int32(upTotalZeros[1])
+			iValue = int32(upTotalZeros[0])
+			bs.write(n, iValue)
+		}
+	}
+
+	/* Step 6: pRun before */
+	iZerosLeft = iTotalZeros
+	for i = 0; i+1 < iTotalCoeffs && iZerosLeft > 0; i++ {
+		uirun := uiRun[i]
+		iZeroLeft = int32(g_kuiZeroLeftMap[iZerosLeft])
+		n = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][1])
+		iValue = int32(g_kuiVlcRunBefore[iZeroLeft][uirun][0])
+		bs.write(n, iValue)
+		iZerosLeft -= int32(uirun)
+	}
+
+	bs.uninit(pBs)
+	return ENC_RETURN_SUCCESS
+}
+
+// Frozen complete macroblock caller, using only the frozen block oracle.
+func cavlcEmitterBaselineMb(pFuncList *SWelsFuncPtrList, sMbCacheInfo *SMbCache, pCurMb *SMB, pBs *common.SBitStringAux) int32 {
+	uiMbType := pCurMb.uiMbType
+	kiCbpChroma := int32(pCurMb.uiCbp >> 4)
+	kiCbpLuma := int32(pCurMb.uiCbp & 0x0F)
+	pNonZeroCoeffCount := sMbCacheInfo.iNonZeroCoeffCount[:]
+	var pBlock []int16
+	var iA, iB, iC int8
+
+	if common.IS_INTRA16x16(uiMbType) {
+		/* DC luma */
+		iA = pNonZeroCoeffCount[8]
+		iB = pNonZeroCoeffCount[1]
+		iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+		if writeCavlcEmitterBaseline(pFuncList, sMbCacheInfo.pDct.iLumaI16x16Dc[:], 15, 1, int32(LUMA_4x4), iC, pBs) != 0 {
+			return ENC_RETURN_VLCOVERFLOWFOUND
+		}
+
+		/* AC Luma */
+		if kiCbpLuma != 0 {
+			pBlock = sMbCacheInfo.pDct.iLumaBlock[:]
+
+			for i := 0; i < 16; i++ {
+				iIdx := int(common.G_kuiCache48CountScan4Idx[i])
+				iA = pNonZeroCoeffCount[iIdx-1]
+				iB = pNonZeroCoeffCount[iIdx-8]
+				iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+				if writeCavlcEmitterBaseline(pFuncList, pBlock, 14, cavlcBoolToInt32(pNonZeroCoeffCount[iIdx] > 0), int32(LUMA_AC), iC, pBs) != 0 {
+					return ENC_RETURN_VLCOVERFLOWFOUND
+				}
+				pBlock = pBlock[16:]
+			}
+		}
+	} else {
+		/* Luma DC AC */
+		if kiCbpLuma != 0 {
+			pBlock = sMbCacheInfo.pDct.iLumaBlock[:]
+
+			for i := 0; i < 16; i += 4 {
+				if kiCbpLuma&(1<<uint(i>>2)) != 0 {
+					iIdx := int(common.G_kuiCache48CountScan4Idx[i])
+					kiA := pNonZeroCoeffCount[iIdx]
+					kiB := pNonZeroCoeffCount[iIdx+1]
+					kiC := pNonZeroCoeffCount[iIdx+8]
+					kiD := pNonZeroCoeffCount[iIdx+9]
+					iA = pNonZeroCoeffCount[iIdx-1]
+					iB = pNonZeroCoeffCount[iIdx-8]
+					iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+					if writeCavlcEmitterBaseline(pFuncList, pBlock, 15, cavlcBoolToInt32(kiA > 0), int32(LUMA_4x4), iC, pBs) != 0 {
+						return ENC_RETURN_VLCOVERFLOWFOUND
+					}
+
+					iA = kiA
+					iB = pNonZeroCoeffCount[iIdx-7]
+					iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+					if writeCavlcEmitterBaseline(pFuncList, pBlock[16:], 15, cavlcBoolToInt32(kiB > 0), int32(LUMA_4x4), iC, pBs) != 0 {
+						return ENC_RETURN_VLCOVERFLOWFOUND
+					}
+
+					iA = pNonZeroCoeffCount[iIdx+7]
+					iB = kiA
+					iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+					if writeCavlcEmitterBaseline(pFuncList, pBlock[32:], 15, cavlcBoolToInt32(kiC > 0), int32(LUMA_4x4), iC, pBs) != 0 {
+						return ENC_RETURN_VLCOVERFLOWFOUND
+					}
+
+					iA = kiC
+					iB = kiB
+					iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+					if writeCavlcEmitterBaseline(pFuncList, pBlock[48:], 15, cavlcBoolToInt32(kiD > 0), int32(LUMA_4x4), iC, pBs) != 0 {
+						return ENC_RETURN_VLCOVERFLOWFOUND
+					}
+				}
+				pBlock = pBlock[64:]
+			}
+		}
+	}
+
+	if kiCbpChroma != 0 {
+		/* Chroma DC residual present */
+		pBlock = sMbCacheInfo.pDct.iChromaDc[0][:] // Cb
+		if writeCavlcEmitterBaseline(pFuncList, pBlock, 3, 1, int32(CHROMA_DC), CHROMA_DC_NC_OFFSET, pBs) != 0 {
+			return ENC_RETURN_VLCOVERFLOWFOUND
+		}
+
+		pBlock = sMbCacheInfo.pDct.iChromaDc[1][:] // Cr
+		if writeCavlcEmitterBaseline(pFuncList, pBlock, 3, 1, int32(CHROMA_DC), CHROMA_DC_NC_OFFSET, pBs) != 0 {
+			return ENC_RETURN_VLCOVERFLOWFOUND
+		}
+
+		/* Chroma AC residual present */
+		if kiCbpChroma&0x02 != 0 {
+			kCache48CountScan4Idx16base := common.G_kuiCache48CountScan4Idx[16:]
+			pBlock = sMbCacheInfo.pDct.iChromaBlock[:] // Cb
+
+			for i := 0; i < 4; i++ {
+				iIdx := int(kCache48CountScan4Idx16base[i])
+				iA = pNonZeroCoeffCount[iIdx-1]
+				iB = pNonZeroCoeffCount[iIdx-8]
+				iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+				if writeCavlcEmitterBaseline(pFuncList, pBlock, 14, cavlcBoolToInt32(pNonZeroCoeffCount[iIdx] > 0), int32(CHROMA_AC), iC, pBs) != 0 {
+					return ENC_RETURN_VLCOVERFLOWFOUND
+				}
+				pBlock = pBlock[16:]
+			}
+
+			pBlock = sMbCacheInfo.pDct.iChromaBlock[4*16:] // Cr
+
+			for i := 0; i < 4; i++ {
+				iIdx := 24 + int(kCache48CountScan4Idx16base[i])
+				iA = pNonZeroCoeffCount[iIdx-1]
+				iB = pNonZeroCoeffCount[iIdx-8]
+				iC = common.WELS_NON_ZERO_COUNT_AVERAGE(iA, iB)
+				if writeCavlcEmitterBaseline(pFuncList, pBlock, 14, cavlcBoolToInt32(pNonZeroCoeffCount[iIdx] > 0), int32(CHROMA_AC), iC, pBs) != 0 {
+					return ENC_RETURN_VLCOVERFLOWFOUND
+				}
+				pBlock = pBlock[16:]
+			}
+		}
+	}
+	return 0
+}

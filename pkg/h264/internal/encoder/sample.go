@@ -298,4 +298,6 @@ func WelsInitSampleSadFunc(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) {
 	s.pfIntra16x16Combined3Sad = nil
 	initIntraSadSIMD(s, uiCpuFlag)
 	initSampleAvgSatdSIMD(s, uiCpuFlag)
+	initSampleHalfSatdPairSIMD(s, uiCpuFlag)
+	initSampleSadTwoSIMD(s, uiCpuFlag)
 }

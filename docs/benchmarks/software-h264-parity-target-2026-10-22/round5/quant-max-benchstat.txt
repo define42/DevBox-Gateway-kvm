@@ -1,0 +1,71 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                       │ /tmp/h264-parity-target-20261022/quant-max-component-round5-base.txt │ /tmp/h264-parity-target-20261022/quant-max-quant-max-next.txt │
+                                       │                                sec/op                                │                 sec/op                  vs base               │
+QuantFour4x4MaxChecked/QP10/zero-4                                                                25.57n ± 2%                             20.98n ±  2%  -17.97% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP10/sparse-4                                                              25.22n ± 5%                             21.38n ±  3%  -15.25% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP10/dense-4                                                               25.50n ± 5%                             21.00n ±  5%  -17.65% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP10/extremes-4                                                            25.57n ± 3%                             20.87n ±  1%  -18.38% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/zero-4                                                                25.50n ± 2%                             20.95n ±  2%  -17.82% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/sparse-4                                                              25.56n ± 0%                             20.95n ±  9%  -18.06% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/dense-4                                                               25.45n ± 2%                             20.90n ±  2%  -17.88% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/extremes-4                                                            25.33n ± 3%                             20.80n ±  2%  -17.89% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP42/zero-4                                                                25.21n ± 2%                             21.08n ±  9%  -16.38% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP42/sparse-4                                                              25.69n ± 2%                             21.02n ±  3%  -18.18% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP42/dense-4                                                               25.52n ± 4%                             20.95n ± 38%        ~ (p=0.065 n=6)
+QuantFour4x4MaxChecked/QP42/extremes-4                                                            25.34n ± 5%                             20.95n ± 32%        ~ (p=0.058 n=6)
+geomean                                                                                           25.45n                                  20.98n        -17.56%
+
+                                       │ /tmp/h264-parity-target-20261022/quant-max-component-round5-base.txt │ /tmp/h264-parity-target-20261022/quant-max-quant-max-next.txt │
+                                       │                                 B/s                                  │                  B/s                    vs base               │
+QuantFour4x4MaxChecked/QP10/zero-4                                                               4.661Gi ± 2%                            5.681Gi ±  2%  +21.87% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP10/sparse-4                                                             4.727Gi ± 5%                            5.577Gi ±  3%  +18.00% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP10/dense-4                                                              4.676Gi ± 5%                            5.676Gi ±  5%  +21.40% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP10/extremes-4                                                           4.663Gi ± 3%                            5.713Gi ±  1%  +22.53% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/zero-4                                                               4.675Gi ± 2%                            5.689Gi ±  2%  +21.69% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/sparse-4                                                             4.664Gi ± 0%                            5.692Gi ±  9%  +22.04% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/dense-4                                                              4.684Gi ± 2%                            5.704Gi ±  2%  +21.76% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP26/extremes-4                                                           4.707Gi ± 3%                            5.732Gi ±  2%  +21.78% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP42/zero-4                                                               4.729Gi ± 2%                            5.655Gi ±  8%  +19.59% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP42/sparse-4                                                             4.640Gi ± 2%                            5.671Gi ±  3%  +22.22% (p=0.002 n=6)
+QuantFour4x4MaxChecked/QP42/dense-4                                                              4.670Gi ± 4%                            5.692Gi ± 27%        ~ (p=0.065 n=6)
+QuantFour4x4MaxChecked/QP42/extremes-4                                                           4.705Gi ± 5%                            5.689Gi ± 24%        ~ (p=0.065 n=6)
+geomean                                                                                          4.683Gi                                 5.681Gi        +21.30%
+
+                                       │ /tmp/h264-parity-target-20261022/quant-max-component-round5-base.txt │ /tmp/h264-parity-target-20261022/quant-max-quant-max-next.txt │
+                                       │                                 B/op                                 │                 B/op                   vs base                │
+QuantFour4x4MaxChecked/QP10/zero-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP10/sparse-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP10/dense-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP10/extremes-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/zero-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/sparse-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/dense-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/extremes-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/zero-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/sparse-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/dense-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/extremes-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                       │ /tmp/h264-parity-target-20261022/quant-max-component-round5-base.txt │ /tmp/h264-parity-target-20261022/quant-max-quant-max-next.txt │
+                                       │                              allocs/op                               │               allocs/op                vs base                │
+QuantFour4x4MaxChecked/QP10/zero-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP10/sparse-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP10/dense-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP10/extremes-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/zero-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/sparse-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/dense-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP26/extremes-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/zero-4                                                               0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/sparse-4                                                             0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/dense-4                                                              0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuantFour4x4MaxChecked/QP42/extremes-4                                                           0.000 ± 0%                                0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                     ²                                          +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

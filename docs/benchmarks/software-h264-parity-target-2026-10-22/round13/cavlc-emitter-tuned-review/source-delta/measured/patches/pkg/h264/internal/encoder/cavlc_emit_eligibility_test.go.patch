@@ -1,0 +1,67 @@
+--- base/pkg/h264/internal/encoder/cavlc_emit_eligibility_test.go
++++ candidate/pkg/h264/internal/encoder/cavlc_emit_eligibility_test.go
+@@ -0,0 +1,64 @@
++package encoder
++
++import (
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Baseline-compatible diagnostic mirror of the leaf's entry preflight. This
++// includes the tuned caller's count/end gate, then reports entry eligibility,
++// not successful encoding: overflow and unusual mutable
++// table entries can still return error or trigger replay inside the leaf.
++func cavlcEmitterEligibilityReason(bs *sCavlcBs, levels *[16]int16, runs *[16]uint8, external *common.SBitStringAux, total, zeros, end int32) string {
++	if total == 0 {
++		return "extracted_zero"
++	}
++	if total <= 3 {
++		return "density_gate"
++	}
++	if end != 14 && end != 15 {
++		return "end_gate"
++	}
++	if bs == nil || levels == nil || runs == nil || external == nil {
++		return "nil"
++	}
++	if (end != 3 && end != 14 && end != 15) || total < 1 || total > end+1 || zeros < 0 || zeros > end+1-total {
++		return "dimensions"
++	}
++	if bs.iLeftBits < 1 || bs.iLeftBits > 32 {
++		return "pending_bits"
++	}
++	if bs.pBufPtr < 0 || bs.pBufPtr > len(bs.pBuf)-132 {
++		return "capacity"
++	}
++	base := uintptr(unsafe.Pointer(unsafe.SliceData(bs.pBuf)))
++	start := base + uintptr(bs.pBufPtr)
++	limit := start + 132
++	if start < base || limit < start {
++		return "address_wrap"
++	}
++	spans := [...]struct {
++		pointer unsafe.Pointer
++		size    uintptr
++	}{
++		{unsafe.Pointer(bs), unsafe.Sizeof(*bs)},
++		{unsafe.Pointer(levels), unsafe.Sizeof(*levels)},
++		{unsafe.Pointer(runs), unsafe.Sizeof(*runs)},
++		{unsafe.Pointer(external), unsafe.Sizeof(*external)},
++		{unsafe.Pointer(&g_kuiEncNcMapTable), unsafe.Sizeof(g_kuiEncNcMapTable)},
++		{unsafe.Pointer(&g_kuiVlcCoeffToken), unsafe.Sizeof(g_kuiVlcCoeffToken)},
++		{unsafe.Pointer(&cavlcLevelTable), unsafe.Sizeof(cavlcLevelTable)},
++		{unsafe.Pointer(&g_kuiVlcTotalZeros), unsafe.Sizeof(g_kuiVlcTotalZeros)},
++		{unsafe.Pointer(&g_kuiVlcTotalZerosChromaDc), unsafe.Sizeof(g_kuiVlcTotalZerosChromaDc)},
++		{unsafe.Pointer(&g_kuiZeroLeftMap), unsafe.Sizeof(g_kuiZeroLeftMap)},
++		{unsafe.Pointer(&g_kuiVlcRunBefore), unsafe.Sizeof(g_kuiVlcRunBefore)},
++	}
++	for _, span := range spans {
++		address := uintptr(span.pointer)
++		if start < address+span.size && address < limit {
++			return "alias"
++		}
++	}
++	return "eligible"
++}

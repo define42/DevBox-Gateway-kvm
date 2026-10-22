@@ -1,0 +1,171 @@
+package common_test
+
+import (
+	"bytes"
+	"fmt"
+	"reflect"
+	"testing"
+	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+func bsFlushOutcome(call func() int32) (code int32, panicText string) {
+	defer func() {
+		if value := recover(); value != nil {
+			panicText = fmt.Sprintf("%T: %v", value, value)
+		}
+	}()
+	code = call()
+	return
+}
+
+func bsFlushState(buf []byte, left int32, cursor int, bits uint32) common.SBitStringAux {
+	return common.SBitStringAux{PBuf: buf, PStartBuf: 7, PEndBuf: -3, IBits: -11,
+		IIndex: 19, PCurBuf: cursor, UiCurBits: bits, ILeftBits: left}
+}
+
+func TestBsWriteFlushReferenceDomain(t *testing.T) {
+	lengths := []int32{-2147483648, -33, -1, 0, 1, 2, 3, 7, 8, 15, 16, 17, 31, 32, 33, 63, 64, 2147483647}
+	lefts := []int32{-2147483648, -33, -1, 0, 33, 64, 2147483647}
+	for left := int32(1); left <= 32; left++ {
+		lefts = append(lefts, left)
+	}
+	values := []uint32{0, 1, 3, 0x80000000, 0x7fffffff, 0xffffffff, 0xa5937e21}
+	for _, left := range lefts {
+		for _, length := range lengths {
+			for _, value := range values {
+				for _, cursor := range []int{-1, 0, 1, 3, 5, 7, 8, int(^uint(0) >> 1)} {
+					for _, size := range []int{0, 1, 2, 3, 4, 5, 7, 8, 12} {
+						got := bsFlushState(bytes.Repeat([]byte{0xa5}, size), left, cursor, 0xd3a6815f)
+						want := bsFlushState(bytes.Repeat([]byte{0xa5}, size), left, cursor, 0xd3a6815f)
+						gc, gp := bsFlushOutcome(func() int32 { return common.BsWriteBits(&got, length, value) })
+						wc, wp := bsFlushOutcome(func() int32 { return bsFlushReferenceBsWriteBits(&want, length, value) })
+						if gc != wc || gp != wp || !reflect.DeepEqual(got, want) {
+							t.Fatalf("left%d length%d value%x cursor%d size%d: code%d/%d panic%q/%q state%+v/%+v", left, length, value, cursor, size, gc, wc, gp, wp, got, want)
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, length := range lengths {
+		gc, gp := bsFlushOutcome(func() int32 { return common.BsWriteBits(nil, length, 1) })
+		wc, wp := bsFlushOutcome(func() int32 { return bsFlushReferenceBsWriteBits(nil, length, 1) })
+		if gc != wc || gp != wp || gp == "" {
+			t.Fatalf("nil length%d: code%d/%d panic%q/%q", length, gc, wc, gp, wp)
+		}
+	}
+}
+
+func TestBsWriteFlushPartialCommit(t *testing.T) {
+	for size := 0; size < 4; size++ {
+		state := bsFlushState(bytes.Repeat([]byte{0xa5}, size), 5, 0, 0x12345678)
+		_, panicked := bsFlushOutcome(func() int32 { return common.BsWriteBits(&state, 17, 0x1a35f) })
+		pending := uint32(0x12345678)
+		pending = (pending << 5) | (uint32(0x1a35f) >> 12)
+		if panicked == "" || state.UiCurBits != pending || state.PCurBuf != 0 || state.ILeftBits != 5 {
+			t.Fatalf("size%d lost partial state: %+v panic%q", size, state, panicked)
+		}
+		for i, value := range state.PBuf {
+			if value != byte(pending>>uint(24-i*8)) {
+				t.Fatalf("size%d byte%d got%x", size, i, value)
+			}
+		}
+	}
+}
+
+func TestBsWriteFlushStateAlias(t *testing.T) {
+	type backing struct {
+		state common.SBitStringAux
+		tail  [96]byte
+	}
+	// The output aliases only scalar fields and a following byte tail. Pointer
+	// fields remain valid and tracked, including when a partial word panics.
+	for _, offset := range []uintptr{unsafe.Offsetof(backing{}.state.PStartBuf), unsafe.Offsetof(backing{}.state.PCurBuf), unsafe.Offsetof(backing{}.state.UiCurBits), unsafe.Offsetof(backing{}.state.ILeftBits)} {
+		for _, left := range []int32{-1, 0, 1, 5, 17, 32, 33} {
+			for _, length := range []int32{-1, 0, 1, 3, 17, 32, 33} {
+				for _, size := range []int{0, 1, 2, 3, 4, 8, 32} {
+					got, want := new(backing), new(backing)
+					gb := unsafe.Slice((*byte)(unsafe.Add(unsafe.Pointer(got), offset)), size)
+					wb := unsafe.Slice((*byte)(unsafe.Add(unsafe.Pointer(want), offset)), size)
+					got.state, want.state = bsFlushState(gb, left, 0, 0xd3a6815f), bsFlushState(wb, left, 0, 0xd3a6815f)
+					gc, gp := bsFlushOutcome(func() int32 { return common.BsWriteBits(&got.state, length, 0x1a35f) })
+					wc, wp := bsFlushOutcome(func() int32 { return bsFlushReferenceBsWriteBits(&want.state, length, 0x1a35f) })
+					if gc != wc || gp != wp || !reflect.DeepEqual(got, want) {
+						t.Fatalf("offset%d left%d length%d size%d code%d/%d panic%q/%q", offset, left, length, size, gc, wc, gp, wp)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestBsWriteFlushGolombControls(t *testing.T) {
+	for _, left := range []int32{-1, 0, 1, 5, 17, 31, 32, 33} {
+		for _, size := range []int{0, 1, 2, 3, 4, 8, 128} {
+			for _, value := range []uint32{0, 1, 2, 3, 127, 128, 254, 255, 256, 257, 65535, 65536, 0x7fffffff, 0x80000000, 0xfffffffe, 0xffffffff} {
+				for _, signed := range []bool{false, true} {
+					got := bsFlushState(bytes.Repeat([]byte{0xa5}, size), left, 0, 0xd3a6815f)
+					want := bsFlushState(bytes.Repeat([]byte{0xa5}, size), left, 0, 0xd3a6815f)
+					gc, gp := bsFlushOutcome(func() int32 {
+						if signed {
+							return common.BsWriteSE(&got, int32(value))
+						}
+						return common.BsWriteUE(&got, value)
+					})
+					wc, wp := bsFlushOutcome(func() int32 {
+						if signed {
+							return bsFlushReferenceBsWriteSE(&want, int32(value))
+						}
+						return bsFlushReferenceBsWriteUE(&want, value)
+					})
+					if gc != wc || gp != wp || !reflect.DeepEqual(got, want) {
+						t.Fatalf("left%d size%d value%x signed%t: code%d/%d panic%q/%q", left, size, value, signed, gc, wc, gp, wp)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestBsWriteFlushMutableGolombTable(t *testing.T) {
+	saved := common.G_kuiGolombUELength
+	defer func() { common.G_kuiGolombUELength = saved }()
+	for _, index := range []int{0, 1, 7, 127, 255} {
+		for _, length := range []uint32{0, 1, 31, 32, 33, 63, 0x80000000, 0xffffffff} {
+			common.G_kuiGolombUELength = saved
+			common.G_kuiGolombUELength[index] = length
+			for _, left := range []int32{1, 17, 32} {
+				got, want := bsFlushState(make([]byte, 16), left, 0, 0x12345678), bsFlushState(make([]byte, 16), left, 0, 0x12345678)
+				gc, gp := bsFlushOutcome(func() int32 { return common.BsWriteUE(&got, uint32(index)) })
+				wc, wp := bsFlushOutcome(func() int32 { return bsFlushReferenceBsWriteUE(&want, uint32(index)) })
+				if gc != wc || gp != wp || !reflect.DeepEqual(got, want) {
+					t.Fatalf("index%d length%d left%d: code%d/%d panic%q/%q", index, length, left, gc, wc, gp, wp)
+				}
+			}
+		}
+	}
+	// An output word may itself change a later live UE length. Keep the table
+	// buffer in place and restore between candidate and independent reference.
+	tableBytes := unsafe.Slice((*byte)(unsafe.Pointer(&common.G_kuiGolombUELength[0])), int(unsafe.Sizeof(common.G_kuiGolombUELength)))
+	for _, size := range []int{0, 1, 2, 3, 4, len(tableBytes)} {
+		common.G_kuiGolombUELength = saved
+		got := bsFlushState(tableBytes[:size], 1, 0, 0x12345678)
+		gc, gp := bsFlushOutcome(func() int32 {
+			common.BsWriteBits(&got, 17, 0x10000)
+			return common.BsWriteUE(&got, 0)
+		})
+		gotTable := common.G_kuiGolombUELength
+		got.PBuf = bytes.Clone(got.PBuf)
+		common.G_kuiGolombUELength = saved
+		want := bsFlushState(tableBytes[:size], 1, 0, 0x12345678)
+		wc, wp := bsFlushOutcome(func() int32 {
+			bsFlushReferenceBsWriteBits(&want, 17, 0x10000)
+			return bsFlushReferenceBsWriteUE(&want, 0)
+		})
+		if gc != wc || gp != wp || !reflect.DeepEqual(got, want) || gotTable != common.G_kuiGolombUELength {
+			t.Fatalf("table alias size%d: code%d/%d panic%q/%q", size, gc, wc, gp, wp)
+		}
+	}
+}

@@ -1,0 +1,44 @@
+--- base/pkg/h264/internal/encoder/cavlc_native_full_bench_test.go
++++ candidate/pkg/h264/internal/encoder/cavlc_native_full_bench_test.go
+@@ -0,0 +1,41 @@
++package encoder
++
++import (
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++var cavlcNativeBenchmarkSink uint64
++
++// One operation resets a writer then encodes 32 blocks with continuous pending
++// bits. Parsing, fixture allocation, output clearing and parity are outside the
++// timed loop. The native harness measures the identical sequence and reports
++// identical benchmark names, ns/op, ns/block and blocks/op.
++func BenchmarkCavlcNativeFull(b *testing.B) {
++	suites := loadCavlcNativeFixtures(b)
++	for si := range suites {
++		suite := &suites[si]
++		if !suite.timed {
++			continue
++		}
++		b.Run(suite.name, func(b *testing.B) {
++			var functions SWelsFuncPtrList
++			InitCoeffFunc(&functions, common.WelsCPUFeatureDetect(nil), 0)
++			var buffer [cavlcNativeBufferSize]byte
++			var bits common.SBitStringAux
++			if result := cavlcNativeEncodeSequence(&functions, suite, buffer[:], &bits); result != 0 {
++				b.Fatalf("fixture returned %d", result)
++			}
++			b.ReportAllocs()
++			for b.Loop() {
++				if result := cavlcNativeEncodeSequence(&functions, suite, buffer[:], &bits); result != 0 {
++					b.Fatalf("fixture returned %d", result)
++				}
++			}
++			cavlcNativeBenchmarkSink = uint64(bits.UiCurBits) + uint64(bits.PCurBuf) + uint64(bits.ILeftBits)
++			b.ReportMetric(float64(len(suite.blocks)), "blocks/op")
++			b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(len(suite.blocks)), "ns/block")
++		})
++	}
++}

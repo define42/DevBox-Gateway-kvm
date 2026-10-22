@@ -1,0 +1,453 @@
+[
+  {
+    "label": "go-version",
+    "args": [
+      "/snap/go/current/bin/go",
+      "version"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.006529808044433594,
+    "log": "validation/go-version.txt",
+    "log_sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+  },
+  {
+    "label": "cpu",
+    "args": [
+      "lscpu"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.013828516006469727,
+    "log": "validation/cpu.txt",
+    "log_sha256": "ec383314354ca2ccf0c37e9b384b7c725ca3f5fa76c8faaa6d9447dd9cd8977f"
+  },
+  {
+    "label": "base-gofmt",
+    "args": [
+      "/snap/go/current/bin/gofmt",
+      "-l",
+      "pkg/h264/internal/encoder/z_initial_mvc_dedup_bench_amd64_test.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.004909515380859375,
+    "log": "validation/base-gofmt.txt",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "after-gofmt",
+    "args": [
+      "/snap/go/current/bin/gofmt",
+      "-l",
+      "pkg/h264/internal/encoder/z_initial_mvc_dedup_bench_amd64_test.go",
+      "pkg/h264/internal/encoder/initial_mvc_dedup.go",
+      "pkg/h264/internal/encoder/initial_mvc_dedup_amd64_test.go",
+      "pkg/h264/internal/encoder/initial_mvc_dedup_reference_test.go",
+      "pkg/h264/internal/encoder/svc_motion_estimate.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.007231950759887695,
+    "log": "validation/after-gofmt.txt",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "after-full-encoder-tests",
+    "args": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/encoder",
+      "-count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 15.442078113555908,
+    "log": "validation/after-full-encoder-tests.txt",
+    "log_sha256": "bbb5aada931066487c5c4f73d32f75288cd873c4697f9165dab824c4c5d8831a"
+  },
+  {
+    "label": "after-focused-race",
+    "args": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-json",
+      "-race",
+      "./pkg/h264/internal/encoder",
+      "-run",
+      "^TestInitialMVCDedup",
+      "-count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {
+      "CGO_ENABLED": "1"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 12.250226020812988,
+    "log": "validation/after-focused-race.txt",
+    "log_sha256": "58bc86a36c3af6ba78e4db7bc6e4ee536e40e0b98ee891519f067a2eb39b6946"
+  },
+  {
+    "label": "after-cpu-all-off",
+    "args": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/encoder",
+      "-count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {
+      "GODEBUG": "cpu.all=off"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 11.445262908935547,
+    "log": "validation/after-cpu-all-off.txt",
+    "log_sha256": "0a3880a878fb234c1b6ed23aaf29a3ec859bb5b613789dffd2feabea812f07d8"
+  },
+  {
+    "label": "after-arm64-build",
+    "args": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after-arm64.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {
+      "GOARCH": "arm64"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 4.31051778793335,
+    "log": "validation/after-arm64-build.txt",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "base-build",
+    "args": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 5.306427001953125,
+    "log": "validation/base-build.txt",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "base-initial-search-assembly",
+    "args": [
+      "/snap/go/current/bin/go",
+      "tool",
+      "objdump",
+      "-s",
+      "encoder\\.(WelsMotionEstimateInitialPoint|meInitial.*)$",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.2626199722290039,
+    "log": "validation/base-initial-search-assembly.txt",
+    "log_sha256": "fd0d413d9a11cd8da297d27428b36e9bd0da0760a1cfda2592a8445b69ecbe98"
+  },
+  {
+    "label": "after-build",
+    "args": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.5497844219207764,
+    "log": "validation/after-build.txt",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "after-initial-search-assembly",
+    "args": [
+      "/snap/go/current/bin/go",
+      "tool",
+      "objdump",
+      "-s",
+      "encoder\\.(WelsMotionEstimateInitialPoint|meInitial.*)$",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.16717052459716797,
+    "log": "validation/after-initial-search-assembly.txt",
+    "log_sha256": "499c800d0e25926d3f61abb8d6fd55d5ff845fd055e8a3c6ad73255a96bea0e0"
+  },
+  {
+    "label": "pair-01-base",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.80167269706726,
+    "log": "raw/pair-01-1-base.txt",
+    "log_sha256": "39054775ded9904264d22adc951916f04578332f955333dc5beaf5e64237cd1d"
+  },
+  {
+    "label": "pair-01-after",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.71340799331665,
+    "log": "raw/pair-01-2-after.txt",
+    "log_sha256": "f36283ddbeb7e75d01e4f78e94a02379bb0aefb93a4225e1205a22050be4c41e"
+  },
+  {
+    "label": "pair-02-after",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.663594484329224,
+    "log": "raw/pair-02-1-after.txt",
+    "log_sha256": "e02bb0ac684d7c92d5827661cc6c388ea6c3e26d0590deb7a8bbffed02b9fb30"
+  },
+  {
+    "label": "pair-02-base",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.79483437538147,
+    "log": "raw/pair-02-2-base.txt",
+    "log_sha256": "5bb8e5af200c40c76a72f9bae871cb1e1f0f302f3a6dea8605d6d7001bea7b44"
+  },
+  {
+    "label": "pair-03-base",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.761780977249146,
+    "log": "raw/pair-03-1-base.txt",
+    "log_sha256": "83a294f4e730a705d48660a5b0c93424fad3373b7a4a72282c3a5995c653fbc4"
+  },
+  {
+    "label": "pair-03-after",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.70564341545105,
+    "log": "raw/pair-03-2-after.txt",
+    "log_sha256": "5226bc6ce7e5fa3849c0ca20ac2ab67f2eee1eb4cf1f2b36c3f06a5dcb2d49b2"
+  },
+  {
+    "label": "pair-04-after",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.669998407363892,
+    "log": "raw/pair-04-1-after.txt",
+    "log_sha256": "73622e3c58b336cfe4f6390971832c066651a5d5d01160e07ed84fdf3e060e20"
+  },
+  {
+    "label": "pair-04-base",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.778887748718262,
+    "log": "raw/pair-04-2-base.txt",
+    "log_sha256": "3c71daa11be704048af092e82ac800750b44d0e4a712ab2992ec8faadd7f9dcd"
+  },
+  {
+    "label": "pair-05-base",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.788560390472412,
+    "log": "raw/pair-05-1-base.txt",
+    "log_sha256": "639346cda2118b05a578663e6d9d535147ae71f48e9722f8c888602859f7fcda"
+  },
+  {
+    "label": "pair-05-after",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.681955814361572,
+    "log": "raw/pair-05-2-after.txt",
+    "log_sha256": "12a1392fac818592d6ce3c2238ec9c0501bd7f77af4dd11200d347d1d70c2a10"
+  },
+  {
+    "label": "pair-06-after",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.701975584030151,
+    "log": "raw/pair-06-1-after.txt",
+    "log_sha256": "688d93e1c919044a2bbf0291c320aed290f80febd927ea58c13693e744ffef60"
+  },
+  {
+    "label": "pair-06-base",
+    "args": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkInitialMVCDedup$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/base",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 8.676286220550537,
+    "log": "raw/pair-06-2-base.txt",
+    "log_sha256": "eea63b4b40ee48d0c176c483801cb263a693e2a8242a26e0efb138353b1219b9"
+  },
+  {
+    "label": "benchstat",
+    "args": [
+      "/home/define42/go/bin/benchstat",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/base.txt",
+      "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/after.txt"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-review/work/after",
+    "extra_environment": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.01432037353515625,
+    "log": "benchstat.txt",
+    "log_sha256": "ab72bd95b13666812d145dfc4c42c40f50c386f669591220260b5d7d7bf53ca0"
+  }
+]

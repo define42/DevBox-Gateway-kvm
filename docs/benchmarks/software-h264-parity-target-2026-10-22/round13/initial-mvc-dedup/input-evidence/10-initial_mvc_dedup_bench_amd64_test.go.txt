@@ -1,0 +1,92 @@
+//go:build amd64
+
+package encoder
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// Benchmark-only overlay: copy identical bytes to frozen baseline and candidate.
+// It uses the unchanged initialTwoFixture and public complete initial-search API.
+func initialMVCDedupBenchFixture(stride int32, unique int, later bool, control string) *initialTwoFixture {
+	width, height, block := 16, 16, uint8(BLOCK_16x16)
+	if control == "narrow" {
+		width, height, block = 4, 4, BLOCK_4x4
+	}
+	f := newInitialTwoFixture(width, height, block, stride, "mvpWins")
+	points := [6]SMVUnitXY{{}, {-1, 0}, {0, -1}, {1, 0}, {0, 1}, {1, 1}}
+	f.slice.uiMvcNum = 5
+	for i := range f.slice.sMvc {
+		mv := points[(i+1)%unique]
+		f.slice.sMvc[i] = SMVUnitXY{mv.iMvX * 4, mv.iMvY * 4}
+	}
+	clear(f.me.pMvdCost)
+	target := points[0]
+	if later {
+		target = points[unique-1]
+	}
+	off := f.me.iRefMbOff + int(int32(target.iMvY)*stride+int32(target.iMvX))
+	for y := 0; y < height; y++ {
+		copy(f.me.pEncMb[f.me.iEncMbOff+y*int(stride):][:width], f.me.pRefMb[off+y*int(stride):][:width])
+	}
+	switch control {
+	case "capabilityOff":
+		f.funcs.sSampleDealingFuncs.bSampleSadTwo = false
+	case "scalar":
+		WelsInitSampleSadFunc(&f.funcs, 0)
+	case "custom":
+		// Keep the capability marker enabled: exact identity must protect this.
+		f.funcs.sSampleDealingFuncs.pfSampleSad[block] = initialMVCDedupBenchCustomSAD
+	case "count0":
+		f.slice.uiMvcNum = 0
+	case "count1":
+		f.slice.uiMvcNum = 1
+	}
+	return f
+}
+
+func initialMVCDedupBenchCustomSAD(enc []byte, encOff int, encStride int32,
+	ref []byte, refOff int, refStride int32) int32 {
+	return common.WelsSampleSad16x16_sse2(enc, encOff, encStride, ref, refOff, refStride)
+}
+
+func BenchmarkInitialMVCDedup(b *testing.B) {
+	for _, stride := range []int32{32, 2048} {
+		for unique := 1; unique <= 6; unique++ {
+			for _, later := range []bool{false, true} {
+				if unique == 1 && later {
+					continue
+				}
+				winner := "mvpWins"
+				if later {
+					winner = "laterWins"
+				}
+				b.Run(fmt.Sprintf("stride%d/unique%d/%s", stride, unique, winner), func(b *testing.B) {
+					f := initialMVCDedupBenchFixture(stride, unique, later, "")
+					base := f.me
+					b.ReportAllocs()
+					for b.Loop() {
+						f.me = base
+						WelsMotionEstimateInitialPoint(&f.funcs, &f.me, &f.slice, stride, stride)
+						sampleSatdBenchmarkSink = int32(f.me.uiSadCost)
+					}
+				})
+			}
+		}
+		for _, control := range []string{"capabilityOff", "scalar", "custom", "count0", "count1", "narrow"} {
+			b.Run(fmt.Sprintf("stride%d/control/%s", stride, control), func(b *testing.B) {
+				f := initialMVCDedupBenchFixture(stride, 3, true, control)
+				base := f.me
+				b.ReportAllocs()
+				for b.Loop() {
+					f.me = base
+					WelsMotionEstimateInitialPoint(&f.funcs, &f.me, &f.slice, stride, stride)
+					sampleSatdBenchmarkSink = int32(f.me.uiSadCost)
+				}
+			})
+		}
+	}
+}

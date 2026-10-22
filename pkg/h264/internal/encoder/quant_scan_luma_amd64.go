@@ -11,6 +11,9 @@ import (
 //go:noescape
 func quantScanLumaSSSE3(dct, levels *[256]int16, ff, mf *[8]int16, maxima *[16]int16, masks *[16]uint16)
 
+//go:noescape
+func quantScanLumaAVX2(dct, levels *[256]int16, ff, mf *[8]int16, maxima *[16]int16, masks *[16]uint16)
+
 // Completed inter-luma encoding consumes every group, so one checked call can
 // share the quantization and zigzag tables across all sixteen blocks. Lazy skip
 // attempts retain their four-block calls and early rejection behavior.
@@ -24,6 +27,11 @@ func quantScanLuma(dct, levels, ff, mf, maxima []int16, masks []uint16) {
 	if !cpu.X86.HasSSSE3 || quantScanLumaAliases(unsafe.Pointer(&dct[0]), unsafe.Pointer(&levels[0]),
 		unsafe.Pointer(&ff[0]), unsafe.Pointer(&mf[0]), unsafe.Pointer(&maxima[0]), unsafe.Pointer(&masks[0])) {
 		quantScanLumaSeparate(dct, levels, ff, mf, maxima, masks)
+		return
+	}
+	if cpu.X86.HasAVX2 {
+		quantScanLumaAVX2((*[256]int16)(dct), (*[256]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf),
+			(*[16]int16)(maxima), (*[16]uint16)(masks))
 		return
 	}
 	quantScanLumaSSSE3((*[256]int16)(dct), (*[256]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf),

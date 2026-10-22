@@ -6,14 +6,14 @@
 
 #include "textflag.h"
 
-// func welsDctT4SSE2(dct []int16, pixel1 []byte, stride1 int,
-//     pixel2 []byte, stride2 int)
-TEXT ·welsDctT4SSE2(SB), NOSPLIT, $0-88
-	MOVQ dct_base+0(FP), AX
-	MOVQ pixel1_base+24(FP), BX
-	MOVQ stride1+48(FP), CX
-	MOVQ pixel2_base+56(FP), DX
-	MOVQ stride2+80(FP), SI
+// func welsDctT4SSE2(dct *[16]int16, pixel1 *byte, stride1 int,
+//     pixel2 *byte, stride2 int)
+TEXT ·welsDctT4SSE2(SB), NOSPLIT, $0-40
+	MOVQ dct+0(FP), AX
+	MOVQ pixel1+8(FP), BX
+	MOVQ stride1+16(FP), CX
+	MOVQ pixel2+24(FP), DX
+	MOVQ stride2+32(FP), SI
 	JMP dctT4SSE2Kernel<>(SB)
 
 // func welsDctFourT4SSE2(dct []int16, pixel1 []byte, stride1 int,

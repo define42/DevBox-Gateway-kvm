@@ -1,0 +1,28 @@
+                                            │ /tmp/h264-parity-target-20261022/round1-pgo-check.txt │ /tmp/h264-parity-target-20261022/round1-pgo-pgo-check.txt │
+                                            │                        sec/op                         │               sec/op                 vs base              │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                             32.59m ± 1%                           32.14m ± 3%  -1.38% (p=0.041 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4                                                  32.06m ± 1%                           32.07m ± 1%       ~ (p=0.818 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                                   11.76m ± 6%                           11.61m ± 4%  -1.30% (p=0.041 n=6)
+geomean                                                                                 23.08m                                22.87m       -0.89%
+
+                                            │ /tmp/h264-parity-target-20261022/round1-pgo-check.txt │ /tmp/h264-parity-target-20261022/round1-pgo-pgo-check.txt │
+                                            │                     cpu_ns/frame                      │            cpu_ns/frame              vs base              │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                             32.58M ± 1%                           32.13M ± 3%       ~ (p=0.065 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4                                                  32.06M ± 1%                           32.06M ± 1%       ~ (p=0.818 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                                   11.76M ± 6%                           11.60M ± 4%  -1.35% (p=0.041 n=6)
+geomean                                                                                 23.07M                                22.87M       -0.91%
+
+                                            │ /tmp/h264-parity-target-20261022/round1-pgo-check.txt │ /tmp/h264-parity-target-20261022/round1-pgo-pgo-check.txt │
+                                            │                      bytes/frame                      │            bytes/frame             vs base                │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                            99.42Ki ± 0%                        99.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP20/1Slices-4                                                 118.4Ki ± 0%                        118.4Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                                  52.76Ki ± 0%                        52.76Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                85.33Ki                             85.33Ki       +0.00%
+¹ all samples are equal
+
+                                            │ /tmp/h264-parity-target-20261022/round1-pgo-check.txt │ /tmp/h264-parity-target-20261022/round1-pgo-pgo-check.txt │
+                                            │                     p95_ns/frame                      │            p95_ns/frame              vs base              │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4                                             36.38M ± 2%                           35.68M ± 7%       ~ (p=0.485 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4                                                  37.11M ± 5%                           37.47M ± 4%       ~ (p=0.699 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4                                                   39.92M ± 4%                           41.18M ± 8%       ~ (p=0.093 n=6)
+geomean                                                                                 37.77M                                38.04M       +0.71%

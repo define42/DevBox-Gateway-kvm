@@ -1,0 +1,276 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4         	16536841	        14.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4        	10204905	        28.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4        	16420180	        15.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4       	 8204610	        29.24 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	10691380	        19.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8360751	        28.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12557791	        20.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7736348	        31.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	16999066	        15.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	15782667	        14.85 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12288532	        20.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8202961	        30.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	11349025	        20.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7661576	        34.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	14867095	        14.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	14014195	        17.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	 8317233	        30.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7690402	        32.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	 9087754	        22.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7331186	        33.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	13234136	        16.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	13240034	        17.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride32-4       	 6890497	        35.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4     	 5320512	        44.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4        	 9194126	        25.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4      	 9715772	        24.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4        	 6098211	        34.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4      	 5076897	        47.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4         	 9865732	        24.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4       	10092692	        24.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4         	12152668	        20.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4       	11421979	        19.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4         	10187452	        23.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4       	 9512124	        24.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4         	12818394	        18.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4       	12308138	        18.65 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4         	15159334	        15.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4        	 8476102	        29.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4        	17040626	        14.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4       	 8365452	        28.56 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12565642	        19.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 7975106	        28.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12586231	        19.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7813308	        31.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	15493365	        14.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	14320315	        14.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12351507	        19.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 7568136	        29.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12561181	        19.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 6931399	        31.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	17294480	        14.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	14023449	        16.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	 9202630	        30.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7655947	        31.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	10999915	        22.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7175331	        33.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	15462358	        16.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14886124	        16.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride32-4       	 6962360	        34.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4     	 5495310	        47.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4        	 9472270	        25.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4      	 9522631	        25.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4        	 6947028	        34.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4      	 5527639	        44.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4         	10208194	        24.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4       	 9998222	        24.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4         	12220866	        19.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4       	12513559	        19.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4         	10335273	        23.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4       	10236464	        23.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4         	12190538	        19.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4       	12981810	        18.82 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4         	16572120	        14.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4        	 7889908	        29.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4        	15832866	        14.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4       	 9123038	        28.79 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12868790	        19.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8792228	        29.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	11924301	        19.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7578194	        31.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	16134957	        14.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	15901623	        14.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12504830	        19.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 7727338	        29.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12710491	        19.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7340420	        33.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	16651336	        14.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	14316744	        16.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	 7613282	        30.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7669466	        30.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	11178628	        21.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 6906324	        33.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	14725708	        16.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14648194	        17.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride32-4       	 7175314	        34.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4     	 5130994	        46.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4        	 9543319	        25.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4      	 9296554	        25.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4        	 7188558	        34.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4      	 5433909	        43.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4         	 9889528	        23.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4       	10003765	        24.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4         	12429795	        19.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4       	12783034	        19.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4         	10400235	        24.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4       	10555539	        23.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4         	11564443	        19.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4       	12364417	        18.84 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4         	15930164	        14.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4        	 8992406	        29.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4        	15400747	        14.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4       	 9267709	        26.90 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12136820	        21.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8184438	        29.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12358537	        20.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7615309	        31.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	17034052	        14.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	16896658	        14.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	11627785	        19.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8200159	        29.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	11861415	        19.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7640128	        33.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	17754679	        14.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	13825735	        17.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	 7707548	        31.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7779134	        31.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	10883744	        22.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7417407	        33.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	14540653	        16.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	13148353	        17.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride32-4       	 6839654	        34.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4     	 5305822	        44.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4        	 9976926	        24.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4      	 9208826	        26.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4        	 6983556	        33.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4      	 4896862	        48.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4         	 9560538	        24.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4       	 8817512	        24.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4         	11885540	        19.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4       	12167098	        19.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4         	10065810	        23.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4       	 9867871	        25.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4         	12846990	        18.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4       	12639942	        18.81 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4         	17009092	        14.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4        	 7702354	        29.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4        	15955767	        14.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4       	 8472805	        27.66 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12886273	        18.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8152557	        28.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	12486129	        19.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7713656	        32.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	16931192	        14.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	17780960	        14.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	12473426	        19.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8243041	        29.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12730786	        19.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7332842	        32.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	15296452	        14.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	14225242	        17.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	 7561606	        30.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 7334671	        32.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	11101664	        21.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7346109	        32.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	15446932	        16.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	14065066	        16.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride32-4       	 7032316	        34.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4     	 5410766	        44.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4        	 9648420	        25.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4      	 9322549	        24.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4        	 6542839	        34.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4      	 5406912	        45.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4         	 9959346	        24.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4       	 9796292	        23.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4         	12154389	        19.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4       	12763394	        19.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4         	10305025	        25.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4       	 9997447	        24.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4         	12679816	        18.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4       	11582118	        18.91 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkEncodingBlockCopy/8x8-4         	16114876	        14.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/8x16-4        	 8229298	        28.71 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x8-4        	16711570	        15.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkEncodingBlockCopy/16x16-4       	 9465450	        27.07 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntegerMotionCopy/LumaSSE2/8x8-4         	12529320	        19.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x16-4        	 8399241	        29.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x8-4        	13062655	        19.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/16x16-4       	 7854340	        31.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/8x4-4         	17499244	        14.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaSSE2/4x4-4         	17471014	        14.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x8-4         	11461023	        20.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x16-4        	 8126888	        29.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x8-4        	12011612	        20.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/16x16-4       	 7537945	        31.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/8x4-4         	17446728	        14.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/LumaAVX2/4x4-4         	15025200	        17.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x8-4       	 8105670	        31.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x16-4      	 6988052	        33.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x8-4      	11353232	        21.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/16x16-4     	 7285773	        32.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/8x4-4       	14122372	        16.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntegerMotionCopy/ChromaSSE2/4x4-4       	15042222	        16.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride32-4       	 6912903	        34.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x16/stride2048-4     	 5543019	        44.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride32-4        	 9758438	        25.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/16x8/stride2048-4      	 9808632	        26.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride32-4        	 6990891	        34.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x16/stride2048-4      	 5038468	        46.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride32-4         	 9223921	        23.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x8/stride2048-4       	 9701220	        24.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride32-4         	12513667	        19.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/8x4/stride2048-4       	12687518	        19.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride32-4         	 9952178	        24.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x8/stride2048-4       	 9880543	        24.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride32-4         	12540954	        19.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSampleSadFourRows/4x4/stride2048-4       	12903416	        19.35 ns/op	       0 B/op	       0 allocs/op
+PASS

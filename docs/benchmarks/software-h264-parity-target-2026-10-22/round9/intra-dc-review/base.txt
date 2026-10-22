@@ -1,0 +1,234 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntraDCTransforms/Forward/scalar=false-4         	 6165210	        36.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=false-4    	 8179560	        29.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=false-4   	 8231029	        29.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=false-4   	 8126940	        30.02 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=false-4 	 7949678	        29.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Forward/scalar=true-4          	 6553598	        36.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=true-4     	 8046291	        29.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=true-4    	 8103237	        29.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=true-4    	 7933440	        29.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=true-4  	 8215500	        29.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride64_64-4         	  620385	       388.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride64_64-4           	  474814	       497.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride64_64-4       	  375061	       728.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride64_64-4        	  360898	       651.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride64_64-4        	  636273	       382.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride64_64-4          	  536583	       466.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride64_64-4      	  421093	       606.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride64_64-4       	  388820	       587.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride64_64-4        	  576948	       387.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride64_64-4          	  556531	       459.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride64_64-4      	  659990	       387.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride64_64-4       	  425665	       593.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride1920_1984-4     	  633236	       382.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride1920_1984-4       	  453907	       494.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride1920_1984-4   	  338774	       621.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride1920_1984-4    	  410018	       648.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride1920_1984-4    	  624260	       377.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride1920_1984-4      	  521984	       458.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride1920_1984-4  	  412383	       594.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride1920_1984-4   	  386466	       593.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride1920_1984-4    	  615144	       389.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride1920_1984-4      	  518416	       455.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride1920_1984-4  	  650986	       402.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride1920_1984-4   	  356700	       638.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntraDCTransforms/Forward/scalar=false-4         	 6543225	        36.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=false-4    	 8420722	        29.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=false-4   	 7963993	        29.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=false-4   	 7364149	        30.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=false-4 	 8273692	        29.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Forward/scalar=true-4          	 6740474	        35.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=true-4     	 7970664	        29.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=true-4    	 8082598	        29.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=true-4    	 8109856	        29.04 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=true-4  	 8057310	        29.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride64_64-4         	  640317	       407.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride64_64-4           	  508326	       510.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride64_64-4       	  399308	       612.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride64_64-4        	  393451	       604.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride64_64-4        	  602606	       393.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride64_64-4          	  517833	       437.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride64_64-4      	  384015	       599.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride64_64-4       	  418665	       616.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride64_64-4        	  652514	       413.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride64_64-4          	  555951	       452.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride64_64-4      	  583386	       385.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride64_64-4       	  342762	       671.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride1920_1984-4     	  598104	       400.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride1920_1984-4       	  513694	       500.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride1920_1984-4   	  363628	       625.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride1920_1984-4    	  370642	       632.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride1920_1984-4    	  615474	       394.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride1920_1984-4      	  528457	       435.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride1920_1984-4  	  391543	       589.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride1920_1984-4   	  419688	       594.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride1920_1984-4    	  624346	       403.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride1920_1984-4      	  527706	       454.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride1920_1984-4  	  574251	       404.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride1920_1984-4   	  393048	       612.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntraDCTransforms/Forward/scalar=false-4         	 6553894	        36.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=false-4    	 7716950	        29.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=false-4   	 7990989	        29.56 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=false-4   	 7783314	        29.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=false-4 	 7650452	        29.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Forward/scalar=true-4          	 6108608	        36.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=true-4     	 8134317	        29.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=true-4    	 7591310	        30.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=true-4    	 8153413	        30.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=true-4  	 8145528	        29.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride64_64-4         	  610724	       382.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride64_64-4           	  495043	       486.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride64_64-4       	  373244	       621.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride64_64-4        	  395378	       615.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride64_64-4        	  638936	       396.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride64_64-4          	  506154	       472.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride64_64-4      	  409178	       635.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride64_64-4       	  411855	       580.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride64_64-4        	  653451	       449.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride64_64-4          	  548053	       560.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride64_64-4      	  605953	       387.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride64_64-4       	  431029	       589.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride1920_1984-4     	  643910	       389.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride1920_1984-4       	  514802	       495.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride1920_1984-4   	  367707	       623.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride1920_1984-4    	  378369	       716.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride1920_1984-4    	  639488	       396.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride1920_1984-4      	  443451	       471.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride1920_1984-4  	  422180	       608.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride1920_1984-4   	  406458	       621.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride1920_1984-4    	  589957	       404.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride1920_1984-4      	  519447	       454.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride1920_1984-4  	  645088	       391.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride1920_1984-4   	  416168	       594.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntraDCTransforms/Forward/scalar=false-4         	 6699994	        36.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=false-4    	 8015748	        29.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=false-4   	 8318756	        29.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=false-4   	 8290400	        29.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=false-4 	 8408004	        29.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Forward/scalar=true-4          	 6692539	        37.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=true-4     	 8026728	        30.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=true-4    	 8235411	        29.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=true-4    	 8136627	        29.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=true-4  	 8506798	        29.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride64_64-4         	  635107	       402.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride64_64-4           	  517581	       485.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride64_64-4       	  389702	       616.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride64_64-4        	  338445	       624.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride64_64-4        	  538910	       389.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride64_64-4          	  526552	       443.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride64_64-4      	  422565	       594.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride64_64-4       	  396004	       598.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride64_64-4        	  630967	       384.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride64_64-4          	  550746	       451.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride64_64-4      	  635882	       389.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride64_64-4       	  419331	       622.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride1920_1984-4     	  636535	       394.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride1920_1984-4       	  503454	       484.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride1920_1984-4   	  366584	       618.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride1920_1984-4    	  399537	       619.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride1920_1984-4    	  672900	       389.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride1920_1984-4      	  515560	       452.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride1920_1984-4  	  420260	       592.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride1920_1984-4   	  380173	       593.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride1920_1984-4    	  565608	       431.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride1920_1984-4      	  556096	       450.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride1920_1984-4  	  570722	       388.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride1920_1984-4   	  387673	       591.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntraDCTransforms/Forward/scalar=false-4         	 6589435	        36.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=false-4    	 7715919	        29.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=false-4   	 7720652	        30.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=false-4   	 7657609	        29.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=false-4 	 7721264	        30.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Forward/scalar=true-4          	 6613446	        36.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=true-4     	 7837195	        29.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=true-4    	 7869651	        29.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=true-4    	 8242327	        31.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=true-4  	 7584154	        31.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride64_64-4         	  629067	       409.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride64_64-4           	  497577	       486.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride64_64-4       	  352446	       669.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride64_64-4        	  393732	       645.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride64_64-4        	  648390	       393.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride64_64-4          	  561800	       464.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride64_64-4      	  418544	       606.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride64_64-4       	  390638	       607.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride64_64-4        	  642511	       379.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride64_64-4          	  571783	       441.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride64_64-4      	  571635	       395.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride64_64-4       	  407667	       586.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride1920_1984-4     	  565101	       405.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride1920_1984-4       	  512316	       481.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride1920_1984-4   	  380156	       635.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride1920_1984-4    	  391167	       632.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride1920_1984-4    	  644797	       377.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride1920_1984-4      	  572031	       444.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride1920_1984-4  	  379320	       597.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride1920_1984-4   	  347164	       636.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride1920_1984-4    	  642523	       385.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride1920_1984-4      	  550122	       437.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride1920_1984-4  	  600907	       392.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride1920_1984-4   	  395269	       596.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkIntraDCTransforms/Forward/scalar=false-4         	 6372794	        36.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=false-4    	 7904661	        29.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=false-4   	 7881020	        30.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=false-4   	 7803081	        31.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=false-4 	 8199223	        29.74 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Forward/scalar=true-4          	 6633669	        36.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf10/scalar=true-4     	 8447371	        29.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf104/scalar=true-4    	 7817636	        29.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf832/scalar=true-4    	 8164303	        31.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkIntraDCTransforms/Inverse/mf65535/scalar=true-4  	 7812639	        30.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride64_64-4         	  514994	       410.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride64_64-4           	  471255	       489.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride64_64-4       	  392155	       619.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride64_64-4        	  399016	       635.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride64_64-4        	  658057	       393.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride64_64-4          	  567148	       448.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride64_64-4      	  418905	       626.2 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride64_64-4       	  417549	       623.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride64_64-4        	  640508	       395.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride64_64-4          	  552140	       450.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride64_64-4      	  669256	       440.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride64_64-4       	  396222	       592.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP8/Stride1920_1984-4     	  641120	       394.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP8/Stride1920_1984-4       	  456864	       489.6 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP8/Stride1920_1984-4   	  398292	       619.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP8/Stride1920_1984-4    	  372638	       637.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP20/Stride1920_1984-4    	  613804	       390.0 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP20/Stride1920_1984-4      	  558639	       567.5 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP20/Stride1920_1984-4  	  398928	       609.8 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP20/Stride1920_1984-4   	  394806	       710.7 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Zero/QP32/Stride1920_1984-4    	  547279	       417.3 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/DC/QP32/Stride1920_1984-4      	  522681	       436.4 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Sparse/QP32/Stride1920_1984-4  	  646362	       387.9 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+BenchmarkI16Reconstruction/Dense/QP32/Stride1920_1984-4   	  333733	       609.1 ns/op	         1.000 macroblocks/op	       0 B/op	       0 allocs/op
+PASS

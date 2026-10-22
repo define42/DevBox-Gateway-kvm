@@ -1,0 +1,65 @@
+package encoder
+
+import (
+	"reflect"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+var initialSadFiveSSE2PC = reflect.ValueOf(common.WelsSampleSad16x16_sse2).Pointer()
+
+func initialSadFiveBuiltin(fn PSampleSadSatdCostFunc) bool {
+	return fn != nil && reflect.ValueOf(fn).Pointer() == initialSadFiveSSE2PC
+}
+
+// The caller admits only five-MVC 16x16 searches with the exact built-in SAD.
+// Keep seen state in this direct helper to avoid placing the seen array in
+// every search caller. No local state crosses an indirect callback or an unchecked API.
+func meInitialSadFiveDedup(me *SWelsME, slice *SSlice, initial SMVUnitXY, initialOff int,
+	encStride, refStride int32) (best SMVUnitXY, bestOff int, bestCost int32) {
+	enc, encOff := me.pEncMb, me.iEncMbOff
+	ref, refOff := me.pRefMb, me.iRefMbOff
+	mvd, mvdOff := me.pMvdCost, me.iMvdCostOff
+	mvp := me.sMvp
+	minMV, maxMV := slice.sMvStartMin, slice.sMvStartMax
+	mvc := slice.sMvc[:]
+
+	best, bestOff = initial, initialOff
+	bestCost = common.WelsSampleSad16x16_sse2(enc, encOff, encStride, ref, initialOff, refStride)
+	bestCost += COST_MVD(mvd, mvdOff, int32(initial.iMvX)*4-int32(mvp.iMvX), int32(initial.iMvY)*4-int32(mvp.iMvY))
+	var seen [6]SMVUnitXY
+	seen[0] = initial
+	n := 1
+	for i := 0; i < 5; i++ {
+		candidate := SMVUnitXY{
+			iMvX: int16(common.WELS_CLIP3((2+int32(mvc[i].iMvX))>>2, int32(minMV.iMvX), int32(maxMV.iMvX))),
+			iMvY: int16(common.WELS_CLIP3((2+int32(mvc[i].iMvY))>>2, int32(minMV.iMvY), int32(maxMV.iMvY))),
+		}
+		if candidate == best {
+			continue
+		}
+		duplicate := false
+		for _, previous := range seen[:n] {
+			if candidate == previous {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			continue
+		}
+		// Retain the first occurrence's checked SAD followed by its MVD reads.
+		// A repeated successfully evaluated MV has the same cost: both sources
+		// are read-only until the later directional callback, and strict '<'
+		// makes the best signed cost monotonic. No aggregate preflight is needed.
+		off := refOff + int(int32(candidate.iMvY)*refStride+int32(candidate.iMvX))
+		cost := common.WelsSampleSad16x16_sse2(enc, encOff, encStride, ref, off, refStride) +
+			COST_MVD(mvd, mvdOff, int32(candidate.iMvX)*4-int32(mvp.iMvX), int32(candidate.iMvY)*4-int32(mvp.iMvY))
+		seen[n] = candidate
+		n++
+		if cost < bestCost {
+			best, bestOff, bestCost = candidate, off, cost
+		}
+	}
+	return best, bestOff, bestCost
+}

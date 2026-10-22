@@ -1,0 +1,477 @@
+[
+  {
+    "name": "go-version",
+    "command": [
+      "/snap/go/current/bin/go",
+      "version"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.006420135498046875,
+    "log": "validation/go-version.txt"
+  },
+  {
+    "name": "host",
+    "command": [
+      "uname",
+      "-a"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.0028200149536132812,
+    "log": "validation/host.txt"
+  },
+  {
+    "name": "cpu",
+    "command": [
+      "lscpu"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.006163597106933594,
+    "log": "validation/cpu.txt"
+  },
+  {
+    "name": "base-gofmt",
+    "command": [
+      "/snap/go/current/bin/gofmt",
+      "-w",
+      "pkg/h264/internal/encoder/quarter_plan_fallback_bench_amd64_test.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.07588577270507812,
+    "log": "validation/base-gofmt.txt"
+  },
+  {
+    "name": "after-gofmt",
+    "command": [
+      "/snap/go/current/bin/gofmt",
+      "-w",
+      "pkg/h264/internal/encoder/md.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan_amd64.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan_amd64_test.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan_generic.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan_guard_linux_amd64_test.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan_reference_amd64_test.go",
+      "pkg/h264/internal/encoder/quarter_refine_plan_spans_amd64_test.go",
+      "pkg/h264/internal/encoder/quarter_plan_fallback_bench_amd64_test.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.007069110870361328,
+    "log": "validation/after-gofmt.txt"
+  },
+  {
+    "name": "after-full-encoder-tests",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/encoder",
+      "-count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.44233751296997,
+    "log": "validation/after-full-encoder-tests.txt"
+  },
+  {
+    "name": "after-focused-race",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-race",
+      "./pkg/h264/internal/encoder",
+      "-run",
+      "^(TestQuarterPlan|TestHalfSatdPair|TestQuarterRefine|TestSampleAvgSatdFour|TestMeRefineFracPixel)",
+      "-count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {
+      "CGO_ENABLED": "1"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 13.135891914367676,
+    "log": "validation/after-focused-race.txt"
+  },
+  {
+    "name": "after-cpu-all-off",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/encoder",
+      "-count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {
+      "GODEBUG": "cpu.all=off"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 7.766113519668579,
+    "log": "validation/after-cpu-all-off.txt"
+  },
+  {
+    "name": "after-arm64-build",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after-arm64.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {
+      "GOARCH": "arm64"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 4.5289201736450195,
+    "log": "validation/after-arm64-build.txt"
+  },
+  {
+    "name": "base-build",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 5.514057636260986,
+    "log": "validation/base-build.txt"
+  },
+  {
+    "name": "base-allocation-tests",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^(TestMeRefineFracPixelNoPerBlockAllocs|TestQuarterRefinePerInvocationParamsNoAllocs)$",
+      "-test.count=1",
+      "-test.v"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.014655351638793945,
+    "log": "validation/base-allocation-tests.txt"
+  },
+  {
+    "name": "base-refinement-assembly",
+    "command": [
+      "/snap/go/current/bin/go",
+      "tool",
+      "objdump",
+      "-s",
+      "encoder\\.(MeRefineFracPixel|meRefineQuarterPlan.*)$",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.26793503761291504,
+    "log": "validation/base-refinement-assembly.txt"
+  },
+  {
+    "name": "after-build",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.5517950057983398,
+    "log": "validation/after-build.txt"
+  },
+  {
+    "name": "after-allocation-tests",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^(TestMeRefineFracPixelNoPerBlockAllocs|TestQuarterRefinePerInvocationParamsNoAllocs)$",
+      "-test.count=1",
+      "-test.v"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.015950918197631836,
+    "log": "validation/after-allocation-tests.txt"
+  },
+  {
+    "name": "after-refinement-assembly",
+    "command": [
+      "/snap/go/current/bin/go",
+      "tool",
+      "objdump",
+      "-s",
+      "encoder\\.(MeRefineFracPixel|meRefineQuarterPlan.*)$",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.11365628242492676,
+    "log": "validation/after-refinement-assembly.txt"
+  },
+  {
+    "name": "pair-01-base",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.000438928604126,
+    "log": "raw/pair-01-1-base.txt"
+  },
+  {
+    "name": "pair-01-after",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.374892711639404,
+    "log": "raw/pair-01-2-after.txt"
+  },
+  {
+    "name": "pair-02-after",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.144240379333496,
+    "log": "raw/pair-02-1-after.txt"
+  },
+  {
+    "name": "pair-02-base",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.227032899856567,
+    "log": "raw/pair-02-2-base.txt"
+  },
+  {
+    "name": "pair-03-base",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.107913732528687,
+    "log": "raw/pair-03-1-base.txt"
+  },
+  {
+    "name": "pair-03-after",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.11575436592102,
+    "log": "raw/pair-03-2-after.txt"
+  },
+  {
+    "name": "pair-04-after",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.17699646949768,
+    "log": "raw/pair-04-1-after.txt"
+  },
+  {
+    "name": "pair-04-base",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.332340955734253,
+    "log": "raw/pair-04-2-base.txt"
+  },
+  {
+    "name": "pair-05-base",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.086788654327393,
+    "log": "raw/pair-05-1-base.txt"
+  },
+  {
+    "name": "pair-05-after",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.41250228881836,
+    "log": "raw/pair-05-2-after.txt"
+  },
+  {
+    "name": "pair-06-after",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/after.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.226378440856934,
+    "log": "raw/pair-06-1-after.txt"
+  },
+  {
+    "name": "pair-06-base",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/bin/base.test",
+      "-test.run=^$",
+      "-test.bench=^(BenchmarkMeRefineFracPixelCaller|BenchmarkQuarterRefineLocalParams|BenchmarkQuarterPlanFallbackCaller)$",
+      "-test.benchmem",
+      "-test.benchtime=200ms",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/base",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 12.261760473251343,
+    "log": "raw/pair-06-2-base.txt"
+  },
+  {
+    "name": "benchstat",
+    "command": [
+      "/home/define42/go/bin/benchstat",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/base.txt",
+      "/tmp/h264-parity-target-20261022/quarter-plan-review/after.txt"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/quarter-plan-review/work/after",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.012267589569091797,
+    "log": "benchstat.txt"
+  }
+]

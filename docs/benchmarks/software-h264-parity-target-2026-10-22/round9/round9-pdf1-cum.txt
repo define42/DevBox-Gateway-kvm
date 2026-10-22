@@ -1,0 +1,99 @@
+File: after-avc.test
+Build ID: ff37e310f5d99aec409319d4dd01dd6672734aba
+Type: cpu
+Time: 2026-10-22 16:24:27 CEST
+Duration: 6.58s, Total samples = 6.52s (99.05%)
+Showing nodes accounting for 4.26s, 65.34% of 6.52s total
+Dropped 152 nodes (cum <= 0.03s)
+Showing top 90 nodes out of 130
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      6.51s 99.85%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.TestOpenH264Comparison
+         0     0%     0%      6.51s 99.85%  testing.tRunner
+         0     0%     0%      6.48s 99.39%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*openH264Encoder).encode
+         0     0%     0%      6.48s 99.39%  github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.(*openH264Encoder).encodeDamage
+         0     0%     0%      6.48s 99.39%  github.com/define42/DevBox-Gateway-kvm/pkg/h264.(*Encoder).Encode
+         0     0%     0%      6.48s 99.39%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsH264SVCEncoder).EncodeFrame
+         0     0%     0%      6.41s 98.31%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsH264SVCEncoder).EncodeFrameInternal
+         0     0%     0%      6.41s 98.31%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsEncoderEncodeExt
+         0     0%     0%      5.82s 89.26%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsCodeOneSlice
+         0     0%     0%      5.79s 88.80%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsCodePSlice
+     0.08s  1.23%  1.23%      5.79s 88.80%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterMbLoop
+         0     0%  1.23%      5.79s 88.80%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsPSliceMdEnc
+     0.06s  0.92%  2.15%      4.28s 65.64%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterMb
+         0     0%  2.15%      1.92s 29.45%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterJudgePskip
+     0.20s  3.07%  5.21%      1.89s 28.99%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdPSkipEnc
+     0.02s  0.31%  5.52%      1.66s 25.46%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterSecondaryModesEnc
+         0     0%  5.52%      0.89s 13.65%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdFirstIntraMode
+     0.02s  0.31%  5.83%      0.75s 11.50%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsSpatialWriteMbSyn
+     0.03s  0.46%  6.29%      0.68s 10.43%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsWriteMbResidual
+     0.39s  5.98% 12.27%      0.64s  9.82%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WriteBlockResidualCavlc
+         0     0% 12.27%      0.60s  9.20%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdIntraFinePartitionVaa
+     0.09s  1.38% 13.65%      0.59s  9.05%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdI4x4Fast
+     0.01s  0.15% 13.80%      0.43s  6.60%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMotionEstimateSearch
+         0     0% 13.80%      0.36s  5.52%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterDecidedPskip
+     0.04s  0.61% 14.42%      0.34s  5.21%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsRecPskip
+     0.15s  2.30% 16.72%      0.34s  5.21%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.trySkipDctQuantPixels
+         0     0% 16.72%      0.34s  5.21%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.welsTryPYskipPixels
+     0.01s  0.15% 16.87%      0.33s  5.06%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterMbRefinement
+     0.06s  0.92% 17.79%      0.30s  4.60%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdI4x4Fast.func1 (inline)
+     0.02s  0.31% 18.10%      0.29s  4.45%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McLuma_avx2
+     0.03s  0.46% 18.56%      0.29s  4.45%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSad16x16_sse2
+     0.01s  0.15% 18.71%      0.28s  4.29%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.MeRefineFracPixel
+     0.03s  0.46% 19.17%      0.28s  4.29%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsDiamondSearch
+     0.01s  0.15% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McChroma_ssse3
+         0     0% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsPreProcess).AnalyzeSpatialPic
+         0     0% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsPreProcess).VaaCalculation
+         0     0% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.(*CVAACalculation).Process
+         0     0% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.(*CVpFrameWork).Process
+         0     0% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.VAACalcSad_sse2
+         0     0% 19.33%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.vaaCalcSadMasked
+     0.27s  4.14% 23.47%      0.27s  4.14%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing.vaaSadRowSSE2
+         0     0% 23.47%      0.26s  3.99%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdP16x16
+     0.02s  0.31% 23.77%      0.23s  3.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McCopy_c
+     0.11s  1.69% 25.46%      0.23s  3.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsTryPUVskip
+     0.06s  0.92% 26.38%      0.23s  3.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.initInterNeighborCache
+     0.04s  0.61% 26.99%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsCopy8x8_c
+     0.03s  0.46% 27.45%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.mcCopySSE2
+     0.22s  3.37% 30.83%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sad16x16
+         0     0% 30.83%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsPreProcess).BuildSpatialPicList
+         0     0% 30.83%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsPreProcess).SingleLayerPreprocess
+         0     0% 30.83%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsPreProcess).WelsMoveMemoryWrapper
+     0.01s  0.15% 30.98%      0.22s  3.37%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMoveMemory_c
+     0.21s  3.22% 34.20%      0.21s  3.22%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.McCopyWidthEq8_c (inline)
+     0.01s  0.15% 34.36%      0.21s  3.22%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdI4x4Fast.func2 (inline)
+         0     0% 34.36%      0.21s  3.22%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMemcpy (inline)
+     0.21s  3.22% 37.58%      0.21s  3.22%  runtime.memmove
+     0.02s  0.31% 37.88%      0.20s  3.07%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterEncode
+     0.03s  0.46% 38.34%      0.19s  2.91%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSad8x8_sse2
+     0.19s  2.91% 41.26%      0.19s  2.91%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.copy16x16SSE2
+     0.19s  2.91% 44.17%      0.19s  2.91%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.welsCopyNxM (inline)
+     0.08s  1.23% 45.40%      0.19s  2.91%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsEncRecI4x4Y
+     0.01s  0.15% 45.55%      0.19s  2.91%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdInterFinePartitionVaa
+     0.04s  0.61% 46.17%      0.18s  2.76%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sampleSadFourSIMD
+     0.10s  1.53% 47.70%      0.17s  2.61%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*sCavlcBs).write (inline)
+         0     0% 47.70%      0.17s  2.61%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.FillNeighborCacheInterWithoutBGD
+     0.13s  1.99% 49.69%      0.17s  2.61%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.fillNeighborCacheInter
+     0.17s  2.61% 52.30%      0.17s  2.61%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.skipDctQuant8x8AVX2
+     0.15s  2.30% 54.60%      0.15s  2.30%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sad8x8
+     0.10s  1.53% 56.13%      0.15s  2.30%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.FillNeighborCacheIntra
+     0.04s  0.61% 56.75%      0.15s  2.30%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsEncRecUV
+         0     0% 56.75%      0.15s  2.30%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.initIntraNeighborCache (inline)
+     0.03s  0.46% 57.21%      0.14s  2.15%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMotionEstimateInitialPoint
+     0.05s  0.77% 57.98%      0.13s  1.99%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdPSkipEnc.func1
+     0.04s  0.61% 58.59%      0.11s  1.69%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSad4x4_sse2
+     0.02s  0.31% 58.90%      0.11s  1.69%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsDctFourT4_sse2
+     0.01s  0.15% 59.05%      0.11s  1.69%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdI16x16
+         0     0% 59.05%      0.11s  1.69%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsMdP8x8
+         0     0% 59.05%      0.10s  1.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsSampleSadFour16x16_sse2
+     0.10s  1.53% 60.58%      0.10s  1.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sadFour16SSE2
+         0     0% 60.58%      0.10s  1.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.MeRefineQuarPixel
+     0.03s  0.46% 61.04%      0.10s  1.53%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.meRefineQuarPixelFused
+         0     0% 61.04%      0.09s  1.38%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsIMbChromaEncode
+     0.01s  0.15% 61.20%      0.09s  1.38%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsInterMbEncode
+         0     0% 61.20%      0.09s  1.38%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsPMbChromaEncode
+     0.02s  0.31% 61.50%      0.08s  1.23%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.WelsCopy16x16_sse2
+     0.08s  1.23% 62.73%      0.08s  1.23%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*SMB).Add (inline)
+     0.02s  0.31% 63.04%      0.08s  1.23%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.WelsQuantFour4x4Max_sse2
+     0.08s  1.23% 64.26%      0.08s  1.23%  quantScanBlockPairsAVX2
+     0.07s  1.07% 65.34%      0.07s  1.07%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common.sad4x4
+         0     0% 65.34%      0.07s  1.07%  github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.(*CWelsH264SVCEncoder).EncodeFrame.func1

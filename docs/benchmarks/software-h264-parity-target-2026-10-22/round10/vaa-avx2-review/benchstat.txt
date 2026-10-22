@@ -1,0 +1,143 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/processing
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                        │ /tmp/h264-parity-target-20261022/vaa-avx2-review/base.txt │ /tmp/h264-parity-target-20261022/vaa-avx2-review/after.txt │
+                                                        │                          sec/op                           │               sec/op                 vs base               │
+VAAActiveCaller/1920x1088/stride1984/FullNoise-4                                                       328.6µ ± 24%                          171.7µ ±  8%  -47.74% (p=0.002 n=6)
+VAAActiveCaller/1920x1088/stride1984/FullEqual-4                                                       317.5µ ± 29%                          169.0µ ± 16%  -46.77% (p=0.002 n=6)
+VAAActiveCaller/1920x1088/stride1984/AllChangedMask-4                                                  340.0µ ± 15%                          185.6µ ± 13%  -45.41% (p=0.002 n=6)
+VAAActiveCaller/1920x1088/stride1984/AlternatingMask-4                                                 399.8µ ± 18%                          340.6µ ± 11%  -14.80% (p=0.004 n=6)
+VAAActiveCaller/1920x1088/stride1984/SparseOddRun-4                                                    10.58µ ±  2%                          10.68µ ±  4%        ~ (p=0.310 n=6)
+VAAActiveCaller/1920x1088/stride1984/AllUnchangedMask-4                                                10.41µ ±  2%                          10.62µ ±  2%   +2.08% (p=0.026 n=6)
+VAAActiveCaller/1280x720/stride1344/FullNoise-4                                                        83.58µ ±  6%                          41.85µ ±  6%  -49.93% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/FullEqual-4                                                        83.63µ ±  5%                          41.16µ ±  3%  -50.78% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/AllChangedMask-4                                                   90.87µ ±  9%                          46.99µ ±  9%  -48.28% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/AlternatingMask-4                                                 111.83µ ± 13%                          95.47µ ±  9%  -14.63% (p=0.026 n=6)
+VAAActiveCaller/1280x720/stride1344/SparseOddRun-4                                                     4.790µ ±  3%                          5.037µ ±  2%   +5.16% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/AllUnchangedMask-4                                                 4.717µ ±  4%                          4.682µ ±  3%        ~ (p=0.589 n=6)
+VAAActiveCaller/1904x1088/stride1984/FullNoise-4                                                       310.2µ ±  7%                          165.6µ ± 47%  -46.61% (p=0.002 n=6)
+VAAActiveCaller/1904x1088/stride1984/FullEqual-4                                                       318.9µ ±  8%                          177.1µ ± 43%  -44.47% (p=0.002 n=6)
+VAAActiveCaller/1904x1088/stride1984/AllChangedMask-4                                                  317.8µ ± 11%                          184.1µ ± 94%        ~ (p=0.065 n=6)
+VAAActiveCaller/1904x1088/stride1984/AlternatingMask-4                                                 368.2µ ±  4%                          322.1µ ± 15%  -12.51% (p=0.015 n=6)
+VAAActiveCaller/1904x1088/stride1984/SparseOddRun-4                                                    10.36µ ±  0%                          10.69µ ±  5%   +3.19% (p=0.002 n=6)
+VAAActiveCaller/1904x1088/stride1984/AllUnchangedMask-4                                                10.45µ ±  5%                          10.47µ ±  2%        ~ (p=0.937 n=6)
+VAAActiveCaller/48x32/stride64/FullNoise-4                                                            112.95n ±  4%                          71.35n ±  4%  -36.83% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/FullEqual-4                                                            115.95n ±  4%                          71.32n ±  9%  -38.49% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/AllChangedMask-4                                                        146.5n ±  4%                          102.2n ± 10%  -30.23% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/AlternatingMask-4                                                       131.7n ±  5%                          118.8n ±  5%   -9.76% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/SparseOddRun-4                                                          74.83n ±  4%                          60.04n ±  9%  -19.76% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/AllUnchangedMask-4                                                      30.75n ± 25%                          30.33n ±  6%        ~ (p=0.589 n=6)
+VAAActiveCaller/16x16/stride32/FullNoise-4                                                             44.37n ±  6%                          42.99n ±  6%        ~ (p=0.132 n=6)
+VAAActiveCaller/16x16/stride32/FullEqual-4                                                             45.61n ±  5%                          42.73n ±  4%   -6.30% (p=0.004 n=6)
+VAAActiveCaller/16x16/stride32/AllChangedMask-4                                                        57.99n ± 11%                          52.66n ±  7%   -9.21% (p=0.004 n=6)
+VAAActiveCaller/16x16/stride32/AlternatingMask-4                                                       23.00n ±  4%                          23.30n ±  4%        ~ (p=1.000 n=6)
+VAAActiveCaller/16x16/stride32/SparseOddRun-4                                                          56.77n ± 14%                          52.23n ± 12%        ~ (p=0.084 n=6)
+VAAActiveCaller/16x16/stride32/AllUnchangedMask-4                                                      22.66n ±  6%                          23.10n ± 12%        ~ (p=0.180 n=6)
+geomean                                                                                                4.234µ                                3.250µ        -23.25%
+
+                                                        │ /tmp/h264-parity-target-20261022/vaa-avx2-review/base.txt │ /tmp/h264-parity-target-20261022/vaa-avx2-review/after.txt │
+                                                        │                            B/s                            │                B/s                  vs base                │
+VAAActiveCaller/1920x1088/stride1984/FullNoise-4                                                      5.924Gi ± 20%                       11.331Gi ±  8%   +91.28% (p=0.002 n=6)
+VAAActiveCaller/1920x1088/stride1984/FullEqual-4                                                      6.128Gi ± 22%                       11.514Gi ± 14%   +87.90% (p=0.002 n=6)
+VAAActiveCaller/1920x1088/stride1984/AllChangedMask-4                                                 5.723Gi ± 13%                       10.491Gi ± 11%   +83.33% (p=0.002 n=6)
+VAAActiveCaller/1920x1088/stride1984/AlternatingMask-4                                                4.866Gi ± 15%                        5.711Gi ± 10%   +17.36% (p=0.004 n=6)
+VAAActiveCaller/1920x1088/stride1984/SparseOddRun-4                                                   183.9Gi ±  2%                        182.2Gi ±  4%         ~ (p=0.310 n=6)
+VAAActiveCaller/1920x1088/stride1984/AllUnchangedMask-4                                               186.9Gi ±  2%                        183.1Gi ±  2%    -2.03% (p=0.026 n=6)
+VAAActiveCaller/1280x720/stride1344/FullNoise-4                                                       10.27Gi ±  7%                        20.51Gi ±  7%   +99.70% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/FullEqual-4                                                       10.26Gi ±  6%                        20.85Gi ±  3%  +103.15% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/AllChangedMask-4                                                  9.446Gi ± 10%                       18.264Gi ± 10%   +93.36% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/AlternatingMask-4                                                 7.675Gi ± 15%                        8.994Gi ± 10%   +17.18% (p=0.026 n=6)
+VAAActiveCaller/1280x720/stride1344/SparseOddRun-4                                                    179.2Gi ±  3%                        170.4Gi ±  2%    -4.91% (p=0.002 n=6)
+VAAActiveCaller/1280x720/stride1344/AllUnchangedMask-4                                                182.0Gi ±  4%                        183.3Gi ±  3%         ~ (p=0.589 n=6)
+VAAActiveCaller/1904x1088/stride1984/FullNoise-4                                                      6.220Gi ±  7%                       11.650Gi ± 32%   +87.30% (p=0.002 n=6)
+VAAActiveCaller/1904x1088/stride1984/FullEqual-4                                                      6.049Gi ±  8%                       10.894Gi ± 30%   +80.09% (p=0.002 n=6)
+VAAActiveCaller/1904x1088/stride1984/AllChangedMask-4                                                 6.071Gi ± 10%                       10.479Gi ± 49%         ~ (p=0.065 n=6)
+VAAActiveCaller/1904x1088/stride1984/AlternatingMask-4                                                5.240Gi ±  4%                        5.989Gi ± 13%   +14.30% (p=0.015 n=6)
+VAAActiveCaller/1904x1088/stride1984/SparseOddRun-4                                                   186.2Gi ±  0%                        180.4Gi ±  5%    -3.09% (p=0.002 n=6)
+VAAActiveCaller/1904x1088/stride1984/AllUnchangedMask-4                                               184.6Gi ±  5%                        184.2Gi ±  2%         ~ (p=0.937 n=6)
+VAAActiveCaller/48x32/stride64/FullNoise-4                                                            12.67Gi ±  4%                        20.05Gi ±  4%   +58.29% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/FullEqual-4                                                            12.34Gi ±  4%                        20.06Gi ±  8%   +62.57% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/AllChangedMask-4                                                       9.762Gi ±  4%                       13.992Gi ±  9%   +43.33% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/AlternatingMask-4                                                      10.86Gi ±  5%                        12.04Gi ±  5%   +10.84% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/SparseOddRun-4                                                         19.12Gi ±  4%                        23.83Gi ±  8%   +24.62% (p=0.002 n=6)
+VAAActiveCaller/48x32/stride64/AllUnchangedMask-4                                                     46.52Gi ± 20%                        47.17Gi ±  6%         ~ (p=0.589 n=6)
+VAAActiveCaller/16x16/stride32/FullNoise-4                                                            5.373Gi ±  5%                        5.546Gi ±  6%         ~ (p=0.132 n=6)
+VAAActiveCaller/16x16/stride32/FullEqual-4                                                            5.227Gi ±  5%                        5.579Gi ±  4%    +6.73% (p=0.004 n=6)
+VAAActiveCaller/16x16/stride32/AllChangedMask-4                                                       4.111Gi ± 10%                        4.528Gi ±  6%   +10.14% (p=0.004 n=6)
+VAAActiveCaller/16x16/stride32/AlternatingMask-4                                                      10.37Gi ±  4%                        10.23Gi ±  4%         ~ (p=1.000 n=6)
+VAAActiveCaller/16x16/stride32/SparseOddRun-4                                                         4.200Gi ± 12%                        4.565Gi ± 11%         ~ (p=0.093 n=6)
+VAAActiveCaller/16x16/stride32/AllUnchangedMask-4                                                     10.52Gi ±  5%                        10.32Gi ± 11%         ~ (p=0.180 n=6)
+geomean                                                                                               15.19Gi                              19.79Gi         +30.30%
+
+                                                        │ /tmp/h264-parity-target-20261022/vaa-avx2-review/base.txt │ /tmp/h264-parity-target-20261022/vaa-avx2-review/after.txt │
+                                                        │                           B/op                            │                B/op                 vs base                │
+VAAActiveCaller/1920x1088/stride1984/FullNoise-4                                                       0.000 ± 0%                             0.000 ±  ?       ~ (p=1.000 n=6)
+VAAActiveCaller/1920x1088/stride1984/FullEqual-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/AllChangedMask-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/AlternatingMask-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/SparseOddRun-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/AllUnchangedMask-4                                                0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/FullNoise-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/FullEqual-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/AllChangedMask-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/AlternatingMask-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/SparseOddRun-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/AllUnchangedMask-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/FullNoise-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/FullEqual-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/AllChangedMask-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/AlternatingMask-4                                                 0.000 ±  ?                             0.000 ± 0%       ~ (p=1.000 n=6)
+VAAActiveCaller/1904x1088/stride1984/SparseOddRun-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/AllUnchangedMask-4                                                0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/FullNoise-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/FullEqual-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/AllChangedMask-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/AlternatingMask-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/SparseOddRun-4                                                          0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/AllUnchangedMask-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/FullNoise-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/FullEqual-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/AllChangedMask-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/AlternatingMask-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/SparseOddRun-4                                                          0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/AllUnchangedMask-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                           ²                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                        │ /tmp/h264-parity-target-20261022/vaa-avx2-review/base.txt │ /tmp/h264-parity-target-20261022/vaa-avx2-review/after.txt │
+                                                        │                         allocs/op                         │             allocs/op               vs base                │
+VAAActiveCaller/1920x1088/stride1984/FullNoise-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/FullEqual-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/AllChangedMask-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/AlternatingMask-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/SparseOddRun-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1920x1088/stride1984/AllUnchangedMask-4                                                0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/FullNoise-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/FullEqual-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/AllChangedMask-4                                                   0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/AlternatingMask-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/SparseOddRun-4                                                     0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1280x720/stride1344/AllUnchangedMask-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/FullNoise-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/FullEqual-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/AllChangedMask-4                                                  0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/AlternatingMask-4                                                 0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/SparseOddRun-4                                                    0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/1904x1088/stride1984/AllUnchangedMask-4                                                0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/FullNoise-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/FullEqual-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/AllChangedMask-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/AlternatingMask-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/SparseOddRun-4                                                          0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/48x32/stride64/AllUnchangedMask-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/FullNoise-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/FullEqual-4                                                             0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/AllChangedMask-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/AlternatingMask-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/SparseOddRun-4                                                          0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+VAAActiveCaller/16x16/stride32/AllUnchangedMask-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                           ²                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

@@ -1,0 +1,12 @@
+--- base/pkg/h264/internal/encoder/cavlc_emit_other.go
++++ candidate/pkg/h264/internal/encoder/cavlc_emit_other.go
+@@ -0,0 +1,9 @@
++//go:build !amd64
++
++package encoder
++
++import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++
++func cavlcEmit(bs *sCavlcBs, levels *[16]int16, runs *[16]uint8, external *common.SBitStringAux, total, zeros, end, property, nc int32) int32 {
++	return cavlcEmitFallback
++}

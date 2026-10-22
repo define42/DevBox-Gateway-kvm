@@ -1,0 +1,100 @@
+[
+  {
+    "name": "go-version",
+    "command": [
+      "/snap/go/current/bin/go",
+      "version"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.004796504974365234,
+    "log": "logs/go-version.txt"
+  },
+  {
+    "name": "overlay-format",
+    "command": [
+      "/snap/go/current/bin/gofmt",
+      "-l",
+      "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/overlay/svc_motion_estimate.go",
+      "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/overlay/welsEncoderExt.go",
+      "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/overlay/z_initial_mvc_diagnostic.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.01206827163696289,
+    "log": "logs/overlay-format.txt"
+  },
+  {
+    "name": "build",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-overlay=/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/overlay.json",
+      "-o",
+      "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/diagnostic-avc.test",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 10.312566995620728,
+    "log": "logs/build.txt"
+  },
+  {
+    "name": "road1",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/diagnostic-avc.test",
+      "-test.run=^TestOpenH264Comparison$",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/source",
+    "environment_override": {
+      "H264_MVC_UNIQUE_DIAGNOSTIC": "1",
+      "COMPARE_RUN": "1",
+      "COMPARE_FRAMES": "600",
+      "COMPARE_SLICES": "1",
+      "COMPARE_WIDTH": "1920",
+      "COMPARE_HEIGHT": "1080",
+      "COMPARE_QP": "20",
+      "COMPARE_CASE": "road1",
+      "COMPARE_I420": "/tmp/h264-native-parity-20261021/road1080.i420",
+      "COMPARE_STREAM": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/streams/road1.264"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 27.92899203300476,
+    "log": "logs/road1.txt"
+  },
+  {
+    "name": "pdf1",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/diagnostic-avc.test",
+      "-test.run=^TestOpenH264Comparison$",
+      "-test.count=1"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/source",
+    "environment_override": {
+      "H264_MVC_UNIQUE_DIAGNOSTIC": "1",
+      "COMPARE_RUN": "1",
+      "COMPARE_FRAMES": "600",
+      "COMPARE_SLICES": "1",
+      "COMPARE_WIDTH": "1920",
+      "COMPARE_HEIGHT": "1080",
+      "COMPARE_QP": "20",
+      "COMPARE_CASE": "pdf1",
+      "COMPARE_I420": "/tmp/h264-native-parity-20261021/pdf1080.i420",
+      "COMPARE_STREAM": "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/streams/pdf1.264"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 7.569247245788574,
+    "log": "logs/pdf1.txt"
+  }
+]

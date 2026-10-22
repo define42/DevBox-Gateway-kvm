@@ -1,0 +1,55 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                          │ /tmp/h264-parity-target-20261022/component-round5-base-sad16.txt │ /tmp/h264-parity-target-20261022/sad16-next-sad16.txt │
+                                          │                              sec/op                              │             sec/op               vs base              │
+SadWideScheduling/16x16/stride16/off0-4                                                         15.12n ±  7%                      14.17n ±  1%  -6.25% (p=0.002 n=6)
+SadWideScheduling/16x16/stride16/off3-4                                                         15.23n ±  3%                      14.63n ±  2%  -3.91% (p=0.002 n=6)
+SadWideScheduling/16x16/stride32/off0-4                                                         14.91n ±  3%                      13.88n ±  3%  -6.94% (p=0.002 n=6)
+SadWideScheduling/16x16/stride32/off3-4                                                         14.88n ±  2%                      13.52n ±  3%  -9.11% (p=0.002 n=6)
+SadWideScheduling/16x16/stride2048/off0-4                                                       18.77n ±  6%                      18.16n ±  5%  -3.25% (p=0.041 n=6)
+SadWideScheduling/16x16/stride2048/off3-4                                                       18.66n ±  7%                      18.55n ±  6%       ~ (p=0.699 n=6)
+SadWideScheduling/16x8/stride16/off0-4                                                          11.45n ±  2%                      11.09n ±  8%       ~ (p=0.143 n=6)
+SadWideScheduling/16x8/stride16/off3-4                                                          11.53n ±  3%                      10.80n ± 14%       ~ (p=0.065 n=6)
+SadWideScheduling/16x8/stride32/off0-4                                                          11.07n ±  3%                      10.64n ±  2%  -3.84% (p=0.006 n=6)
+SadWideScheduling/16x8/stride32/off3-4                                                          11.06n ±  6%                      10.73n ±  5%  -2.98% (p=0.004 n=6)
+SadWideScheduling/16x8/stride2048/off0-4                                                        11.26n ± 13%                      10.71n ±  3%  -4.84% (p=0.002 n=6)
+SadWideScheduling/16x8/stride2048/off3-4                                                        11.17n ±  1%                      10.87n ±  6%       ~ (p=0.132 n=6)
+geomean                                                                                         13.49n                            12.88n        -4.51%
+
+                                          │ /tmp/h264-parity-target-20261022/component-round5-base-sad16.txt │ /tmp/h264-parity-target-20261022/sad16-next-sad16.txt │
+                                          │                               B/op                               │             B/op               vs base                │
+SadWideScheduling/16x16/stride16/off0-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride16/off3-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride32/off0-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride32/off3-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride2048/off0-4                                                       0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride2048/off3-4                                                       0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride16/off0-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride16/off3-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride32/off0-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride32/off3-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride2048/off0-4                                                        0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride2048/off3-4                                                        0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                    ²                                  +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                          │ /tmp/h264-parity-target-20261022/component-round5-base-sad16.txt │ /tmp/h264-parity-target-20261022/sad16-next-sad16.txt │
+                                          │                            allocs/op                             │           allocs/op            vs base                │
+SadWideScheduling/16x16/stride16/off0-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride16/off3-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride32/off0-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride32/off3-4                                                         0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride2048/off0-4                                                       0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x16/stride2048/off3-4                                                       0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride16/off0-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride16/off3-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride32/off0-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride32/off3-4                                                          0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride2048/off0-4                                                        0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SadWideScheduling/16x8/stride2048/off3-4                                                        0.000 ± 0%                        0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                    ²                                  +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

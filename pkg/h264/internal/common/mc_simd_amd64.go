@@ -145,7 +145,11 @@ func McLuma_sse2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDst
 	iMvX, iMvY int16, iWidth, iHeight int32) {
 	switch (uint16(iMvX)&3)<<2 | (uint16(iMvY) & 3) {
 	case 0:
-		McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+		if iHeight == 16 && (iWidth == 8 || iWidth == 16) {
+			mcCopySSE2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+		} else {
+			McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+		}
 	case 2 << 2:
 		McHorVer20_sse2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
 	case 2:

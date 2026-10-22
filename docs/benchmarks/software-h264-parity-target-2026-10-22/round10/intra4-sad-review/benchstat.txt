@@ -1,0 +1,85 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                     │ /tmp/h264-parity-target-20261022/intra4-sad-review/base.txt │ /tmp/h264-parity-target-20261022/intra4-sad-review/after.txt │
+                                                     │                           sec/op                            │                 sec/op                  vs base              │
+Intra4SadCaller/FlatFull/stride32_32-4                                                                2.589µ ± 19%                             2.611µ ±  2%       ~ (p=0.937 n=6)
+Intra4SadCaller/SmoothFull/stride32_32-4                                                              3.232µ ±  5%                             3.320µ ±  3%       ~ (p=0.132 n=6)
+Intra4SadCaller/NoiseFull/stride32_32-4                                                               3.213µ ±  4%                             3.263µ ±  3%       ~ (p=0.065 n=6)
+Intra4SadCaller/NoiseQP32Full/stride32_32-4                                                           3.230µ ±  6%                             3.250µ ±  1%       ~ (p=0.589 n=6)
+Intra4SadCaller/LeftTopFull/stride32_32-4                                                             3.050µ ±  3%                             2.988µ ±  1%       ~ (p=0.394 n=6)
+Intra4SadCaller/TopOnlyFull/stride32_32-4                                                             3.108µ ±  4%                             3.134µ ±  4%       ~ (p=0.132 n=6)
+Intra4SadCaller/IsolatedFull/stride32_32-4                                                            2.631µ ± 10%                             2.517µ ±  8%       ~ (p=0.223 n=6)
+Intra4SadCaller/FirstBlockExit/stride32_32-4                                                          161.2n ± 29%                             172.2n ± 41%       ~ (p=0.240 n=6)
+Intra4SadCaller/IsolatedFirstExit/stride32_32-4                                                       58.99n ±  5%                             63.48n ±  9%  +7.62% (p=0.002 n=6)
+Intra4SadCaller/WrappedCostControl/stride32_32-4                                                      3.420µ ±  6%                             3.449µ ±  5%       ~ (p=0.589 n=6)
+Intra4SadCaller/SATDControl/stride32_32-4                                                             4.217µ ± 16%                             4.333µ ±  3%       ~ (p=0.240 n=6)
+Intra4SadCaller/FlatFull/stride1920_1984-4                                                            2.595µ ±  4%                             2.641µ ±  4%       ~ (p=0.288 n=6)
+Intra4SadCaller/SmoothFull/stride1920_1984-4                                                          3.239µ ±  6%                             3.252µ ±  2%       ~ (p=1.000 n=6)
+Intra4SadCaller/NoiseFull/stride1920_1984-4                                                           3.309µ ±  8%                             3.304µ ±  3%       ~ (p=1.000 n=6)
+Intra4SadCaller/NoiseQP32Full/stride1920_1984-4                                                       3.272µ ± 16%                             3.284µ ±  6%       ~ (p=0.589 n=6)
+Intra4SadCaller/LeftTopFull/stride1920_1984-4                                                         3.026µ ±  7%                             3.041µ ±  3%       ~ (p=0.853 n=6)
+Intra4SadCaller/TopOnlyFull/stride1920_1984-4                                                         3.089µ ± 29%                             3.119µ ±  3%       ~ (p=0.974 n=6)
+Intra4SadCaller/IsolatedFull/stride1920_1984-4                                                        2.501µ ±  5%                             2.519µ ±  3%       ~ (p=0.589 n=6)
+Intra4SadCaller/FirstBlockExit/stride1920_1984-4                                                      160.5n ±  3%                             168.9n ±  5%  +5.20% (p=0.002 n=6)
+Intra4SadCaller/IsolatedFirstExit/stride1920_1984-4                                                   58.88n ±  4%                             63.70n ±  2%  +8.19% (p=0.002 n=6)
+Intra4SadCaller/WrappedCostControl/stride1920_1984-4                                                  3.402µ ±  8%                             3.508µ ±  4%       ~ (p=0.132 n=6)
+Intra4SadCaller/SATDControl/stride1920_1984-4                                                         4.258µ ±  3%                             4.323µ ±  2%  +1.51% (p=0.041 n=6)
+geomean                                                                                               1.676µ                                   1.707µ        +1.81%
+
+                                                     │ /tmp/h264-parity-target-20261022/intra4-sad-review/base.txt │ /tmp/h264-parity-target-20261022/intra4-sad-review/after.txt │
+                                                     │                            B/op                             │                 B/op                  vs base                │
+Intra4SadCaller/FlatFull/stride32_32-4                                                                0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SmoothFull/stride32_32-4                                                              0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseFull/stride32_32-4                                                               0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseQP32Full/stride32_32-4                                                           0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/LeftTopFull/stride32_32-4                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/TopOnlyFull/stride32_32-4                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFull/stride32_32-4                                                            0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/FirstBlockExit/stride32_32-4                                                          0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFirstExit/stride32_32-4                                                       0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/WrappedCostControl/stride32_32-4                                                      0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SATDControl/stride32_32-4                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/FlatFull/stride1920_1984-4                                                            0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SmoothFull/stride1920_1984-4                                                          0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseFull/stride1920_1984-4                                                           0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseQP32Full/stride1920_1984-4                                                       0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/LeftTopFull/stride1920_1984-4                                                         0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/TopOnlyFull/stride1920_1984-4                                                         0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFull/stride1920_1984-4                                                        0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/FirstBlockExit/stride1920_1984-4                                                      0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFirstExit/stride1920_1984-4                                                   0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/WrappedCostControl/stride1920_1984-4                                                  0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SATDControl/stride1920_1984-4                                                         0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                          ²                                         +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                     │ /tmp/h264-parity-target-20261022/intra4-sad-review/base.txt │ /tmp/h264-parity-target-20261022/intra4-sad-review/after.txt │
+                                                     │                          allocs/op                          │              allocs/op                vs base                │
+Intra4SadCaller/FlatFull/stride32_32-4                                                                0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SmoothFull/stride32_32-4                                                              0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseFull/stride32_32-4                                                               0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseQP32Full/stride32_32-4                                                           0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/LeftTopFull/stride32_32-4                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/TopOnlyFull/stride32_32-4                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFull/stride32_32-4                                                            0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/FirstBlockExit/stride32_32-4                                                          0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFirstExit/stride32_32-4                                                       0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/WrappedCostControl/stride32_32-4                                                      0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SATDControl/stride32_32-4                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/FlatFull/stride1920_1984-4                                                            0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SmoothFull/stride1920_1984-4                                                          0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseFull/stride1920_1984-4                                                           0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/NoiseQP32Full/stride1920_1984-4                                                       0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/LeftTopFull/stride1920_1984-4                                                         0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/TopOnlyFull/stride1920_1984-4                                                         0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFull/stride1920_1984-4                                                        0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/FirstBlockExit/stride1920_1984-4                                                      0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/IsolatedFirstExit/stride1920_1984-4                                                   0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/WrappedCostControl/stride1920_1984-4                                                  0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+Intra4SadCaller/SATDControl/stride1920_1984-4                                                         0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                          ²                                         +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

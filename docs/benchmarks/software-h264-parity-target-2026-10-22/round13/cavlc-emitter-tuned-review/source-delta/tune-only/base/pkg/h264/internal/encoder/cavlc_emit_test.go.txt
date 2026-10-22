@@ -1,0 +1,200 @@
+package encoder
+
+import (
+	"bytes"
+	"fmt"
+	"reflect"
+	"testing"
+	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+func cavlcEmitterState(buffer []byte, left int32, bits uint32, cursor int) common.SBitStringAux {
+	return common.SBitStringAux{PBuf: buffer, PStartBuf: 7, PEndBuf: -13, IBits: -31, IIndex: 19, PCurBuf: cursor, UiCurBits: bits, ILeftBits: left}
+}
+
+func cavlcEmitterCompare(t *testing.T, coeff []int16, end, property int32, nc int8, left int32, cursor, size int) {
+	t.Helper()
+	gotBuf, wantBuf := bytes.Repeat([]byte{0xa5}, size), bytes.Repeat([]byte{0xa5}, size)
+	got, want := cavlcEmitterState(gotBuf, left, 0xd3a6815f, cursor), cavlcEmitterState(wantBuf, left, 0xd3a6815f, cursor)
+	gotCode, gotPanic := cavlcPackedCallResult(func() int32 { return WriteBlockResidualCavlc(nil, coeff, end, 1, property, nc, &got) })
+	wantCode, wantPanic := cavlcPackedCallResult(func() int32 { return writeCavlcEmitterBaseline(nil, coeff, end, 1, property, nc, &want) })
+	if gotCode != wantCode || gotPanic != wantPanic || !reflect.DeepEqual(got, want) {
+		t.Fatalf("coeff%v end%d property%d nc%d left%d cursor%d size%d: code%d/%d panic%q/%q state%+v/%+v", coeff, end, property, nc, left, cursor, size, gotCode, wantCode, gotPanic, wantPanic, got, want)
+	}
+}
+
+// Full signed input in the first-level adjusted path and every normal suffix
+// in a following level. A live packed entry controls the second suffix, so the
+// test exercises the emitter arithmetic itself rather than a copy of it.
+func TestCavlcEmitterSignedDomain(t *testing.T) {
+	entry := &cavlcLevelTable[1][0][2+cavlcLevelLimit]
+	saved := *entry
+	defer func() { *entry = saved }()
+	for suffix := int32(-1); suffix <= 6; suffix++ {
+		if suffix >= 0 {
+			*entry = saved&0xffffff | uint32(suffix)<<24
+		}
+		for value := int32(-32768); value <= 32767; value++ {
+			var coeff [16]int16
+			coeff[0] = int16(value)
+			if suffix >= 0 {
+				coeff[15] = 2
+			}
+			// Cycling all pending-bit positions includes both flush branches.
+			cavlcEmitterCompare(t, coeff[:], 15, int32(LUMA_4x4), 3, 1+(value&31), 3, 192)
+		}
+	}
+}
+
+func TestCavlcEmitterPrefixesContextsAndFailures(t *testing.T) {
+	patterns := [][16]int16{
+		{}, {1}, {-1}, {2}, {-2}, {1, -1, 1},
+		{0, 2, 0, -7, 0, 1, 0, -1, 0, 4, 0, -2, 0, 1, 0, -1},
+		{2, -3, 7, -11, 13, -17, 29, -43, 65, -97, 193, -385, 769, -1023, 2047, -4095},
+		{-32768, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513, 1025, 7, 3, 2, 1},
+	}
+	for _, end := range []int32{3, 14, 15} {
+		for _, property := range []int32{int32(LUMA_DC), int32(LUMA_AC), int32(LUMA_4x4), int32(CHROMA_DC), int32(CHROMA_AC), -1, 100} {
+			for nc := int8(-1); nc <= 18; nc++ {
+				for _, coeff := range patterns {
+					for left := int32(1); left <= 32; left++ {
+						cavlcEmitterCompare(t, coeff[:], end, property, nc, left, 3, 192)
+					}
+				}
+			}
+		}
+	}
+	coeff := patterns[7]
+	for _, left := range []int32{-2147483648, -33, -1, 0, 1, 17, 32, 33, 64, 2147483647} {
+		for _, cursor := range []int{-1, 0, 1, 3, 131, 132, 133, 192, 193, int(^uint(0) >> 1)} {
+			for _, size := range []int{0, 1, 2, 3, 4, 7, 8, 12, 64, 131, 132, 133, 192} {
+				cavlcEmitterCompare(t, coeff[:], 15, int32(LUMA_4x4), 3, left, cursor, size)
+			}
+		}
+	}
+}
+
+func TestCavlcEmitterMutableTables(t *testing.T) {
+	coeff := [16]int16{3, 0, 0, 0, 0, 2}
+	check := func() {
+		for _, left := range []int32{1, 2, 7, 17, 31, 32} {
+			cavlcEmitterCompare(t, coeff[:], 15, int32(LUMA_4x4), 3, left, 0, 256)
+			large := coeff
+			large[0] = 64
+			cavlcEmitterCompare(t, large[:], 15, int32(LUMA_4x4), 3, left, 0, 256)
+		}
+	}
+	// Every externally mutable byte, including unusual zero lengths and late
+	// unsupported lengths/indexes, is read at its existing stage before replay.
+	for _, entry := range []*uint8{
+		&g_kuiEncNcMapTable[3], &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[3]][2][0][0], &g_kuiVlcCoeffToken[g_kuiEncNcMapTable[3]][2][0][1],
+		&g_kuiVlcTotalZeros[2][4][0], &g_kuiVlcTotalZeros[2][4][1], &g_kuiZeroLeftMap[4],
+		&g_kuiVlcRunBefore[4][4][0], &g_kuiVlcRunBefore[4][4][1],
+	} {
+		func() {
+			saved := *entry
+			defer func() { *entry = saved }()
+			for value := 0; value < 256; value++ {
+				*entry = uint8(value)
+				check()
+			}
+		}()
+	}
+	entry := &cavlcLevelTable[1][0][2+cavlcLevelLimit]
+	saved := *entry
+	defer func() { *entry = saved }()
+	for _, word := range []uint32{0, 0xffffffff, 1, 0x0020ffff, 0x0021ffff, 0x00ffffff, 0x07010001, 0xff010001, 0x80010001} {
+		*entry = word
+		check()
+	}
+}
+
+// Output may overwrite original coefficients after extraction. Late fallback
+// must use the saved levels/runs, never re-extract the modified input bytes.
+func TestCavlcEmitterCoefficientAliasReplay(t *testing.T) {
+	saved := g_kuiZeroLeftMap[4]
+	defer func() { g_kuiZeroLeftMap[4] = saved }()
+	for _, invalidLateMap := range []bool{false, true} {
+		if invalidLateMap {
+			g_kuiZeroLeftMap[4] = 255
+		} else {
+			g_kuiZeroLeftMap[4] = saved
+		}
+		for _, origin := range []int{0, 1, 3, 17, 64, 132} {
+			gotBuf, wantBuf := make([]byte, 256), make([]byte, 256)
+			gotCoeff := unsafe.Slice((*int16)(unsafe.Pointer(&gotBuf[origin])), 16)
+			wantCoeff := unsafe.Slice((*int16)(unsafe.Pointer(&wantBuf[origin])), 16)
+			gotCoeff[0], gotCoeff[5] = 3, 2
+			copy(wantBuf, gotBuf)
+			got, want := cavlcEmitterState(gotBuf, 1, 0x12345678, 0), cavlcEmitterState(wantBuf, 1, 0x12345678, 0)
+			gc, gp := cavlcPackedCallResult(func() int32 { return WriteBlockResidualCavlc(nil, gotCoeff, 15, 1, int32(LUMA_4x4), 3, &got) })
+			wc, wp := cavlcPackedCallResult(func() int32 { return writeCavlcEmitterBaseline(nil, wantCoeff, 15, 1, int32(LUMA_4x4), 3, &want) })
+			if gc != wc || gp != wp || !reflect.DeepEqual(got, want) {
+				t.Fatalf("late%t origin%d: code%d/%d panic%q/%q", invalidLateMap, origin, gc, wc, gp, wp)
+			}
+		}
+	}
+}
+
+func TestCavlcEmitterExternalStateAlias(t *testing.T) {
+	type backing struct {
+		state common.SBitStringAux
+		tail  [256]byte
+	}
+	for _, left := range []int32{1, 17, 32} {
+		got, want := new(backing), new(backing)
+		// Only scalar pending fields and the following tail are output bytes;
+		// the slice header and all tracked pointers remain intact.
+		gotBuf := unsafe.Slice((*byte)(unsafe.Pointer(&got.state.UiCurBits)), 8+len(got.tail))
+		wantBuf := unsafe.Slice((*byte)(unsafe.Pointer(&want.state.UiCurBits)), 8+len(want.tail))
+		got.state, want.state = cavlcEmitterState(gotBuf, left, 0x12345678, 0), cavlcEmitterState(wantBuf, left, 0x12345678, 0)
+		coeff := []int16{3, 0, 0, 0, 0, 2, 5, -9, 1, -1, 2, -3, 1, -1, 2, 3}
+		gc, gp := cavlcPackedCallResult(func() int32 { return WriteBlockResidualCavlc(nil, coeff, 15, 1, int32(LUMA_4x4), 3, &got.state) })
+		wc, wp := cavlcPackedCallResult(func() int32 { return writeCavlcEmitterBaseline(nil, coeff, 15, 1, int32(LUMA_4x4), 3, &want.state) })
+		if gc != wc || gp != wp || !reflect.DeepEqual(got, want) {
+			t.Fatalf("left%d: code%d/%d panic%q/%q", left, gc, wc, gp, wp)
+		}
+	}
+}
+
+func TestCavlcEmitterTableAlias(t *testing.T) {
+	coeff := []int16{3, 0, 0, 0, 0, 2, 5, -9, 1, -1, 2, -3, 1, -1, 2, 3}
+	for id, buffer := range [][]byte{
+		unsafe.Slice((*byte)(unsafe.Pointer(&g_kuiVlcCoeffToken)), int(unsafe.Sizeof(g_kuiVlcCoeffToken))),
+		unsafe.Slice((*byte)(unsafe.Pointer(&cavlcLevelTable)), int(unsafe.Sizeof(cavlcLevelTable))),
+		unsafe.Slice((*byte)(unsafe.Pointer(&g_kuiVlcTotalZeros)), int(unsafe.Sizeof(g_kuiVlcTotalZeros))),
+		unsafe.Slice((*byte)(unsafe.Pointer(&g_kuiVlcRunBefore)), int(unsafe.Sizeof(g_kuiVlcRunBefore))),
+	} {
+		t.Run(fmt.Sprint(id), func(t *testing.T) {
+			saved := bytes.Clone(buffer)
+			defer copy(buffer, saved)
+			got := cavlcEmitterState(buffer, 1, 0xd3a6815f, 0)
+			gc, gp := cavlcPackedCallResult(func() int32 { return WriteBlockResidualCavlc(nil, coeff, 15, 1, int32(LUMA_4x4), 3, &got) })
+			gotBytes := bytes.Clone(buffer)
+			copy(buffer, saved)
+			want := cavlcEmitterState(buffer, 1, 0xd3a6815f, 0)
+			wc, wp := cavlcPackedCallResult(func() int32 { return writeCavlcEmitterBaseline(nil, coeff, 15, 1, int32(LUMA_4x4), 3, &want) })
+			if gc != wc || gp != wp || got.PCurBuf != want.PCurBuf || got.UiCurBits != want.UiCurBits || got.ILeftBits != want.ILeftBits || !bytes.Equal(gotBytes, buffer) {
+				t.Fatalf("table%d code%d/%d panic%q/%q", id, gc, wc, gp, wp)
+			}
+		})
+	}
+}
+
+func TestCavlcEmitterMutableChromaZeros(t *testing.T) {
+	coeff := []int16{3, 0, 2, 0}
+	for _, entry := range []*uint8{&g_kuiVlcTotalZerosChromaDc[2][1][0], &g_kuiVlcTotalZerosChromaDc[2][1][1]} {
+		func() {
+			saved := *entry
+			defer func() { *entry = saved }()
+			for value := 0; value < 256; value++ {
+				*entry = uint8(value)
+				for _, left := range []int32{1, 17, 32} {
+					cavlcEmitterCompare(t, coeff, 3, int32(CHROMA_DC), 17, left, 0, 256)
+				}
+			}
+		}()
+	}
+}

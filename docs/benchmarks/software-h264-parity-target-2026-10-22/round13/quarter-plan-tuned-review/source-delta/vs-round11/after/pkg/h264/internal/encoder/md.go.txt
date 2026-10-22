@@ -1,0 +1,874 @@
+// Port of codec/encoder/core/src/md.cpp (mode decision).
+
+package encoder
+
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+
+const (
+	INTRA_VARIANCE_SAD_THRESHOLD = 150
+	INTER_VARIANCE_SAD_THRESHOLD = 20
+)
+
+// FillNeighborCacheIntra fills the cache of neighbor MB, containing
+// pNonZeroCount, sample_avail, pIntra4x4PredMode.
+func FillNeighborCacheIntra(pMbCache *SMbCache, pCurMb *SMB, iMbWidth int32) {
+	uiNeighborAvail := uint32(pCurMb.uiNeighborAvail)
+	var uiNeighborIntra uint32 = 0
+
+	if uiNeighborAvail&LEFT_MB_POS != 0 { //LEFT MB
+		pLeftMb := pCurMb.Add(-1)
+		pLeftMbNonZeroCount := pLeftMb.pNonZeroCount
+		pMbCache.iNonZeroCoeffCount[8] = pLeftMbNonZeroCount[3]
+		pMbCache.iNonZeroCoeffCount[16] = pLeftMbNonZeroCount[7]
+		pMbCache.iNonZeroCoeffCount[24] = pLeftMbNonZeroCount[11]
+		pMbCache.iNonZeroCoeffCount[32] = pLeftMbNonZeroCount[15]
+
+		pMbCache.iNonZeroCoeffCount[13] = pLeftMbNonZeroCount[17]
+		pMbCache.iNonZeroCoeffCount[21] = pLeftMbNonZeroCount[21]
+		pMbCache.iNonZeroCoeffCount[37] = pLeftMbNonZeroCount[19]
+		pMbCache.iNonZeroCoeffCount[45] = pLeftMbNonZeroCount[23]
+
+		uiNeighborIntra |= LEFT_MB_POS
+
+		if common.IS_INTRA4x4(pLeftMb.uiMbType) {
+			pLeftMbIntra4x4PredMode := pLeftMb.pIntra4x4PredMode
+			pMbCache.iIntraPredMode[8] = pLeftMbIntra4x4PredMode[4]
+			pMbCache.iIntraPredMode[16] = pLeftMbIntra4x4PredMode[5]
+			pMbCache.iIntraPredMode[24] = pLeftMbIntra4x4PredMode[6]
+			pMbCache.iIntraPredMode[32] = pLeftMbIntra4x4PredMode[3]
+		} else { // if ( 0 == constrained_intra_pred_flag || IS_INTRA16x16((pCurMb-1)->uiMbType ))
+			pMbCache.iIntraPredMode[8] = 2 //DC
+			pMbCache.iIntraPredMode[16] = 2
+			pMbCache.iIntraPredMode[24] = 2
+			pMbCache.iIntraPredMode[32] = 2
+		}
+	} else {
+		pMbCache.iNonZeroCoeffCount[8] = -1 //unavailable
+		pMbCache.iNonZeroCoeffCount[16] = -1
+		pMbCache.iNonZeroCoeffCount[24] = -1
+		pMbCache.iNonZeroCoeffCount[32] = -1
+		pMbCache.iNonZeroCoeffCount[13] = -1 //unavailable
+		pMbCache.iNonZeroCoeffCount[21] = -1
+		pMbCache.iNonZeroCoeffCount[37] = -1
+		pMbCache.iNonZeroCoeffCount[45] = -1
+
+		pMbCache.iIntraPredMode[8] = -1 //unavailable
+		pMbCache.iIntraPredMode[16] = -1
+		pMbCache.iIntraPredMode[24] = -1
+		pMbCache.iIntraPredMode[32] = -1
+	}
+
+	if uiNeighborAvail&TOP_MB_POS != 0 { //TOP MB
+		pTopMb := pCurMb.Add(-iMbWidth)
+		copy(pMbCache.iNonZeroCoeffCount[1:5], pTopMb.pNonZeroCount[12:16])
+
+		copy(pMbCache.iNonZeroCoeffCount[6:8], pTopMb.pNonZeroCount[20:22])
+		copy(pMbCache.iNonZeroCoeffCount[30:32], pTopMb.pNonZeroCount[22:24])
+
+		uiNeighborIntra |= TOP_MB_POS
+
+		if common.IS_INTRA4x4(pTopMb.uiMbType) {
+			copy(pMbCache.iIntraPredMode[1:5], pTopMb.pIntra4x4PredMode[0:4])
+		} else { // if ( 0 == constrained_intra_pred_flag || IS_INTRA16x16( pTopMb->uiMbType ))
+			// kuiDc32 = 0x02020202
+			for k := 1; k < 5; k++ {
+				pMbCache.iIntraPredMode[k] = 2
+			}
+		}
+	} else {
+		// kuiUnavail32 = 0xffffffff
+		for k := 1; k < 5; k++ {
+			pMbCache.iIntraPredMode[k] = -1
+			pMbCache.iNonZeroCoeffCount[k] = -1
+		}
+
+		pMbCache.iNonZeroCoeffCount[6] = -1
+		pMbCache.iNonZeroCoeffCount[7] = -1
+		pMbCache.iNonZeroCoeffCount[30] = -1
+		pMbCache.iNonZeroCoeffCount[31] = -1
+	}
+
+	if uiNeighborAvail&TOPLEFT_MB_POS != 0 {
+		uiNeighborIntra |= 0x04
+	}
+
+	if uiNeighborAvail&TOPRIGHT_MB_POS != 0 {
+		uiNeighborIntra |= 0x08
+	}
+	pMbCache.uiNeighborIntra = uint8(uiNeighborIntra)
+}
+
+// refNotAvailOrNotInList returns REF_NOT_IN_LIST when the neighbor is
+// available (but not inter) and REF_NOT_AVAIL otherwise.
+func refNotAvailOrNotInList(uiNeighborAvail uint32, kuiPos uint32) int8 {
+	if uiNeighborAvail&kuiPos != 0 {
+		return common.REF_NOT_IN_LIST
+	}
+	return common.REF_NOT_AVAIL
+}
+
+// fillNeighborCacheInter is the shared body of FillNeighborCacheInterWithoutBGD
+// (bBGD == false) and FillNeighborCacheInterWithBGD (bBGD == true).
+func fillNeighborCacheInter(pMbCache *SMbCache, pCurMb *SMB, iMbWidth int32, pVaaBgMbFlag []int8, iVaaBgMbFlagOff int, bBGD bool) {
+	uiNeighborAvail := uint32(pCurMb.uiNeighborAvail)
+	pMvComp := &pMbCache.sMvComponents
+	pEncSad := pMbCache.pEncSad
+	iEncSadOff := pMbCache.iEncSadOff
+
+	// background flag check of a neighbor (always true without BGD)
+	bgOk := func(iDelta int32) bool {
+		if !bBGD {
+			return true
+		}
+		return pVaaBgMbFlag[iVaaBgMbFlagOff+int(iDelta)] == 0
+	}
+
+	// LEFT MB
+	if uiNeighborAvail&LEFT_MB_POS != 0 && common.IS_SVC_INTER(pCurMb.Add(-1).uiMbType) {
+		pLeftMb := pCurMb.Add(-1)
+		pMvComp.sMotionVectorCache[6] = pLeftMb.sMv[3]
+		pMvComp.sMotionVectorCache[12] = pLeftMb.sMv[7]
+		pMvComp.sMotionVectorCache[18] = pLeftMb.sMv[11]
+		pMvComp.sMotionVectorCache[24] = pLeftMb.sMv[15]
+		pMvComp.iRefIndexCache[6] = pLeftMb.pRefIndex[1]
+		pMvComp.iRefIndexCache[12] = pLeftMb.pRefIndex[1]
+		pMvComp.iRefIndexCache[18] = pLeftMb.pRefIndex[3]
+		pMvComp.iRefIndexCache[24] = pLeftMb.pRefIndex[3]
+		pMbCache.iSadCost[3] = *pLeftMb.pSadCost
+
+		if pLeftMb.uiMbType == common.MB_TYPE_SKIP && bgOk(-1) {
+			pMbCache.bMbTypeSkip[3] = true
+			pMbCache.iSadCostSkip[3] = pEncSad[iEncSadOff-1]
+		} else {
+			pMbCache.bMbTypeSkip[3] = false
+			pMbCache.iSadCostSkip[3] = 0
+		}
+	} else { //avail or non-inter
+		pMvComp.sMotionVectorCache[6] = SMVUnitXY{}
+		pMvComp.sMotionVectorCache[12] = SMVUnitXY{}
+		pMvComp.sMotionVectorCache[18] = SMVUnitXY{}
+		pMvComp.sMotionVectorCache[24] = SMVUnitXY{}
+		iRef := refNotAvailOrNotInList(uiNeighborAvail, LEFT_MB_POS)
+		pMvComp.iRefIndexCache[6] = iRef
+		pMvComp.iRefIndexCache[12] = iRef
+		pMvComp.iRefIndexCache[18] = iRef
+		pMvComp.iRefIndexCache[24] = iRef
+		pMbCache.iSadCost[3] = 0
+		pMbCache.bMbTypeSkip[3] = false
+		pMbCache.iSadCostSkip[3] = 0
+	}
+
+	// TOP MB
+	if uiNeighborAvail&TOP_MB_POS != 0 && common.IS_SVC_INTER(pCurMb.Add(-iMbWidth).uiMbType) {
+		pTopMb := pCurMb.Add(-iMbWidth)
+		pMvComp.sMotionVectorCache[1] = pTopMb.sMv[12]
+		pMvComp.sMotionVectorCache[2] = pTopMb.sMv[13]
+		pMvComp.sMotionVectorCache[3] = pTopMb.sMv[14]
+		pMvComp.sMotionVectorCache[4] = pTopMb.sMv[15]
+		pMvComp.iRefIndexCache[1] = pTopMb.pRefIndex[2]
+		pMvComp.iRefIndexCache[2] = pTopMb.pRefIndex[2]
+		pMvComp.iRefIndexCache[3] = pTopMb.pRefIndex[3]
+		pMvComp.iRefIndexCache[4] = pTopMb.pRefIndex[3]
+		pMbCache.iSadCost[1] = *pTopMb.pSadCost
+
+		if pTopMb.uiMbType == common.MB_TYPE_SKIP && bgOk(-iMbWidth) {
+			pMbCache.bMbTypeSkip[1] = true
+			pMbCache.iSadCostSkip[1] = pEncSad[iEncSadOff-int(iMbWidth)]
+		} else {
+			pMbCache.bMbTypeSkip[1] = false
+			pMbCache.iSadCostSkip[1] = 0
+		}
+	} else { //unavail
+		pMvComp.sMotionVectorCache[1] = SMVUnitXY{}
+		pMvComp.sMotionVectorCache[2] = SMVUnitXY{}
+		pMvComp.sMotionVectorCache[3] = SMVUnitXY{}
+		pMvComp.sMotionVectorCache[4] = SMVUnitXY{}
+		iRef := refNotAvailOrNotInList(uiNeighborAvail, TOP_MB_POS)
+		pMvComp.iRefIndexCache[1] = iRef
+		pMvComp.iRefIndexCache[2] = iRef
+		pMvComp.iRefIndexCache[3] = iRef
+		pMvComp.iRefIndexCache[4] = iRef
+		pMbCache.iSadCost[1] = 0
+
+		pMbCache.bMbTypeSkip[1] = false
+		pMbCache.iSadCostSkip[1] = 0
+	}
+
+	// LEFT_TOP MB
+	if uiNeighborAvail&TOPLEFT_MB_POS != 0 && common.IS_SVC_INTER(pCurMb.Add(-iMbWidth-1).uiMbType) {
+		pLeftTopMb := pCurMb.Add(-iMbWidth - 1)
+		pMvComp.sMotionVectorCache[0] = pLeftTopMb.sMv[15]
+		pMvComp.iRefIndexCache[0] = pLeftTopMb.pRefIndex[3]
+		pMbCache.iSadCost[0] = *pLeftTopMb.pSadCost
+
+		if pLeftTopMb.uiMbType == common.MB_TYPE_SKIP && bgOk(-iMbWidth-1) {
+			pMbCache.bMbTypeSkip[0] = true
+			pMbCache.iSadCostSkip[0] = pEncSad[iEncSadOff-int(iMbWidth)-1]
+		} else {
+			pMbCache.bMbTypeSkip[0] = false
+			pMbCache.iSadCostSkip[0] = 0
+		}
+	} else { //unavail
+		pMvComp.sMotionVectorCache[0] = SMVUnitXY{}
+		pMvComp.iRefIndexCache[0] = refNotAvailOrNotInList(uiNeighborAvail, TOPLEFT_MB_POS)
+		pMbCache.iSadCost[0] = 0
+		pMbCache.bMbTypeSkip[0] = false
+		pMbCache.iSadCostSkip[0] = 0
+	}
+
+	// RIGHT_TOP MB
+	if uiNeighborAvail&TOPRIGHT_MB_POS != 0 && common.IS_SVC_INTER(pCurMb.Add(-iMbWidth+1).uiMbType) {
+		iRightTopMb := pCurMb.Add(-iMbWidth + 1)
+		pMvComp.sMotionVectorCache[5] = iRightTopMb.sMv[12]
+		pMvComp.iRefIndexCache[5] = iRightTopMb.pRefIndex[2]
+		pMbCache.iSadCost[2] = *iRightTopMb.pSadCost
+
+		if iRightTopMb.uiMbType == common.MB_TYPE_SKIP && bgOk(-iMbWidth+1) {
+			pMbCache.bMbTypeSkip[2] = true
+			pMbCache.iSadCostSkip[2] = pEncSad[iEncSadOff-int(iMbWidth)+1]
+		} else {
+			pMbCache.bMbTypeSkip[2] = false
+			pMbCache.iSadCostSkip[2] = 0
+		}
+	} else { //unavail
+		pMvComp.sMotionVectorCache[5] = SMVUnitXY{}
+		pMvComp.iRefIndexCache[5] = refNotAvailOrNotInList(uiNeighborAvail, TOPRIGHT_MB_POS)
+		pMbCache.iSadCost[2] = 0
+		pMbCache.bMbTypeSkip[2] = false
+		pMbCache.iSadCostSkip[2] = 0
+	}
+
+	//right-top 4*4 pBlock unavailable
+	pMvComp.sMotionVectorCache[9] = SMVUnitXY{}
+	pMvComp.sMotionVectorCache[21] = SMVUnitXY{}
+	pMvComp.sMotionVectorCache[11] = SMVUnitXY{}
+	pMvComp.sMotionVectorCache[17] = SMVUnitXY{}
+	pMvComp.sMotionVectorCache[23] = SMVUnitXY{}
+	pMvComp.iRefIndexCache[9] = common.REF_NOT_AVAIL
+	pMvComp.iRefIndexCache[11] = common.REF_NOT_AVAIL
+	pMvComp.iRefIndexCache[17] = common.REF_NOT_AVAIL
+	pMvComp.iRefIndexCache[21] = common.REF_NOT_AVAIL
+	pMvComp.iRefIndexCache[23] = common.REF_NOT_AVAIL
+}
+
+// FillNeighborCacheInterWithoutBGD fills the cache of neighbor MB, containing
+// motion_vector and uiRefIndex.
+func FillNeighborCacheInterWithoutBGD(pMbCache *SMbCache, pCurMb *SMB, iMbWidth int32, pVaaBgMbFlag []int8, iVaaBgMbFlagOff int) {
+	fillNeighborCacheInter(pMbCache, pCurMb, iMbWidth, pVaaBgMbFlag, iVaaBgMbFlagOff, false)
+}
+
+func FillNeighborCacheInterWithBGD(pMbCache *SMbCache, pCurMb *SMB, iMbWidth int32, pVaaBgMbFlag []int8, iVaaBgMbFlagOff int) {
+	fillNeighborCacheInter(pMbCache, pCurMb, iMbWidth, pVaaBgMbFlag, iVaaBgMbFlagOff, true)
+}
+
+func InitFillNeighborCacheInterFunc(pFuncList *SWelsFuncPtrList, kiFlag int32) {
+	if kiFlag != 0 {
+		pFuncList.pfFillInterNeighborCache = FillNeighborCacheInterWithBGD
+	} else {
+		pFuncList.pfFillInterNeighborCache = FillNeighborCacheInterWithoutBGD
+	}
+}
+
+func UpdateMbMv_c(pMvBuffer []SMVUnitXY, ksMv SMVUnitXY) {
+	for k := 0; k < common.MB_BLOCK4x4_NUM; k += 4 {
+		pMvBuffer[k] = ksMv
+		pMvBuffer[k+1] = ksMv
+		pMvBuffer[k+2] = ksMv
+		pMvBuffer[k+3] = ksMv
+	}
+}
+
+func MdInterAnalysisVaaInfo_c(pSad8x8 []int32) uint8 {
+	var iSadBlock, iAverageSadBlock [4]int32
+	var iAverageSad, iVarianceSad int32
+
+	iSadBlock[0] = pSad8x8[0]
+	iAverageSad = iSadBlock[0]
+
+	iSadBlock[1] = pSad8x8[1]
+	iAverageSad += iSadBlock[1]
+
+	iSadBlock[2] = pSad8x8[2]
+	iAverageSad += iSadBlock[2]
+
+	iSadBlock[3] = pSad8x8[3]
+	iAverageSad += iSadBlock[3]
+
+	iAverageSad = iAverageSad >> 2
+
+	iAverageSadBlock[0] = (iSadBlock[0] >> 6) - (iAverageSad >> 6)
+	iVarianceSad = iAverageSadBlock[0] * iAverageSadBlock[0]
+
+	iAverageSadBlock[1] = (iSadBlock[1] >> 6) - (iAverageSad >> 6)
+	iVarianceSad += iAverageSadBlock[1] * iAverageSadBlock[1]
+
+	iAverageSadBlock[2] = (iSadBlock[2] >> 6) - (iAverageSad >> 6)
+	iVarianceSad += iAverageSadBlock[2] * iAverageSadBlock[2]
+
+	iAverageSadBlock[3] = (iSadBlock[3] >> 6) - (iAverageSad >> 6)
+	iVarianceSad += iAverageSadBlock[3] * iAverageSadBlock[3]
+
+	if iVarianceSad < INTER_VARIANCE_SAD_THRESHOLD {
+		return 15
+	}
+
+	var uiMbSign uint8 = 0
+	if iSadBlock[0] > iAverageSad {
+		uiMbSign |= 0x08
+	}
+	if iSadBlock[1] > iAverageSad {
+		uiMbSign |= 0x04
+	}
+	if iSadBlock[2] > iAverageSad {
+		uiMbSign |= 0x02
+	}
+	if iSadBlock[3] > iAverageSad {
+		uiMbSign |= 0x01
+	}
+	return uiMbSign
+}
+
+func AnalysisVaaInfoIntra_c(pDataY []uint8, iDataYOff int, kiLineSize int32) int32 {
+	var uiAvgBlock [16]uint16
+	iBlockOff := 0
+	pEncData := pDataY
+	iEncDataOff := iDataYOff
+	kiLineSize1 := int(kiLineSize)
+	kiLineSize2 := int(kiLineSize << 1)
+	kiLineSize3 := int(kiLineSize + (kiLineSize << 1))
+	kiLineSize4 := int(kiLineSize << 2)
+	var iSumAvg, iSumSqr int32
+
+	//  analysis_vaa_info_intra_core_c( pDataY, iLineSize, pBlock );
+	for j := 0; j < 16; j += 4 {
+		num := 0
+		for i := 0; i < 16; i, num = i+4, num+1 {
+			p := iEncDataOff + i
+			v := uint16(int32(pEncData[p]) + int32(pEncData[p+1]) + int32(pEncData[p+2]) + int32(pEncData[p+3]))
+			v += uint16(int32(pEncData[p+kiLineSize1]) + int32(pEncData[p+kiLineSize1+1]) + int32(pEncData[p+kiLineSize1+2]) +
+				int32(pEncData[p+kiLineSize1+3]))
+			v += uint16(int32(pEncData[p+kiLineSize2]) + int32(pEncData[p+kiLineSize2+1]) + int32(pEncData[p+kiLineSize2+2]) +
+				int32(pEncData[p+kiLineSize2+3]))
+			v += uint16(int32(pEncData[p+kiLineSize3]) + int32(pEncData[p+kiLineSize3+1]) + int32(pEncData[p+kiLineSize3+2]) +
+				int32(pEncData[p+kiLineSize3+3]))
+			v >>= 4
+			uiAvgBlock[iBlockOff+num] = v
+		}
+		iBlockOff += 4
+		iEncDataOff += kiLineSize4
+	}
+
+	for k := 0; k < 16; k += 4 {
+		b0 := int32(uiAvgBlock[k])
+		b1 := int32(uiAvgBlock[k+1])
+		b2 := int32(uiAvgBlock[k+2])
+		b3 := int32(uiAvgBlock[k+3])
+		iSumAvg += b0 + b1 + b2 + b3
+		iSumSqr += b0*b0 + b1*b1 + b2*b2 + b3*b3
+	}
+
+	return /*variance =*/ iSumSqr - ((iSumAvg * iSumAvg) >> 4)
+}
+
+// InitIntraAnalysisVaaInfo installs VAA analysis and motion-vector helpers.
+func InitIntraAnalysisVaaInfo(pFuncList *SWelsFuncPtrList, kuiCpuFlag uint32) {
+	pFuncList.pfGetVarianceFromIntraVaa = AnalysisVaaInfoIntra_c
+	pFuncList.pfGetMbSignFromInterVaa = MdInterAnalysisVaaInfo_c
+	pFuncList.pfUpdateMbMv = UpdateMbMv_c
+	initIntraVaaSIMD(pFuncList, kuiCpuFlag)
+}
+
+func MdIntraAnalysisVaaInfo(pEncCtx *sWelsEncCtx, pEncMb []uint8, iEncMbOff int) bool {
+	pCurDqLayer := pEncCtx.pCurDqLayer
+	kiLineSize := pCurDqLayer.iEncStride[0]
+	kiVariance := pEncCtx.pFuncList.pfGetVarianceFromIntraVaa(pEncMb, iEncMbOff, kiLineSize)
+	return kiVariance >= INTRA_VARIANCE_SAD_THRESHOLD
+}
+
+func InitMeRefinePointer(pMeRefine *SMeRefinePointer, pMbCache *SMbCache, iStride int32) {
+	s := int(iStride)
+	pMeRefine.pHalfPixH = pMbCache.pBufferInterPredMe[0+s:]
+	pMeRefine.pHalfPixV = pMbCache.pBufferInterPredMe[640+s:]
+
+	pMeRefine.pQuarPixBest = pMbCache.pBufferInterPredMe[1280+s:]
+	pMeRefine.pQuarPixTmp = pMbCache.pBufferInterPredMe[1920+s:]
+}
+
+// SQuarRefineParams is the file-local TagQuarParams. Pixel pointers are
+// (slice, offset) pairs: pRef / pSrcB may point into the reference picture
+// (indexed around the block), pSrcA into the refinement buffers.
+type SQuarRefineParams struct {
+	iBestCost    int32
+	iBestHalfPix int32
+	iStrideA     int32
+	iStrideB     int32
+	pRef         []uint8
+	iRefOff      int
+	pSrcB        [4][]uint8
+	iSrcBOff     [4]int
+	pSrcA        [4][]uint8
+	iSrcAOff     [4]int
+	iLms         [4]int32
+	iBestQuarPix int32
+}
+
+func MeRefineQuarPixel(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *SMeRefinePointer,
+	kiWidth int32, kiHeight int32, pParams *SQuarRefineParams, iStrideEnc int32) {
+	if meRefineQuarPixelFused(pFunc, pMe, pMeRefine, kiWidth, kiHeight, pParams, iStrideEnc) {
+		return
+	}
+	meRefineQuarPixelUnfused(pFunc, pMe, pMeRefine, kiWidth, kiHeight, pParams, iStrideEnc)
+}
+
+func meRefineQuarPixelUnfused(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *SMeRefinePointer,
+	kiWidth int32, kiHeight int32, pParams *SQuarRefineParams, iStrideEnc int32) {
+	pSampleAvg := pFunc.sMcFuncs.PfSampleAveraging
+	var iCurCost int32
+	pEncMb := pMe.pEncMb
+	iEncMbOff := pMe.iEncMbOff
+	kuiPixel := pMe.uiBlockSize
+
+	// CALC_COST(me_buf, lm)
+	calcCost := func(meBuf []uint8, lm int32) int32 {
+		return pFunc.sSampleDealingFuncs.pfMeCost[kuiPixel](pEncMb, iEncMbOff, iStrideEnc, meBuf, 0, ME_REFINE_BUF_STRIDE) + lm
+	}
+	// SWITCH_BEST_TMP_BUF(pMeRefine->pQuarPixBest, pMeRefine->pQuarPixTmp)
+	switchBestTmpBuf := func() {
+		pParams.iBestCost = iCurCost
+		pTmp := pMeRefine.pQuarPixBest
+		pMeRefine.pQuarPixBest = pMeRefine.pQuarPixTmp
+		pMeRefine.pQuarPixTmp = pTmp
+	}
+
+	pSampleAvg(pMeRefine.pQuarPixTmp, 0, ME_REFINE_BUF_STRIDE, pParams.pSrcA[0], pParams.iSrcAOff[0], ME_REFINE_BUF_STRIDE,
+		pParams.pSrcB[0], pParams.iSrcBOff[0], pParams.iStrideA, kiWidth, kiHeight)
+
+	iCurCost = calcCost(pMeRefine.pQuarPixTmp, pParams.iLms[0])
+	if iCurCost < pParams.iBestCost {
+		pParams.iBestQuarPix = ME_QUAR_PIXEL_TOP
+		switchBestTmpBuf()
+	}
+	//=========================(0, 1)=======================//
+	pSampleAvg(pMeRefine.pQuarPixTmp, 0, ME_REFINE_BUF_STRIDE, pParams.pSrcA[1], pParams.iSrcAOff[1],
+		ME_REFINE_BUF_STRIDE, pParams.pSrcB[1], pParams.iSrcBOff[1], pParams.iStrideA, kiWidth, kiHeight)
+	iCurCost = calcCost(pMeRefine.pQuarPixTmp, pParams.iLms[1])
+	if iCurCost < pParams.iBestCost {
+		pParams.iBestQuarPix = ME_QUAR_PIXEL_BOTTOM
+		switchBestTmpBuf()
+	}
+	//==========================(-1, 0)=========================//
+	pSampleAvg(pMeRefine.pQuarPixTmp, 0, ME_REFINE_BUF_STRIDE, pParams.pSrcA[2], pParams.iSrcAOff[2],
+		ME_REFINE_BUF_STRIDE, pParams.pSrcB[2], pParams.iSrcBOff[2], pParams.iStrideB, kiWidth, kiHeight)
+	iCurCost = calcCost(pMeRefine.pQuarPixTmp, pParams.iLms[2])
+	if iCurCost < pParams.iBestCost {
+		pParams.iBestQuarPix = ME_QUAR_PIXEL_LEFT
+		switchBestTmpBuf()
+	}
+	//==========================(1, 0)=========================//
+	pSampleAvg(pMeRefine.pQuarPixTmp, 0, ME_REFINE_BUF_STRIDE, pParams.pSrcA[3], pParams.iSrcAOff[3],
+		ME_REFINE_BUF_STRIDE, pParams.pSrcB[3], pParams.iSrcBOff[3], pParams.iStrideB, kiWidth, kiHeight)
+
+	iCurCost = calcCost(pMeRefine.pQuarPixTmp, pParams.iLms[3])
+	if iCurCost < pParams.iBestCost {
+		pParams.iBestQuarPix = ME_QUAR_PIXEL_RIGHT
+		switchBestTmpBuf()
+	}
+}
+
+func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME, pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) {
+	pFunc := pEncCtx.pFuncList
+	iMvx := pMe.sMv.iMvX
+	iMvy := pMe.sMv.iMvY
+
+	iHalfMvx := iMvx
+	iHalfMvy := iMvy
+	kiStrideEnc := pEncCtx.pCurDqLayer.iEncStride[0]
+	kiStrideRef := pEncCtx.pCurDqLayer.pRefPic.iLineSize[0]
+	kiStrideRefI := int(kiStrideRef)
+
+	pEncData := pMe.pEncMb
+	iEncDataOff := pMe.iEncMbOff
+	pRef := pMe.pRefMb //091010
+	iRefOff := pMe.iRefMbOff
+
+	var iBestQuarPix int32 = ME_NO_BEST_QUAR_PIXEL
+
+	iMvQuarAddX := [10]int32{0, 0, -1, 1, 0, 0, 0, -1, 1, 0}
+	// pMvQuarAddY = iMvQuarAddX + 3
+	pBestPredInter := pRef
+	iBestPredInterOff := iRefOff
+	var iInterBlk4Stride int32 = ME_REFINE_BUF_STRIDE
+
+	var iBestCost int32
+	var iCurCost int32
+	var iBestHalfPix int32
+
+	pMvdCost := pMe.pMvdCost
+	iMvdCostOff := pMe.iMvdCostOff
+	iMvpX := int32(pMe.sMvp.iMvX)
+	iMvpY := int32(pMe.sMvp.iMvY)
+	pfMeCost := pFunc.sSampleDealingFuncs.pfMeCost[pMe.uiBlockSize]
+
+	if pEncCtx.pCurDqLayer.bSatdInMdFlag {
+		iBestCost = int32(pMe.uSadPredISatd + uint32(COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)))
+	} else {
+		iBestCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pRef, iRefOff, kiStrideRef) +
+			COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)
+	}
+
+	// Keep each pair between its filter and the next filter: the horizontal
+	// callback may change pixels read by the earlier vertical pair.
+	// The four supported block IDs are contiguous. Keep narrow blocks out of
+	// the capability/shape helper before inspecting the function tables.
+	useHalfPair := pMe.uiBlockSize <= BLOCK_8x8 &&
+		sampleHalfSatdPairEnabled(&pFunc.sSampleDealingFuncs, pMe.uiBlockSize, iWidth, iHeight)
+	var firstHalfCost, secondHalfCost int32
+	halfPairOK := false
+
+	iBestHalfPix = REFINE_ME_NO_BEST_HALF_PIXEL
+
+	pFunc.sMcFuncs.PfLumaHalfpelVer(pRef, iRefOff-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE, iWidth,
+		iHeight+1)
+
+	//step 1: get [iWidth][iHeight+1] half pixel from vertical filter
+	if useHalfPair {
+		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
+			pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, iWidth, iHeight)
+	}
+	//===========================(0, -2)==============================//
+	if !halfPairOK {
+		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = firstHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-2-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_TOP
+		pBestPredInter = pMeRefine.pHalfPixV
+		iBestPredInterOff = 0
+	}
+	//===========================(0, 2)==============================//
+	if !halfPairOK {
+		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = secondHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)+2-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_BOTTOM
+		pBestPredInter = pMeRefine.pHalfPixV
+		iBestPredInterOff = ME_REFINE_BUF_STRIDE
+	}
+	pFunc.sMcFuncs.PfLumaHalfpelHor(pRef, iRefOff-1, kiStrideRef, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE, iWidth+1,
+		iHeight)
+	//step 2: get [iWidth][iHeight+1] half pixel from horizon filter
+	halfPairOK = false
+	if useHalfPair {
+		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
+			pMeRefine.pHalfPixH, 1, iWidth, iHeight)
+	}
+
+	//===========================(-2, 0)==============================//
+	if !halfPairOK {
+		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = firstHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-2-iMvpX, int32(iMvy)-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_LEFT
+		pBestPredInter = pMeRefine.pHalfPixH
+		iBestPredInterOff = 0
+	}
+	//===========================(2, 0)===============================//
+	if !halfPairOK {
+		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 1, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = secondHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)+2-iMvpX, int32(iMvy)-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_RIGHT
+		pBestPredInter = pMeRefine.pHalfPixH
+		iBestPredInterOff = 1
+	}
+
+	// Complete the same center-filter callback before either quarter plan.
+	// The selected half view and MVD reads retain their original order.
+	switch iBestHalfPix {
+	case REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT:
+		pMeRefine.pHalfPixHV = pMeRefine.pHalfPixV
+		pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
+			iWidth+1, iHeight+1)
+		if iBestHalfPix == REFINE_ME_HALF_PIXEL_LEFT {
+			iHalfMvx -= 2
+		} else {
+			iHalfMvx += 2
+		}
+	case REFINE_ME_HALF_PIXEL_TOP, REFINE_ME_HALF_PIXEL_BOTTOM:
+		pMeRefine.pHalfPixHV = pMeRefine.pHalfPixH
+		pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
+			iWidth+1, iHeight+1)
+		if iBestHalfPix == REFINE_ME_HALF_PIXEL_TOP {
+			iHalfMvy -= 2
+		} else {
+			iHalfMvy += 2
+		}
+	}
+	lms := [4]int32{
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)-1-iMvpY),
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)+1-iMvpY),
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-1-iMvpX, int32(iHalfMvy)-iMvpY),
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)+1-iMvpX, int32(iHalfMvy)-iMvpY),
+	}
+	quarterCost, quarterMode := iBestCost, int32(ME_NO_BEST_QUAR_PIXEL)
+	compact := false
+	// Keep unsupported/custom routes out of the compact helper's stack frame.
+	// Read capabilities here, after the center callback and ordered MVD reads.
+	if iWidth >= 8 {
+		samples := &pFunc.sSampleDealingFuncs
+		if samples.bSampleAvgSatdFour && samples.pfSampleAvgSatdValidated != nil &&
+			samples.pfSampleAvgSatd != nil && samples.pfMeCost == &samples.pfSampleSatd {
+			quarterCost, quarterMode, compact = meRefineQuarterPlan(pFunc, pMe, pMeRefine,
+				iWidth, iHeight, pRef, iRefOff, kiStrideEnc, kiStrideRef, iBestHalfPix, iBestCost, lms)
+		}
+	}
+	if !compact {
+		var sParams SQuarRefineParams
+		sParams.iBestCost = iBestCost
+		sParams.iBestHalfPix = iBestHalfPix
+		sParams.pRef = pRef
+		sParams.iRefOff = iRefOff
+		sParams.iBestQuarPix = ME_NO_BEST_QUAR_PIXEL
+
+		// Keep the original descriptor construction inline for every fallback.
+		if REFINE_ME_NO_BEST_HALF_PIXEL == iBestHalfPix {
+			sParams.iStrideA = kiStrideRef
+			sParams.iStrideB = kiStrideRef
+			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
+			sParams.pSrcA[1], sParams.iSrcAOff[1] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
+			sParams.pSrcA[2], sParams.iSrcAOff[2] = pMeRefine.pHalfPixH, 0
+			sParams.pSrcA[3], sParams.iSrcAOff[3] = pMeRefine.pHalfPixH, 1
+
+			for k := 0; k < 4; k++ {
+				sParams.pSrcB[k], sParams.iSrcBOff[k] = pRef, iRefOff
+			}
+		} else {
+			switch iBestHalfPix {
+			case REFINE_ME_HALF_PIXEL_LEFT:
+				sParams.iStrideA = ME_REFINE_BUF_STRIDE
+				sParams.iStrideB = kiStrideRef
+				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 0
+				for k := 1; k < 4; k++ {
+					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+				}
+				sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 0
+				sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
+				sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff-1
+				sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff
+
+			case REFINE_ME_HALF_PIXEL_RIGHT:
+				sParams.iStrideA = ME_REFINE_BUF_STRIDE
+				sParams.iStrideB = kiStrideRef
+				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 1
+				for k := 1; k < 4; k++ {
+					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+				}
+				sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 1
+				sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, 1+ME_REFINE_BUF_STRIDE
+				sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff
+				sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff+1
+
+			case REFINE_ME_HALF_PIXEL_TOP:
+				sParams.iStrideA = kiStrideRef
+				sParams.iStrideB = ME_REFINE_BUF_STRIDE
+				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
+				for k := 1; k < 4; k++ {
+					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+				}
+				sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff-kiStrideRefI
+				sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff
+				sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, 0
+				sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, 1
+
+			case REFINE_ME_HALF_PIXEL_BOTTOM:
+				sParams.iStrideA = kiStrideRef
+				sParams.iStrideB = ME_REFINE_BUF_STRIDE
+				sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
+				for k := 1; k < 4; k++ {
+					sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+				}
+				sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff
+				sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff+kiStrideRefI
+				sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
+				sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE+1
+
+			default:
+			}
+		}
+		sParams.iLms = lms
+		MeRefineQuarPixel(pFunc, pMe, pMeRefine, iWidth, iHeight, &sParams, kiStrideEnc)
+		quarterCost, quarterMode = sParams.iBestCost, sParams.iBestQuarPix
+	}
+	if iBestCost > quarterCost {
+		pBestPredInter = pMeRefine.pQuarPixBest
+		iBestPredInterOff = 0
+		iBestCost = quarterCost
+	}
+	iBestQuarPix = quarterMode
+
+	//update final best MV
+	pMe.sMv.iMvX = int16(int32(iHalfMvx) + iMvQuarAddX[iBestQuarPix])
+	pMe.sMv.iMvY = int16(int32(iHalfMvy) + iMvQuarAddX[iBestQuarPix+3])
+	pMe.uiSatdCost = uint32(iBestCost)
+
+	//No half or quarter pixel best, so do MC with integer pixel MV
+	if iBestHalfPix+iBestQuarPix == NO_BEST_FRAC_PIX {
+		pBestPredInter = pRef
+		iBestPredInterOff = iRefOff
+		iInterBlk4Stride = kiStrideRef
+	}
+	pMeRefine.pfCopyBlockByMode(pMemPredInterMb, iMemPredInterMbOff, common.MB_WIDTH_LUMA, pBestPredInter, iBestPredInterOff,
+		iInterBlk4Stride)
+}
+
+func InitBlkStrideWithRef(pBlkStride []int32, kiStrideRef int32) {
+	kuiStrideX := [16]uint8{
+		0, 4, 0, 4,
+		8, 12, 8, 12,
+		0, 4, 0, 4,
+		8, 12, 8, 12,
+	}
+	kuiStrideY := [16]uint8{
+		0, 0, 4, 4,
+		0, 0, 4, 4,
+		8, 8, 12, 12,
+		8, 8, 12, 12,
+	}
+
+	for i := 0; i < 16; i += 4 {
+		pBlkStride[i] = int32(kuiStrideX[i]) + int32(kuiStrideY[i])*kiStrideRef
+		pBlkStride[i+1] = int32(kuiStrideX[i+1]) + int32(kuiStrideY[i+1])*kiStrideRef
+		pBlkStride[i+2] = int32(kuiStrideX[i+2]) + int32(kuiStrideY[i+2])*kiStrideRef
+		pBlkStride[i+3] = int32(kuiStrideX[i+3]) + int32(kuiStrideY[i+3])*kiStrideRef
+	}
+}
+
+// MvdCostInit fills the MVD cost tables of all 52 QPs.
+// iMvdSz = (648*2+1) or (972*2+1);
+func MvdCostInit(pMvdCostInter []uint16, kiMvdSz int32) {
+	kiSz := kiMvdSz >> 1
+	iNeg := 0             // pNegMvd
+	iPos := int(kiSz) + 1 // pPosMvd
+	kpQpLambda := g_kiQpCostTable[:]
+
+	for i := 0; i < 52; i++ {
+		kiLambda := uint16(kpQpLambda[i])
+		iNegSe := -kiSz
+		var iPosSe int32 = 1
+
+		for j := int32(0); j < kiSz; j += 4 {
+			for k := 0; k < 4; k++ {
+				pMvdCostInter[iNeg] = uint16(uint32(kiLambda) * BsSizeSE(iNegSe))
+				iNeg++
+				iNegSe++
+			}
+
+			for k := 0; k < 4; k++ {
+				pMvdCostInter[iPos] = uint16(uint32(kiLambda) * BsSizeSE(iPosSe))
+				iPos++
+				iPosSe++
+			}
+		}
+		pMvdCostInter[iNeg] = kiLambda
+		iNeg += int(kiSz) + 1
+		iPos += int(kiSz) + 1
+	}
+}
+
+func mdBoolToInt32(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func PredictSad(pRefIndexCache []int8, pSadCostCache []int32, uiRef int32, pSadPred *int32) {
+	kiRefB := int32(pRefIndexCache[1]) //top g_uiCache12_8x8RefIdx[0] - 4
+	iRefC := int32(pRefIndexCache[5])  //top-right g_uiCache12_8x8RefIdx[0] - 2
+	kiRefA := int32(pRefIndexCache[6]) //left g_uiCache12_8x8RefIdx[0] - 1
+	kiSadB := pSadCostCache[1]
+	iSadC := pSadCostCache[2]
+	kiSadA := pSadCostCache[3]
+
+	var iCount int32
+
+	if iRefC == common.REF_NOT_AVAIL {
+		iRefC = int32(pRefIndexCache[0]) //top-left g_uiCache12_8x8RefIdx[0] - 4 - 1
+		iSadC = pSadCostCache[0]
+	}
+
+	if kiRefB == common.REF_NOT_AVAIL && iRefC == common.REF_NOT_AVAIL && kiRefA != common.REF_NOT_AVAIL {
+		*pSadPred = kiSadA
+	} else {
+		iCount = mdBoolToInt32(uiRef == kiRefA) << MB_LEFT_BIT
+		iCount |= mdBoolToInt32(uiRef == kiRefB) << MB_TOP_BIT
+		iCount |= mdBoolToInt32(uiRef == iRefC) << MB_TOPRIGHT_BIT
+		switch iCount {
+		case LEFT_MB_POS: // A
+			*pSadPred = kiSadA
+		case TOP_MB_POS: // B
+			*pSadPred = kiSadB
+		case TOPRIGHT_MB_POS: // C or D
+			*pSadPred = iSadC
+		default:
+			*pSadPred = common.WelsMedian(kiSadA, kiSadB, iSadC)
+		}
+	}
+
+	// REPLACE_SAD_MULTIPLY(x) ((x) - (x>>3) + (x >>5)) // it's 0.90625, very close with 0.9
+	iCount = (*pSadPred) << 6 // here *64 will not overflow. SAD range 0~ 255*256(max 2^16), int32_t is enough
+	*pSadPred = ((iCount - (iCount >> 3) + (iCount >> 5)) + 32) >> 6
+}
+
+func PredictSadSkip(pRefIndexCache []int8, pMbSkipCache []bool, pSadCostCache []int32, uiRef int32, iSadPredSkip *int32) {
+	kiRefB := int32(pRefIndexCache[1]) //top g_uiCache12_8x8RefIdx[0] - 4
+	iRefC := int32(pRefIndexCache[5])  //top-right g_uiCache12_8x8RefIdx[0] - 2
+	kiRefA := int32(pRefIndexCache[6]) //left g_uiCache12_8x8RefIdx[0] - 1
+	sadIf := func(b bool, v int32) int32 {
+		if b {
+			return v
+		}
+		return 0
+	}
+	kiSadB := sadIf(pMbSkipCache[1], pSadCostCache[1])
+	iSadC := sadIf(pMbSkipCache[2], pSadCostCache[2])
+	kiSadA := sadIf(pMbSkipCache[3], pSadCostCache[3])
+	iRefSkip := pMbSkipCache[2]
+
+	var iCount int32 = 0
+
+	if iRefC == common.REF_NOT_AVAIL {
+		iRefC = int32(pRefIndexCache[0]) //top-left g_uiCache12_8x8RefIdx[0] - 4 - 1
+		iSadC = sadIf(pMbSkipCache[0], pSadCostCache[0])
+		iRefSkip = pMbSkipCache[0]
+	}
+
+	if kiRefB == common.REF_NOT_AVAIL && iRefC == common.REF_NOT_AVAIL && kiRefA != common.REF_NOT_AVAIL {
+		*iSadPredSkip = kiSadA
+	} else {
+		iCount = mdBoolToInt32((uiRef == kiRefA) && pMbSkipCache[3]) << MB_LEFT_BIT
+		iCount |= mdBoolToInt32((uiRef == kiRefB) && pMbSkipCache[1]) << MB_TOP_BIT
+		iCount |= mdBoolToInt32((uiRef == iRefC) && iRefSkip) << MB_TOPRIGHT_BIT
+		switch iCount {
+		case LEFT_MB_POS: // A
+			*iSadPredSkip = kiSadA
+		case TOP_MB_POS: // B
+			*iSadPredSkip = kiSadB
+		case TOPRIGHT_MB_POS: // C or D
+			*iSadPredSkip = iSadC
+		default:
+			*iSadPredSkip = common.WelsMedian(kiSadA, kiSadB, iSadC)
+		}
+	}
+}

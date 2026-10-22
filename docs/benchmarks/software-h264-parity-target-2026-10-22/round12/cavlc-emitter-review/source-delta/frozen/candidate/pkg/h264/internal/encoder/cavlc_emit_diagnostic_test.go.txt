@@ -1,0 +1,35 @@
+package encoder
+
+import (
+	"testing"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// This fixture report and its preflight mirror can be copied unchanged to the
+// baseline with the native fixture loader. It does not run the leaf directly
+// or add instrumentation to any benchmark. Real-clip counts use the separate
+// diagnostic source generator documented in the candidate manifest.
+func TestCavlcEmitterEligibilityFixtures(t *testing.T) {
+	counts := make(map[string]int)
+	for _, suite := range loadCavlcNativeFixtures(t) {
+		var buffer [cavlcNativeBufferSize]byte
+		var bits common.SBitStringAux
+		common.InitBits(&bits, buffer[:], 0, int32(len(buffer)))
+		if suite.prefix != 0 { common.BsWriteBits(&bits, suite.prefix, suite.prefixValue) }
+		for _, block := range suite.blocks {
+			if block.flag == 0 {
+				counts["known_zero"]++
+			} else {
+				var levels [16]int16
+				var runs [16]uint8
+				var total int32
+				zeros := CavlcParamCal_c(block.coeff[:], runs[:], levels[:], &total, block.end)
+				local := cavlcBsInit(&bits)
+				counts[cavlcEmitterEligibilityReason(&local, &levels, &runs, &bits, total, zeros, block.end)]++
+			}
+			if got := WriteBlockResidualCavlc(nil, block.coeff[:], block.end, block.flag, block.property, block.nc, &bits); got != block.expected { t.Fatalf("suite%s return%d want%d", suite.name, got, block.expected) }
+		}
+	}
+	t.Logf("entry eligibility, not success or timing: %v", counts)
+}

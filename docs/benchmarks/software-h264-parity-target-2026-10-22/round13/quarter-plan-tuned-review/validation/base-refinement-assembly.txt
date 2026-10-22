@@ -1,0 +1,1216 @@
+TEXT github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.MeRefineFracPixel(SB) /tmp/h264-parity-target-20261022/quarter-plan-tuned-review/work/base/pkg/h264/internal/encoder/md.go
+  md.go:478			0x5ea8e0		4c8da42498fdffff		LEAQ 0xfffffd98(SP), R12									
+  md.go:478			0x5ea8e8		4d3b6610			CMPQ R12, 0x10(R14)										
+  md.go:478			0x5ea8ec		0f86cd190000			JBE 0x5ec2bf											
+  md.go:478			0x5ea8f2		55				PUSHQ BP											
+  md.go:478			0x5ea8f3		4889e5				MOVQ SP, BP											
+  md.go:478			0x5ea8f6		4881ece0020000			SUBQ $0x2e0, SP											
+  md.go:511			0x5ea8fd		4889b42410030000		MOVQ SI, 0x310(SP)										
+  md.go:511			0x5ea905		4889bc2408030000		MOVQ DI, 0x308(SP)										
+  md.go:511			0x5ea90d		48898c2400030000		MOVQ CX, 0x300(SP)										
+  md.go:511			0x5ea915		48899c24f8020000		MOVQ BX, 0x2f8(SP)										
+  md.go:479			0x5ea91d		4c8ba088020000			MOVQ 0x288(AX), R12										
+  md.go:485			0x5ea924		4c8ba8d0020000			MOVQ 0x2d0(AX), R13										
+  md.go:485			0x5ea92b		4d8bbd00020000			MOVQ 0x200(R13), R15										
+  md.go:480			0x5ea932		410fb790b8000000		MOVZX 0xb8(R8), DX										
+  md.go:481			0x5ea93a		410fb788ba000000		MOVZX 0xba(R8), CX										
+  md.go:485			0x5ea942		458badc8010000			MOVL 0x1c8(R13), R13										
+  md.go:485			0x5ea949		44896c246c			MOVL R13, 0x6c(SP)										
+  md.go:486			0x5ea94e		458b7f78			MOVL 0x78(R15), R15										
+  md.go:486			0x5ea952		44897c2468			MOVL R15, 0x68(SP)										
+  md.go:489			0x5ea957		498b5840			MOVQ 0x40(R8), BX										
+  md.go:489			0x5ea95b		48899c24c8020000		MOVQ BX, 0x2c8(SP)										
+  md.go:489			0x5ea963		498b7048			MOVQ 0x48(R8), SI										
+  md.go:489			0x5ea967		4889b424f0000000		MOVQ SI, 0xf0(SP)										
+  md.go:489			0x5ea96f		498b7850			MOVQ 0x50(R8), DI										
+  md.go:489			0x5ea973		4889bc24f8000000		MOVQ DI, 0xf8(SP)										
+  md.go:490			0x5ea97b		498b5858			MOVQ 0x58(R8), BX										
+  md.go:490			0x5ea97f		48899c2420010000		MOVQ BX, 0x120(SP)										
+  md.go:491			0x5ea987		498b5860			MOVQ 0x60(R8), BX										
+  md.go:491			0x5ea98b		498b7068			MOVQ 0x68(R8), SI										
+  md.go:491			0x5ea98f		498b7870			MOVQ 0x70(R8), DI										
+  md.go:492			0x5ea993		4d8b6878			MOVQ 0x78(R8), R13										
+  md.go:492			0x5ea997		4c89ac2418010000		MOVQ R13, 0x118(SP)										
+  md.go:496			0x5ea99f		4c8dac2460010000		LEAQ 0x160(SP), R13										
+  md.go:496			0x5ea9a7		41bf05000000			MOVL $0x5, R15											
+  md.go:496			0x5ea9ad		450f117d00			MOVUPS X15, 0(R13)										
+  md.go:496			0x5ea9b2		450f117d10			MOVUPS X15, 0x10(R13)										
+  md.go:496			0x5ea9b7		450f117d20			MOVUPS X15, 0x20(R13)										
+  md.go:496			0x5ea9bc		450f117d30			MOVUPS X15, 0x30(R13)										
+  md.go:496			0x5ea9c1		4983c540			ADDQ $0x40, R13											
+  md.go:496			0x5ea9c5		41ffcf				DECL R15											
+  md.go:496			0x5ea9c8		75e3				JNE 0x5ea9ad											
+  md.go:496			0x5ea9ca		450f117df8			MOVUPS X15, -0x8(R13)										
+  md.go:497			0x5ea9cf		4c8d6c2470			LEAQ 0x70(SP), R13										
+  md.go:497			0x5ea9d4		4c8d3d8dda1500			LEAQ 0x15da8d(IP), R15										
+  md.go:497			0x5ea9db		450f1037			MOVUPS 0(R15), X14										
+  md.go:497			0x5ea9df		450f117500			MOVUPS X14, 0(R13)										
+  md.go:497			0x5ea9e4		450f107710			MOVUPS 0x10(R15), X14										
+  md.go:497			0x5ea9e9		450f117510			MOVUPS X14, 0x10(R13)										
+  md.go:497			0x5ea9ee		450f107718			MOVUPS 0x18(R15), X14										
+  md.go:497			0x5ea9f3		450f117518			MOVUPS X14, 0x18(R13)										
+  md.go:511			0x5ea9f8		4d8bac2498010000		MOVQ 0x198(R12), R13										
+  md.go:511			0x5eaa00		41844500			TESTB AL, 0(R13)										
+  md.go:511			0x5eaa04		450fb67838			MOVZX 0x38(R8), R15										
+  md.go:511			0x5eaa09		4983ff07			CMPQ R15, $0x7											
+  md.go:511			0x5eaa0d		0f83a6180000			JAE 0x5ec2b9											
+  md.go:511			0x5eaa13		4c89842418030000		MOVQ R8, 0x318(SP)										
+  md.go:511			0x5eaa1b		4c898c2420030000		MOVQ R9, 0x320(SP)										
+  md.go:511			0x5eaa23		4489942428030000		MOVL R10, 0x328(SP)										
+  md.go:511			0x5eaa2b		44899c242c030000		MOVL R11, 0x32c(SP)										
+  md.go:479			0x5eaa33		4c89a424c0020000		MOVQ R12, 0x2c0(SP)										
+  md.go:480			0x5eaa3b		668954245e			MOVW DX, 0x5e(SP)										
+  md.go:481			0x5eaa40		66894c245c			MOVW CX, 0x5c(SP)										
+  md.go:491			0x5eaa45		4889bc24e0000000		MOVQ DI, 0xe0(SP)										
+  md.go:491			0x5eaa4d		4889b424d8000000		MOVQ SI, 0xd8(SP)										
+  md.go:491			0x5eaa55		48899c24b0020000		MOVQ BX, 0x2b0(SP)										
+  md.go:513			0x5eaa5d		488b80d0020000			MOVQ 0x2d0(AX), AX										
+  md.go:507			0x5eaa64		498b5808			MOVQ 0x8(R8), BX										
+  md.go:507			0x5eaa68		48899c24e8000000		MOVQ BX, 0xe8(SP)										
+  md.go:507			0x5eaa70		498b30				MOVQ 0(R8), SI											
+  md.go:507			0x5eaa73		4889b424b8020000		MOVQ SI, 0x2b8(SP)										
+  md.go:508			0x5eaa7b		498b7818			MOVQ 0x18(R8), DI										
+  md.go:508			0x5eaa7f		4889bc24d0000000		MOVQ DI, 0xd0(SP)										
+  md.go:509			0x5eaa87		4d0fbf98a0000000		MOVSX 0xa0(R8), R11										
+  md.go:509			0x5eaa8f		44899c24cc000000		MOVL R11, 0xcc(SP)										
+  md.go:510			0x5eaa97		4d0fbf90a2000000		MOVSX 0xa2(R8), R10										
+  md.go:510			0x5eaa9f		44899424c8000000		MOVL R10, 0xc8(SP)										
+  md.go:511			0x5eaaa7		4f8b6cfd00			MOVQ 0(R13)(R15*8), R13										
+  md.go:511			0x5eaaac		4c89ac24a8020000		MOVQ R13, 0x2a8(SP)										
+  md.go:513			0x5eaab4		80b8f501000000			CMPB 0x1f5(AX), $0x0										
+  md.go:513			0x5eaabb		7441				JE 0x5eaafe											
+  md.go:514			0x5eaabd		4c0fbffa			MOVSX DX, R15											
+  md.go:514			0x5eaac1		4529df				SUBL R11, R15											
+  md.go:514			0x5eaac4		480fbfc1			MOVSX CX, AX											
+  svc_motion_estimate_h.go:114	0x5eaac8		4d63ff				MOVSXD R15, R15											
+  svc_motion_estimate_h.go:114	0x5eaacb		4901ff				ADDQ DI, R15											
+  md.go:514			0x5eaace		4429d0				SUBL R10, AX											
+  svc_motion_estimate_h.go:114	0x5eaad1		4c39fb				CMPQ BX, R15											
+  svc_motion_estimate_h.go:114	0x5eaad4		0f86da170000			JBE 0x5ec2b4											
+  svc_motion_estimate_h.go:114	0x5eaada		4863c0				MOVSXD AX, AX											
+  svc_motion_estimate_h.go:114	0x5eaadd		4801f8				ADDQ DI, AX											
+  svc_motion_estimate_h.go:114	0x5eaae0		460fb73c7e			MOVZX 0(SI)(R15*2), R15										
+  svc_motion_estimate_h.go:114	0x5eaae5		4839c3				CMPQ BX, AX											
+  svc_motion_estimate_h.go:114	0x5eaae8		0f86c1170000			JBE 0x5ec2af											
+  svc_motion_estimate_h.go:114	0x5eaaee		0fb70446			MOVZX 0(SI)(AX*2), AX										
+  svc_motion_estimate_h.go:114	0x5eaaf2		4101c7				ADDL AX, R15											
+  md.go:514			0x5eaaf5		45037820			ADDL 0x20(R8), R15										
+  md.go:514			0x5eaaf9		e916010000			JMP 0x5eac14											
+  md.go:516			0x5eaafe		4d8b6500			MOVQ 0(R13), R12										
+  md.go:516			0x5eab02		448b7c2468			MOVL 0x68(SP), R15										
+  md.go:516			0x5eab07		44893c24			MOVL R15, 0(SP)											
+  md.go:516			0x5eab0b		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:516			0x5eab13		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:516			0x5eab1b		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:516			0x5eab23		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:516			0x5eab2b		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:516			0x5eab2f		4c8b8424b0020000		MOVQ 0x2b0(SP), R8										
+  md.go:516			0x5eab37		4c8b8c24d8000000		MOVQ 0xd8(SP), R9										
+  md.go:516			0x5eab3f		4c8b9424e0000000		MOVQ 0xe0(SP), R10										
+  md.go:516			0x5eab47		4c8b9c2418010000		MOVQ 0x118(SP), R11										
+  md.go:516			0x5eab4f		4c89ea				MOVQ R13, DX											
+  md.go:516			0x5eab52		41ffd4				CALL R12											
+  md.go:517			0x5eab55		440fb764245e			MOVZX 0x5e(SP), R12										
+  md.go:517			0x5eab5b		4d0fbfec			MOVSX R12, R13											
+  md.go:517			0x5eab5f		448bbc24cc000000		MOVL 0xcc(SP), R15										
+  md.go:517			0x5eab67		4529fd				SUBL R15, R13											
+  md.go:517			0x5eab6a		440fb77c245c			MOVZX 0x5c(SP), R15										
+  md.go:517			0x5eab70		490fbfd7			MOVSX R15, DX											
+  svc_motion_estimate_h.go:114	0x5eab74		4d63ed				MOVSXD R13, R13											
+  md.go:481			0x5eab77		4489fb				MOVL R15, BX											
+  svc_motion_estimate_h.go:114	0x5eab7a		4c8bbc24d0000000		MOVQ 0xd0(SP), R15										
+  svc_motion_estimate_h.go:114	0x5eab82		4d01fd				ADDQ R15, R13											
+  md.go:480			0x5eab85		4489e6				MOVL R12, SI											
+  md.go:517			0x5eab88		448ba424c8000000		MOVL 0xc8(SP), R12										
+  md.go:517			0x5eab90		4429e2				SUBL R12, DX											
+  svc_motion_estimate_h.go:114	0x5eab93		4c8ba424e8000000		MOVQ 0xe8(SP), R12										
+  svc_motion_estimate_h.go:114	0x5eab9b		0f1f440000			NOPL 0(AX)(AX*1)										
+  svc_motion_estimate_h.go:114	0x5eaba0		4d39ec				CMPQ R12, R13											
+  svc_motion_estimate_h.go:114	0x5eaba3		0f8601170000			JBE 0x5ec2aa											
+  svc_motion_estimate_h.go:114	0x5eaba9		4863d2				MOVSXD DX, DX											
+  svc_motion_estimate_h.go:114	0x5eabac		4c01fa				ADDQ R15, DX											
+  md.go:508			0x5eabaf		4d89f8				MOVQ R15, R8											
+  svc_motion_estimate_h.go:114	0x5eabb2		4c8bbc24b8020000		MOVQ 0x2b8(SP), R15										
+  svc_motion_estimate_h.go:114	0x5eabba		470fb72c6f			MOVZX 0(R15)(R13*2), R13									
+  svc_motion_estimate_h.go:114	0x5eabbf		90				NOPL												
+  svc_motion_estimate_h.go:114	0x5eabc0		4939d4				CMPQ R12, DX											
+  svc_motion_estimate_h.go:114	0x5eabc3		0f86dc160000			JBE 0x5ec2a5											
+  svc_motion_estimate_h.go:114	0x5eabc9		410fb71457			MOVZX 0(R15)(DX*2), DX										
+  svc_motion_estimate_h.go:114	0x5eabce		4101d5				ADDL DX, R13											
+  md.go:516			0x5eabd1		4101c5				ADDL AX, R13											
+  md.go:544			0x5eabd4		89d9				MOVL BX, CX											
+  md.go:544			0x5eabd6		89f2				MOVL SI, DX											
+  svc_motion_estimate_h.go:114	0x5eabd8		4c89e3				MOVQ R12, BX											
+  svc_motion_estimate_h.go:114	0x5eabdb		4c89fe				MOVQ R15, SI											
+  svc_motion_estimate_h.go:114	0x5eabde		4c89c7				MOVQ R8, DI											
+  md.go:524			0x5eabe1		4c8b842418030000		MOVQ 0x318(SP), R8										
+  md.go:531			0x5eabe9		4c8b8c2420030000		MOVQ 0x320(SP), R9										
+  md.go:544			0x5eabf1		448b9424c8000000		MOVL 0xc8(SP), R10										
+  md.go:544			0x5eabf9		448b9c24cc000000		MOVL 0xcc(SP), R11										
+  sample_half_pair.go:6		0x5eac01		4c8ba424c0020000		MOVQ 0x2c0(SP), R12										
+  md.go:524			0x5eac09		4589ef				MOVL R13, R15											
+  md.go:541			0x5eac0c		4c8bac24a8020000		MOVQ 0x2a8(SP), R13										
+  md.go:524			0x5eac14		4489bc249c000000		MOVL R15, 0x9c(SP)										
+  md.go:524			0x5eac1c		410fb64038			MOVZX 0x38(R8), AX										
+  md.go:524			0x5eac21		3c03				CMPL AL, $0x3											
+  md.go:524			0x5eac23		0f8728010000			JA 0x5ead51											
+  sample_half_pair.go:6		0x5eac29		4180bc246101000000		CMPB 0x161(R12), $0x0										
+  sample_half_pair.go:6		0x5eac32		0f8402010000			JE 0x5ead3a											
+  sample_half_pair.go:6		0x5eac38		4d8d8424e0000000		LEAQ 0xe0(R12), R8										
+  sample_half_pair.go:6		0x5eac40		4d39842498010000		CMPQ 0x198(R12), R8										
+  sample_half_pair.go:6		0x5eac48		740d				JE 0x5eac57											
+  md.go:696			0x5eac4a		4c8b842418030000		MOVQ 0x318(SP), R8										
+  sample_half_pair.go:6		0x5eac52		e9e3000000			JMP 0x5ead3a											
+  sample_half_pair.go:9		0x5eac57		3c01				CMPL AL, $0x1											
+  sample_half_pair.go:12	0x5eac59		7774				JA 0x5eaccf											
+  sample_half_pair.go:10	0x5eac5b		84c0				TESTL AL, AL											
+  sample_half_pair.go:10	0x5eac5d		7538				JNE 0x5eac97											
+  sample_half_pair.go:11	0x5eac5f		448bac2428030000		MOVL 0x328(SP), R13										
+  sample_half_pair.go:11	0x5eac67		4183fd10			CMPL R13, $0x10											
+  sample_half_pair.go:11	0x5eac6b		7518				JNE 0x5eac85											
+  md.go:524			0x5eac6d		4589f8				MOVL R15, R8											
+  sample_half_pair.go:11	0x5eac70		448bbc242c030000		MOVL 0x32c(SP), R15										
+  sample_half_pair.go:11	0x5eac78		4183ff10			CMPL R15, $0x10											
+  sample_half_pair.go:11	0x5eac7c		0f94c0				SETE AL												
+  sample_half_pair.go:11	0x5eac7f		90				NOPL												
+  sample_half_pair.go:11	0x5eac80		e9de000000			JMP 0x5ead63											
+  md.go:545			0x5eac85		4589f8				MOVL R15, R8											
+  md.go:532			0x5eac88		448bbc242c030000		MOVL 0x32c(SP), R15										
+  md.go:532			0x5eac90		31c0				XORL AX, AX											
+  sample_half_pair.go:11	0x5eac92		e9cc000000			JMP 0x5ead63											
+  sample_half_pair.go:13	0x5eac97		448bac2428030000		MOVL 0x328(SP), R13										
+  sample_half_pair.go:13	0x5eac9f		90				NOPL												
+  sample_half_pair.go:13	0x5eaca0		4183fd10			CMPL R13, $0x10											
+  sample_half_pair.go:13	0x5eaca4		7517				JNE 0x5eacbd											
+  md.go:524			0x5eaca6		4589f8				MOVL R15, R8											
+  sample_half_pair.go:13	0x5eaca9		448bbc242c030000		MOVL 0x32c(SP), R15										
+  sample_half_pair.go:13	0x5eacb1		4183ff08			CMPL R15, $0x8											
+  sample_half_pair.go:13	0x5eacb5		0f94c0				SETE AL												
+  sample_half_pair.go:13	0x5eacb8		e9a6000000			JMP 0x5ead63											
+  md.go:545			0x5eacbd		4589f8				MOVL R15, R8											
+  md.go:532			0x5eacc0		448bbc242c030000		MOVL 0x32c(SP), R15										
+  md.go:532			0x5eacc8		31c0				XORL AX, AX											
+  sample_half_pair.go:13	0x5eacca		e994000000			JMP 0x5ead63											
+  sample_half_pair.go:14	0x5eaccf		3c02				CMPL AL, $0x2											
+  sample_half_pair.go:14	0x5eacd1		7536				JNE 0x5ead09											
+  sample_half_pair.go:15	0x5eacd3		448bac2428030000		MOVL 0x328(SP), R13										
+  sample_half_pair.go:15	0x5eacdb		0f1f440000			NOPL 0(AX)(AX*1)										
+  sample_half_pair.go:15	0x5eace0		4183fd08			CMPL R13, $0x8											
+  sample_half_pair.go:15	0x5eace4		7514				JNE 0x5eacfa											
+  md.go:524			0x5eace6		4589f8				MOVL R15, R8											
+  sample_half_pair.go:15	0x5eace9		448bbc242c030000		MOVL 0x32c(SP), R15										
+  sample_half_pair.go:15	0x5eacf1		4183ff10			CMPL R15, $0x10											
+  sample_half_pair.go:15	0x5eacf5		0f94c0				SETE AL												
+  sample_half_pair.go:15	0x5eacf8		eb69				JMP 0x5ead63											
+  md.go:545			0x5eacfa		4589f8				MOVL R15, R8											
+  md.go:532			0x5eacfd		448bbc242c030000		MOVL 0x32c(SP), R15										
+  md.go:532			0x5ead05		31c0				XORL AX, AX											
+  sample_half_pair.go:15	0x5ead07		eb5a				JMP 0x5ead63											
+  sample_half_pair.go:17	0x5ead09		448bac2428030000		MOVL 0x328(SP), R13										
+  sample_half_pair.go:17	0x5ead11		4183fd08			CMPL R13, $0x8											
+  sample_half_pair.go:17	0x5ead15		7514				JNE 0x5ead2b											
+  md.go:524			0x5ead17		4589f8				MOVL R15, R8											
+  sample_half_pair.go:17	0x5ead1a		448bbc242c030000		MOVL 0x32c(SP), R15										
+  sample_half_pair.go:17	0x5ead22		4183ff08			CMPL R15, $0x8											
+  sample_half_pair.go:17	0x5ead26		0f94c0				SETE AL												
+  sample_half_pair.go:17	0x5ead29		eb38				JMP 0x5ead63											
+  md.go:545			0x5ead2b		4589f8				MOVL R15, R8											
+  md.go:532			0x5ead2e		448bbc242c030000		MOVL 0x32c(SP), R15										
+  md.go:532			0x5ead36		31c0				XORL AX, AX											
+  sample_half_pair.go:17	0x5ead38		eb29				JMP 0x5ead63											
+  md.go:545			0x5ead3a		4589f8				MOVL R15, R8											
+  md.go:531			0x5ead3d		448bac2428030000		MOVL 0x328(SP), R13										
+  md.go:532			0x5ead45		448bbc242c030000		MOVL 0x32c(SP), R15										
+  md.go:532			0x5ead4d		31c0				XORL AX, AX											
+  md.go:525			0x5ead4f		eb12				JMP 0x5ead63											
+  md.go:531			0x5ead51		448bac2428030000		MOVL 0x328(SP), R13										
+  md.go:532			0x5ead59		448bbc242c030000		MOVL 0x32c(SP), R15										
+  md.go:532			0x5ead61		31c0				XORL AX, AX											
+  md.go:524			0x5ead63		8844245a			MOVB AL, 0x5a(SP)										
+  md.go:487			0x5ead67		8b742468			MOVL 0x68(SP), SI										
+  md.go:487			0x5ead6b		4863c6				MOVSXD SI, AX											
+  md.go:487			0x5ead6e		4889842410010000		MOVQ AX, 0x110(SP)										
+  md.go:531			0x5ead76		498b942480000000		MOVQ 0x80(R12), DX										
+  md.go:531			0x5ead7e		4c8b22				MOVQ 0(DX), R12											
+  md.go:531			0x5ead81		488bbc2418010000		MOVQ 0x118(SP), DI										
+  md.go:531			0x5ead89		4889f9				MOVQ DI, CX											
+  md.go:531			0x5ead8c		4829c1				SUBQ AX, CX											
+  md.go:531			0x5ead8f		48898c2458010000		MOVQ CX, 0x158(SP)										
+  md.go:531			0x5ead97		4d8b4118			MOVQ 0x18(R9), R8										
+  md.go:531			0x5ead9b		498b4120			MOVQ 0x20(R9), AX										
+  md.go:531			0x5ead9f		4d8b5128			MOVQ 0x28(R9), R10										
+  md.go:531			0x5eada3		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:531			0x5eadaa		44896c2404			MOVL R13, 0x4(SP)										
+  md.go:532			0x5eadaf		458d6f01			LEAL 0x1(R15), R13										
+  md.go:532			0x5eadb3		4489ac24c4000000		MOVL R13, 0xc4(SP)										
+  md.go:531			0x5eadbb		44896c2408			MOVL R13, 0x8(SP)										
+  md.go:531			0x5eadc0		488b9c24d8000000		MOVQ 0xd8(SP), BX										
+  md.go:531			0x5eadc8		4889cf				MOVQ CX, DI											
+  md.go:531			0x5eadcb		4989c1				MOVQ AX, R9											
+  md.go:531			0x5eadce		4531db				XORL R11, R11											
+  md.go:531			0x5eadd1		488b8424b0020000		MOVQ 0x2b0(SP), AX										
+  md.go:531			0x5eadd9		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:531			0x5eade1		41ffd4				CALL R12											
+  md.go:524			0x5eade4		440fb664245a			MOVZX 0x5a(SP), R12										
+  md.go:524			0x5eadea		4584e4				TESTL R12, R12											
+  md.go:535			0x5eaded		7508				JNE 0x5eadf7											
+  md.go:535			0x5eadef		31c9				XORL CX, CX											
+  md.go:535			0x5eadf1		31db				XORL BX, BX											
+  md.go:535			0x5eadf3		31c0				XORL AX, AX											
+  md.go:535			0x5eadf5		eb5e				JMP 0x5eae55											
+  md.go:537			0x5eadf7		488b942420030000		MOVQ 0x320(SP), DX										
+  md.go:537			0x5eadff		4c8b4218			MOVQ 0x18(DX), R8										
+  md.go:537			0x5eae03		4c8b4a20			MOVQ 0x20(DX), R9										
+  md.go:537			0x5eae07		4c8b5228			MOVQ 0x28(DX), R10										
+  md.go:536			0x5eae0b		8b942428030000			MOVL 0x328(SP), DX										
+  md.go:536			0x5eae12		891424				MOVL DX, 0(SP)											
+  md.go:536			0x5eae15		8b94242c030000			MOVL 0x32c(SP), DX										
+  md.go:536			0x5eae1c		89542404			MOVL DX, 0x4(SP)										
+  md.go:536			0x5eae20		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:536			0x5eae28		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:536			0x5eae30		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:536			0x5eae38		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:536			0x5eae40		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:536			0x5eae44		41bb20000000			MOVL $0x20, R11											
+  md.go:536			0x5eae4a		e8d1520100			CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.sampleHalfSatdPair(SB)	
+  md.go:524			0x5eae4f		440fb664245a			MOVZX 0x5a(SP), R12										
+  md.go:540			0x5eae55		84c9				TESTL CL, CL											
+  md.go:540			0x5eae57		7567				JNE 0x5eaec0											
+  md.go:540			0x5eae59		884c245b			MOVB CL, 0x5b(SP)										
+  md.go:540			0x5eae5d		895c2464			MOVL BX, 0x64(SP)										
+  md.go:541			0x5eae61		488b9424a8020000		MOVQ 0x2a8(SP), DX										
+  md.go:541			0x5eae69		4c8b22				MOVQ 0(DX), R12											
+  md.go:541			0x5eae6c		4c8bac2420030000		MOVQ 0x320(SP), R13										
+  md.go:541			0x5eae74		4d8b4518			MOVQ 0x18(R13), R8										
+  md.go:541			0x5eae78		4d8b4d20			MOVQ 0x20(R13), R9										
+  md.go:541			0x5eae7c		4d8b5528			MOVQ 0x28(R13), R10										
+  md.go:541			0x5eae80		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:541			0x5eae87		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:541			0x5eae8f		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:541			0x5eae97		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:541			0x5eae9f		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:541			0x5eaea7		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:541			0x5eaeab		4531db				XORL R11, R11											
+  md.go:541			0x5eaeae		41ffd4				CALL R12											
+  md.go:540			0x5eaeb1		0fb64c245b			MOVZX 0x5b(SP), CX										
+  md.go:556			0x5eaeb6		8b5c2464			MOVL 0x64(SP), BX										
+  md.go:524			0x5eaeba		440fb664245a			MOVZX 0x5a(SP), R12										
+  md.go:544			0x5eaec0		440fb76c245e			MOVZX 0x5e(SP), R13										
+  md.go:544			0x5eaec6		4d0fbffd			MOVSX R13, R15											
+  md.go:480			0x5eaeca		4489ea				MOVL R13, DX											
+  md.go:544			0x5eaecd		448bac24cc000000		MOVL 0xcc(SP), R13										
+  md.go:544			0x5eaed5		4529ef				SUBL R13, R15											
+  md.go:544			0x5eaed8		440fb76c245c			MOVZX 0x5c(SP), R13										
+  md.go:544			0x5eaede		490fbffd			MOVSX R13, DI											
+  svc_motion_estimate_h.go:114	0x5eaee2		4d63c7				MOVSXD R15, R8											
+  md.go:481			0x5eaee5		4589e9				MOVL R13, R9											
+  svc_motion_estimate_h.go:114	0x5eaee8		4c8bac24d0000000		MOVQ 0xd0(SP), R13										
+  svc_motion_estimate_h.go:114	0x5eaef0		4d01e8				ADDQ R13, R8											
+  md.go:544			0x5eaef3		4589fa				MOVL R15, R10											
+  md.go:544			0x5eaef6		448bbc24c8000000		MOVL 0xc8(SP), R15										
+  md.go:544			0x5eaefe		4429ff				SUBL R15, DI											
+  svc_motion_estimate_h.go:114	0x5eaf01		4c8bbc24e8000000		MOVQ 0xe8(SP), R15										
+  svc_motion_estimate_h.go:114	0x5eaf09		4d39c7				CMPQ R15, R8											
+  svc_motion_estimate_h.go:114	0x5eaf0c		0f868c130000			JBE 0x5ec29e											
+  md.go:544			0x5eaf12		448d5ffe			LEAL -0x2(DI), R11										
+  svc_motion_estimate_h.go:114	0x5eaf16		4d63db				MOVSXD R11, R11											
+  svc_motion_estimate_h.go:114	0x5eaf19		4d01eb				ADDQ R13, R11											
+  svc_motion_estimate_h.go:114	0x5eaf1c		4c8ba424b8020000		MOVQ 0x2b8(SP), R12										
+  svc_motion_estimate_h.go:114	0x5eaf24		430fb73444			MOVZX 0(R12)(R8*2), SI										
+  svc_motion_estimate_h.go:114	0x5eaf29		4d39df				CMPQ R15, R11											
+  svc_motion_estimate_h.go:114	0x5eaf2c		0f8667130000			JBE 0x5ec299											
+  md.go:544			0x5eaf32		44899424c0000000		MOVL R10, 0xc0(SP)										
+  svc_motion_estimate_h.go:114	0x5eaf3a		470fb71c5c			MOVZX 0(R12)(R11*2), R11									
+  svc_motion_estimate_h.go:114	0x5eaf3f		4401de				ADDL R11, SI											
+  md.go:543			0x5eaf42		01c6				ADDL AX, SI											
+  md.go:507			0x5eaf44		4d89fb				MOVQ R15, R11											
+  md.go:545			0x5eaf47		448bbc249c000000		MOVL 0x9c(SP), R15										
+  md.go:545			0x5eaf4f		4139f7				CMPL R15, SI											
+  md.go:545			0x5eaf52		7e64				JLE 0x5eafb8											
+  md.go:548			0x5eaf54		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:548			0x5eaf5c		498b542418			MOVQ 0x18(R12), DX										
+  md.go:548			0x5eaf61		4d8b4c2420			MOVQ 0x20(R12), R9										
+  md.go:548			0x5eaf66		4d8b542428			MOVQ 0x28(R12), R10										
+  md.go:540			0x5eaf6b		84c9				TESTL CL, CL											
+  md.go:545			0x5eaf6d		4489f9				MOVL R15, CX											
+  svc_motion_estimate_h.go:114	0x5eaf70		4c8ba424b8020000		MOVQ 0x2b8(SP), R12										
+  md.go:552			0x5eaf78		4189f7				MOVL SI, R15											
+  md.go:552			0x5eaf7b		be00000000			MOVL $0x0, SI											
+  md.go:552			0x5eaf80		4889b42428010000		MOVQ SI, 0x128(SP)										
+  md.go:552			0x5eaf88		4c89942408010000		MOVQ R10, 0x108(SP)										
+  md.go:552			0x5eaf90		4c898c2400010000		MOVQ R9, 0x100(SP)										
+  md.go:552			0x5eaf98		48899424d0020000		MOVQ DX, 0x2d0(SP)										
+  md.go:696			0x5eafa0		0fb754245e			MOVZX 0x5e(SP), DX										
+  md.go:696			0x5eafa5		440fb74c245c			MOVZX 0x5c(SP), R9										
+  md.go:577			0x5eafab		448b9424c0000000		MOVL 0xc0(SP), R10										
+  md.go:545			0x5eafb3		4489fe				MOVL R15, SI											
+  md.go:549			0x5eafb6		eb48				JMP 0x5eb000											
+  md.go:540			0x5eafb8		84c9				TESTL CL, CL											
+  md.go:524			0x5eafba		4489f9				MOVL R15, CX											
+  md.go:552			0x5eafbd		488b8c2418010000		MOVQ 0x118(SP), CX										
+  md.go:552			0x5eafc5		48898c2428010000		MOVQ CX, 0x128(SP)										
+  md.go:552			0x5eafcd		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:552			0x5eafd5		48898c2408010000		MOVQ CX, 0x108(SP)										
+  md.go:552			0x5eafdd		488b8c24d8000000		MOVQ 0xd8(SP), CX										
+  md.go:552			0x5eafe5		48898c2400010000		MOVQ CX, 0x100(SP)										
+  md.go:552			0x5eafed		488b8c24b0020000		MOVQ 0x2b0(SP), CX										
+  md.go:552			0x5eaff5		48898c24d0020000		MOVQ CX, 0x2d0(SP)										
+  md.go:545			0x5eaffd		4489f9				MOVL R15, CX											
+  svc_motion_estimate_h.go:114	0x5eb000		4c89842450010000		MOVQ R8, 0x150(SP)										
+  md.go:544			0x5eb008		89bc24bc000000			MOVL DI, 0xbc(SP)										
+  md.go:544			0x5eb00f		898424a0000000			MOVL AX, 0xa0(SP)										
+  md.go:552			0x5eb016		0f85b0000000			JNE 0x5eb0cc											
+  md.go:543			0x5eb01c		89b424b8000000			MOVL SI, 0xb8(SP)										
+  md.go:552			0x5eb023		4489bc24b4000000		MOVL R15, 0xb4(SP)										
+  md.go:553			0x5eb02b		488b9424a8020000		MOVQ 0x2a8(SP), DX										
+  md.go:553			0x5eb033		4c8b22				MOVQ 0(DX), R12											
+  md.go:553			0x5eb036		4c8bac2420030000		MOVQ 0x320(SP), R13										
+  md.go:553			0x5eb03e		4d8b4518			MOVQ 0x18(R13), R8										
+  md.go:553			0x5eb042		4d8b4d20			MOVQ 0x20(R13), R9										
+  md.go:553			0x5eb046		4d8b5528			MOVQ 0x28(R13), R10										
+  md.go:553			0x5eb04a		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:553			0x5eb051		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:553			0x5eb059		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:553			0x5eb061		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:553			0x5eb069		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:553			0x5eb071		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:553			0x5eb075		41bb20000000			MOVL $0x20, R11											
+  md.go:553			0x5eb07b		41ffd4				CALL R12											
+  md.go:545			0x5eb07e		8b8c249c000000			MOVL 0x9c(SP), CX										
+  md.go:545			0x5eb085		8bb424b8000000			MOVL 0xb8(SP), SI										
+  md.go:556			0x5eb08c		8bbc24bc000000			MOVL 0xbc(SP), DI										
+  svc_motion_estimate_h.go:114	0x5eb093		4c8b842450010000		MOVQ 0x150(SP), R8										
+  md.go:577			0x5eb09b		448b9424c0000000		MOVL 0xc0(SP), R10										
+  svc_motion_estimate_h.go:114	0x5eb0a3		4c8b9c24e8000000		MOVQ 0xe8(SP), R11										
+  svc_motion_estimate_h.go:114	0x5eb0ab		4c8ba424b8020000		MOVQ 0x2b8(SP), R12										
+  svc_motion_estimate_h.go:114	0x5eb0b3		4c8bac24d0000000		MOVQ 0xd0(SP), R13										
+  md.go:557			0x5eb0bb		448bbc24b4000000		MOVL 0xb4(SP), R15										
+  md.go:556			0x5eb0c3		89c3				MOVL AX, BX											
+  md.go:573			0x5eb0c5		8b8424a0000000			MOVL 0xa0(SP), AX										
+  md.go:556			0x5eb0cc		8d5702				LEAL 0x2(DI), DX										
+  svc_motion_estimate_h.go:114	0x5eb0cf		4863d2				MOVSXD DX, DX											
+  svc_motion_estimate_h.go:114	0x5eb0d2		4c01ea				ADDQ R13, DX											
+  svc_motion_estimate_h.go:114	0x5eb0d5		470fb70c44			MOVZX 0(R12)(R8*2), R9										
+  svc_motion_estimate_h.go:114	0x5eb0da		660f1f440000			NOPW 0(AX)(AX*1)										
+  svc_motion_estimate_h.go:114	0x5eb0e0		4939d3				CMPQ R11, DX											
+  svc_motion_estimate_h.go:114	0x5eb0e3		0f86ab110000			JBE 0x5ec294											
+  md.go:556			0x5eb0e9		895c2464			MOVL BX, 0x64(SP)										
+  md.go:545			0x5eb0ed		39f1				CMPL CX, SI											
+  md.go:545			0x5eb0ef		0f9fc1				SETG CL												
+  svc_motion_estimate_h.go:114	0x5eb0f2		410fb71454			MOVZX 0(R12)(DX*2), DX										
+  svc_motion_estimate_h.go:114	0x5eb0f7		4401ca				ADDL R9, DX											
+  md.go:555			0x5eb0fa		01da				ADDL BX, DX											
+  md.go:552			0x5eb0fc		0fb6c9				MOVZX CL, CX											
+  md.go:552			0x5eb0ff		90				NOPL												
+  md.go:557			0x5eb100		4139d7				CMPL R15, DX											
+  md.go:557			0x5eb103		7e39				JLE 0x5eb13e											
+  md.go:560			0x5eb105		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:560			0x5eb10d		498b742418			MOVQ 0x18(R12), SI										
+  md.go:560			0x5eb112		4d8b4c2420			MOVQ 0x20(R12), R9										
+  md.go:560			0x5eb117		4d8b7c2428			MOVQ 0x28(R12), R15										
+  md.go:544			0x5eb11c		898424a4000000			MOVL AX, 0xa4(SP)										
+  md.go:563			0x5eb123		b802000000			MOVL $0x2, AX											
+  md.go:563			0x5eb128		89842498000000			MOVL AX, 0x98(SP)										
+  md.go:563			0x5eb12f		b820000000			MOVL $0x20, AX											
+  md.go:563			0x5eb134		4889842428010000		MOVQ AX, 0x128(SP)										
+  md.go:561			0x5eb13c		eb2a				JMP 0x5eb168											
+  md.go:563			0x5eb13e		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:563			0x5eb146		4489fa				MOVL R15, DX											
+  md.go:563			0x5eb149		898c2498000000			MOVL CX, 0x98(SP)										
+  md.go:563			0x5eb150		4c8bbc2408010000		MOVQ 0x108(SP), R15										
+  md.go:563			0x5eb158		4c8b8c2400010000		MOVQ 0x100(SP), R9										
+  md.go:563			0x5eb160		488bb424d0020000		MOVQ 0x2d0(SP), SI										
+  md.go:563			0x5eb168		4c89bc2408010000		MOVQ R15, 0x108(SP)										
+  md.go:563			0x5eb170		4c898c2400010000		MOVQ R9, 0x100(SP)										
+  md.go:563			0x5eb178		4889b424d0020000		MOVQ SI, 0x2d0(SP)										
+  md.go:563			0x5eb180		8994249c000000			MOVL DX, 0x9c(SP)										
+  md.go:563			0x5eb187		4c8bac24c0020000		MOVQ 0x2c0(SP), R13										
+  md.go:563			0x5eb18f		498b5578			MOVQ 0x78(R13), DX										
+  md.go:563			0x5eb193		4c8b2a				MOVQ 0(DX), R13											
+  md.go:563			0x5eb196		488bbc2418010000		MOVQ 0x118(SP), DI										
+  md.go:563			0x5eb19e		48ffcf				DECQ DI												
+  md.go:563			0x5eb1a1		4889bc2448010000		MOVQ DI, 0x148(SP)										
+  md.go:563			0x5eb1a9		4d8b0424			MOVQ 0(R12), R8											
+  md.go:563			0x5eb1ad		4d8b4c2408			MOVQ 0x8(R12), R9										
+  md.go:563			0x5eb1b2		4d8b542410			MOVQ 0x10(R12), R10										
+  md.go:563			0x5eb1b7		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:563			0x5eb1be		448ba42428030000		MOVL 0x328(SP), R12										
+  md.go:563			0x5eb1c6		41ffc4				INCL R12											
+  md.go:563			0x5eb1c9		4489a424b8000000		MOVL R12, 0xb8(SP)										
+  md.go:563			0x5eb1d1		4489642404			MOVL R12, 0x4(SP)										
+  md.go:563			0x5eb1d6		448ba4242c030000		MOVL 0x32c(SP), R12										
+  md.go:563			0x5eb1de		4489642408			MOVL R12, 0x8(SP)										
+  md.go:563			0x5eb1e3		488b8424b0020000		MOVQ 0x2b0(SP), AX										
+  md.go:563			0x5eb1eb		488b9c24d8000000		MOVQ 0xd8(SP), BX										
+  md.go:563			0x5eb1f3		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:563			0x5eb1fb		8b742468			MOVL 0x68(SP), SI										
+  md.go:563			0x5eb1ff		4531db				XORL R11, R11											
+  md.go:563			0x5eb202		41ffd5				CALL R13											
+  md.go:524			0x5eb205		440fb664245a			MOVZX 0x5a(SP), R12										
+  md.go:524			0x5eb20b		4584e4				TESTL R12, R12											
+  md.go:567			0x5eb20e		750f				JNE 0x5eb21f											
+  md.go:567			0x5eb210		31c9				XORL CX, CX											
+  md.go:573			0x5eb212		8b5c2464			MOVL 0x64(SP), BX										
+  md.go:573			0x5eb216		8b8424a0000000			MOVL 0xa0(SP), AX										
+  md.go:567			0x5eb21d		eb57				JMP 0x5eb276											
+  md.go:569			0x5eb21f		488b942420030000		MOVQ 0x320(SP), DX										
+  md.go:569			0x5eb227		4c8b02				MOVQ 0(DX), R8											
+  md.go:569			0x5eb22a		4c8b4a08			MOVQ 0x8(DX), R9										
+  md.go:569			0x5eb22e		4c8b5210			MOVQ 0x10(DX), R10										
+  md.go:568			0x5eb232		8b942428030000			MOVL 0x328(SP), DX										
+  md.go:568			0x5eb239		891424				MOVL DX, 0(SP)											
+  md.go:568			0x5eb23c		8b94242c030000			MOVL 0x32c(SP), DX										
+  md.go:568			0x5eb243		89542404			MOVL DX, 0x4(SP)										
+  md.go:568			0x5eb247		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:568			0x5eb24f		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:568			0x5eb257		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:568			0x5eb25f		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:568			0x5eb267		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:568			0x5eb26b		41bb01000000			MOVL $0x1, R11											
+  md.go:568			0x5eb271		e8aa4e0100			CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.sampleHalfSatdPair(SB)	
+  md.go:573			0x5eb276		84c9				TESTL CL, CL											
+  md.go:573			0x5eb278		7567				JNE 0x5eb2e1											
+  md.go:573			0x5eb27a		884c245b			MOVB CL, 0x5b(SP)										
+  md.go:573			0x5eb27e		899c24b0000000			MOVL BX, 0xb0(SP)										
+  md.go:574			0x5eb285		488b9424a8020000		MOVQ 0x2a8(SP), DX										
+  md.go:574			0x5eb28d		4c8b22				MOVQ 0(DX), R12											
+  md.go:574			0x5eb290		4c8bac2420030000		MOVQ 0x320(SP), R13										
+  md.go:574			0x5eb298		4d8b4500			MOVQ 0(R13), R8											
+  md.go:574			0x5eb29c		4d8b4d08			MOVQ 0x8(R13), R9										
+  md.go:574			0x5eb2a0		4d8b5510			MOVQ 0x10(R13), R10										
+  md.go:574			0x5eb2a4		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:574			0x5eb2ab		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:574			0x5eb2b3		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:574			0x5eb2bb		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:574			0x5eb2c3		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:574			0x5eb2cb		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:574			0x5eb2cf		4531db				XORL R11, R11											
+  md.go:574			0x5eb2d2		41ffd4				CALL R12											
+  md.go:573			0x5eb2d5		0fb64c245b			MOVZX 0x5b(SP), CX										
+  md.go:589			0x5eb2da		8b9c24b0000000			MOVL 0xb0(SP), BX										
+  md.go:577			0x5eb2e1		448ba424c0000000		MOVL 0xc0(SP), R12										
+  md.go:577			0x5eb2e9		458d6c24fe			LEAL -0x2(R12), R13										
+  svc_motion_estimate_h.go:114	0x5eb2ee		4d63ed				MOVSXD R13, R13											
+  svc_motion_estimate_h.go:114	0x5eb2f1		4c8bbc24d0000000		MOVQ 0xd0(SP), R15										
+  svc_motion_estimate_h.go:114	0x5eb2f9		4d01fd				ADDQ R15, R13											
+  md.go:544			0x5eb2fc		4489e2				MOVL R12, DX											
+  svc_motion_estimate_h.go:114	0x5eb2ff		4c8ba424e8000000		MOVQ 0xe8(SP), R12										
+  svc_motion_estimate_h.go:114	0x5eb307		4d39ec				CMPQ R12, R13											
+  svc_motion_estimate_h.go:114	0x5eb30a		0f867f0f0000			JBE 0x5ec28f											
+  md.go:507			0x5eb310		4c89e6				MOVQ R12, SI											
+  svc_motion_estimate_h.go:114	0x5eb313		448ba424bc000000		MOVL 0xbc(SP), R12										
+  svc_motion_estimate_h.go:114	0x5eb31b		4963fc				MOVSXD R12, DI											
+  svc_motion_estimate_h.go:114	0x5eb31e		4c01ff				ADDQ R15, DI											
+  md.go:544			0x5eb321		4589e0				MOVL R12, R8											
+  svc_motion_estimate_h.go:114	0x5eb324		4c8ba424b8020000		MOVQ 0x2b8(SP), R12										
+  svc_motion_estimate_h.go:114	0x5eb32c		470fb72c6c			MOVZX 0(R12)(R13*2), R13									
+  svc_motion_estimate_h.go:114	0x5eb331		4839fe				CMPQ SI, DI											
+  svc_motion_estimate_h.go:114	0x5eb334		0f86500f0000			JBE 0x5ec28a											
+  svc_motion_estimate_h.go:114	0x5eb33a		450fb70c7c			MOVZX 0(R12)(DI*2), R9										
+  svc_motion_estimate_h.go:114	0x5eb33f		4501cd				ADDL R9, R13											
+  md.go:576			0x5eb342		4101c5				ADDL AX, R13											
+  md.go:507			0x5eb345		4c89e0				MOVQ R12, AX											
+  md.go:578			0x5eb348		448ba4249c000000		MOVL 0x9c(SP), R12										
+  md.go:578			0x5eb350		4539ec				CMPL R12, R13											
+  md.go:578			0x5eb353		7e31				JLE 0x5eb386											
+  md.go:581			0x5eb355		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:581			0x5eb35d		4d8b0c24			MOVQ 0(R12), R9											
+  md.go:581			0x5eb361		4d8b542408			MOVQ 0x8(R12), R10										
+  md.go:581			0x5eb366		4d8b5c2410			MOVQ 0x10(R12), R11										
+  md.go:573			0x5eb36b		84c9				TESTL CL, CL											
+  md.go:573			0x5eb36d		b903000000			MOVL $0x3, CX											
+  md.go:585			0x5eb372		b900000000			MOVL $0x0, CX											
+  md.go:585			0x5eb377		48898c2428010000		MOVQ CX, 0x128(SP)										
+  md.go:585			0x5eb37f		b903000000			MOVL $0x3, CX											
+  md.go:582			0x5eb384		eb31				JMP 0x5eb3b7											
+  md.go:573			0x5eb386		84c9				TESTL CL, CL											
+  md.go:593			0x5eb388		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:585			0x5eb390		448bac249c000000		MOVL 0x9c(SP), R13										
+  md.go:585			0x5eb398		8b8c2498000000			MOVL 0x98(SP), CX										
+  md.go:585			0x5eb39f		4c8b9c2408010000		MOVQ 0x108(SP), R11										
+  md.go:585			0x5eb3a7		4c8b942400010000		MOVQ 0x100(SP), R10										
+  md.go:585			0x5eb3af		4c8b8c24d0020000		MOVQ 0x2d0(SP), R9										
+  svc_motion_estimate_h.go:114	0x5eb3b7		4889bc2440010000		MOVQ DI, 0x140(SP)										
+  svc_motion_estimate_h.go:114	0x5eb3bf		90				NOPL												
+  md.go:585			0x5eb3c0		0f85d4000000			JNE 0x5eb49a											
+  md.go:585			0x5eb3c6		4c899c2438010000		MOVQ R11, 0x138(SP)										
+  md.go:585			0x5eb3ce		4c89942430010000		MOVQ R10, 0x130(SP)										
+  md.go:585			0x5eb3d6		4c898c24d8020000		MOVQ R9, 0x2d8(SP)										
+  md.go:585			0x5eb3de		898c24ac000000			MOVL CX, 0xac(SP)										
+  md.go:585			0x5eb3e5		4489ac24a8000000		MOVL R13, 0xa8(SP)										
+  md.go:586			0x5eb3ed		488b9424a8020000		MOVQ 0x2a8(SP), DX										
+  md.go:586			0x5eb3f5		4c8b2a				MOVQ 0(DX), R13											
+  md.go:586			0x5eb3f8		4d8b0424			MOVQ 0(R12), R8											
+  md.go:586			0x5eb3fc		4d8b4c2408			MOVQ 0x8(R12), R9										
+  md.go:586			0x5eb401		4d8b542410			MOVQ 0x10(R12), R10										
+  md.go:586			0x5eb406		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:586			0x5eb40d		488b8424c8020000		MOVQ 0x2c8(SP), AX										
+  md.go:586			0x5eb415		488b9c24f0000000		MOVQ 0xf0(SP), BX										
+  md.go:586			0x5eb41d		488b8c24f8000000		MOVQ 0xf8(SP), CX										
+  md.go:586			0x5eb425		488bbc2420010000		MOVQ 0x120(SP), DI										
+  md.go:586			0x5eb42d		8b74246c			MOVL 0x6c(SP), SI										
+  md.go:586			0x5eb431		41bb01000000			MOVL $0x1, R11											
+  md.go:586			0x5eb437		41ffd5				CALL R13											
+  md.go:597			0x5eb43a		8b8c24ac000000			MOVL 0xac(SP), CX										
+  md.go:589			0x5eb441		8b9424c0000000			MOVL 0xc0(SP), DX										
+  svc_motion_estimate_h.go:114	0x5eb448		488bb424e8000000		MOVQ 0xe8(SP), SI										
+  svc_motion_estimate_h.go:114	0x5eb450		488bbc2440010000		MOVQ 0x140(SP), DI										
+  md.go:617			0x5eb458		448b8424bc000000		MOVL 0xbc(SP), R8										
+  md.go:597			0x5eb460		4c8b8c24d8020000		MOVQ 0x2d8(SP), R9										
+  md.go:597			0x5eb468		4c8b942430010000		MOVQ 0x130(SP), R10										
+  md.go:597			0x5eb470		4c8b9c2438010000		MOVQ 0x138(SP), R11										
+  md.go:593			0x5eb478		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:590			0x5eb480		448bac24a8000000		MOVL 0xa8(SP), R13										
+  svc_motion_estimate_h.go:114	0x5eb488		4c8bbc24d0000000		MOVQ 0xd0(SP), R15										
+  md.go:589			0x5eb490		89c3				MOVL AX, BX											
+  svc_motion_estimate_h.go:114	0x5eb492		488b8424b8020000		MOVQ 0x2b8(SP), AX										
+  md.go:589			0x5eb49a		83c202				ADDL $0x2, DX											
+  svc_motion_estimate_h.go:114	0x5eb49d		4863d2				MOVSXD DX, DX											
+  svc_motion_estimate_h.go:114	0x5eb4a0		4c01fa				ADDQ R15, DX											
+  svc_motion_estimate_h.go:114	0x5eb4a3		4839d6				CMPQ SI, DX											
+  svc_motion_estimate_h.go:114	0x5eb4a6		0f86d90d0000			JBE 0x5ec285											
+  svc_motion_estimate_h.go:114	0x5eb4ac		0fb71450			MOVZX 0(AX)(DX*2), DX										
+  svc_motion_estimate_h.go:114	0x5eb4b0		0fb73c78			MOVZX 0(AX)(DI*2), DI										
+  svc_motion_estimate_h.go:114	0x5eb4b4		01fa				ADDL DI, DX											
+  md.go:588			0x5eb4b6		01da				ADDL BX, DX											
+  md.go:590			0x5eb4b8		4139d5				CMPL R13, DX											
+  md.go:590			0x5eb4bb		7e1a				JLE 0x5eb4d7											
+  md.go:593			0x5eb4bd		4d8b0c24			MOVQ 0(R12), R9											
+  md.go:593			0x5eb4c1		4d8b542408			MOVQ 0x8(R12), R10										
+  md.go:593			0x5eb4c6		4d8b5c2410			MOVQ 0x10(R12), R11										
+  md.go:593			0x5eb4cb		b904000000			MOVL $0x4, CX											
+  md.go:593			0x5eb4d0		bb01000000			MOVL $0x1, BX											
+  md.go:594			0x5eb4d5		eb0b				JMP 0x5eb4e2											
+  md.go:597			0x5eb4d7		4489ea				MOVL R13, DX											
+  md.go:597			0x5eb4da		488b9c2428010000		MOVQ 0x128(SP), BX										
+  md.go:597			0x5eb4e2		8994249c000000			MOVL DX, 0x9c(SP)										
+  md.go:597			0x5eb4e9		898c2498000000			MOVL CX, 0x98(SP)										
+  md.go:597			0x5eb4f0		4c899c2408010000		MOVQ R11, 0x108(SP)										
+  md.go:597			0x5eb4f8		4c89942400010000		MOVQ R10, 0x100(SP)										
+  md.go:597			0x5eb500		4c898c24d0020000		MOVQ R9, 0x2d0(SP)										
+  md.go:597			0x5eb508		48899c2428010000		MOVQ BX, 0x128(SP)										
+  md.go:597			0x5eb510		89942460010000			MOVL DX, 0x160(SP)										
+  md.go:598			0x5eb517		898c2464010000			MOVL CX, 0x164(SP)										
+  md.go:599			0x5eb51e		4c8bac24b0020000		MOVQ 0x2b0(SP), R13										
+  md.go:599			0x5eb526		4c89ac2470010000		MOVQ R13, 0x170(SP)										
+  md.go:508			0x5eb52e		4c89ff				MOVQ R15, DI											
+  md.go:599			0x5eb531		4c8bbc24d8000000		MOVQ 0xd8(SP), R15										
+  md.go:599			0x5eb539		4c89bc2478010000		MOVQ R15, 0x178(SP)										
+  md.go:599			0x5eb541		4c8bbc24e0000000		MOVQ 0xe0(SP), R15										
+  md.go:599			0x5eb549		4c89bc2480010000		MOVQ R15, 0x180(SP)										
+  md.go:600			0x5eb551		4c8bbc2418010000		MOVQ 0x118(SP), R15										
+  md.go:600			0x5eb559		4c89bc2488010000		MOVQ R15, 0x188(SP)										
+  md.go:601			0x5eb561		c78424a002000001000000		MOVL $0x1, 0x2a0(SP)										
+  md.go:605			0x5eb56c		85c9				TESTL CX, CX											
+  md.go:605			0x5eb56e		0f85df000000			JNE 0x5eb653											
+  md.go:606			0x5eb574		448b542468			MOVL 0x68(SP), R10										
+  md.go:606			0x5eb579		4489942468010000		MOVL R10, 0x168(SP)										
+  md.go:607			0x5eb581		448994246c010000		MOVL R10, 0x16c(SP)										
+  md.go:608			0x5eb589		4d8b542418			MOVQ 0x18(R12), R10										
+  md.go:608			0x5eb58e		498b4c2420			MOVQ 0x20(R12), CX										
+  md.go:608			0x5eb593		498b5c2428			MOVQ 0x28(R12), BX										
+  md.go:608			0x5eb598		4c89942410020000		MOVQ R10, 0x210(SP)										
+  md.go:608			0x5eb5a0		48898c2418020000		MOVQ CX, 0x218(SP)										
+  md.go:608			0x5eb5a8		48899c2420020000		MOVQ BX, 0x220(SP)										
+  md.go:608			0x5eb5b0		48c784247002000000000000	MOVQ $0x0, 0x270(SP)										
+  md.go:609			0x5eb5bc		4c89942428020000		MOVQ R10, 0x228(SP)										
+  md.go:609			0x5eb5c4		48898c2430020000		MOVQ CX, 0x230(SP)										
+  md.go:609			0x5eb5cc		48899c2438020000		MOVQ BX, 0x238(SP)										
+  md.go:609			0x5eb5d4		48c784247802000020000000	MOVQ $0x20, 0x278(SP)										
+  md.go:610			0x5eb5e0		4d8b1424			MOVQ 0(R12), R10										
+  md.go:610			0x5eb5e4		498b4c2408			MOVQ 0x8(R12), CX										
+  md.go:610			0x5eb5e9		498b5c2410			MOVQ 0x10(R12), BX										
+  md.go:610			0x5eb5ee		4c89942440020000		MOVQ R10, 0x240(SP)										
+  md.go:610			0x5eb5f6		48898c2448020000		MOVQ CX, 0x248(SP)										
+  md.go:610			0x5eb5fe		48899c2450020000		MOVQ BX, 0x250(SP)										
+  md.go:610			0x5eb606		48c784248002000000000000	MOVQ $0x0, 0x280(SP)										
+  md.go:611			0x5eb612		4c89942458020000		MOVQ R10, 0x258(SP)										
+  md.go:611			0x5eb61a		48898c2460020000		MOVQ CX, 0x260(SP)										
+  md.go:611			0x5eb622		48899c2468020000		MOVQ BX, 0x268(SP)										
+  md.go:611			0x5eb62a		48c784248802000001000000	MOVQ $0x1, 0x288(SP)										
+  md.go:613			0x5eb636		4531d2				XORL R10, R10											
+  md.go:597			0x5eb639		4c89d9				MOVQ R11, CX											
+  md.go:613			0x5eb63c		4c8b9c24d8000000		MOVQ 0xd8(SP), R11										
+  md.go:597			0x5eb644		89d3				MOVL DX, BX											
+  md.go:613			0x5eb646		488b9424e0000000		MOVQ 0xe0(SP), DX										
+  md.go:613			0x5eb64e		e9510b0000			JMP 0x5ec1a4											
+  md.go:622			0x5eb653		83f902				CMPL CX, $0x2											
+  md.go:673			0x5eb656		0f8f04020000			JG 0x5eb860											
+  md.go:673			0x5eb65c		0f1f4000			NOPL 0(AX)											
+  md.go:656			0x5eb660		83f901				CMPL CX, $0x1											
+  md.go:656			0x5eb663		0f85fc000000			JNE 0x5eb765											
+  md.go:657			0x5eb669		4d8b442408			MOVQ 0x8(R12), R8										
+  md.go:657			0x5eb66e		498b4c2410			MOVQ 0x10(R12), CX										
+  md.go:657			0x5eb673		498b1c24			MOVQ 0(R12), BX											
+  md.go:657			0x5eb677		4d89442438			MOVQ R8, 0x38(R12)										
+  md.go:657			0x5eb67c		49894c2440			MOVQ CX, 0x40(R12)										
+  md.go:657			0x5eb681		833d68574c0000			CMPL runtime.writeBarrier(SB), $0x0								
+  md.go:657			0x5eb688		7411				JE 0x5eb69b											
+  md.go:657			0x5eb68a		4d8b4c2430			MOVQ 0x30(R12), R9										
+  md.go:657			0x5eb68f		e80c1eeaff			CALL runtime.gcWriteBarrier2(SB)								
+  md.go:657			0x5eb694		49891b				MOVQ BX, 0(R11)											
+  md.go:657			0x5eb697		4d894b08			MOVQ R9, 0x8(R11)										
+  md.go:657			0x5eb69b		49895c2430			MOVQ BX, 0x30(R12)										
+  md.go:658			0x5eb6a0		4c8ba424c0020000		MOVQ 0x2c0(SP), R12										
+  md.go:658			0x5eb6a8		498b942488000000		MOVQ 0x88(R12), DX										
+  md.go:658			0x5eb6b0		4c8b22				MOVQ 0(DX), R12											
+  md.go:658			0x5eb6b3		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:658			0x5eb6ba		448bbc24b8000000		MOVL 0xb8(SP), R15										
+  md.go:658			0x5eb6c2		44897c2404			MOVL R15, 0x4(SP)										
+  md.go:658			0x5eb6c7		448bbc24c4000000		MOVL 0xc4(SP), R15										
+  md.go:658			0x5eb6cf		44897c2408			MOVL R15, 0x8(SP)										
+  md.go:658			0x5eb6d4		488bbc2458010000		MOVQ 0x158(SP), DI										
+  md.go:658			0x5eb6dc		48ffcf				DECQ DI												
+  md.go:658			0x5eb6df		4c89e8				MOVQ R13, AX											
+  md.go:658			0x5eb6e2		8b742468			MOVL 0x68(SP), SI										
+  md.go:658			0x5eb6e6		4d89c1				MOVQ R8, R9											
+  md.go:658			0x5eb6e9		4989ca				MOVQ CX, R10											
+  md.go:658			0x5eb6ec		4531db				XORL R11, R11											
+  md.go:658			0x5eb6ef		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:658			0x5eb6f7		4989d8				MOVQ BX, R8											
+  md.go:658			0x5eb6fa		488b9c24d8000000		MOVQ 0xd8(SP), BX										
+  md.go:658			0x5eb702		41ffd4				CALL R12											
+  md.go:662			0x5eb705		448b642468			MOVL 0x68(SP), R12										
+  md.go:662			0x5eb70a		4489a42468010000		MOVL R12, 0x168(SP)										
+  md.go:663			0x5eb712		c784246c01000020000000		MOVL $0x20, 0x16c(SP)										
+  md.go:664			0x5eb71d		488b8c2420030000		MOVQ 0x320(SP), CX										
+  md.go:664			0x5eb725		4c8b6918			MOVQ 0x18(CX), R13										
+  md.go:664			0x5eb729		4c8b7920			MOVQ 0x20(CX), R15										
+  md.go:664			0x5eb72d		488b4128			MOVQ 0x28(CX), AX										
+  md.go:664			0x5eb731		4c89ac2410020000		MOVQ R13, 0x210(SP)										
+  md.go:664			0x5eb739		4c89bc2418020000		MOVQ R15, 0x218(SP)										
+  md.go:664			0x5eb741		4889842420020000		MOVQ AX, 0x220(SP)										
+  md.go:664			0x5eb749		48c784247002000000000000	MOVQ $0x0, 0x270(SP)										
+  md.go:665			0x5eb755		41bd01000000			MOVL $0x1, R13											
+  md.go:665			0x5eb75b		0f1f440000			NOPL 0(AX)(AX*1)										
+  md.go:665			0x5eb760		e93c090000			JMP 0x5ec0a1											
+  md.go:674			0x5eb765		4d8b442408			MOVQ 0x8(R12), R8										
+  md.go:674			0x5eb76a		498b4c2410			MOVQ 0x10(R12), CX										
+  md.go:674			0x5eb76f		498b1c24			MOVQ 0(R12), BX											
+  md.go:674			0x5eb773		4d89442438			MOVQ R8, 0x38(R12)										
+  md.go:674			0x5eb778		49894c2440			MOVQ CX, 0x40(R12)										
+  md.go:674			0x5eb77d		833d6c564c0000			CMPL runtime.writeBarrier(SB), $0x0								
+  md.go:674			0x5eb784		7411				JE 0x5eb797											
+  md.go:674			0x5eb786		4d8b4c2430			MOVQ 0x30(R12), R9										
+  md.go:674			0x5eb78b		e8101deaff			CALL runtime.gcWriteBarrier2(SB)								
+  md.go:674			0x5eb790		49891b				MOVQ BX, 0(R11)											
+  md.go:674			0x5eb793		4d894b08			MOVQ R9, 0x8(R11)										
+  md.go:674			0x5eb797		49895c2430			MOVQ BX, 0x30(R12)										
+  md.go:675			0x5eb79c		4c8ba424c0020000		MOVQ 0x2c0(SP), R12										
+  md.go:675			0x5eb7a4		498b942488000000		MOVQ 0x88(R12), DX										
+  md.go:675			0x5eb7ac		4c8b22				MOVQ 0(DX), R12											
+  md.go:675			0x5eb7af		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:675			0x5eb7b6		448bbc24b8000000		MOVL 0xb8(SP), R15										
+  md.go:675			0x5eb7be		44897c2404			MOVL R15, 0x4(SP)										
+  md.go:675			0x5eb7c3		448bbc24c4000000		MOVL 0xc4(SP), R15										
+  md.go:675			0x5eb7cb		44897c2408			MOVL R15, 0x8(SP)										
+  md.go:675			0x5eb7d0		488bbc2458010000		MOVQ 0x158(SP), DI										
+  md.go:675			0x5eb7d8		48ffcf				DECQ DI												
+  md.go:675			0x5eb7db		4c89e8				MOVQ R13, AX											
+  md.go:675			0x5eb7de		8b742468			MOVL 0x68(SP), SI										
+  md.go:675			0x5eb7e2		4d89c1				MOVQ R8, R9											
+  md.go:675			0x5eb7e5		4989ca				MOVQ CX, R10											
+  md.go:675			0x5eb7e8		4531db				XORL R11, R11											
+  md.go:675			0x5eb7eb		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:675			0x5eb7f3		4989d8				MOVQ BX, R8											
+  md.go:675			0x5eb7f6		488b9c24d8000000		MOVQ 0xd8(SP), BX										
+  md.go:675			0x5eb7fe		6690				NOPW												
+  md.go:675			0x5eb800		41ffd4				CALL R12											
+  md.go:678			0x5eb803		448b642468			MOVL 0x68(SP), R12										
+  md.go:678			0x5eb808		4489a42468010000		MOVL R12, 0x168(SP)										
+  md.go:679			0x5eb810		c784246c01000020000000		MOVL $0x20, 0x16c(SP)										
+  md.go:680			0x5eb81b		488b8c2420030000		MOVQ 0x320(SP), CX										
+  md.go:680			0x5eb823		4c8b6918			MOVQ 0x18(CX), R13										
+  md.go:680			0x5eb827		4c8b7920			MOVQ 0x20(CX), R15										
+  md.go:680			0x5eb82b		488b4128			MOVQ 0x28(CX), AX										
+  md.go:680			0x5eb82f		4c89ac2410020000		MOVQ R13, 0x210(SP)										
+  md.go:680			0x5eb837		4c89bc2418020000		MOVQ R15, 0x218(SP)										
+  md.go:680			0x5eb83f		4889842420020000		MOVQ AX, 0x220(SP)										
+  md.go:680			0x5eb847		48c784247002000020000000	MOVQ $0x20, 0x270(SP)										
+  md.go:681			0x5eb853		41bd01000000			MOVL $0x1, R13											
+  md.go:681			0x5eb859		e924070000			JMP 0x5ebf82											
+  md.go:681			0x5eb85e		6690				NOPW												
+  md.go:623			0x5eb860		83f903				CMPL CX, $0x3											
+  md.go:623			0x5eb863		0f85fc000000			JNE 0x5eb965											
+  md.go:624			0x5eb869		4d8b442420			MOVQ 0x20(R12), R8										
+  md.go:624			0x5eb86e		498b4c2428			MOVQ 0x28(R12), CX										
+  md.go:624			0x5eb873		498b5c2418			MOVQ 0x18(R12), BX										
+  md.go:624			0x5eb878		4d89442438			MOVQ R8, 0x38(R12)										
+  md.go:624			0x5eb87d		49894c2440			MOVQ CX, 0x40(R12)										
+  md.go:624			0x5eb882		833d67554c0000			CMPL runtime.writeBarrier(SB), $0x0								
+  md.go:624			0x5eb889		7411				JE 0x5eb89c											
+  md.go:624			0x5eb88b		4d8b4c2430			MOVQ 0x30(R12), R9										
+  md.go:624			0x5eb890		e80b1ceaff			CALL runtime.gcWriteBarrier2(SB)								
+  md.go:624			0x5eb895		49891b				MOVQ BX, 0(R11)											
+  md.go:624			0x5eb898		4d894b08			MOVQ R9, 0x8(R11)										
+  md.go:624			0x5eb89c		49895c2430			MOVQ BX, 0x30(R12)										
+  md.go:625			0x5eb8a1		4c8ba424c0020000		MOVQ 0x2c0(SP), R12										
+  md.go:625			0x5eb8a9		498b942488000000		MOVQ 0x88(R12), DX										
+  md.go:625			0x5eb8b1		4c8b22				MOVQ 0(DX), R12											
+  md.go:625			0x5eb8b4		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:625			0x5eb8bb		448bbc24b8000000		MOVL 0xb8(SP), R15										
+  md.go:625			0x5eb8c3		44897c2404			MOVL R15, 0x4(SP)										
+  md.go:625			0x5eb8c8		448bbc24c4000000		MOVL 0xc4(SP), R15										
+  md.go:625			0x5eb8d0		44897c2408			MOVL R15, 0x8(SP)										
+  md.go:625			0x5eb8d5		488bbc2458010000		MOVQ 0x158(SP), DI										
+  md.go:625			0x5eb8dd		48ffcf				DECQ DI												
+  md.go:625			0x5eb8e0		4c89e8				MOVQ R13, AX											
+  md.go:625			0x5eb8e3		8b742468			MOVL 0x68(SP), SI										
+  md.go:625			0x5eb8e7		4d89c1				MOVQ R8, R9											
+  md.go:625			0x5eb8ea		4989ca				MOVQ CX, R10											
+  md.go:625			0x5eb8ed		4531db				XORL R11, R11											
+  md.go:625			0x5eb8f0		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:625			0x5eb8f8		4989d8				MOVQ BX, R8											
+  md.go:625			0x5eb8fb		488b9c24d8000000		MOVQ 0xd8(SP), BX										
+  md.go:625			0x5eb903		41ffd4				CALL R12											
+  md.go:629			0x5eb906		c784246801000020000000		MOVL $0x20, 0x168(SP)										
+  md.go:630			0x5eb911		448b642468			MOVL 0x68(SP), R12										
+  md.go:630			0x5eb916		4489a4246c010000		MOVL R12, 0x16c(SP)										
+  md.go:631			0x5eb91e		488b8c2420030000		MOVQ 0x320(SP), CX										
+  md.go:631			0x5eb926		4c8b29				MOVQ 0(CX), R13											
+  md.go:631			0x5eb929		4c8b7908			MOVQ 0x8(CX), R15										
+  md.go:631			0x5eb92d		488b4110			MOVQ 0x10(CX), AX										
+  md.go:631			0x5eb931		4c89ac2410020000		MOVQ R13, 0x210(SP)										
+  md.go:631			0x5eb939		4c89bc2418020000		MOVQ R15, 0x218(SP)										
+  md.go:631			0x5eb941		4889842420020000		MOVQ AX, 0x220(SP)										
+  md.go:631			0x5eb949		48c784247002000000000000	MOVQ $0x0, 0x270(SP)										
+  md.go:632			0x5eb955		41bd01000000			MOVL $0x1, R13											
+  md.go:632			0x5eb95b		0f1f440000			NOPL 0(AX)(AX*1)										
+  md.go:632			0x5eb960		e901050000			JMP 0x5ebe66											
+  md.go:641			0x5eb965		4d8b442420			MOVQ 0x20(R12), R8										
+  md.go:641			0x5eb96a		498b4c2428			MOVQ 0x28(R12), CX										
+  md.go:641			0x5eb96f		498b5c2418			MOVQ 0x18(R12), BX										
+  md.go:641			0x5eb974		4d89442438			MOVQ R8, 0x38(R12)										
+  md.go:641			0x5eb979		49894c2440			MOVQ CX, 0x40(R12)										
+  md.go:641			0x5eb97e		833d6b544c0000			CMPL runtime.writeBarrier(SB), $0x0								
+  md.go:641			0x5eb985		7411				JE 0x5eb998											
+  md.go:641			0x5eb987		4d8b4c2430			MOVQ 0x30(R12), R9										
+  md.go:641			0x5eb98c		e80f1beaff			CALL runtime.gcWriteBarrier2(SB)								
+  md.go:641			0x5eb991		49891b				MOVQ BX, 0(R11)											
+  md.go:641			0x5eb994		4d894b08			MOVQ R9, 0x8(R11)										
+  md.go:641			0x5eb998		49895c2430			MOVQ BX, 0x30(R12)										
+  md.go:642			0x5eb99d		4c8ba424c0020000		MOVQ 0x2c0(SP), R12										
+  md.go:642			0x5eb9a5		498b942488000000		MOVQ 0x88(R12), DX										
+  md.go:642			0x5eb9ad		4c8b22				MOVQ 0(DX), R12											
+  md.go:642			0x5eb9b0		c7042420000000			MOVL $0x20, 0(SP)										
+  md.go:642			0x5eb9b7		448bbc24b8000000		MOVL 0xb8(SP), R15										
+  md.go:642			0x5eb9bf		44897c2404			MOVL R15, 0x4(SP)										
+  md.go:642			0x5eb9c4		448bbc24c4000000		MOVL 0xc4(SP), R15										
+  md.go:642			0x5eb9cc		44897c2408			MOVL R15, 0x8(SP)										
+  md.go:642			0x5eb9d1		488bbc2458010000		MOVQ 0x158(SP), DI										
+  md.go:642			0x5eb9d9		48ffcf				DECQ DI												
+  md.go:642			0x5eb9dc		4c89e8				MOVQ R13, AX											
+  md.go:642			0x5eb9df		8b742468			MOVL 0x68(SP), SI										
+  md.go:642			0x5eb9e3		4d89c1				MOVQ R8, R9											
+  md.go:642			0x5eb9e6		4989ca				MOVQ CX, R10											
+  md.go:642			0x5eb9e9		4531db				XORL R11, R11											
+  md.go:642			0x5eb9ec		488b8c24e0000000		MOVQ 0xe0(SP), CX										
+  md.go:642			0x5eb9f4		4989d8				MOVQ BX, R8											
+  md.go:642			0x5eb9f7		488b9c24d8000000		MOVQ 0xd8(SP), BX										
+  md.go:642			0x5eb9ff		90				NOPL												
+  md.go:642			0x5eba00		41ffd4				CALL R12											
+  md.go:645			0x5eba03		c784246801000020000000		MOVL $0x20, 0x168(SP)										
+  md.go:646			0x5eba0e		448b642468			MOVL 0x68(SP), R12										
+  md.go:646			0x5eba13		4489a4246c010000		MOVL R12, 0x16c(SP)										
+  md.go:647			0x5eba1b		488b8c2420030000		MOVQ 0x320(SP), CX										
+  md.go:647			0x5eba23		4c8b29				MOVQ 0(CX), R13											
+  md.go:647			0x5eba26		4c8b7908			MOVQ 0x8(CX), R15										
+  md.go:647			0x5eba2a		488b4110			MOVQ 0x10(CX), AX										
+  md.go:647			0x5eba2e		4c89ac2410020000		MOVQ R13, 0x210(SP)										
+  md.go:647			0x5eba36		4c89bc2418020000		MOVQ R15, 0x218(SP)										
+  md.go:647			0x5eba3e		4889842420020000		MOVQ AX, 0x220(SP)										
+  md.go:647			0x5eba46		48c784247002000001000000	MOVQ $0x1, 0x270(SP)										
+  md.go:648			0x5eba52		41bd01000000			MOVL $0x1, R13											
+  md.go:648			0x5eba58		eb48				JMP 0x5ebaa2											
+  md.go:649			0x5eba5a		4b8d546d00			LEAQ 0(R13)(R13*2), DX										
+  md.go:649			0x5eba5f		4c8b942410020000		MOVQ 0x210(SP), R10										
+  md.go:649			0x5eba67		4c8b9c2418020000		MOVQ 0x218(SP), R11										
+  md.go:649			0x5eba6f		4c8bbc2420020000		MOVQ 0x220(SP), R15										
+  md.go:649			0x5eba77		488b842470020000		MOVQ 0x270(SP), AX										
+  md.go:649			0x5eba7f		4c8994d410020000		MOVQ R10, 0x210(SP)(DX*8)									
+  md.go:649			0x5eba87		4c899cd418020000		MOVQ R11, 0x218(SP)(DX*8)									
+  md.go:649			0x5eba8f		4c89bcd420020000		MOVQ R15, 0x220(SP)(DX*8)									
+  md.go:649			0x5eba97		4a8984ec70020000		MOVQ AX, 0x270(SP)(R13*8)									
+  md.go:648			0x5eba9f		49ffc5				INCQ R13											
+  md.go:648			0x5ebaa2		4983fd04			CMPQ R13, $0x4											
+  md.go:648			0x5ebaa6		7cb2				JL 0x5eba5a											
+  md.go:651			0x5ebaa8		4c8b5130			MOVQ 0x30(CX), R10										
+  md.go:651			0x5ebaac		4c8b5938			MOVQ 0x38(CX), R11										
+  md.go:651			0x5ebab0		4c8b6940			MOVQ 0x40(CX), R13										
+  md.go:651			0x5ebab4		4c89942490010000		MOVQ R10, 0x190(SP)										
+  md.go:651			0x5ebabc		4c899c2498010000		MOVQ R11, 0x198(SP)										
+  md.go:651			0x5ebac4		4c89ac24a0010000		MOVQ R13, 0x1a0(SP)										
+  md.go:651			0x5ebacc		48c78424f001000001000000	MOVQ $0x1, 0x1f0(SP)										
+  md.go:652			0x5ebad8		4c899424a8010000		MOVQ R10, 0x1a8(SP)										
+  md.go:652			0x5ebae0		4c899c24b0010000		MOVQ R11, 0x1b0(SP)										
+  md.go:652			0x5ebae8		4c89ac24b8010000		MOVQ R13, 0x1b8(SP)										
+  md.go:652			0x5ebaf0		48c78424f801000021000000	MOVQ $0x21, 0x1f8(SP)										
+  md.go:653			0x5ebafc		4c8b9424b0020000		MOVQ 0x2b0(SP), R10										
+  md.go:653			0x5ebb04		4c899424c0010000		MOVQ R10, 0x1c0(SP)										
+  md.go:653			0x5ebb0c		4c8b9c24d8000000		MOVQ 0xd8(SP), R11										
+  md.go:653			0x5ebb14		4c899c24c8010000		MOVQ R11, 0x1c8(SP)										
+  md.go:653			0x5ebb1c		4c8bac24e0000000		MOVQ 0xe0(SP), R13										
+  md.go:653			0x5ebb24		4c89ac24d0010000		MOVQ R13, 0x1d0(SP)										
+  md.go:653			0x5ebb2c		4c8bbc2418010000		MOVQ 0x118(SP), R15										
+  md.go:653			0x5ebb34		4c89bc2400020000		MOVQ R15, 0x200(SP)										
+  md.go:654			0x5ebb3c		4c899424d8010000		MOVQ R10, 0x1d8(SP)										
+  md.go:654			0x5ebb44		4c899c24e0010000		MOVQ R11, 0x1e0(SP)										
+  md.go:654			0x5ebb4c		4c89ac24e8010000		MOVQ R13, 0x1e8(SP)										
+  md.go:654			0x5ebb54		498d4701			LEAQ 0x1(R15), AX										
+  md.go:654			0x5ebb58		4889842408020000		MOVQ AX, 0x208(SP)										
+  md.go:644			0x5ebb60		0fb754245e			MOVZX 0x5e(SP), DX										
+  md.go:644			0x5ebb65		83c202				ADDL $0x2, DX											
+  md.go:691			0x5ebb68		0fb744245c			MOVZX 0x5c(SP), AX										
+  md.go:691			0x5ebb6d		480fbfda			MOVSX DX, BX											
+  md.go:691			0x5ebb71		448b9424cc000000		MOVL 0xcc(SP), R10										
+  md.go:691			0x5ebb79		4429d3				SUBL R10, BX											
+  md.go:691			0x5ebb7c		4c0fbfd0			MOVSX AX, R10											
+  svc_motion_estimate_h.go:114	0x5ebb80		4863fb				MOVSXD BX, DI											
+  svc_motion_estimate_h.go:114	0x5ebb83		4c8b9c24d0000000		MOVQ 0xd0(SP), R11										
+  svc_motion_estimate_h.go:114	0x5ebb8b		4c01df				ADDQ R11, DI											
+  md.go:691			0x5ebb8e		448bac24c8000000		MOVL 0xc8(SP), R13										
+  md.go:691			0x5ebb96		4529ea				SUBL R13, R10											
+  svc_motion_estimate_h.go:114	0x5ebb99		4c8bac24e8000000		MOVQ 0xe8(SP), R13										
+  svc_motion_estimate_h.go:114	0x5ebba1		4939fd				CMPQ R13, DI											
+  svc_motion_estimate_h.go:114	0x5ebba4		0f866f020000			JBE 0x5ebe19											
+  md.go:691			0x5ebbaa		418d72ff			LEAL -0x1(R10), SI										
+  svc_motion_estimate_h.go:114	0x5ebbae		4863f6				MOVSXD SI, SI											
+  svc_motion_estimate_h.go:114	0x5ebbb1		4c01de				ADDQ R11, SI											
+  svc_motion_estimate_h.go:114	0x5ebbb4		4c8bbc24b8020000		MOVQ 0x2b8(SP), R15										
+  svc_motion_estimate_h.go:114	0x5ebbbc		450fb7047f			MOVZX 0(R15)(DI*2), R8										
+  svc_motion_estimate_h.go:114	0x5ebbc1		4939f5				CMPQ R13, SI											
+  svc_motion_estimate_h.go:114	0x5ebbc4		0f864a020000			JBE 0x5ebe14											
+  md.go:692			0x5ebbca		458d4a01			LEAL 0x1(R10), R9										
+  svc_motion_estimate_h.go:114	0x5ebbce		410fb73477			MOVZX 0(R15)(SI*2), SI										
+  svc_motion_estimate_h.go:114	0x5ebbd3		4401c6				ADDL R8, SI											
+  md.go:691			0x5ebbd6		89b42490020000			MOVL SI, 0x290(SP)										
+  svc_motion_estimate_h.go:114	0x5ebbdd		4963f1				MOVSXD R9, SI											
+  svc_motion_estimate_h.go:114	0x5ebbe0		4c01de				ADDQ R11, SI											
+  svc_motion_estimate_h.go:114	0x5ebbe3		410fb73c7f			MOVZX 0(R15)(DI*2), DI										
+  svc_motion_estimate_h.go:114	0x5ebbe8		4939f5				CMPQ R13, SI											
+  svc_motion_estimate_h.go:114	0x5ebbeb		0f861e020000			JBE 0x5ebe0f											
+  md.go:693			0x5ebbf1		448d43ff			LEAL -0x1(BX), R8										
+  svc_motion_estimate_h.go:114	0x5ebbf5		410fb73477			MOVZX 0(R15)(SI*2), SI										
+  svc_motion_estimate_h.go:114	0x5ebbfa		01fe				ADDL DI, SI											
+  md.go:692			0x5ebbfc		89b42494020000			MOVL SI, 0x294(SP)										
+  svc_motion_estimate_h.go:114	0x5ebc03		4963f0				MOVSXD R8, SI											
+  svc_motion_estimate_h.go:114	0x5ebc06		4c01de				ADDQ R11, SI											
+  svc_motion_estimate_h.go:114	0x5ebc09		4939f5				CMPQ R13, SI											
+  svc_motion_estimate_h.go:114	0x5ebc0c		0f86f8010000			JBE 0x5ebe0a											
+  svc_motion_estimate_h.go:114	0x5ebc12		4d63d2				MOVSXD R10, R10											
+  svc_motion_estimate_h.go:114	0x5ebc15		4d01da				ADDQ R11, R10											
+  svc_motion_estimate_h.go:114	0x5ebc18		410fb73477			MOVZX 0(R15)(SI*2), SI										
+  svc_motion_estimate_h.go:114	0x5ebc1d		0f1f00				NOPL 0(AX)											
+  svc_motion_estimate_h.go:114	0x5ebc20		4d39d5				CMPQ R13, R10											
+  svc_motion_estimate_h.go:114	0x5ebc23		0f86dc010000			JBE 0x5ebe05											
+  md.go:694			0x5ebc29		ffc3				INCL BX												
+  svc_motion_estimate_h.go:114	0x5ebc2b		430fb73c57			MOVZX 0(R15)(R10*2), DI										
+  svc_motion_estimate_h.go:114	0x5ebc30		01fe				ADDL DI, SI											
+  md.go:693			0x5ebc32		89b42498020000			MOVL SI, 0x298(SP)										
+  svc_motion_estimate_h.go:114	0x5ebc39		4863db				MOVSXD BX, BX											
+  svc_motion_estimate_h.go:114	0x5ebc3c		4901db				ADDQ BX, R11											
+  svc_motion_estimate_h.go:114	0x5ebc3f		90				NOPL												
+  svc_motion_estimate_h.go:114	0x5ebc40		4d39dd				CMPQ R13, R11											
+  svc_motion_estimate_h.go:114	0x5ebc43		0f86b2010000			JBE 0x5ebdfb											
+  svc_motion_estimate_h.go:114	0x5ebc49		470fb71c5f			MOVZX 0(R15)(R11*2), R11									
+  svc_motion_estimate_h.go:114	0x5ebc4e		470fb71457			MOVZX 0(R15)(R10*2), R10									
+  svc_motion_estimate_h.go:114	0x5ebc53		4501da				ADDL R11, R10											
+  md.go:694			0x5ebc56		448994249c020000		MOVL R10, 0x29c(SP)										
+  md.go:696			0x5ebc5e		6689442460			MOVW AX, 0x60(SP)										
+  md.go:696			0x5ebc63		6689542462			MOVW DX, 0x62(SP)										
+  md.go:696			0x5ebc68		488b8424c0020000		MOVQ 0x2c0(SP), AX										
+  md.go:696			0x5ebc70		488b9c2418030000		MOVQ 0x318(SP), BX										
+  md.go:696			0x5ebc78		8bbc2428030000			MOVL 0x328(SP), DI										
+  md.go:696			0x5ebc7f		8bb4242c030000			MOVL 0x32c(SP), SI										
+  md.go:696			0x5ebc86		4c8d842460010000		LEAQ 0x160(SP), R8										
+  md.go:696			0x5ebc8e		448b4c246c			MOVL 0x6c(SP), R9										
+  md.go:696			0x5ebc93		e848e3ffff			CALL github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.MeRefineQuarPixel(SB)	
+  md.go:698			0x5ebc98		8b942460010000			MOVL 0x160(SP), DX										
+  md.go:698			0x5ebc9f		448b94249c000000		MOVL 0x9c(SP), R10										
+  md.go:698			0x5ebca7		4139d2				CMPL R10, DX											
+  md.go:698			0x5ebcaa		7e1b				JLE 0x5ebcc7											
+  md.go:699			0x5ebcac		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:699			0x5ebcb4		4d8b4c2448			MOVQ 0x48(R12), R9										
+  md.go:699			0x5ebcb9		4d8b542450			MOVQ 0x50(R12), R10										
+  md.go:699			0x5ebcbe		4d8b5c2458			MOVQ 0x58(R12), R11										
+  md.go:699			0x5ebcc3		31c0				XORL AX, AX											
+  md.go:701			0x5ebcc5		eb2b				JMP 0x5ebcf2											
+  md.go:716			0x5ebcc7		4c8ba42420030000		MOVQ 0x320(SP), R12										
+  md.go:703			0x5ebccf		4489d2				MOVL R10, DX											
+  md.go:703			0x5ebcd2		488b842428010000		MOVQ 0x128(SP), AX										
+  md.go:703			0x5ebcda		4c8b9c2408010000		MOVQ 0x108(SP), R11										
+  md.go:703			0x5ebce2		4c8b942400010000		MOVQ 0x100(SP), R10										
+  md.go:703			0x5ebcea		4c8b8c24d0020000		MOVQ 0x2d0(SP), R9										
+  md.go:703			0x5ebcf2		448bac24a0020000		MOVL 0x2a0(SP), R13										
+  md.go:706			0x5ebcfa		4d63fd				MOVSXD R13, R15											
+  md.go:706			0x5ebcfd		0f1f00				NOPL 0(AX)											
+  md.go:706			0x5ebd00		4983ff0a			CMPQ R15, $0xa											
+  md.go:706			0x5ebd04		0f83ec000000			JAE 0x5ebdf6											
+  md.go:511			0x5ebd0a		4c89e1				MOVQ R12, CX											
+  md.go:706			0x5ebd0d		440fb7642462			MOVZX 0x62(SP), R12										
+  md.go:706			0x5ebd13		4d0fbfe4			MOVSX R12, R12											
+  md.go:706			0x5ebd17		460364bc70			ADDL 0x70(SP)(R15*4), R12									
+  md.go:706			0x5ebd1c		4c8bbc2418030000		MOVQ 0x318(SP), R15										
+  md.go:706			0x5ebd24		664589a7b8000000		MOVW R12, 0xb8(R15)										
+  md.go:707			0x5ebd2c		458d6503			LEAL 0x3(R13), R12										
+  md.go:707			0x5ebd30		4d63e4				MOVSXD R12, R12											
+  md.go:707			0x5ebd33		4983fc0a			CMPQ R12, $0xa											
+  md.go:707			0x5ebd37		0f83b4000000			JAE 0x5ebdf1											
+  md.go:703			0x5ebd3d		4489eb				MOVL R13, BX											
+  md.go:707			0x5ebd40		440fb76c2460			MOVZX 0x60(SP), R13										
+  md.go:707			0x5ebd46		4d0fbfed			MOVSX R13, R13											
+  md.go:707			0x5ebd4a		46036ca470			ADDL 0x70(SP)(R12*4), R13									
+  md.go:707			0x5ebd4f		664589afba000000		MOVW R13, 0xba(R15)										
+  md.go:708			0x5ebd57		41895728			MOVL DX, 0x28(R15)										
+  md.go:711			0x5ebd5b		448ba42498000000		MOVL 0x98(SP), R12										
+  md.go:711			0x5ebd63		4101dc				ADDL BX, R12											
+  md.go:716			0x5ebd66		488b5178			MOVQ 0x78(CX), DX										
+  md.go:716			0x5ebd6a		4c8b2a				MOVQ 0(DX), R13											
+  md.go:711			0x5ebd6d		4183fc01			CMPL R12, $0x1											
+  md.go:716			0x5ebd71		41bc20000000			MOVL $0x20, R12											
+  md.go:716			0x5ebd77		448b7c2468			MOVL 0x68(SP), R15										
+  md.go:716			0x5ebd7c		450f44e7			CMOVE R15, R12											
+  md.go:716			0x5ebd80		44892424			MOVL R12, 0(SP)											
+  md.go:716			0x5ebd84		4c8ba42418010000		MOVQ 0x118(SP), R12										
+  md.go:716			0x5ebd8c		490f44c4			CMOVE R12, AX											
+  md.go:716			0x5ebd90		4c8ba424e0000000		MOVQ 0xe0(SP), R12										
+  md.go:716			0x5ebd98		4d0f44dc			CMOVE R12, R11											
+  md.go:716			0x5ebd9c		4c8ba424d8000000		MOVQ 0xd8(SP), R12										
+  md.go:716			0x5ebda4		4d0f44d4			CMOVE R12, R10											
+  md.go:716			0x5ebda8		4c8ba424b0020000		MOVQ 0x2b0(SP), R12										
+  md.go:716			0x5ebdb0		4d0f44cc			CMOVE R12, R9											
+  md.go:716			0x5ebdb4		488b9c2400030000		MOVQ 0x300(SP), BX										
+  md.go:716			0x5ebdbc		488b8c2408030000		MOVQ 0x308(SP), CX										
+  md.go:716			0x5ebdc4		488bbc2410030000		MOVQ 0x310(SP), DI										
+  md.go:716			0x5ebdcc		be10000000			MOVL $0x10, SI											
+  md.go:716			0x5ebdd1		4d89c8				MOVQ R9, R8											
+  md.go:716			0x5ebdd4		4d89d1				MOVQ R10, R9											
+  md.go:716			0x5ebdd7		4d89da				MOVQ R11, R10											
+  md.go:716			0x5ebdda		4989c3				MOVQ AX, R11											
+  md.go:716			0x5ebddd		488b8424f8020000		MOVQ 0x2f8(SP), AX										
+  md.go:716			0x5ebde5		41ffd5				CALL R13											
+  md.go:711			0x5ebde8		4881c4e0020000			ADDQ $0x2e0, SP											
+  md.go:711			0x5ebdef		5d				POPQ BP												
+  md.go:711			0x5ebdf0		c3				RET												
+  md.go:707			0x5ebdf1		e84a1aeaff			CALL runtime.panicBounds(SB)									
+  md.go:706			0x5ebdf6		e8451aeaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ebdfb		0f1f440000			NOPL 0(AX)(AX*1)										
+  svc_motion_estimate_h.go:114	0x5ebe00		e83b1aeaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ebe05		e8361aeaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ebe0a		e8311aeaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ebe0f		e82c1aeaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ebe14		e8271aeaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ebe19		e8221aeaff			CALL runtime.panicBounds(SB)									
+  md.go:633			0x5ebe1e		4b8d546d00			LEAQ 0(R13)(R13*2), DX										
+  md.go:633			0x5ebe23		4c8b942410020000		MOVQ 0x210(SP), R10										
+  md.go:633			0x5ebe2b		4c8b9c2418020000		MOVQ 0x218(SP), R11										
+  md.go:633			0x5ebe33		4c8bbc2420020000		MOVQ 0x220(SP), R15										
+  md.go:633			0x5ebe3b		488b842470020000		MOVQ 0x270(SP), AX										
+  md.go:633			0x5ebe43		4c8994d410020000		MOVQ R10, 0x210(SP)(DX*8)									
+  md.go:633			0x5ebe4b		4c899cd418020000		MOVQ R11, 0x218(SP)(DX*8)									
+  md.go:633			0x5ebe53		4c89bcd420020000		MOVQ R15, 0x220(SP)(DX*8)									
+  md.go:633			0x5ebe5b		4a8984ec70020000		MOVQ AX, 0x270(SP)(R13*8)									
+  md.go:632			0x5ebe63		49ffc5				INCQ R13											
+  md.go:632			0x5ebe66		4983fd04			CMPQ R13, $0x4											
+  md.go:632			0x5ebe6a		7cb2				JL 0x5ebe1e											
+  md.go:635			0x5ebe6c		488b4130			MOVQ 0x30(CX), AX										
+  md.go:635			0x5ebe70		488b5138			MOVQ 0x38(CX), DX										
+  md.go:635			0x5ebe74		488b5940			MOVQ 0x40(CX), BX										
+  md.go:635			0x5ebe78		4889842490010000		MOVQ AX, 0x190(SP)										
+  md.go:635			0x5ebe80		4889942498010000		MOVQ DX, 0x198(SP)										
+  md.go:635			0x5ebe88		48899c24a0010000		MOVQ BX, 0x1a0(SP)										
+  md.go:635			0x5ebe90		48c78424f001000000000000	MOVQ $0x0, 0x1f0(SP)										
+  md.go:636			0x5ebe9c		48898424a8010000		MOVQ AX, 0x1a8(SP)										
+  md.go:636			0x5ebea4		48899424b0010000		MOVQ DX, 0x1b0(SP)										
+  md.go:636			0x5ebeac		48899c24b8010000		MOVQ BX, 0x1b8(SP)										
+  md.go:636			0x5ebeb4		48c78424f801000020000000	MOVQ $0x20, 0x1f8(SP)										
+  md.go:637			0x5ebec0		4c8b9424b0020000		MOVQ 0x2b0(SP), R10										
+  md.go:637			0x5ebec8		4c899424c0010000		MOVQ R10, 0x1c0(SP)										
+  md.go:637			0x5ebed0		4c8b9c24d8000000		MOVQ 0xd8(SP), R11										
+  md.go:637			0x5ebed8		4c899c24c8010000		MOVQ R11, 0x1c8(SP)										
+  md.go:637			0x5ebee0		4c8bac24e0000000		MOVQ 0xe0(SP), R13										
+  md.go:637			0x5ebee8		4c89ac24d0010000		MOVQ R13, 0x1d0(SP)										
+  md.go:637			0x5ebef0		488b842448010000		MOVQ 0x148(SP), AX										
+  md.go:637			0x5ebef8		4889842400020000		MOVQ AX, 0x200(SP)										
+  md.go:638			0x5ebf00		4c899424d8010000		MOVQ R10, 0x1d8(SP)										
+  md.go:638			0x5ebf08		4c899c24e0010000		MOVQ R11, 0x1e0(SP)										
+  md.go:638			0x5ebf10		4c89ac24e8010000		MOVQ R13, 0x1e8(SP)										
+  md.go:638			0x5ebf18		4c8bbc2418010000		MOVQ 0x118(SP), R15										
+  md.go:638			0x5ebf20		4c89bc2408020000		MOVQ R15, 0x208(SP)										
+  md.go:628			0x5ebf28		0fb754245e			MOVZX 0x5e(SP), DX										
+  md.go:628			0x5ebf2d		83c2fe				ADDL $-0x2, DX											
+  md.go:691			0x5ebf30		0fb744245c			MOVZX 0x5c(SP), AX										
+  md.go:638			0x5ebf35		e933fcffff			JMP 0x5ebb6d											
+  md.go:682			0x5ebf3a		4b8d546d00			LEAQ 0(R13)(R13*2), DX										
+  md.go:682			0x5ebf3f		4c8b942410020000		MOVQ 0x210(SP), R10										
+  md.go:682			0x5ebf47		4c8b9c2418020000		MOVQ 0x218(SP), R11										
+  md.go:682			0x5ebf4f		4c8bbc2420020000		MOVQ 0x220(SP), R15										
+  md.go:682			0x5ebf57		488b842470020000		MOVQ 0x270(SP), AX										
+  md.go:682			0x5ebf5f		4c8994d410020000		MOVQ R10, 0x210(SP)(DX*8)									
+  md.go:682			0x5ebf67		4c899cd418020000		MOVQ R11, 0x218(SP)(DX*8)									
+  md.go:682			0x5ebf6f		4c89bcd420020000		MOVQ R15, 0x220(SP)(DX*8)									
+  md.go:682			0x5ebf77		4a8984ec70020000		MOVQ AX, 0x270(SP)(R13*8)									
+  md.go:681			0x5ebf7f		49ffc5				INCQ R13											
+  md.go:681			0x5ebf82		4983fd04			CMPQ R13, $0x4											
+  md.go:681			0x5ebf86		7cb2				JL 0x5ebf3a											
+  md.go:684			0x5ebf88		4c8b9424b0020000		MOVQ 0x2b0(SP), R10										
+  md.go:684			0x5ebf90		4c89942490010000		MOVQ R10, 0x190(SP)										
+  md.go:684			0x5ebf98		4c8b9c24d8000000		MOVQ 0xd8(SP), R11										
+  md.go:684			0x5ebfa0		4c899c2498010000		MOVQ R11, 0x198(SP)										
+  md.go:684			0x5ebfa8		4c8bac24e0000000		MOVQ 0xe0(SP), R13										
+  md.go:684			0x5ebfb0		4c89ac24a0010000		MOVQ R13, 0x1a0(SP)										
+  md.go:684			0x5ebfb8		4c8bbc2418010000		MOVQ 0x118(SP), R15										
+  md.go:684			0x5ebfc0		4c89bc24f0010000		MOVQ R15, 0x1f0(SP)										
+  md.go:685			0x5ebfc8		4c899424a8010000		MOVQ R10, 0x1a8(SP)										
+  md.go:685			0x5ebfd0		4c899c24b0010000		MOVQ R11, 0x1b0(SP)										
+  md.go:685			0x5ebfd8		4c89ac24b8010000		MOVQ R13, 0x1b8(SP)										
+  md.go:685			0x5ebfe0		488b842410010000		MOVQ 0x110(SP), AX										
+  md.go:685			0x5ebfe8		4c01f8				ADDQ R15, AX											
+  md.go:685			0x5ebfeb		48898424f8010000		MOVQ AX, 0x1f8(SP)										
+  md.go:686			0x5ebff3		488b4130			MOVQ 0x30(CX), AX										
+  md.go:686			0x5ebff7		488b5138			MOVQ 0x38(CX), DX										
+  md.go:686			0x5ebffb		488b5940			MOVQ 0x40(CX), BX										
+  md.go:686			0x5ebfff		48898424c0010000		MOVQ AX, 0x1c0(SP)										
+  md.go:686			0x5ec007		48899424c8010000		MOVQ DX, 0x1c8(SP)										
+  md.go:686			0x5ec00f		48899c24d0010000		MOVQ BX, 0x1d0(SP)										
+  md.go:686			0x5ec017		48c784240002000020000000	MOVQ $0x20, 0x200(SP)										
+  md.go:687			0x5ec023		48898424d8010000		MOVQ AX, 0x1d8(SP)										
+  md.go:687			0x5ec02b		48899424e0010000		MOVQ DX, 0x1e0(SP)										
+  md.go:687			0x5ec033		48899c24e8010000		MOVQ BX, 0x1e8(SP)										
+  md.go:687			0x5ec03b		48c784240802000021000000	MOVQ $0x21, 0x208(SP)										
+  md.go:677			0x5ec047		0fb744245c			MOVZX 0x5c(SP), AX										
+  md.go:677			0x5ec04c		83c002				ADDL $0x2, AX											
+  md.go:691			0x5ec04f		0fb754245e			MOVZX 0x5e(SP), DX										
+  md.go:687			0x5ec054		e914fbffff			JMP 0x5ebb6d											
+  md.go:666			0x5ec059		4b8d546d00			LEAQ 0(R13)(R13*2), DX										
+  md.go:666			0x5ec05e		4c8b942410020000		MOVQ 0x210(SP), R10										
+  md.go:666			0x5ec066		4c8b9c2418020000		MOVQ 0x218(SP), R11										
+  md.go:666			0x5ec06e		4c8bbc2420020000		MOVQ 0x220(SP), R15										
+  md.go:666			0x5ec076		488b842470020000		MOVQ 0x270(SP), AX										
+  md.go:666			0x5ec07e		4c8994d410020000		MOVQ R10, 0x210(SP)(DX*8)									
+  md.go:666			0x5ec086		4c899cd418020000		MOVQ R11, 0x218(SP)(DX*8)									
+  md.go:666			0x5ec08e		4c89bcd420020000		MOVQ R15, 0x220(SP)(DX*8)									
+  md.go:666			0x5ec096		4a8984ec70020000		MOVQ AX, 0x270(SP)(R13*8)									
+  md.go:665			0x5ec09e		49ffc5				INCQ R13											
+  md.go:665			0x5ec0a1		4983fd04			CMPQ R13, $0x4											
+  md.go:665			0x5ec0a5		7cb2				JL 0x5ec059											
+  md.go:668			0x5ec0a7		4c8b9424b0020000		MOVQ 0x2b0(SP), R10										
+  md.go:668			0x5ec0af		4c89942490010000		MOVQ R10, 0x190(SP)										
+  md.go:668			0x5ec0b7		4c8b9c24d8000000		MOVQ 0xd8(SP), R11										
+  md.go:668			0x5ec0bf		4c899c2498010000		MOVQ R11, 0x198(SP)										
+  md.go:668			0x5ec0c7		4c8bac24e0000000		MOVQ 0xe0(SP), R13										
+  md.go:668			0x5ec0cf		4c89ac24a0010000		MOVQ R13, 0x1a0(SP)										
+  md.go:668			0x5ec0d7		488b842458010000		MOVQ 0x158(SP), AX										
+  md.go:668			0x5ec0df		48898424f0010000		MOVQ AX, 0x1f0(SP)										
+  md.go:669			0x5ec0e7		4c899424a8010000		MOVQ R10, 0x1a8(SP)										
+  md.go:669			0x5ec0ef		4c899c24b0010000		MOVQ R11, 0x1b0(SP)										
+  md.go:669			0x5ec0f7		4c89ac24b8010000		MOVQ R13, 0x1b8(SP)										
+  md.go:669			0x5ec0ff		4c8bbc2418010000		MOVQ 0x118(SP), R15										
+  md.go:669			0x5ec107		4c89bc24f8010000		MOVQ R15, 0x1f8(SP)										
+  md.go:670			0x5ec10f		488b4130			MOVQ 0x30(CX), AX										
+  md.go:670			0x5ec113		488b5138			MOVQ 0x38(CX), DX										
+  md.go:670			0x5ec117		488b5940			MOVQ 0x40(CX), BX										
+  md.go:670			0x5ec11b		48898424c0010000		MOVQ AX, 0x1c0(SP)										
+  md.go:670			0x5ec123		48899424c8010000		MOVQ DX, 0x1c8(SP)										
+  md.go:670			0x5ec12b		48899c24d0010000		MOVQ BX, 0x1d0(SP)										
+  md.go:670			0x5ec133		48c784240002000000000000	MOVQ $0x0, 0x200(SP)										
+  md.go:671			0x5ec13f		48898424d8010000		MOVQ AX, 0x1d8(SP)										
+  md.go:671			0x5ec147		48899424e0010000		MOVQ DX, 0x1e0(SP)										
+  md.go:671			0x5ec14f		48899c24e8010000		MOVQ BX, 0x1e8(SP)										
+  md.go:671			0x5ec157		48c784240802000001000000	MOVQ $0x1, 0x208(SP)										
+  md.go:661			0x5ec163		0fb744245c			MOVZX 0x5c(SP), AX										
+  md.go:661			0x5ec168		83c0fe				ADDL $-0x2, AX											
+  md.go:691			0x5ec16b		0fb754245e			MOVZX 0x5e(SP), DX										
+  md.go:671			0x5ec170		e9f8f9ffff			JMP 0x5ebb6d											
+  md.go:614			0x5ec175		4b8d0c52			LEAQ 0(R10)(R10*2), CX										
+  md.go:614			0x5ec179		4c89accc90010000		MOVQ R13, 0x190(SP)(CX*8)									
+  md.go:614			0x5ec181		4c899ccc98010000		MOVQ R11, 0x198(SP)(CX*8)									
+  md.go:614			0x5ec189		488994cca0010000		MOVQ DX, 0x1a0(SP)(CX*8)									
+  md.go:614			0x5ec191		4e89bcd4f0010000		MOVQ R15, 0x1f0(SP)(R10*8)									
+  md.go:613			0x5ec199		49ffc2				INCQ R10											
+  md.go:703			0x5ec19c		488b8c2408010000		MOVQ 0x108(SP), CX										
+  md.go:613			0x5ec1a4		4983fa04			CMPQ R10, $0x4											
+  md.go:613			0x5ec1a8		7ccb				JL 0x5ec175											
+  md.go:617			0x5ec1aa		458d50ff			LEAL -0x1(R8), R10										
+  svc_motion_estimate_h.go:114	0x5ec1ae		4d63d2				MOVSXD R10, R10											
+  svc_motion_estimate_h.go:114	0x5ec1b1		4901fa				ADDQ DI, R10											
+  svc_motion_estimate_h.go:114	0x5ec1b4		4c8bac2450010000		MOVQ 0x150(SP), R13										
+  svc_motion_estimate_h.go:114	0x5ec1bc		460fb71c68			MOVZX 0(AX)(R13*2), R11										
+  svc_motion_estimate_h.go:114	0x5ec1c1		4c39d6				CMPQ SI, R10											
+  svc_motion_estimate_h.go:114	0x5ec1c4		0f86b1000000			JBE 0x5ec27b											
+  md.go:618			0x5ec1ca		41ffc0				INCL R8												
+  svc_motion_estimate_h.go:114	0x5ec1cd		460fb71450			MOVZX 0(AX)(R10*2), R10										
+  svc_motion_estimate_h.go:114	0x5ec1d2		4501da				ADDL R11, R10											
+  md.go:617			0x5ec1d5		4489942490020000		MOVL R10, 0x290(SP)										
+  svc_motion_estimate_h.go:114	0x5ec1dd		4d63d0				MOVSXD R8, R10											
+  svc_motion_estimate_h.go:114	0x5ec1e0		4901fa				ADDQ DI, R10											
+  svc_motion_estimate_h.go:114	0x5ec1e3		460fb71c68			MOVZX 0(AX)(R13*2), R11										
+  svc_motion_estimate_h.go:114	0x5ec1e8		4c39d6				CMPQ SI, R10											
+  svc_motion_estimate_h.go:114	0x5ec1eb		0f8685000000			JBE 0x5ec276											
+  md.go:619			0x5ec1f1		448bac24c0000000		MOVL 0xc0(SP), R13										
+  md.go:619			0x5ec1f9		458d45ff			LEAL -0x1(R13), R8										
+  svc_motion_estimate_h.go:114	0x5ec1fd		460fb71450			MOVZX 0(AX)(R10*2), R10										
+  svc_motion_estimate_h.go:114	0x5ec202		4501da				ADDL R11, R10											
+  md.go:618			0x5ec205		4489942494020000		MOVL R10, 0x294(SP)										
+  svc_motion_estimate_h.go:114	0x5ec20d		4d63d0				MOVSXD R8, R10											
+  svc_motion_estimate_h.go:114	0x5ec210		4901fa				ADDQ DI, R10											
+  svc_motion_estimate_h.go:114	0x5ec213		4c39d6				CMPQ SI, R10											
+  svc_motion_estimate_h.go:114	0x5ec216		7659				JBE 0x5ec271											
+  md.go:620			0x5ec218		458d5d01			LEAL 0x1(R13), R11										
+  svc_motion_estimate_h.go:114	0x5ec21c		460fb71450			MOVZX 0(AX)(R10*2), R10										
+  svc_motion_estimate_h.go:114	0x5ec221		4c8bac2440010000		MOVQ 0x140(SP), R13										
+  svc_motion_estimate_h.go:114	0x5ec229		460fb70468			MOVZX 0(AX)(R13*2), R8										
+  svc_motion_estimate_h.go:114	0x5ec22e		4501c2				ADDL R8, R10											
+  md.go:619			0x5ec231		4489942498020000		MOVL R10, 0x298(SP)										
+  svc_motion_estimate_h.go:114	0x5ec239		4d63d3				MOVSXD R11, R10											
+  svc_motion_estimate_h.go:114	0x5ec23c		4901fa				ADDQ DI, R10											
+  svc_motion_estimate_h.go:114	0x5ec23f		90				NOPL												
+  svc_motion_estimate_h.go:114	0x5ec240		4c39d6				CMPQ SI, R10											
+  svc_motion_estimate_h.go:114	0x5ec243		7627				JBE 0x5ec26c											
+  svc_motion_estimate_h.go:114	0x5ec245		460fb71450			MOVZX 0(AX)(R10*2), R10										
+  svc_motion_estimate_h.go:114	0x5ec24a		460fb71c68			MOVZX 0(AX)(R13*2), R11										
+  svc_motion_estimate_h.go:114	0x5ec24f		4501da				ADDL R11, R10											
+  md.go:620			0x5ec252		448994249c020000		MOVL R10, 0x29c(SP)										
+  md.go:696			0x5ec25a		4c89e1				MOVQ R12, CX											
+  md.go:696			0x5ec25d		0fb744245c			MOVZX 0x5c(SP), AX										
+  md.go:696			0x5ec262		0fb754245e			MOVZX 0x5e(SP), DX										
+  md.go:620			0x5ec267		e9f2f9ffff			JMP 0x5ebc5e											
+  svc_motion_estimate_h.go:114	0x5ec26c		e8cf15eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec271		e8ca15eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec276		e8c515eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec27b		0f1f440000			NOPL 0(AX)(AX*1)										
+  svc_motion_estimate_h.go:114	0x5ec280		e8bb15eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec285		e8b615eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec28a		e8b115eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec28f		e8ac15eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec294		e8a715eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec299		e8a215eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec29e		6690				NOPW												
+  svc_motion_estimate_h.go:114	0x5ec2a0		e89b15eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec2a5		e89615eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec2aa		e89115eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec2af		e88c15eaff			CALL runtime.panicBounds(SB)									
+  svc_motion_estimate_h.go:114	0x5ec2b4		e88715eaff			CALL runtime.panicBounds(SB)									
+  md.go:511			0x5ec2b9		e88215eaff			CALL runtime.panicBounds(SB)									
+  md.go:511			0x5ec2be		90				NOPL												
+  md.go:478			0x5ec2bf		4889442408			MOVQ AX, 0x8(SP)										
+  md.go:478			0x5ec2c4		48895c2410			MOVQ BX, 0x10(SP)										
+  md.go:478			0x5ec2c9		48894c2418			MOVQ CX, 0x18(SP)										
+  md.go:478			0x5ec2ce		48897c2420			MOVQ DI, 0x20(SP)										
+  md.go:478			0x5ec2d3		4889742428			MOVQ SI, 0x28(SP)										
+  md.go:478			0x5ec2d8		4c89442430			MOVQ R8, 0x30(SP)										
+  md.go:478			0x5ec2dd		4c894c2438			MOVQ R9, 0x38(SP)										
+  md.go:478			0x5ec2e2		4489542440			MOVL R10, 0x40(SP)										
+  md.go:478			0x5ec2e7		44895c2444			MOVL R11, 0x44(SP)										
+  md.go:478			0x5ec2ec		e80ff9e9ff			CALL runtime.morestack_noctxt.abi0(SB)								
+  md.go:478			0x5ec2f1		488b442408			MOVQ 0x8(SP), AX										
+  md.go:478			0x5ec2f6		488b5c2410			MOVQ 0x10(SP), BX										
+  md.go:478			0x5ec2fb		488b4c2418			MOVQ 0x18(SP), CX										
+  md.go:478			0x5ec300		488b7c2420			MOVQ 0x20(SP), DI										
+  md.go:478			0x5ec305		488b742428			MOVQ 0x28(SP), SI										
+  md.go:478			0x5ec30a		4c8b442430			MOVQ 0x30(SP), R8										
+  md.go:478			0x5ec30f		4c8b4c2438			MOVQ 0x38(SP), R9										
+  md.go:478			0x5ec314		448b542440			MOVL 0x40(SP), R10										
+  md.go:478			0x5ec319		448b5c2444			MOVL 0x44(SP), R11										
+  md.go:478			0x5ec31e		6690				NOPW												
+  md.go:478			0x5ec320		e9bbe5ffff			JMP github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.MeRefineFracPixel(SB)	

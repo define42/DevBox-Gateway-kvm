@@ -1,0 +1,22 @@
+package encoder
+
+import "testing"
+
+func TestCavlcEmitterDensityThreshold(t *testing.T) {
+	for _, intra := range []bool{false, true} {
+		for _, count := range []int{3, 4, 5, 6, 8} {
+			for _, trailing := range []bool{false, true} {
+				for prefix := int32(0); prefix < 32; prefix++ {
+					got := newCavlcEmitterDensityFixture(intra, count, trailing)
+					want := newCavlcEmitterDensityFixture(intra, count, trailing)
+					got.reset(prefix)
+					want.reset(prefix)
+					result, _ := compareCavlcScratchMb(t, got, want, false)
+					if result.result != ENC_RETURN_SUCCESS || result.panic != "" {
+						t.Fatalf("intra%t count%d trailing%t prefix%d: %+v", intra, count, trailing, prefix, result)
+					}
+				}
+			}
+		}
+	}
+}

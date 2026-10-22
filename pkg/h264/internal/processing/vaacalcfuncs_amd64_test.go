@@ -129,6 +129,9 @@ func TestVpFrameWorkUsesDetectedVAAFeatures(t *testing.T) {
 	if flags&common.WELS_CPU_SSE2 != 0 {
 		want = VAACalcSad_sse2
 	}
+	if flags&common.WELS_CPU_AVX2 != 0 {
+		want = VAACalcSad_avx2
+	}
 	if got := reflect.ValueOf(strategy.m_sVaaFuncs.pfVAACalcSad).Pointer(); got != reflect.ValueOf(want).Pointer() {
 		t.Fatalf("VAA SAD dispatch = %#x, want %#x", got, reflect.ValueOf(want).Pointer())
 	}

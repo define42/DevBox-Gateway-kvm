@@ -1,0 +1,3229 @@
+diff --git a/pkg/h264/internal/common/chroma_simd_amd64.go b/pkg/h264/internal/common/chroma_simd_amd64.go
+index 838ad3a..76030fb 100644
+--- a/pkg/h264/internal/common/chroma_simd_amd64.go
++++ b/pkg/h264/internal/common/chroma_simd_amd64.go
+@@ -8,12 +8,20 @@ import "unsafe"
+ func mcChromaSSE2(src []byte, srcStride int, dst []byte, dstStride, width, height int, weights uint64)
+ 
+ // McChroma_sse2 interpolates the common chroma block widths with a single
+-// rounding step, matching McChroma_c. Integer motion retains the copy path.
++// rounding step, matching McChroma_c. Integer motion uses exact-width block copies.
+ func McChroma_sse2(src []byte, srcOff int, srcStride int32, dst []byte, dstOff int, dstStride int32, mvX, mvY int16, width, height int32) {
+ 	if width <= 0 || height <= 0 {
+ 		return
+ 	}
+-	if (mvX&7 == 0 && mvY&7 == 0) || (width != 2 && width != 4 && width != 8) {
++	if mvX&7 == 0 && mvY&7 == 0 {
++		if height == 16 && (width == 8 || width == 16) {
++			mcCopySSE2(src, srcOff, srcStride, dst, dstOff, dstStride, width, height)
++		} else {
++			McCopy_c(src, srcOff, srcStride, dst, dstOff, dstStride, width, height)
++		}
++		return
++	}
++	if width != 2 && width != 4 && width != 8 {
+ 		McChroma_c(src, srcOff, srcStride, dst, dstOff, dstStride, mvX, mvY, width, height)
+ 		return
+ 	}
+diff --git a/pkg/h264/internal/common/mc_avx2_amd64.go b/pkg/h264/internal/common/mc_avx2_amd64.go
+index 81005fc..0b6bf62 100644
+--- a/pkg/h264/internal/common/mc_avx2_amd64.go
++++ b/pkg/h264/internal/common/mc_avx2_amd64.go
+@@ -174,7 +174,11 @@ func McLuma_avx2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDst
+ 	x, y := iMvX&3, iMvY&3
+ 	switch x<<2 | y {
+ 	case 0:
+-		McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
++		if iHeight == 16 && (iWidth == 8 || iWidth == 16) {
++			mcCopySSE2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
++		} else {
++			McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
++		}
+ 	case 8:
+ 		McHorVer20_avx2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+ 	case 2:
+diff --git a/pkg/h264/internal/common/mc_simd_amd64.go b/pkg/h264/internal/common/mc_simd_amd64.go
+index 83470d1..952cca5 100644
+--- a/pkg/h264/internal/common/mc_simd_amd64.go
++++ b/pkg/h264/internal/common/mc_simd_amd64.go
+@@ -145,7 +145,11 @@ func McLuma_sse2(pSrc []uint8, iSrcOff int, iSrcStride int32, pDst []uint8, iDst
+ 	iMvX, iMvY int16, iWidth, iHeight int32) {
+ 	switch (uint16(iMvX)&3)<<2 | (uint16(iMvY) & 3) {
+ 	case 0:
+-		McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
++		if iHeight == 16 && (iWidth == 8 || iWidth == 16) {
++			mcCopySSE2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
++		} else {
++			McCopy_c(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
++		}
+ 	case 2 << 2:
+ 		McHorVer20_sse2(pSrc, iSrcOff, iSrcStride, pDst, iDstOff, iDstStride, iWidth, iHeight)
+ 	case 2:
+diff --git a/pkg/h264/internal/common/sad_four_simd_amd64.s b/pkg/h264/internal/common/sad_four_simd_amd64.s
+index aba0b48..c3f7fd0 100644
+--- a/pkg/h264/internal/common/sad_four_simd_amd64.s
++++ b/pkg/h264/internal/common/sad_four_simd_amd64.s
+@@ -1,10 +1,15 @@
+ //go:build amd64
+ 
++// The paired-row SAD schedule follows OpenH264's SSE2 implementation in
++// codec/common/x86/satd_sad.asm.
++// Copyright (c) 2009-2013, Cisco Systems. All rights reserved.
++// BSD-2-Clause; see LICENSE-OpenH264 in the repository root.
++
+ #include "textflag.h"
+ 
+-// Each source row is loaded once for the up, down, left, and right candidates.
+-// The wrappers validate all four reference spans, including the negative row
+-// offset. Narrow blocks use exact-width loads, including MOVL for four pixels.
++// The wrappers validate every input span before entering assembly. Inputs may
++// overlap or have zero/overlapping strides; all accesses are read-only and all
++// four output stores remain deferred until the complete block is consumed.
+ 
+ // func sadFour16SSE2(src []byte, srcStride int, ref []byte, refStride, height int, sad *[4]int32)
+ TEXT ·sadFour16SSE2(SB), NOSPLIT, $0-80
+@@ -70,24 +75,51 @@ TEXT ·sadFour8SSE2(SB), NOSPLIT, $0-80
+     PXOR X1, X1
+     PXOR X2, X2
+     PXOR X3, X3
+-sad_four_8_row:
++
++    // Each register holds two exact eight-byte rows. The downward reference
++    // pair is also the next source pair's upward reference, and stays live
++    // across iterations without another load.
+     MOVQ (AX), X4
++    MOVHPS (AX)(CX*1), X4
+     MOVQ (DX)(R8*1), X5
+-    MOVQ (DX)(BX*1), X6
+-    MOVQ -1(DX), X7
+-    MOVQ 1(DX), X8
++    MOVHPS (DX), X5
+     PSADBW X4, X5
++    PADDD X5, X0
++sad_four_8_pair:
++    MOVQ -1(DX), X6
++    MOVHPS -1(DX)(BX*1), X6
++    MOVQ 1(DX), X7
++    MOVHPS 1(DX)(BX*1), X7
+     PSADBW X4, X6
+     PSADBW X4, X7
+-    PSADBW X4, X8
++    PADDD X6, X2
++    PADDD X7, X3
++    MOVQ (DX)(BX*1), X5
++    MOVHPS (DX)(BX*2), X5
++    PSADBW X5, X4
++    PADDD X4, X1
++    SUBQ $2, R9
++    JZ sad_four_8_reduce
++    LEAQ (AX)(CX*2), AX
++    LEAQ (DX)(BX*2), DX
++    MOVQ (AX), X4
++    MOVHPS (AX)(CX*1), X4
++    PSADBW X4, X5
+     PADDD X5, X0
+-    PADDD X6, X1
+-    PADDD X7, X2
+-    PADDD X8, X3
+-    ADDQ CX, AX
+-    ADDQ BX, DX
+-    DECQ R9
+-    JNZ sad_four_8_row
++    JMP sad_four_8_pair
++sad_four_8_reduce:
++    MOVOU X0, X4
++    PSRLDQ $8, X4
++    PADDD X4, X0
++    MOVOU X1, X4
++    PSRLDQ $8, X4
++    PADDD X4, X1
++    MOVOU X2, X4
++    PSRLDQ $8, X4
++    PADDD X4, X2
++    MOVOU X3, X4
++    PSRLDQ $8, X4
++    PADDD X4, X3
+     MOVL X0, 0(R10)
+     MOVL X1, 4(R10)
+     MOVL X2, 8(R10)
+diff --git a/pkg/h264/internal/common/sad_simd_amd64.go b/pkg/h264/internal/common/sad_simd_amd64.go
+index 3c306aa..910d64f 100644
+--- a/pkg/h264/internal/common/sad_simd_amd64.go
++++ b/pkg/h264/internal/common/sad_simd_amd64.go
+@@ -26,44 +26,56 @@ func sad4x8(src *byte, srcStride int, ref *byte, refStride int) int
+ //go:noescape
+ func sad4x4(src *byte, srcStride int, ref *byte, refStride int) int
+ 
++// sampleSadBlockPointer checks the complete visible block span before returning
++// its first tracked pointer. The private SAD kernels do not consume a slice,
++// so no intermediate slice length/capacity needs to be constructed or checked.
++func sampleSadBlockPointer(buf []byte, off int, stride int32, width, height int) *byte {
++	if stride < 0 {
++		panic(simdBoundsPanic)
++	}
++	end := off + (height-1)*int(stride) + width
++	checkSIMDSpan(buf, int64(off), int64(end)-1)
++	return &buf[off]
++}
++
+ func WelsSampleSad16x16_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 16, 16)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 16, 16)
+-	return int32(sad16x16(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 16, 16)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 16, 16)
++	return int32(sad16x16(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+ 
+ func WelsSampleSad16x8_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 16, 8)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 16, 8)
+-	return int32(sad16x8(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 16, 8)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 16, 8)
++	return int32(sad16x8(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+ 
+ func WelsSampleSad8x16_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 8, 16)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 8, 16)
+-	return int32(sad8x16(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 8, 16)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 8, 16)
++	return int32(sad8x16(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+ 
+ func WelsSampleSad8x8_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 8, 8)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 8, 8)
+-	return int32(sad8x8(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 8, 8)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 8, 8)
++	return int32(sad8x8(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+ 
+ func WelsSampleSad8x4_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 8, 4)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 8, 4)
+-	return int32(sad8x4(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 8, 4)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 8, 4)
++	return int32(sad8x4(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+ 
+ func WelsSampleSad4x8_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 4, 8)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 4, 8)
+-	return int32(sad4x8(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 4, 8)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 4, 8)
++	return int32(sad4x8(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+ 
+ func WelsSampleSad4x4_sse2(a []uint8, aOff int, aStride int32, b []uint8, bOff int, bStride int32) int32 {
+-	aBlock := simdBlockSlice(a, aOff, aStride, 4, 4)
+-	bBlock := simdBlockSlice(b, bOff, bStride, 4, 4)
+-	return int32(sad4x4(&aBlock[0], int(aStride), &bBlock[0], int(bStride)))
++	aBlock := sampleSadBlockPointer(a, aOff, aStride, 4, 4)
++	bBlock := sampleSadBlockPointer(b, bOff, bStride, 4, 4)
++	return int32(sad4x4(aBlock, int(aStride), bBlock, int(bStride)))
+ }
+diff --git a/pkg/h264/internal/common/sad_simd_amd64.s b/pkg/h264/internal/common/sad_simd_amd64.s
+index cdd04cd..ecc5370 100644
+--- a/pkg/h264/internal/common/sad_simd_amd64.s
++++ b/pkg/h264/internal/common/sad_simd_amd64.s
+@@ -175,291 +175,218 @@ TEXT ·sad16x8(SB), NOSPLIT, $0-40
+ 	RET
+ 
+ // func sad8x16(src *byte, srcStride int, ref *byte, refStride int) int
+-// Requires: SSE2
++// Requires: SSE2. Exact-width loads pack independent rows into both SAD lanes.
+ TEXT ·sad8x16(SB), NOSPLIT, $0-40
+-	MOVQ   src+0(FP), AX
+-	MOVQ   srcStride+8(FP), CX
+-	MOVQ   ref+16(FP), DX
+-	MOVQ   refStride+24(FP), BX
+-	PXOR   X0, X0
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	MOVQ   X0, AX
+-	MOVQ   AX, ret+32(FP)
++	MOVQ src+0(FP), AX
++	MOVQ srcStride+8(FP), CX
++	MOVQ ref+16(FP), DX
++	MOVQ refStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVQ (AX), X0
++	MOVQ (AX)(CX*1), X1
++	MOVHPS (AX)(CX*2), X0
++	MOVHPS (AX)(R8*1), X1
++	MOVQ (DX), X2
++	MOVQ (DX)(BX*1), X3
++	MOVHPS (DX)(BX*2), X2
++	MOVHPS (DX)(R9*1), X3
++	PSADBW X2, X0
++	PSADBW X3, X1
++	PADDD X1, X0
++	LEAQ (AX)(CX*4), AX
++	LEAQ (DX)(BX*4), DX
++	MOVQ (AX), X1
++	MOVQ (AX)(CX*1), X2
++	MOVHPS (AX)(CX*2), X1
++	MOVHPS (AX)(R8*1), X2
++	MOVQ (DX), X3
++	MOVQ (DX)(BX*1), X4
++	MOVHPS (DX)(BX*2), X3
++	MOVHPS (DX)(R9*1), X4
++	PSADBW X3, X1
++	PSADBW X4, X2
++	PADDD X1, X0
++	PADDD X2, X0
++	LEAQ (AX)(CX*4), AX
++	LEAQ (DX)(BX*4), DX
++	MOVQ (AX), X1
++	MOVQ (AX)(CX*1), X2
++	MOVHPS (AX)(CX*2), X1
++	MOVHPS (AX)(R8*1), X2
++	MOVQ (DX), X3
++	MOVQ (DX)(BX*1), X4
++	MOVHPS (DX)(BX*2), X3
++	MOVHPS (DX)(R9*1), X4
++	PSADBW X3, X1
++	PSADBW X4, X2
++	PADDD X1, X0
++	PADDD X2, X0
++	LEAQ (AX)(CX*4), AX
++	LEAQ (DX)(BX*4), DX
++	MOVQ (AX), X1
++	MOVQ (AX)(CX*1), X2
++	MOVHPS (AX)(CX*2), X1
++	MOVHPS (AX)(R8*1), X2
++	MOVQ (DX), X3
++	MOVQ (DX)(BX*1), X4
++	MOVHPS (DX)(BX*2), X3
++	MOVHPS (DX)(R9*1), X4
++	PSADBW X3, X1
++	PSADBW X4, X2
++	PADDD X1, X0
++	PADDD X2, X0
++	MOVOU X0, X1
++	PSRLDQ $8, X1
++	PADDD X1, X0
++	MOVQ X0, AX
++	MOVQ AX, ret+32(FP)
+ 	RET
+ 
+ // func sad8x8(src *byte, srcStride int, ref *byte, refStride int) int
+-// Requires: SSE2
++// Requires: SSE2. Exact-width loads pack independent rows into both SAD lanes.
+ TEXT ·sad8x8(SB), NOSPLIT, $0-40
+-	MOVQ   src+0(FP), AX
+-	MOVQ   srcStride+8(FP), CX
+-	MOVQ   ref+16(FP), DX
+-	MOVQ   refStride+24(FP), BX
+-	PXOR   X0, X0
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	MOVQ   X0, AX
+-	MOVQ   AX, ret+32(FP)
++	MOVQ src+0(FP), AX
++	MOVQ srcStride+8(FP), CX
++	MOVQ ref+16(FP), DX
++	MOVQ refStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVQ (AX), X0
++	MOVQ (AX)(CX*1), X1
++	MOVHPS (AX)(CX*2), X0
++	MOVHPS (AX)(R8*1), X1
++	MOVQ (DX), X2
++	MOVQ (DX)(BX*1), X3
++	MOVHPS (DX)(BX*2), X2
++	MOVHPS (DX)(R9*1), X3
++	PSADBW X2, X0
++	PSADBW X3, X1
++	PADDD X1, X0
++	LEAQ (AX)(CX*4), AX
++	LEAQ (DX)(BX*4), DX
++	MOVQ (AX), X1
++	MOVQ (AX)(CX*1), X2
++	MOVHPS (AX)(CX*2), X1
++	MOVHPS (AX)(R8*1), X2
++	MOVQ (DX), X3
++	MOVQ (DX)(BX*1), X4
++	MOVHPS (DX)(BX*2), X3
++	MOVHPS (DX)(R9*1), X4
++	PSADBW X3, X1
++	PSADBW X4, X2
++	PADDD X1, X0
++	PADDD X2, X0
++	MOVOU X0, X1
++	PSRLDQ $8, X1
++	PADDD X1, X0
++	MOVQ X0, AX
++	MOVQ AX, ret+32(FP)
+ 	RET
+ 
+ // func sad8x4(src *byte, srcStride int, ref *byte, refStride int) int
+-// Requires: SSE2
++// Requires: SSE2. Exact-width loads pack independent rows into both SAD lanes.
+ TEXT ·sad8x4(SB), NOSPLIT, $0-40
+-	MOVQ   src+0(FP), AX
+-	MOVQ   srcStride+8(FP), CX
+-	MOVQ   ref+16(FP), DX
+-	MOVQ   refStride+24(FP), BX
+-	PXOR   X0, X0
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	ADDQ   CX, AX
+-	ADDQ   BX, DX
+-	MOVQ   (AX), X1
+-	MOVQ   (DX), X2
+-	PSADBW X2, X1
+-	PADDD  X1, X0
+-	MOVQ   X0, AX
+-	MOVQ   AX, ret+32(FP)
++	MOVQ src+0(FP), AX
++	MOVQ srcStride+8(FP), CX
++	MOVQ ref+16(FP), DX
++	MOVQ refStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVQ (AX), X0
++	MOVQ (AX)(CX*1), X1
++	MOVHPS (AX)(CX*2), X0
++	MOVHPS (AX)(R8*1), X1
++	MOVQ (DX), X2
++	MOVQ (DX)(BX*1), X3
++	MOVHPS (DX)(BX*2), X2
++	MOVHPS (DX)(R9*1), X3
++	PSADBW X2, X0
++	PSADBW X3, X1
++	PADDD X1, X0
++	MOVOU X0, X1
++	PSRLDQ $8, X1
++	PADDD X1, X0
++	MOVQ X0, AX
++	MOVQ AX, ret+32(FP)
+ 	RET
+ 
+ // func sad4x8(src *byte, srcStride int, ref *byte, refStride int) int
+-// Requires: SSE2
++// Requires: SSE2. Exact-width loads pack independent rows into both SAD lanes.
+ TEXT ·sad4x8(SB), NOSPLIT, $0-40
+-	MOVQ      src+0(FP), AX
+-	MOVQ      srcStride+8(FP), CX
+-	MOVQ      ref+16(FP), DX
+-	MOVQ      refStride+24(FP), BX
+-	PXOR      X0, X0
+-	MOVL      (AX), X1
+-	MOVL      (DX), X2
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X3
+-	MOVL      (DX), X4
+-	PUNPCKLLQ X3, X1
+-	PUNPCKLLQ X4, X2
+-	PSADBW    X2, X1
+-	PADDD     X1, X0
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X1
+-	MOVL      (DX), X2
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X3
+-	MOVL      (DX), X4
+-	PUNPCKLLQ X3, X1
+-	PUNPCKLLQ X4, X2
+-	PSADBW    X2, X1
+-	PADDD     X1, X0
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X1
+-	MOVL      (DX), X2
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X3
+-	MOVL      (DX), X4
+-	PUNPCKLLQ X3, X1
+-	PUNPCKLLQ X4, X2
+-	PSADBW    X2, X1
+-	PADDD     X1, X0
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X1
+-	MOVL      (DX), X2
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X3
+-	MOVL      (DX), X4
+-	PUNPCKLLQ X3, X1
+-	PUNPCKLLQ X4, X2
+-	PSADBW    X2, X1
+-	PADDD     X1, X0
+-	MOVQ      X0, AX
+-	MOVQ      AX, ret+32(FP)
++	MOVQ src+0(FP), AX
++	MOVQ srcStride+8(FP), CX
++	MOVQ ref+16(FP), DX
++	MOVQ refStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVL (AX), X0
++	MOVL (AX)(CX*1), X1
++	MOVL (AX)(CX*2), X2
++	MOVL (AX)(R8*1), X3
++	PUNPCKLLQ X1, X0
++	PUNPCKLLQ X3, X2
++	PUNPCKLQDQ X2, X0
++	MOVL (DX), X4
++	MOVL (DX)(BX*1), X5
++	MOVL (DX)(BX*2), X6
++	MOVL (DX)(R9*1), X7
++	PUNPCKLLQ X5, X4
++	PUNPCKLLQ X7, X6
++	PUNPCKLQDQ X6, X4
++	PSADBW X4, X0
++	LEAQ (AX)(CX*4), AX
++	LEAQ (DX)(BX*4), DX
++	MOVL (AX), X1
++	MOVL (AX)(CX*1), X2
++	MOVL (AX)(CX*2), X3
++	MOVL (AX)(R8*1), X4
++	PUNPCKLLQ X2, X1
++	PUNPCKLLQ X4, X3
++	PUNPCKLQDQ X3, X1
++	MOVL (DX), X5
++	MOVL (DX)(BX*1), X6
++	MOVL (DX)(BX*2), X7
++	MOVL (DX)(R9*1), X8
++	PUNPCKLLQ X6, X5
++	PUNPCKLLQ X8, X7
++	PUNPCKLQDQ X7, X5
++	PSADBW X5, X1
++	PADDD X1, X0
++	MOVOU X0, X1
++	PSRLDQ $8, X1
++	PADDD X1, X0
++	MOVQ X0, AX
++	MOVQ AX, ret+32(FP)
+ 	RET
+ 
+ // func sad4x4(src *byte, srcStride int, ref *byte, refStride int) int
+-// Requires: SSE2
++// Requires: SSE2. Exact-width loads pack independent rows into both SAD lanes.
+ TEXT ·sad4x4(SB), NOSPLIT, $0-40
+-	MOVQ      src+0(FP), AX
+-	MOVQ      srcStride+8(FP), CX
+-	MOVQ      ref+16(FP), DX
+-	MOVQ      refStride+24(FP), BX
+-	PXOR      X0, X0
+-	MOVL      (AX), X1
+-	MOVL      (DX), X2
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X3
+-	MOVL      (DX), X4
+-	PUNPCKLLQ X3, X1
+-	PUNPCKLLQ X4, X2
+-	PSADBW    X2, X1
+-	PADDD     X1, X0
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X1
+-	MOVL      (DX), X2
+-	ADDQ      CX, AX
+-	ADDQ      BX, DX
+-	MOVL      (AX), X3
+-	MOVL      (DX), X4
+-	PUNPCKLLQ X3, X1
+-	PUNPCKLLQ X4, X2
+-	PSADBW    X2, X1
+-	PADDD     X1, X0
+-	MOVQ      X0, AX
+-	MOVQ      AX, ret+32(FP)
++	MOVQ src+0(FP), AX
++	MOVQ srcStride+8(FP), CX
++	MOVQ ref+16(FP), DX
++	MOVQ refStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVL (AX), X0
++	MOVL (AX)(CX*1), X1
++	MOVL (AX)(CX*2), X2
++	MOVL (AX)(R8*1), X3
++	PUNPCKLLQ X1, X0
++	PUNPCKLLQ X3, X2
++	PUNPCKLQDQ X2, X0
++	MOVL (DX), X4
++	MOVL (DX)(BX*1), X5
++	MOVL (DX)(BX*2), X6
++	MOVL (DX)(R9*1), X7
++	PUNPCKLLQ X5, X4
++	PUNPCKLLQ X7, X6
++	PUNPCKLQDQ X6, X4
++	PSADBW X4, X0
++	MOVOU X0, X1
++	PSRLDQ $8, X1
++	PADDD X1, X0
++	MOVQ X0, AX
++	MOVQ AX, ret+32(FP)
+ 	RET
+diff --git a/pkg/h264/internal/encoder/encode_mb_aux.go b/pkg/h264/internal/encoder/encode_mb_aux.go
+index d3a0565..8dab700 100644
+--- a/pkg/h264/internal/encoder/encode_mb_aux.go
++++ b/pkg/h264/internal/encoder/encode_mb_aux.go
+@@ -332,6 +332,9 @@ func WelsInitEncodingFuncs(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) {
+ 	pFuncList.pfQuantizationFour4x4Max = WelsQuantFour4x4Max_c
+ 
+ 	if uiCpuFlag&common.WELS_CPU_SSE2 != 0 {
++		pFuncList.pfCopy8x16Aligned = common.WelsCopy8x16_sse2
++		pFuncList.pfCopy16x16Aligned = common.WelsCopy16x16_sse2
++		pFuncList.pfCopy16x16NotAligned = common.WelsCopy16x16_sse2
+ 		pFuncList.pfDctT4 = WelsDctT4_sse2
+ 		pFuncList.pfDctFourT4 = WelsDctFourT4_sse2
+ 	}
+diff --git a/pkg/h264/internal/encoder/idct_pair_amd64.s b/pkg/h264/internal/encoder/idct_pair_amd64.s
+index 079e06f..e842c63 100644
+--- a/pkg/h264/internal/encoder/idct_pair_amd64.s
++++ b/pkg/h264/internal/encoder/idct_pair_amd64.s
+@@ -1,5 +1,11 @@
+ //go:build amd64
+ 
++// The four-block horizontal transform and coefficient layout below follow
++// OpenH264 2.6.0, codec/common/x86/dct.asm.
++// Copyright (c) 2009-2013, Cisco Systems.
++// All rights reserved.
++// BSD-2-Clause; see LICENSE-OpenH264 in the repository root.
++
+ #include "textflag.h"
+ 
+ // Reconstruct two horizontally adjacent 4x4 blocks per kernel call. The
+@@ -154,3 +160,172 @@ TEXT idctTwoT4RecAVX2Kernel<>(SB), NOSPLIT|NOFRAME, $0-0
+ 	VMOVQ X3, (BX)
+ 	VZEROUPPER
+ 	RET
++
++// Load all four blocks once and transform their rows together. Horizontal word
++// arithmetic wraps exactly as the scalar int16 temporary. The vertical pass
++// widens BEFORE any add/subtract, retaining full-int16 scalar results even when
++// native's word-only vertical arithmetic would overflow. All pixel accesses
++// are exactly eight bytes; coefficient loads cover exactly 128 bytes.
++TEXT ·idctFourT4RecPackedAVX2(SB), NOSPLIT, $0-40
++	MOVQ rec+0(FP), BX
++	MOVQ recStride+8(FP), CX
++	MOVQ pred+16(FP), DX
++	MOVQ predStride+24(FP), SI
++	MOVQ coeff+32(FP), AX
++
++	// Each YMM holds one row from TL/TR in its low lane and BL/BR in
++	// its high lane. Adjacent coefficient rows share one unaligned load.
++	VMOVDQU 0(AX), X1
++	VINSERTI128 $1, 64(AX), Y1, Y1
++	VMOVDQU 32(AX), X4
++	VINSERTI128 $1, 96(AX), Y4, Y4
++	VPUNPCKLQDQ Y4, Y1, Y0
++	VPUNPCKHQDQ Y4, Y1, Y1
++	VMOVDQU 16(AX), X3
++	VINSERTI128 $1, 80(AX), Y3, Y3
++	VMOVDQU 48(AX), X4
++	VINSERTI128 $1, 112(AX), Y4, Y4
++	VPUNPCKLQDQ Y4, Y3, Y2
++	VPUNPCKHQDQ Y4, Y3, Y3
++
++	VBROADCASTI128 idctFourShufflePairs<>(SB), Y12
++	VBROADCASTI128 idctFourShuffleColumns<>(SB), Y13
++	VBROADCASTI128 idctFourSignsPairs<>(SB), Y14
++	VBROADCASTI128 idctFourSignsAlternating<>(SB), Y15
++
++	// Four horizontal transforms: [x0,x1,x2,x3] -> [y0,y3,y1,y2].
++	VPSRAW $1, Y0, Y4
++	VPBLENDW $0xaa, Y4, Y0, Y4
++	VPSIGNW Y14, Y0, Y0
++	VPSHUFD $0xb1, Y4, Y4
++	VPADDW Y4, Y0, Y0
++	VPSHUFB Y12, Y0, Y4
++	VPSIGNW Y15, Y0, Y0
++	VPADDW Y4, Y0, Y0
++	VPSHUFB Y13, Y0, Y0
++
++	// Four horizontal transforms: [x0,x1,x2,x3] -> [y0,y3,y1,y2].
++	VPSRAW $1, Y1, Y4
++	VPBLENDW $0xaa, Y4, Y1, Y4
++	VPSIGNW Y14, Y1, Y1
++	VPSHUFD $0xb1, Y4, Y4
++	VPADDW Y4, Y1, Y1
++	VPSHUFB Y12, Y1, Y4
++	VPSIGNW Y15, Y1, Y1
++	VPADDW Y4, Y1, Y1
++	VPSHUFB Y13, Y1, Y1
++
++	// Four horizontal transforms: [x0,x1,x2,x3] -> [y0,y3,y1,y2].
++	VPSRAW $1, Y2, Y4
++	VPBLENDW $0xaa, Y4, Y2, Y4
++	VPSIGNW Y14, Y2, Y2
++	VPSHUFD $0xb1, Y4, Y4
++	VPADDW Y4, Y2, Y2
++	VPSHUFB Y12, Y2, Y4
++	VPSIGNW Y15, Y2, Y2
++	VPADDW Y4, Y2, Y2
++	VPSHUFB Y13, Y2, Y2
++
++	// Four horizontal transforms: [x0,x1,x2,x3] -> [y0,y3,y1,y2].
++	VPSRAW $1, Y3, Y4
++	VPBLENDW $0xaa, Y4, Y3, Y4
++	VPSIGNW Y14, Y3, Y3
++	VPSHUFD $0xb1, Y4, Y4
++	VPADDW Y4, Y3, Y3
++	VPSHUFB Y12, Y3, Y4
++	VPSIGNW Y15, Y3, Y3
++	VPADDW Y4, Y3, Y3
++	VPSHUFB Y13, Y3, Y3
++
++	MOVL $32, AX
++	VMOVD AX, X15
++	VPBROADCASTD X15, Y15
++	MOVL $2, AX
++idct_four_vertical:
++	VPMOVSXWD X0, Y4
++	VPMOVSXWD X1, Y5
++	VPMOVSXWD X2, Y6
++	VPMOVSXWD X3, Y7
++	VPADDD Y6, Y4, Y8
++	VPSUBD Y6, Y4, Y4
++	VPSRAD $1, Y7, Y9
++	VPADDD Y5, Y9, Y9
++	VPSRAD $1, Y5, Y5
++	VPSUBD Y7, Y5, Y5
++	VPSUBD Y5, Y4, Y6
++	VPADDD Y4, Y5, Y5
++	VPSUBD Y9, Y8, Y7
++	VPADDD Y9, Y8, Y4
++
++	VPADDD Y15, Y4, Y4
++	VPSRAD $6, Y4, Y4
++	VPMOVZXBD (DX), Y8
++	VPADDD Y8, Y4, Y4
++	VEXTRACTI128 $1, Y4, X8
++	VPACKSSDW X8, X4, X4
++	VPACKUSWB X4, X4, X4
++	VMOVQ X4, (BX)
++	ADDQ CX, BX
++	ADDQ SI, DX
++
++	VPADDD Y15, Y5, Y5
++	VPSRAD $6, Y5, Y5
++	VPMOVZXBD (DX), Y8
++	VPADDD Y8, Y5, Y5
++	VEXTRACTI128 $1, Y5, X8
++	VPACKSSDW X8, X5, X5
++	VPACKUSWB X5, X5, X5
++	VMOVQ X5, (BX)
++	ADDQ CX, BX
++	ADDQ SI, DX
++
++	VPADDD Y15, Y6, Y6
++	VPSRAD $6, Y6, Y6
++	VPMOVZXBD (DX), Y8
++	VPADDD Y8, Y6, Y6
++	VEXTRACTI128 $1, Y6, X8
++	VPACKSSDW X8, X6, X6
++	VPACKUSWB X6, X6, X6
++	VMOVQ X6, (BX)
++	ADDQ CX, BX
++	ADDQ SI, DX
++
++	VPADDD Y15, Y7, Y7
++	VPSRAD $6, Y7, Y7
++	VPMOVZXBD (DX), Y8
++	VPADDD Y8, Y7, Y7
++	VEXTRACTI128 $1, Y7, X8
++	VPACKSSDW X8, X7, X7
++	VPACKUSWB X7, X7, X7
++	VMOVQ X7, (BX)
++	ADDQ CX, BX
++	ADDQ SI, DX
++
++	DECL AX
++	JZ idct_four_done
++	VEXTRACTI128 $1, Y0, X0
++	VEXTRACTI128 $1, Y1, X1
++	VEXTRACTI128 $1, Y2, X2
++	VEXTRACTI128 $1, Y3, X3
++	JMP idct_four_vertical
++idct_four_done:
++	VZEROUPPER
++	RET
++
++// Swap adjacent words within each four-word block.
++DATA idctFourShufflePairs<>+0(SB)/8, $0x0504070601000302
++DATA idctFourShufflePairs<>+8(SB)/8, $0x0d0c0f0e09080b0a
++GLOBL idctFourShufflePairs<>(SB), RODATA|NOPTR, $16
++
++// Restore [y0,y3,y1,y2] to pixel column order.
++DATA idctFourShuffleColumns<>+0(SB)/8, $0x0302070605040100
++DATA idctFourShuffleColumns<>+8(SB)/8, $0x0b0a0f0e0d0c0908
++GLOBL idctFourShuffleColumns<>(SB), RODATA|NOPTR, $16
++
++DATA idctFourSignsPairs<>+0(SB)/8, $0xffffffff00010001
++DATA idctFourSignsPairs<>+8(SB)/8, $0xffffffff00010001
++GLOBL idctFourSignsPairs<>(SB), RODATA|NOPTR, $16
++
++DATA idctFourSignsAlternating<>+0(SB)/8, $0xffff0001ffff0001
++DATA idctFourSignsAlternating<>+8(SB)/8, $0xffff0001ffff0001
++GLOBL idctFourSignsAlternating<>(SB), RODATA|NOPTR, $16
+diff --git a/pkg/h264/internal/encoder/idct_simd_amd64.go b/pkg/h264/internal/encoder/idct_simd_amd64.go
+index 390fb77..37ca4c3 100644
+--- a/pkg/h264/internal/encoder/idct_simd_amd64.go
++++ b/pkg/h264/internal/encoder/idct_simd_amd64.go
+@@ -14,9 +14,18 @@ func idctT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff
+ //go:noescape
+ func idctFourT4RecSSE2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
+ 
++// The previous two-block sequence remains the fallback when reconstructed
++// pixels overlap coefficient storage and later loads must observe earlier writes.
++//
+ //go:noescape
+ func idctFourT4RecAVX2(rec []byte, recStride int, pred []byte, predStride int, coeff []int16)
+ 
++// The caller validates the full 8x8 spans and excludes shifted prediction and
++// coefficient/output aliases before loading all four coefficient blocks.
++//
++//go:noescape
++func idctFourT4RecPackedAVX2(rec *byte, recStride int, pred *byte, predStride int, coeff *[64]int16)
++
+ // WelsIDctT4Rec_sse2 preserves the scalar transform's wrapping horizontal
+ // int16 intermediates and its widened vertical arithmetic.
+ func WelsIDctT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte, predOff int, predStride int32, coeff []int16) {
+@@ -41,7 +50,11 @@ func WelsIDctFourT4Rec_sse2(rec []byte, recOff int, recStride int32, pred []byte
+ 		return
+ 	}
+ 	if cpu.X86.HasAVX2 {
+-		idctFourT4RecAVX2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
++		if idctFourCoefficientAlias(&rec[recOff], int(recStride), (*[64]int16)(coeff)) {
++			idctFourT4RecAVX2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
++		} else {
++			idctFourT4RecPackedAVX2(&rec[recOff], int(recStride), &pred[predOff], int(predStride), (*[64]int16)(coeff))
++		}
+ 		return
+ 	}
+ 	idctFourT4RecSSE2(rec[recOff:], int(recStride), pred[predOff:], int(predStride), coeff)
+@@ -76,3 +89,11 @@ func idctNeedsScalarAlias(rec []byte, recOff int, recStride int32, pred []byte,
+ 	pEnd := p + uintptr((size-1)*int(predStride)+size)
+ 	return r < pEnd && p < rEnd
+ }
++
++// Only output writes can change a later coefficient load. Pointer differences
++// detect either ordering without converting arithmetic results into pointers.
++func idctFourCoefficientAlias(rec *byte, stride int, coeff *[64]int16) bool {
++	r := uintptr(unsafe.Pointer(rec))
++	c := uintptr(unsafe.Pointer(coeff))
++	return c-r < uintptr(7*stride+8) || r-c < 128
++}
+diff --git a/pkg/h264/internal/encoder/quant_scan_amd64.go b/pkg/h264/internal/encoder/quant_scan_amd64.go
+index 16dd4d9..dd1d59f 100644
+--- a/pkg/h264/internal/encoder/quant_scan_amd64.go
++++ b/pkg/h264/internal/encoder/quant_scan_amd64.go
+@@ -11,6 +11,9 @@ import (
+ //go:noescape
+ func quantScanFour4x4SSSE3(dct, levels *[64]int16, ff, mf *[8]int16, maxima *[4]int16, masks *[4]uint16, ac int32)
+ 
++//go:noescape
++func quantScanFour4x4AVX2(dct, levels *[64]int16, ff, mf *[8]int16, maxima *[4]int16, masks *[4]uint16, ac int32)
++
+ // Quantize each group once, then scan and extract masks while its coefficients
+ // are still in SIMD registers. Maxima retain the existing signed-word semantics.
+ func quantScanFour4x4(dct, levels, ff, mf, maxima []int16, masks []uint16, ac bool) {
+@@ -28,6 +31,10 @@ func quantScanFour4x4(dct, levels, ff, mf, maxima []int16, masks []uint16, ac bo
+ 	if ac {
+ 		acFlag = 1
+ 	}
++	if cpu.X86.HasAVX2 {
++		quantScanFour4x4AVX2((*[64]int16)(dct), (*[64]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf), (*[4]int16)(maxima), (*[4]uint16)(masks), acFlag)
++		return
++	}
+ 	quantScanFour4x4SSSE3((*[64]int16)(dct), (*[64]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf), (*[4]int16)(maxima), (*[4]uint16)(masks), acFlag)
+ }
+ 
+diff --git a/pkg/h264/internal/encoder/quant_scan_amd64.s b/pkg/h264/internal/encoder/quant_scan_amd64.s
+index 7650d32..0b5991d 100644
+--- a/pkg/h264/internal/encoder/quant_scan_amd64.s
++++ b/pkg/h264/internal/encoder/quant_scan_amd64.s
+@@ -1,5 +1,10 @@
+ //go:build amd64
+ 
++// The AVX2 quantization arithmetic follows Cisco OpenH264,
++// codec/encoder/core/x86/quant.asm.
++// Copyright (c) 2009-2013, Cisco Systems.
++// BSD-2-Clause; see LICENSE-OpenH264 in the repository root.
++
+ #include "textflag.h"
+ 
+ // The four blocks share FF/MF and zigzag vectors. Quantized raster coefficients,
+@@ -130,3 +135,123 @@ DATA quantScanShuffle<>+104(SB)/8, $0x8080808080808080
+ DATA quantScanShuffle<>+112(SB)/8, $0x808005040b0a0908
+ DATA quantScanShuffle<>+120(SB)/8, $0x80800f0e0d0c0706
+ GLOBL quantScanShuffle<>(SB), RODATA|NOPTR, $128
++
++// Both entry points process independent blocks in the two 128-bit lanes.
++// Tables are snapshotted once, exactly as in the SSSE3 entries.
++TEXT ·quantScanFour4x4AVX2(SB), NOSPLIT, $0-52
++	MOVQ dct+0(FP), AX
++	MOVQ levels+8(FP), BX
++	MOVQ ff+16(FP), CX
++	MOVQ mf+24(FP), DX
++	MOVQ maxima+32(FP), DI
++	MOVQ masks+40(FP), SI
++	MOVL ac+48(FP), R9
++	MOVL $2, R8
++	JMP quantScanBlockPairsAVX2<>(SB)
++
++TEXT ·quantScanLumaAVX2(SB), NOSPLIT, $0-48
++	MOVQ dct+0(FP), AX
++	MOVQ levels+8(FP), BX
++	MOVQ ff+16(FP), CX
++	MOVQ mf+24(FP), DX
++	MOVQ maxima+32(FP), DI
++	MOVQ masks+40(FP), SI
++	XORL R9, R9
++	MOVL $8, R8
++	JMP quantScanBlockPairsAVX2<>(SB)
++
++// Preserve saturating unsigned FF addition, unsigned high multiplication and
++// signed maxima clamped at zero. The sign operand is nonzero even for dct=0:
++// rounding may produce a nonzero magnitude that must retain a positive sign.
++TEXT quantScanBlockPairsAVX2<>(SB), NOSPLIT|NOFRAME, $0-0
++	SHLQ $6, R9
++	LEAQ quantScanShuffle<>(SB), R10
++	ADDQ R9, R10
++	VBROADCASTI128 (CX), Y8
++	VBROADCASTI128 (DX), Y9
++	VPXOR Y10, Y10, Y10
++	VPCMPEQW Y11, Y11, Y11
++	VPSRLW $1, Y11, Y11
++	VBROADCASTI128 (R10), Y12
++	VBROADCASTI128 16(R10), Y13
++	VBROADCASTI128 32(R10), Y14
++	VBROADCASTI128 48(R10), Y15
++	VBROADCASTI128 quantScanBroadcastMax<>(SB), Y7
++quant_scan_pair:
++	VMOVDQU (AX), X0
++	VINSERTI128 $1, 32(AX), Y0, Y0
++	VMOVDQU 16(AX), X1
++	VINSERTI128 $1, 48(AX), Y1, Y1
++	VPABSW Y0, Y2
++	VPOR Y11, Y0, Y0
++	VPADDUSW Y8, Y2, Y2
++	VPMULHUW Y9, Y2, Y2
++	VPSIGNW Y0, Y2, Y0
++	VPABSW Y1, Y3
++	VPOR Y11, Y1, Y1
++	VPADDUSW Y8, Y3, Y3
++	VPMULHUW Y9, Y3, Y3
++	VPSIGNW Y1, Y3, Y1
++	VMOVDQU X0, (AX)
++	VEXTRACTI128 $1, Y0, 32(AX)
++	VMOVDQU X1, 16(AX)
++	VEXTRACTI128 $1, Y1, 48(AX)
++
++	VPMAXSW Y10, Y2, Y4
++	VPMAXSW Y3, Y4, Y4
++	VPSRLDQ $8, Y4, Y5
++	VPMAXSW Y5, Y4, Y4
++	VPSRLDQ $4, Y4, Y5
++	VPMAXSW Y5, Y4, Y4
++	VPSRLDQ $2, Y4, Y5
++	VPMAXSW Y5, Y4, Y4
++	VPEXTRW $0, X4, R9
++	VEXTRACTI128 $1, Y4, X5
++	VPEXTRW $0, X5, R11
++	SHLL $16, R11
++	ORL R11, R9
++	MOVL R9, (DI)
++	TESTL R9, R9
++	JZ quant_scan_pair_zero
++
++	// A zero signed maximum clears its entire scanned block, including when
++	// out-of-table unsigned magnitudes have their sign bit set. Valid tables
++	// also take this path for pairs containing one empty block.
++	VPSHUFB Y7, Y4, Y6
++	VPCMPEQW Y10, Y6, Y6
++	VPANDN Y0, Y6, Y0
++	VPANDN Y1, Y6, Y1
++	VPSHUFB Y12, Y0, Y2
++	VPSHUFB Y13, Y1, Y3
++	VPOR Y3, Y2, Y2
++	VPSHUFB Y14, Y0, Y4
++	VPSHUFB Y15, Y1, Y5
++	VPOR Y5, Y4, Y4
++	VMOVDQU X2, (BX)
++	VEXTRACTI128 $1, Y2, 32(BX)
++	VMOVDQU X4, 16(BX)
++	VEXTRACTI128 $1, Y4, 48(BX)
++	VPCMPEQW Y10, Y2, Y2
++	VPCMPEQW Y10, Y4, Y4
++	VPACKSSWB Y4, Y2, Y2
++	VPMOVMSKB Y2, R9
++	XORL $-1, R9
++	MOVL R9, (SI)
++	JMP quant_scan_pair_next
++quant_scan_pair_zero:
++	VMOVDQU Y10, (BX)
++	VMOVDQU Y10, 32(BX)
++	MOVL $0, (SI)
++quant_scan_pair_next:
++	ADDQ $64, AX
++	ADDQ $64, BX
++	ADDQ $4, DI
++	ADDQ $4, SI
++	DECL R8
++	JNZ quant_scan_pair
++	VZEROUPPER
++	RET
++
++DATA quantScanBroadcastMax<>+0(SB)/8, $0x0100010001000100
++DATA quantScanBroadcastMax<>+8(SB)/8, $0x0100010001000100
++GLOBL quantScanBroadcastMax<>(SB), RODATA|NOPTR, $16
+diff --git a/pkg/h264/internal/encoder/quant_scan_luma_amd64.go b/pkg/h264/internal/encoder/quant_scan_luma_amd64.go
+index 2f90c63..fcfd26f 100644
+--- a/pkg/h264/internal/encoder/quant_scan_luma_amd64.go
++++ b/pkg/h264/internal/encoder/quant_scan_luma_amd64.go
+@@ -11,6 +11,9 @@ import (
+ //go:noescape
+ func quantScanLumaSSSE3(dct, levels *[256]int16, ff, mf *[8]int16, maxima *[16]int16, masks *[16]uint16)
+ 
++//go:noescape
++func quantScanLumaAVX2(dct, levels *[256]int16, ff, mf *[8]int16, maxima *[16]int16, masks *[16]uint16)
++
+ // Completed inter-luma encoding consumes every group, so one checked call can
+ // share the quantization and zigzag tables across all sixteen blocks. Lazy skip
+ // attempts retain their four-block calls and early rejection behavior.
+@@ -26,6 +29,11 @@ func quantScanLuma(dct, levels, ff, mf, maxima []int16, masks []uint16) {
+ 		quantScanLumaSeparate(dct, levels, ff, mf, maxima, masks)
+ 		return
+ 	}
++	if cpu.X86.HasAVX2 {
++		quantScanLumaAVX2((*[256]int16)(dct), (*[256]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf),
++			(*[16]int16)(maxima), (*[16]uint16)(masks))
++		return
++	}
+ 	quantScanLumaSSSE3((*[256]int16)(dct), (*[256]int16)(levels), (*[8]int16)(ff), (*[8]int16)(mf),
+ 		(*[16]int16)(maxima), (*[16]uint16)(masks))
+ }
+diff --git a/pkg/h264/internal/encoder/sample_simd.go b/pkg/h264/internal/encoder/sample_simd.go
+index 6f551d8..905b1a4 100644
+--- a/pkg/h264/internal/encoder/sample_simd.go
++++ b/pkg/h264/internal/encoder/sample_simd.go
+@@ -58,6 +58,13 @@ type sampleAvgSatdFunc func(enc []byte, encOff int, encStride int32,
+ 	a []byte, aOff int, aStride int32, b []byte, bOff int, bStride int32,
+ 	width, height int32) int32
+ 
++// sampleAvgSatdValidatedFunc is used only after the quarter-refinement batch
++// has checked every input and output span. Its pointers remain tracked by Go.
++// Keeping this separate retains the checked callback for other callers and
++// instrumentation, while avoiding repeated span checks for each candidate.
++type sampleAvgSatdValidatedFunc func(enc *byte, encStride int,
++	a *byte, aStride int, b *byte, bStride, width, height int) int
++
+ // Keep addresses as pointers across calls: stack-backed input arrays may move
+ // when a helper grows the goroutine stack.
+ type sampleMemoryRange struct {
+@@ -135,9 +142,19 @@ func meRefineQuarPixelFused(funcs *SWelsFuncPtrList, me *SWelsME, refine *SMeRef
+ 		if i >= 2 {
+ 			stride = params.iStrideB
+ 		}
+-		cost := samples.pfSampleAvgSatd(me.pEncMb, me.iEncMbOff, encStride,
+-			params.pSrcA[i], params.iSrcAOff[i], ME_REFINE_BUF_STRIDE,
+-			params.pSrcB[i], params.iSrcBOff[i], stride, width, height) + params.iLms[i]
++		var cost int32
++		if samples.pfSampleAvgSatdValidated != nil {
++			// quarterRefineBuffersDisjoint has already checked all eleven
++			// buffer spans before any cost evaluation or prediction store.
++			cost = int32(samples.pfSampleAvgSatdValidated(&me.pEncMb[me.iEncMbOff], int(encStride),
++				&params.pSrcA[i][params.iSrcAOff[i]], ME_REFINE_BUF_STRIDE,
++				&params.pSrcB[i][params.iSrcBOff[i]], int(stride), int(width), int(height)))
++		} else {
++			cost = samples.pfSampleAvgSatd(me.pEncMb, me.iEncMbOff, encStride,
++				params.pSrcA[i], params.iSrcAOff[i], ME_REFINE_BUF_STRIDE,
++				params.pSrcB[i], params.iSrcBOff[i], stride, width, height)
++		}
++		cost += params.iLms[i]
+ 		if cost < params.iBestCost {
+ 			params.iBestCost = cost
+ 			params.iBestQuarPix = modes[i]
+diff --git a/pkg/h264/internal/encoder/sample_simd_amd64.go b/pkg/h264/internal/encoder/sample_simd_amd64.go
+index a410c25..4e5295a 100644
+--- a/pkg/h264/internal/encoder/sample_simd_amd64.go
++++ b/pkg/h264/internal/encoder/sample_simd_amd64.go
+@@ -88,7 +88,9 @@ func sampleAvgSatdAVX2(enc []byte, encOff int, encStride int32,
+ 
+ func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
+ 	s.pfSampleAvgSatd = nil
++	s.pfSampleAvgSatdValidated = nil
+ 	if flags&common.WELS_CPU_AVX2 != 0 {
+ 		s.pfSampleAvgSatd = sampleAvgSatdAVX2
++		s.pfSampleAvgSatdValidated = satdAvgBlockAVX2
+ 	}
+ }
+diff --git a/pkg/h264/internal/encoder/sample_simd_batch_amd64_test.go b/pkg/h264/internal/encoder/sample_simd_batch_amd64_test.go
+index 8feb9b3..70d6896 100644
+--- a/pkg/h264/internal/encoder/sample_simd_batch_amd64_test.go
++++ b/pkg/h264/internal/encoder/sample_simd_batch_amd64_test.go
+@@ -112,6 +112,9 @@ func TestSampleAvgSatdDispatch(t *testing.T) {
+ 		if got, want := funcs.sSampleDealingFuncs.pfSampleAvgSatd != nil, flags&common.WELS_CPU_AVX2 != 0; got != want {
+ 			t.Fatalf("flags=%x fused=%v want=%v", flags, got, want)
+ 		}
++		if got, want := funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated != nil, flags&common.WELS_CPU_AVX2 != 0; got != want {
++			t.Fatalf("flags=%x validated=%v want=%v", flags, got, want)
++		}
+ 	}
+ }
+ 
+@@ -137,6 +140,9 @@ func TestQuarterRefineFusedMatchesSequential(t *testing.T) {
+ 					}
+ 					calls := 0
+ 					if fused {
++						// Exercise the checked callback route independently of
++						// the validated production callback.
++						funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated = nil
+ 						funcs.sSampleDealingFuncs.pfSampleAvgSatd = func(enc []byte, encOff int, encStride int32, a []byte, aOff int, aStride int32, b []byte, bOff int, bStride int32, w, h int32) int32 {
+ 							calls++
+ 							return sampleAvgSatdAVX2(enc, encOff, encStride, a, aOff, aStride, b, bOff, bStride, w, h)
+diff --git a/pkg/h264/internal/encoder/sample_simd_generic.go b/pkg/h264/internal/encoder/sample_simd_generic.go
+index 816b5b1..e92a069 100644
+--- a/pkg/h264/internal/encoder/sample_simd_generic.go
++++ b/pkg/h264/internal/encoder/sample_simd_generic.go
+@@ -28,4 +28,5 @@ func WelsSampleSatd16x16_avx2(a []uint8, aOff int, aStride int32, ref []uint8, r
+ 
+ func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
+ 	s.pfSampleAvgSatd = nil
++	s.pfSampleAvgSatdValidated = nil
+ }
+diff --git a/pkg/h264/internal/encoder/svc_encode_mb.go b/pkg/h264/internal/encoder/svc_encode_mb.go
+index a405e7a..4435fe5 100644
+--- a/pkg/h264/internal/encoder/svc_encode_mb.go
++++ b/pkg/h264/internal/encoder/svc_encode_mb.go
+@@ -156,61 +156,54 @@ func WelsEncInterY(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache)
+ 	pfSetMemZeroSize64 := pFuncList.pfSetMemZeroSize64
+ 	pfDequantizationFour4x4 := pFuncList.pfDequantizationFour4x4
+ 	pRes := pMbCache.pCoeffLevel
+-	iSingleCtrMb := int32(0)
+-	var iSingleCtr8x8 [4]int32
+ 	pBlock := pMbCache.pDct.iLumaBlock[:]
+ 	uiQp := pCurMb.uiLumaQp
+ 	pMF := g_kiQuantMF[uiQp][:]
+ 	pFF := g_kiQuantInterFF[uiQp][:]
+-	var aMax [16]int16
++	var maxima [16]int16
+ 	var masks [16]uint16
+-	iNoneZeroCount := int32(0)
+-
+-	quantScanLuma(pRes, pBlock, pFF, pMF, aMax[:], masks[:])
+-
+-	iResOff := 0
+-	iBlockOff := 0
+-	for i := 0; i < 4; i++ {
+-		iSingleCtr8x8[i] = 0
+-		for j := 0; j < 4; j++ {
+-			if aMax[(i<<2)+j] != 0 {
+-				mask := masks[(i<<2)+j]
+-				if aMax[(i<<2)+j] > 1 {
+-					iSingleCtr8x8[i] += 9
+-				} else if iSingleCtr8x8[i] < 6 {
+-					iSingleCtr8x8[i] += coefficientScoreMask(mask)
++	quantScanLuma(pRes, pBlock, pFF, pMF, maxima[:], masks[:])
++
++	var groupScores [4]int32
++	var totalScore int32
++	for group := range 4 {
++		// Fixed groups expose the four-block bounds to the compiler. Keep the
++		// score local while preserving the original magnitude and run tests.
++		groupMaxima := (*[4]int16)(maxima[group*4:])
++		groupMasks := (*[4]uint16)(masks[group*4:])
++		var score int32
++		for block, maximum := range groupMaxima {
++			if maximum != 0 {
++				if maximum > 1 {
++					score += 9
++				} else if score < 6 {
++					score += coefficientScoreMask(groupMasks[block])
+ 				}
+ 			}
+-			iResOff += 16
+-			iBlockOff += 16
+ 		}
+-		iSingleCtrMb += iSingleCtr8x8[i]
++		groupScores[group] = score
++		totalScore += score
+ 	}
+-	iBlockOff -= 256
+-	iResOff -= 256
+ 
+ 	clear(pCurMb.pNonZeroCount[:16])
+-
+-	if iSingleCtrMb < 6 { //from JVT-O079
+-		pfSetMemZeroSize64(pRes[iResOff:], 768) // confirmed_safe_unsafe_usage
+-	} else {
+-		kpNoneZeroCountIdx := common.G_kuiMbCountScan4Idx[:]
+-		for i := 0; i < 4; i++ {
+-			if iSingleCtr8x8[i] >= 4 {
+-				for j := 0; j < 4; j++ {
+-					iNoneZeroCount = int32(bits.OnesCount16(masks[(i<<2)+j]))
+-					pCurMb.pNonZeroCount[kpNoneZeroCountIdx[0]] = int8(iNoneZeroCount)
+-					kpNoneZeroCountIdx = kpNoneZeroCountIdx[1:]
+-					iBlockOff += 16
+-				}
+-				pfDequantizationFour4x4(pRes[iResOff:], common.G_kuiDequantCoeff[uiQp][:])
+-				pCurMb.uiCbp |= uint8(1 << i)
+-			} else { // set zero for an 8x8 pBlock
+-				pfSetMemZeroSize64(pRes[iResOff:], 128) // confirmed_safe_unsafe_usage
+-				kpNoneZeroCountIdx = kpNoneZeroCountIdx[4:]
+-				iBlockOff += 64
+-			}
+-			iResOff += 64
++	if totalScore < 6 { //from JVT-O079
++		pfSetMemZeroSize64(pRes, 768) // confirmed_safe_unsafe_usage
++		return
++	}
++	for group, score := range groupScores {
++		offset := group * 64
++		if score >= 4 {
++			groupMasks := (*[4]uint16)(masks[group*4:])
++			indices := (*[4]uint8)(common.G_kuiMbCountScan4Idx[group*4:])
++			counts := pCurMb.pNonZeroCount
++			counts[indices[0]] = int8(bits.OnesCount16(groupMasks[0]))
++			counts[indices[1]] = int8(bits.OnesCount16(groupMasks[1]))
++			counts[indices[2]] = int8(bits.OnesCount16(groupMasks[2]))
++			counts[indices[3]] = int8(bits.OnesCount16(groupMasks[3]))
++			pfDequantizationFour4x4(pRes[offset:], common.G_kuiDequantCoeff[uiQp][:])
++			pCurMb.uiCbp |= uint8(1 << group)
++		} else {
++			pfSetMemZeroSize64(pRes[offset:], 128) // confirmed_safe_unsafe_usage
+ 		}
+ 	}
+ }
+diff --git a/pkg/h264/internal/encoder/wels_func_ptr_def_h.go b/pkg/h264/internal/encoder/wels_func_ptr_def_h.go
+index 96f0b90..409d320 100644
+--- a/pkg/h264/internal/encoder/wels_func_ptr_def_h.go
++++ b/pkg/h264/internal/encoder/wels_func_ptr_def_h.go
+@@ -146,10 +146,11 @@ const MAX_BLOCK_TYPE = BLOCK_SIZE_ALL
+ 
+ // SSampleDealingFunc is the SAD / SATD function table.
+ type SSampleDealingFunc struct {
+-	pfSampleSad     [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
+-	pfSampleSatd    [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
+-	pfSample4Sad    [MAX_BLOCK_TYPE]PSample4SadCostFunc
+-	pfSampleAvgSatd sampleAvgSatdFunc
++	pfSampleSad              [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
++	pfSampleSatd             [MAX_BLOCK_TYPE]PSampleSadSatdCostFunc
++	pfSample4Sad             [MAX_BLOCK_TYPE]PSample4SadCostFunc
++	pfSampleAvgSatd          sampleAvgSatdFunc
++	pfSampleAvgSatdValidated sampleAvgSatdValidatedFunc
+ 
+ 	pfIntra4x4Combined3Satd   PIntraPred4x4Combined3Func
+ 	pfIntra16x16Combined3Satd PIntraPred16x16Combined3Func
+diff --git a/pkg/h264/internal/common/copy_simd_amd64.go b/pkg/h264/internal/common/copy_simd_amd64.go
+new file mode 100644
+index 0000000..f675855
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_amd64.go
+@@ -0,0 +1,63 @@
++//go:build amd64
++
++package common
++
++import "unsafe"
++
++// The fixed-shape kernels amortize span validation over the whole block. They
++// load and store exactly the row width and accept unaligned pictures.
++//
++//go:noescape
++func copy8x16SSE2(dst *byte, dstStride int, src *byte, srcStride int)
++
++//go:noescape
++func copy16x16SSE2(dst *byte, dstStride int, src *byte, srcStride int)
++
++func copySIMDReady(dst []byte, dstOff int, dstStride int32, src []byte, srcOff int, srcStride int32, width, height int) bool {
++	// Positive, disjoint rows are the encoding case. Validate each full span
++	// once, then compare the two starting addresses without indexing row ends.
++	if dstStride >= int32(width) && srcStride >= int32(width) {
++		dstSpan := (height-1)*int(dstStride) + width
++		srcSpan := (height-1)*int(srcStride) + width
++		checkSIMDSpan(dst, int64(dstOff), int64(dstOff)+int64(dstSpan)-1)
++		checkSIMDSpan(src, int64(srcOff), int64(srcOff)+int64(srcSpan)-1)
++		d := uintptr(unsafe.Pointer(&dst[dstOff]))
++		s := uintptr(unsafe.Pointer(&src[srcOff]))
++		return s-d >= uintptr(dstSpan) && d-s >= uintptr(srcSpan)
++	}
++	// Scalar routines preserve the row order for negative, zero and
++	// overlapping strides, including writes visible to later source rows.
++	return false
++}
++
++func WelsCopy8x16_sse2(dst []byte, dstOff int, dstStride int32, src []byte, srcOff int, srcStride int32) {
++	if !copySIMDReady(dst, dstOff, dstStride, src, srcOff, srcStride, 8, 16) {
++		WelsCopy8x16_c(dst, dstOff, dstStride, src, srcOff, srcStride)
++		return
++	}
++	copy8x16SSE2(&dst[dstOff], int(dstStride), &src[srcOff], int(srcStride))
++}
++
++func WelsCopy16x16_sse2(dst []byte, dstOff int, dstStride int32, src []byte, srcOff int, srcStride int32) {
++	if !copySIMDReady(dst, dstOff, dstStride, src, srcOff, srcStride, 16, 16) {
++		WelsCopy16x16_c(dst, dstOff, dstStride, src, srcOff, srcStride)
++		return
++	}
++	copy16x16SSE2(&dst[dstOff], int(dstStride), &src[srcOff], int(srcStride))
++}
++
++// mcCopySSE2 accelerates sixteen-row integer motion without changing McCopy_c's
++// fallback order. Callers route shorter blocks directly to the scalar function:
++// their copies are too small to amortize a separate checked assembly call.
++func mcCopySSE2(src []byte, srcOff int, srcStride int32, dst []byte, dstOff int, dstStride int32, width, height int32) {
++	if (width != 8 && width != 16) || height != 16 ||
++		!copySIMDReady(dst, dstOff, dstStride, src, srcOff, srcStride, int(width), int(height)) {
++		McCopy_c(src, srcOff, srcStride, dst, dstOff, dstStride, width, height)
++		return
++	}
++	if width == 8 {
++		copy8x16SSE2(&dst[dstOff], int(dstStride), &src[srcOff], int(srcStride))
++	} else {
++		copy16x16SSE2(&dst[dstOff], int(dstStride), &src[srcOff], int(srcStride))
++	}
++}
+diff --git a/pkg/h264/internal/common/copy_simd_amd64.s b/pkg/h264/internal/common/copy_simd_amd64.s
+new file mode 100644
+index 0000000..3d2302a
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_amd64.s
+@@ -0,0 +1,99 @@
++//go:build amd64
++
++#include "textflag.h"
++// func copy8x16SSE2(dst *byte, dstStride int, src *byte, srcStride int)
++TEXT ·copy8x16SSE2(SB), NOSPLIT, $0-32
++	MOVQ dst+0(FP), AX
++	MOVQ dstStride+8(FP), CX
++	MOVQ src+16(FP), DX
++	MOVQ srcStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVQ (DX), X0
++	MOVQ (DX)(BX*1), X1
++	MOVQ (DX)(BX*2), X2
++	MOVQ (DX)(R9*1), X3
++	MOVQ X0, (AX)
++	MOVQ X1, (AX)(CX*1)
++	MOVQ X2, (AX)(CX*2)
++	MOVQ X3, (AX)(R8*1)
++	LEAQ (DX)(BX*4), DX
++	LEAQ (AX)(CX*4), AX
++	MOVQ (DX), X0
++	MOVQ (DX)(BX*1), X1
++	MOVQ (DX)(BX*2), X2
++	MOVQ (DX)(R9*1), X3
++	MOVQ X0, (AX)
++	MOVQ X1, (AX)(CX*1)
++	MOVQ X2, (AX)(CX*2)
++	MOVQ X3, (AX)(R8*1)
++	LEAQ (DX)(BX*4), DX
++	LEAQ (AX)(CX*4), AX
++	MOVQ (DX), X0
++	MOVQ (DX)(BX*1), X1
++	MOVQ (DX)(BX*2), X2
++	MOVQ (DX)(R9*1), X3
++	MOVQ X0, (AX)
++	MOVQ X1, (AX)(CX*1)
++	MOVQ X2, (AX)(CX*2)
++	MOVQ X3, (AX)(R8*1)
++	LEAQ (DX)(BX*4), DX
++	LEAQ (AX)(CX*4), AX
++	MOVQ (DX), X0
++	MOVQ (DX)(BX*1), X1
++	MOVQ (DX)(BX*2), X2
++	MOVQ (DX)(R9*1), X3
++	MOVQ X0, (AX)
++	MOVQ X1, (AX)(CX*1)
++	MOVQ X2, (AX)(CX*2)
++	MOVQ X3, (AX)(R8*1)
++	RET
++
++// func copy16x16SSE2(dst *byte, dstStride int, src *byte, srcStride int)
++TEXT ·copy16x16SSE2(SB), NOSPLIT, $0-32
++	MOVQ dst+0(FP), AX
++	MOVQ dstStride+8(FP), CX
++	MOVQ src+16(FP), DX
++	MOVQ srcStride+24(FP), BX
++	LEAQ (CX)(CX*2), R8
++	LEAQ (BX)(BX*2), R9
++	MOVOU (DX), X0
++	MOVOU (DX)(BX*1), X1
++	MOVOU (DX)(BX*2), X2
++	MOVOU (DX)(R9*1), X3
++	MOVOU X0, (AX)
++	MOVOU X1, (AX)(CX*1)
++	MOVOU X2, (AX)(CX*2)
++	MOVOU X3, (AX)(R8*1)
++	LEAQ (DX)(BX*4), DX
++	LEAQ (AX)(CX*4), AX
++	MOVOU (DX), X0
++	MOVOU (DX)(BX*1), X1
++	MOVOU (DX)(BX*2), X2
++	MOVOU (DX)(R9*1), X3
++	MOVOU X0, (AX)
++	MOVOU X1, (AX)(CX*1)
++	MOVOU X2, (AX)(CX*2)
++	MOVOU X3, (AX)(R8*1)
++	LEAQ (DX)(BX*4), DX
++	LEAQ (AX)(CX*4), AX
++	MOVOU (DX), X0
++	MOVOU (DX)(BX*1), X1
++	MOVOU (DX)(BX*2), X2
++	MOVOU (DX)(R9*1), X3
++	MOVOU X0, (AX)
++	MOVOU X1, (AX)(CX*1)
++	MOVOU X2, (AX)(CX*2)
++	MOVOU X3, (AX)(R8*1)
++	LEAQ (DX)(BX*4), DX
++	LEAQ (AX)(CX*4), AX
++	MOVOU (DX), X0
++	MOVOU (DX)(BX*1), X1
++	MOVOU (DX)(BX*2), X2
++	MOVOU (DX)(R9*1), X3
++	MOVOU X0, (AX)
++	MOVOU X1, (AX)(CX*1)
++	MOVOU X2, (AX)(CX*2)
++	MOVOU X3, (AX)(R8*1)
++	RET
++
+diff --git a/pkg/h264/internal/common/copy_simd_amd64_test.go b/pkg/h264/internal/common/copy_simd_amd64_test.go
+new file mode 100644
+index 0000000..29b774d
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_amd64_test.go
+@@ -0,0 +1,117 @@
++//go:build amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"testing"
++)
++
++type blockCopyTestCase struct {
++	width, height int
++	scalar, simd  func([]byte, int, int32, []byte, int, int32)
++}
++
++var blockCopyTestCases = []blockCopyTestCase{
++	{8, 16, WelsCopy8x16_c, WelsCopy8x16_sse2},
++	{16, 16, WelsCopy16x16_c, WelsCopy16x16_sse2},
++}
++
++func TestBlockCopySIMDParity(t *testing.T) {
++	for _, test := range blockCopyTestCases {
++		for _, srcStride := range []int{0, 3, test.width, 29, -3, -31} {
++			for _, dstStride := range []int{0, 5, test.width, 37, -5, -41} {
++				name := fmt.Sprintf("%dx%d/src%d/dst%d", test.width, test.height, srcStride, dstStride)
++				t.Run(name, func(t *testing.T) {
++					src, dst := make([]byte, 2048), bytes.Repeat([]byte{0xa5}, 2048)
++					for i := range src {
++						src[i] = byte(i*47 + i/13)
++					}
++					original, want := bytes.Clone(src), bytes.Clone(dst)
++					srcOff, dstOff := 7, 11
++					if srcStride < 0 {
++						srcOff -= (test.height - 1) * srcStride
++					}
++					if dstStride < 0 {
++						dstOff -= (test.height - 1) * dstStride
++					}
++					test.scalar(want, dstOff, int32(dstStride), src, srcOff, int32(srcStride))
++					test.simd(dst, dstOff, int32(dstStride), src, srcOff, int32(srcStride))
++					if !bytes.Equal(dst, want) {
++						t.Fatal("copy differs from scalar or writes destination padding")
++					}
++					if !bytes.Equal(src, original) {
++						t.Fatal("copy changed source")
++					}
++				})
++			}
++		}
++	}
++}
++
++func TestBlockCopySIMDAliases(t *testing.T) {
++	for _, test := range blockCopyTestCases {
++		for _, stride := range []int32{0, 5, 32, -32} {
++			for _, shift := range []int{-33, -16, -1, 0, 1, 7, 16, 33} {
++				name := fmt.Sprintf("%dx%d/stride%d/shift%d", test.width, test.height, stride, shift)
++				t.Run(name, func(t *testing.T) {
++					actual := make([]byte, 2048)
++					for i := range actual {
++						actual[i] = byte(i*43 + i/7)
++					}
++					want := bytes.Clone(actual)
++					// Different slice bases exercise aliases beyond identical headers.
++					srcOff, dstOff := 800, 804+shift
++					test.scalar(want[7:], dstOff, stride, want[11:], srcOff, stride)
++					test.simd(actual[7:], dstOff, stride, actual[11:], srcOff, stride)
++					if !bytes.Equal(actual, want) {
++						t.Fatal("overlapping copy changed scalar row ordering")
++					}
++				})
++			}
++		}
++	}
++}
++
++func TestBlockCopySIMDVisibleBounds(t *testing.T) {
++	for _, test := range blockCopyTestCases {
++		t.Run(fmt.Sprintf("%dx%d", test.width, test.height), func(t *testing.T) {
++			const stride = 32
++			size := (test.height-1)*stride + test.width
++			for _, source := range []bool{false, true} {
++				src, dst := make([]byte, size+64), bytes.Repeat([]byte{0xa5}, size+64)
++				if source {
++					src = src[:size-1]
++				} else {
++					dst = dst[:size-1]
++				}
++				before := bytes.Clone(dst[:cap(dst)])
++				mustBlockCopyPanic(t, func() { test.simd(dst, 0, stride, src, 0, stride) })
++				if !bytes.Equal(dst[:cap(dst)], before) {
++					t.Fatal("invalid span wrote destination before rejection")
++				}
++			}
++			valid := make([]byte, size)
++			mustBlockCopyPanic(t, func() { test.simd(valid, -1, stride, valid, 0, stride) })
++			mustBlockCopyPanic(t, func() { test.simd(valid, 0, stride, valid, -1, stride) })
++			mustBlockCopyPanic(t, func() { test.simd(valid, 0, -stride, valid, 0, stride) })
++			mustBlockCopyPanic(t, func() { test.simd(valid, 0, stride, valid, 0, -stride) })
++			mustBlockCopyPanic(t, func() { test.simd(nil, 0, stride, valid, 0, stride) })
++			mustBlockCopyPanic(t, func() { test.simd(valid, 0, stride, nil, 0, stride) })
++			maxInt := int(^uint(0) >> 1)
++			mustBlockCopyPanic(t, func() { test.simd(valid, maxInt, stride, valid, 0, stride) })
++			mustBlockCopyPanic(t, func() { test.simd(valid, 0, stride, valid, maxInt, stride) })
++		})
++	}
++}
++
++func mustBlockCopyPanic(t *testing.T, fn func()) {
++	t.Helper()
++	defer func() {
++		if recover() == nil {
++			t.Error("invalid visible span did not panic")
++		}
++	}()
++	fn()
++}
+diff --git a/pkg/h264/internal/common/copy_simd_generic.go b/pkg/h264/internal/common/copy_simd_generic.go
+new file mode 100644
+index 0000000..02f1387
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_generic.go
+@@ -0,0 +1,11 @@
++//go:build !amd64
++
++package common
++
++func WelsCopy8x16_sse2(dst []byte, dstOff int, dstStride int32, src []byte, srcOff int, srcStride int32) {
++	WelsCopy8x16_c(dst, dstOff, dstStride, src, srcOff, srcStride)
++}
++
++func WelsCopy16x16_sse2(dst []byte, dstOff int, dstStride int32, src []byte, srcOff int, srcStride int32) {
++	WelsCopy16x16_c(dst, dstOff, dstStride, src, srcOff, srcStride)
++}
+diff --git a/pkg/h264/internal/common/copy_simd_guard_linux_amd64_test.go b/pkg/h264/internal/common/copy_simd_guard_linux_amd64_test.go
+new file mode 100644
+index 0000000..7a91447
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_guard_linux_amd64_test.go
+@@ -0,0 +1,64 @@
++//go:build linux && amd64
++
++package common
++
++import (
++	"fmt"
++	"testing"
++
++	"golang.org/x/sys/unix"
++)
++
++func TestBlockCopySIMDGuardPages(t *testing.T) {
++	for _, test := range blockCopyTestCases {
++		t.Run(fmt.Sprintf("%dx%d", test.width, test.height), func(t *testing.T) {
++			page := unix.Getpagesize()
++			srcMap := copyGuardedRows(t, test.height, page)
++			dstMap := copyGuardedRows(t, test.height, page)
++			for y := range test.height {
++				for x := range page {
++					srcMap[y*page*2+x] = byte(y*43 + x*29)
++					dstMap[y*page*2+x] = 0xa5
++				}
++				if err := unix.Mprotect(srcMap[y*page*2:y*page*2+page], unix.PROT_READ); err != nil {
++					t.Fatal(err)
++				}
++			}
++			// Every row ends immediately at a guard page. SIMD must read and
++			// write exactly eight or sixteen bytes, including the final row.
++			off := page - test.width
++			end := (test.height-1)*page*2 + page
++			test.simd(dstMap[:end:end], off, int32(page*2), srcMap[:end:end], off, int32(page*2))
++			for y := range test.height {
++				for x := range page {
++					want := byte(0xa5)
++					if x >= off {
++						want = srcMap[y*page*2+x]
++					}
++					if got := dstMap[y*page*2+x]; got != want {
++						t.Fatalf("row %d byte %d: got %d want %d", y, x, got, want)
++					}
++				}
++			}
++		})
++	}
++}
++
++func copyGuardedRows(t *testing.T, rows, page int) []byte {
++	t.Helper()
++	mapping, err := unix.Mmap(-1, 0, rows*page*2, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANON|unix.MAP_PRIVATE)
++	if err != nil {
++		t.Fatal(err)
++	}
++	t.Cleanup(func() {
++		if err := unix.Munmap(mapping); err != nil {
++			t.Error(err)
++		}
++	})
++	for row := range rows {
++		if err := unix.Mprotect(mapping[(row*2+1)*page:(row*2+2)*page], unix.PROT_NONE); err != nil {
++			t.Fatal(err)
++		}
++	}
++	return mapping
++}
+diff --git a/pkg/h264/internal/common/copy_simd_motion_amd64_test.go b/pkg/h264/internal/common/copy_simd_motion_amd64_test.go
+new file mode 100644
+index 0000000..7e7431b
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_motion_amd64_test.go
+@@ -0,0 +1,93 @@
++//go:build amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"testing"
++)
++
++var integerMotionCopyModes = []struct {
++	name string
++	fn   PWelsMcFunc
++}{
++	{"LumaSSE2", McLuma_sse2},
++	{"LumaAVX2", McLuma_avx2},
++	{"ChromaSSE2", McChroma_sse2},
++}
++
++func TestIntegerMotionCopyParity(t *testing.T) {
++	for _, mode := range integerMotionCopyModes {
++		for _, shape := range [][2]int32{{8, 8}, {8, 16}, {16, 8}, {16, 16}, {8, 4}, {4, 8}, {4, 4}, {8, 12}, {2, 8}, {5, 8}} {
++			for _, strides := range [][2]int32{{32, 37}, {8, 16}, {0, 0}, {3, 5}, {-32, 37}, {32, -37}} {
++				for _, motion := range [][2]int16{{0, 0}, {8, -16}, {-16, 24}} {
++					name := fmt.Sprintf("%s/%dx%d/strides%v/mv%v", mode.name, shape[0], shape[1], strides, motion)
++					t.Run(name, func(t *testing.T) {
++						src, dst := make([]byte, 2048), bytes.Repeat([]byte{0xa5}, 2048)
++						for i := range src {
++							src[i] = byte(i*47 + i/13)
++						}
++						original, want := bytes.Clone(src), bytes.Clone(dst)
++						srcOff, dstOff := 800, 811
++						McCopy_c(src, srcOff, strides[0], want, dstOff, strides[1], shape[0], shape[1])
++						mode.fn(src, srcOff, strides[0], dst, dstOff, strides[1], motion[0], motion[1], shape[0], shape[1])
++						if !bytes.Equal(dst, want) || !bytes.Equal(src, original) {
++							t.Fatal("integer motion differs from scalar copy or changes source")
++						}
++					})
++				}
++			}
++		}
++	}
++}
++
++func TestIntegerMotionCopyAliases(t *testing.T) {
++	for _, mode := range integerMotionCopyModes {
++		for _, shape := range [][2]int32{{8, 8}, {8, 16}, {16, 8}, {16, 16}, {8, 4}, {4, 8}, {8, 12}} {
++			for _, strides := range [][2]int32{{32, 32}, {32, 37}, {0, 0}, {3, 5}, {-32, -32}, {-32, 37}} {
++				for _, shift := range []int{-33, -8, -1, 0, 1, 8, 33} {
++					name := fmt.Sprintf("%s/%dx%d/strides%v/shift%d", mode.name, shape[0], shape[1], strides, shift)
++					t.Run(name, func(t *testing.T) {
++						actual := make([]byte, 2048)
++						for i := range actual {
++							actual[i] = byte(i*43 + i/7)
++						}
++						want := bytes.Clone(actual)
++						McCopy_c(want[11:], 800, strides[0], want[7:], 804+shift, strides[1], shape[0], shape[1])
++						mode.fn(actual[11:], 800, strides[0], actual[7:], 804+shift, strides[1], 8, -16, shape[0], shape[1])
++						if !bytes.Equal(actual, want) {
++							t.Fatal("integer motion changed scalar row ordering")
++						}
++					})
++				}
++			}
++		}
++	}
++}
++
++func TestIntegerMotionCopyVisibleBounds(t *testing.T) {
++	// Only the sixteen-row kernels take the new checked assembly path. Other
++	// shapes retain the existing scalar contract, tested in parity and aliases.
++	for _, mode := range integerMotionCopyModes {
++		for _, shape := range [][2]int32{{8, 16}, {16, 16}} {
++			t.Run(fmt.Sprintf("%s/%dx%d", mode.name, shape[0], shape[1]), func(t *testing.T) {
++				const stride = 32
++				size := int((shape[1]-1)*stride + shape[0])
++				for _, source := range []bool{false, true} {
++					src, dst := make([]byte, size+64), bytes.Repeat([]byte{0xa5}, size+64)
++					if source {
++						src = src[:size-1]
++					} else {
++						dst = dst[:size-1]
++					}
++					before := bytes.Clone(dst[:cap(dst)])
++					mustBlockCopyPanic(t, func() { mode.fn(src, 0, stride, dst, 0, stride, 0, 0, shape[0], shape[1]) })
++					if !bytes.Equal(dst[:cap(dst)], before) {
++						t.Fatal("invalid span wrote destination before rejection")
++					}
++				}
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/common/copy_simd_motion_bench_test.go b/pkg/h264/internal/common/copy_simd_motion_bench_test.go
+new file mode 100644
+index 0000000..a6f6bcd
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_motion_bench_test.go
+@@ -0,0 +1,33 @@
++//go:build amd64
++
++package common
++
++import (
++	"fmt"
++	"testing"
++)
++
++// Existing motion entry points keep the harness identical on both trees.
++func BenchmarkIntegerMotionCopy(b *testing.B) {
++	for _, mode := range []struct {
++		name string
++		fn   PWelsMcFunc
++	}{
++		{"LumaSSE2", McLuma_sse2},
++		{"LumaAVX2", McLuma_avx2},
++		{"ChromaSSE2", McChroma_sse2},
++	} {
++		for _, shape := range [][2]int32{{8, 8}, {8, 16}, {16, 8}, {16, 16}, {8, 4}, {4, 4}} {
++			b.Run(fmt.Sprintf("%s/%dx%d", mode.name, shape[0], shape[1]), func(b *testing.B) {
++				var src, dst [32*16 + 7]byte
++				for i := range src {
++					src[i] = byte(i*29 + 3)
++				}
++				b.ReportAllocs()
++				for b.Loop() {
++					mode.fn(src[:], 3, 32, dst[:], 5, 32, 0, 0, shape[0], shape[1])
++				}
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/common/copy_simd_motion_guard_linux_amd64_test.go b/pkg/h264/internal/common/copy_simd_motion_guard_linux_amd64_test.go
+new file mode 100644
+index 0000000..83da267
+--- /dev/null
++++ b/pkg/h264/internal/common/copy_simd_motion_guard_linux_amd64_test.go
+@@ -0,0 +1,44 @@
++//go:build linux && amd64
++
++package common
++
++import (
++	"fmt"
++	"testing"
++
++	"golang.org/x/sys/unix"
++)
++
++func TestIntegerMotionCopyGuardPages(t *testing.T) {
++	for _, mode := range integerMotionCopyModes {
++		for _, shape := range [][2]int32{{8, 8}, {8, 16}, {16, 8}, {16, 16}, {8, 4}, {4, 4}} {
++			t.Run(fmt.Sprintf("%s/%dx%d", mode.name, shape[0], shape[1]), func(t *testing.T) {
++				width, height, page := int(shape[0]), int(shape[1]), unix.Getpagesize()
++				srcMap := copyGuardedRows(t, height, page)
++				dstMap := copyGuardedRows(t, height, page)
++				for y := range height {
++					for x := range page {
++						srcMap[y*page*2+x] = byte(y*43 + x*29)
++						dstMap[y*page*2+x] = 0xa5
++					}
++					if err := unix.Mprotect(srcMap[y*page*2:y*page*2+page], unix.PROT_READ); err != nil {
++						t.Fatal(err)
++					}
++				}
++				off, end := page-width, (height-1)*page*2+page
++				mode.fn(srcMap[:end:end], off, int32(page*2), dstMap[:end:end], off, int32(page*2), 8, -16, shape[0], shape[1])
++				for y := range height {
++					for x := range page {
++						want := byte(0xa5)
++						if x >= off {
++							want = srcMap[y*page*2+x]
++						}
++						if got := dstMap[y*page*2+x]; got != want {
++							t.Fatalf("row %d byte %d: got %d want %d", y, x, got, want)
++						}
++					}
++				}
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/common/sad_four_rows_amd64_test.go b/pkg/h264/internal/common/sad_four_rows_amd64_test.go
+new file mode 100644
+index 0000000..b32b6f0
+--- /dev/null
++++ b/pkg/h264/internal/common/sad_four_rows_amd64_test.go
+@@ -0,0 +1,45 @@
++//go:build amd64
++
++package common
++
++import "testing"
++
++// Isolated source and reference impulses distinguish every contribution in the
++// rolling three-row and paired-row schedules, including their first/last rows.
++func TestSampleSadFourRowsEveryPixel(t *testing.T) {
++	for _, tc := range sadFourSIMDCases {
++		t.Run(tc.name, func(t *testing.T) {
++			aStride, refStride := tc.width+3, tc.width+5
++			a := make([]byte, (tc.height-1)*aStride+tc.width)
++			ref := make([]byte, (tc.height+2)*refStride)
++			refOff := refStride + 1
++			check := func(plane, x, y int) {
++				t.Helper()
++				want := sadFourReference(a, 0, aStride, ref, refOff, refStride, tc.width, tc.height)
++				got := [6]int32{-123, -1, -1, -1, -1, -456}
++				tc.batched(a, 0, int32(aStride), ref, refOff, int32(refStride), got[1:5])
++				if [4]int32(got[1:5]) != want || got[0] != -123 || got[5] != -456 {
++					t.Fatalf("plane=%d pixel=(%d,%d): got=%v want=%v", plane, x, y, got, want)
++				}
++			}
++			for _, amplitude := range []byte{1, 127, 255} {
++				for y := range tc.height {
++					for x := range tc.width {
++						off := y*aStride + x
++						a[off] = amplitude
++						check(0, x, y)
++						a[off] = 0
++					}
++				}
++				for y := -1; y <= tc.height; y++ {
++					for x := -1; x <= tc.width; x++ {
++						off := refOff + y*refStride + x
++						ref[off] = amplitude
++						check(1, x, y)
++						ref[off] = 0
++					}
++				}
++			}
++		})
++	}
++}
+diff --git a/pkg/h264/internal/common/sad_four_rows_bench_amd64_test.go b/pkg/h264/internal/common/sad_four_rows_bench_amd64_test.go
+new file mode 100644
+index 0000000..28d7c50
+--- /dev/null
++++ b/pkg/h264/internal/common/sad_four_rows_bench_amd64_test.go
+@@ -0,0 +1,33 @@
++//go:build amd64
++
++package common
++
++import (
++	"fmt"
++	"testing"
++)
++
++var sadFourRowsBenchmarkSink [4]int32
++
++// The fixture and public checked entries also exist in the frozen baseline.
++func BenchmarkSampleSadFourRows(b *testing.B) {
++	for _, tc := range sadFourSIMDCases {
++		for _, stride := range []int{32, 2048} {
++			b.Run(fmt.Sprintf("%s/stride%d", tc.name, stride), func(b *testing.B) {
++				src, ref := make([]byte, stride*(tc.height+2)), make([]byte, stride*(tc.height+3))
++				for i := range src {
++					src[i] = byte(i*29 + 17)
++				}
++				for i := range ref {
++					ref[i] = byte(i*31 + 11)
++				}
++				var costs [4]int32
++				b.ReportAllocs()
++				for b.Loop() {
++					tc.batched(src, 3, int32(stride), ref, stride+5, int32(stride), costs[:])
++				}
++				sadFourRowsBenchmarkSink = costs
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/common/sad_packed_rows_amd64_test.go b/pkg/h264/internal/common/sad_packed_rows_amd64_test.go
+new file mode 100644
+index 0000000..b310527
+--- /dev/null
++++ b/pkg/h264/internal/common/sad_packed_rows_amd64_test.go
+@@ -0,0 +1,123 @@
++//go:build amd64
++
++package common
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"testing"
++)
++
++var packedSadTestCases = []struct {
++	width, height int
++	fn            func([]byte, int, int32, []byte, int, int32) int32
++}{
++	{8, 4, WelsSampleSad8x4_sse2},
++	{8, 8, WelsSampleSad8x8_sse2},
++	{8, 16, WelsSampleSad8x16_sse2},
++	{4, 4, WelsSampleSad4x4_sse2},
++	{4, 8, WelsSampleSad4x8_sse2},
++}
++
++func packedSadReference(src []byte, srcOff, srcStride int, ref []byte, refOff, refStride, width, height int) int32 {
++	var sum int32
++	for y := range height {
++		for x := range width {
++			delta := int32(src[srcOff+y*srcStride+x]) - int32(ref[refOff+y*refStride+x])
++			if delta < 0 {
++				delta = -delta
++			}
++			sum += delta
++		}
++	}
++	return sum
++}
++
++func TestPackedSadRowLanes(t *testing.T) {
++	for _, test := range packedSadTestCases {
++		t.Run(fmt.Sprintf("%dx%d", test.width, test.height), func(t *testing.T) {
++			const srcStride, refStride, srcOff, refOff = 29, 37, 3, 7
++			src, ref := make([]byte, 1024), make([]byte, 1024)
++			for y := range test.height {
++				for x := range test.width {
++					src[srcOff+y*srcStride+x] = 255
++					if got := test.fn(src, srcOff, srcStride, ref, refOff, refStride); got != 255 {
++						t.Fatalf("source impulse (%d,%d): got %d", x, y, got)
++					}
++					src[srcOff+y*srcStride+x] = 0
++					ref[refOff+y*refStride+x] = 255
++					if got := test.fn(src, srcOff, srcStride, ref, refOff, refStride); got != 255 {
++						t.Fatalf("reference impulse (%d,%d): got %d", x, y, got)
++					}
++					ref[refOff+y*refStride+x] = 0
++				}
++			}
++			for _, invert := range []bool{false, true} {
++				for y := range test.height {
++					for x := range test.width {
++						a, b := byte(0), byte(255)
++						if invert {
++							a, b = b, a
++						}
++						src[srcOff+y*srcStride+x], ref[refOff+y*refStride+x] = a, b
++					}
++				}
++				want := int32(test.width * test.height * 255)
++				if got := test.fn(src, srcOff, srcStride, ref, refOff, refStride); got != want {
++					t.Fatalf("maximum difference: got %d want %d", got, want)
++				}
++			}
++		})
++	}
++}
++
++func TestPackedSadRowsRandomStridesAndAliases(t *testing.T) {
++	rng := rand.New(rand.NewSource(0x2648))
++	for _, test := range packedSadTestCases {
++		for _, strides := range [][2]int{{0, 0}, {0, 31}, {29, 0}, {3, 5}, {8, 16}, {31, 37}, {63, 47}} {
++			t.Run(fmt.Sprintf("%dx%d/strides%v", test.width, test.height, strides), func(t *testing.T) {
++				for iteration := 0; iteration < 40; iteration++ {
++					src, ref := make([]byte, 2048), make([]byte, 2048)
++					rng.Read(src)
++					rng.Read(ref)
++					if iteration&1 != 0 {
++						ref = src[5:]
++					}
++					srcBefore, refBefore := bytes.Clone(src), bytes.Clone(ref)
++					srcOff, refOff := iteration%31, iteration%17
++					want := packedSadReference(src, srcOff, strides[0], ref, refOff, strides[1], test.width, test.height)
++					if got := test.fn(src, srcOff, int32(strides[0]), ref, refOff, int32(strides[1])); got != want {
++						t.Fatalf("iteration %d: got %d want %d", iteration, got, want)
++					}
++					if !bytes.Equal(src, srcBefore) || !bytes.Equal(ref, refBefore) {
++						t.Fatal("SAD modified an input")
++					}
++				}
++			})
++		}
++	}
++}
++
++func TestPackedSadVisibleBounds(t *testing.T) {
++	for _, test := range packedSadTestCases {
++		t.Run(fmt.Sprintf("%dx%d", test.width, test.height), func(t *testing.T) {
++			const stride = 32
++			size := (test.height-1)*stride + test.width
++			for _, source := range []bool{false, true} {
++				src, ref := make([]byte, size+64), make([]byte, size+64)
++				if source {
++					src = src[:size-1]
++				} else {
++					ref = ref[:size-1]
++				}
++				requireSIMDBoundsPanic(t, func() { test.fn(src, 0, stride, ref, 0, stride) })
++			}
++			valid := make([]byte, size)
++			requireSIMDBoundsPanic(t, func() { test.fn(valid, 0, -stride, valid, 0, stride) })
++			requireSIMDBoundsPanic(t, func() { test.fn(valid, 0, stride, valid, 0, -stride) })
++			requireSIMDBoundsPanic(t, func() { test.fn(valid, -1, stride, valid, 0, stride) })
++			requireSIMDBoundsPanic(t, func() { test.fn(valid, 0, stride, valid, -1, stride) })
++		})
++	}
++}
+diff --git a/pkg/h264/internal/common/sad_packed_rows_bench_amd64_test.go b/pkg/h264/internal/common/sad_packed_rows_bench_amd64_test.go
+new file mode 100644
+index 0000000..c7bd316
+--- /dev/null
++++ b/pkg/h264/internal/common/sad_packed_rows_bench_amd64_test.go
+@@ -0,0 +1,36 @@
++//go:build amd64
++
++package common
++
++import "testing"
++
++var packedSadBenchmarkSink int32
++
++// Existing checked entry points keep the harness identical on both trees.
++func BenchmarkSampleSadPackedRows(b *testing.B) {
++	for _, test := range []struct {
++		name string
++		fn   func([]byte, int, int32, []byte, int, int32) int32
++	}{
++		{"8x4", WelsSampleSad8x4_sse2},
++		{"8x8", WelsSampleSad8x8_sse2},
++		{"8x16", WelsSampleSad8x16_sse2},
++		{"4x4", WelsSampleSad4x4_sse2},
++		{"4x8", WelsSampleSad4x8_sse2},
++		{"16x8Control", WelsSampleSad16x8_sse2},
++		{"16x16Control", WelsSampleSad16x16_sse2},
++	} {
++		b.Run(test.name, func(b *testing.B) {
++			var src, ref [32*16 + 7]byte
++			for i := range src {
++				src[i], ref[i] = byte(i*17+5), byte(i*29+3)
++			}
++			var sum int32
++			b.ReportAllocs()
++			for b.Loop() {
++				sum = test.fn(src[:], 3, 31, ref[:], 7, 32)
++			}
++			packedSadBenchmarkSink = sum
++		})
++	}
++}
+diff --git a/pkg/h264/internal/common/sad_packed_rows_guard_linux_amd64_test.go b/pkg/h264/internal/common/sad_packed_rows_guard_linux_amd64_test.go
+new file mode 100644
+index 0000000..2808612
+--- /dev/null
++++ b/pkg/h264/internal/common/sad_packed_rows_guard_linux_amd64_test.go
+@@ -0,0 +1,53 @@
++//go:build linux && amd64
++
++package common
++
++import (
++	"fmt"
++	"testing"
++
++	"golang.org/x/sys/unix"
++)
++
++func TestPackedSadGuardPages(t *testing.T) {
++	for _, test := range packedSadTestCases {
++		t.Run(fmt.Sprintf("%dx%d", test.width, test.height), func(t *testing.T) {
++			page := unix.Getpagesize()
++			src := packedSadGuardedRows(t, test.height, page, 2, 37)
++			ref := packedSadGuardedRows(t, test.height, page, 4, 19)
++			off := page - test.width
++			want := packedSadReference(src, off, 2*page, ref, off, 4*page, test.width, test.height)
++			if got := test.fn(src, off, int32(2*page), ref, off, int32(4*page)); got != want {
++				t.Fatalf("guarded rows: got %d want %d", got, want)
++			}
++		})
++	}
++}
++
++// Each row ends at a guard page and is read-only; distinct row steps ensure
++// neither kernel accidentally uses the other input's stride.
++func packedSadGuardedRows(t *testing.T, rows, page, step, seed int) []byte {
++	t.Helper()
++	mapping, err := unix.Mmap(-1, 0, rows*step*page, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANON|unix.MAP_PRIVATE)
++	if err != nil {
++		t.Fatal(err)
++	}
++	t.Cleanup(func() {
++		if err := unix.Munmap(mapping); err != nil {
++			t.Error(err)
++		}
++	})
++	for y := range rows {
++		for x := range page {
++			mapping[y*step*page+x] = byte(x*seed + y*53 + y*y)
++		}
++		if err := unix.Mprotect(mapping[y*step*page:y*step*page+page], unix.PROT_READ); err != nil {
++			t.Fatal(err)
++		}
++		if err := unix.Mprotect(mapping[y*step*page+page:(y+1)*step*page], unix.PROT_NONE); err != nil {
++			t.Fatal(err)
++		}
++	}
++	end := (rows-1)*step*page + page
++	return mapping[:end:end]
++}
+diff --git a/pkg/h264/internal/encoder/copy_simd_bench_test.go b/pkg/h264/internal/encoder/copy_simd_bench_test.go
+new file mode 100644
+index 0000000..e99010f
+--- /dev/null
++++ b/pkg/h264/internal/encoder/copy_simd_bench_test.go
+@@ -0,0 +1,35 @@
++package encoder
++
++import (
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Use existing function-table entries so this same benchmark can be built
++// against the scalar baseline and SIMD candidate without changing the harness.
++func BenchmarkEncodingBlockCopy(b *testing.B) {
++	var functions SWelsFuncPtrList
++	WelsInitEncodingFuncs(&functions, common.WelsCPUFeatureDetect(nil))
++	cases := []struct {
++		name string
++		fn   PCopyFunc
++	}{
++		{"8x8", functions.pfCopy8x8Aligned},
++		{"8x16", functions.pfCopy8x16Aligned},
++		{"16x8", functions.pfCopy16x8NotAligned},
++		{"16x16", functions.pfCopy16x16NotAligned},
++	}
++	for _, test := range cases {
++		b.Run(test.name, func(b *testing.B) {
++			var src, dst [32*16 + 7]byte
++			for i := range src {
++				src[i] = byte(i*29 + 3)
++			}
++			b.ReportAllocs()
++			for b.Loop() {
++				test.fn(dst[:], 5, 32, src[:], 3, 32)
++			}
++		})
++	}
++}
+diff --git a/pkg/h264/internal/encoder/idct_four_amd64_test.go b/pkg/h264/internal/encoder/idct_four_amd64_test.go
+new file mode 100644
+index 0000000..73c1507
+--- /dev/null
++++ b/pkg/h264/internal/encoder/idct_four_amd64_test.go
+@@ -0,0 +1,92 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"bytes"
++	"math/rand/v2"
++	"slices"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestIDctFourPackedAVX2Parity(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	rng := rand.New(rand.NewPCG(264, 416))
++	extremes := [...]int16{-32768, -32767, -16385, -16384, -8193, -8192, -65, -64, -33, -32, -1, 1, 31, 32, 63, 64, 8191, 8192, 16383, 16384, 32766, 32767}
++	for run := range 4096 {
++		var coeff [64]int16
++		if run < len(coeff)*len(extremes) {
++			coeff[run/len(extremes)] = extremes[run%len(extremes)]
++		} else {
++			for i := range coeff {
++				if run%2 == 0 {
++					coeff[i] = extremes[rng.IntN(len(extremes))]
++				} else {
++					coeff[i] = int16(rng.Uint32())
++				}
++			}
++		}
++		before := coeff
++		recStride, predStride := 8+run%29, 8+(run/3)%31
++		recOffset, predOffset := run%17, (run/5)%19
++		pred := make([]byte, predOffset+7*predStride+8)
++		for i := range pred {
++			pred[i] = byte(rng.Uint32())
++		}
++		predBefore := slices.Clone(pred)
++		got := bytes.Repeat([]byte{0xa5}, recOffset+7*recStride+8+19)
++		want := slices.Clone(got)
++		if run%3 == 0 {
++			for i := range got {
++				got[i] = byte(rng.Uint32())
++			}
++			copy(want, got)
++			WelsIDctFourT4Rec_c(want, recOffset, int32(recStride), want, recOffset, int32(recStride), coeff[:])
++			idctFourT4RecPackedAVX2(&got[recOffset], recStride, &got[recOffset], recStride, &coeff)
++		} else {
++			WelsIDctFourT4Rec_c(want, recOffset, int32(recStride), pred, predOffset, int32(predStride), coeff[:])
++			idctFourT4RecPackedAVX2(&got[recOffset], recStride, &pred[predOffset], predStride, &coeff)
++		}
++		if !bytes.Equal(got, want) || !bytes.Equal(pred, predBefore) || coeff != before {
++			t.Fatalf("run %d: packed reconstruction differs from scalar", run)
++		}
++	}
++}
++
++// Loading all four blocks up front must not change the previous paired
++// kernel's order when byte output shares storage with later coefficients.
++func TestIDctFourPackedCoefficientAliases(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, recOffset := range []int{384, 416, 448, 480, 512, 544, 576, 608, 640, 672} {
++		for _, inPlace := range []bool{false, true} {
++			got := make([]byte, 1024)
++			for i := range got {
++				got[i] = byte(i*37 + 11)
++			}
++			want := slices.Clone(got)
++			gotCoeff := unsafe.Slice((*int16)(unsafe.Pointer(&got[512])), 64)
++			wantCoeff := unsafe.Slice((*int16)(unsafe.Pointer(&want[512])), 64)
++			pred := make([]byte, 256)
++			for i := range pred {
++				pred[i] = byte(i*13 + 7)
++			}
++			if inPlace {
++				idctFourT4RecAVX2(want[recOffset:], 16, want[recOffset:], 16, wantCoeff)
++				WelsIDctFourT4Rec_sse2(got, recOffset, 16, got, recOffset, 16, gotCoeff)
++			} else {
++				idctFourT4RecAVX2(want[recOffset:], 16, pred, 31, wantCoeff)
++				WelsIDctFourT4Rec_sse2(got, recOffset, 16, pred, 0, 31, gotCoeff)
++			}
++			if !bytes.Equal(got, want) {
++				t.Fatalf("output offset %d, in place %t: coefficient alias changed", recOffset, inPlace)
++			}
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/idct_four_bench_amd64_test.go b/pkg/h264/internal/encoder/idct_four_bench_amd64_test.go
+new file mode 100644
+index 0000000..e033cd9
+--- /dev/null
++++ b/pkg/h264/internal/encoder/idct_four_bench_amd64_test.go
+@@ -0,0 +1,45 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"golang.org/x/sys/cpu"
++)
++
++func BenchmarkIDctFourPacked(b *testing.B) {
++	if !cpu.X86.HasAVX2 {
++		b.Skip("AVX2 unavailable")
++	}
++	for _, stride := range []int{8, 64, 2048} {
++		for _, mode := range []string{"prior-paired", "packed", "checked"} {
++			b.Run(fmt.Sprintf("stride%d/%s", stride, mode), func(b *testing.B) {
++				var coeff [64]int16
++				for i := range coeff {
++					coeff[i] = int16(i*43 - 1300)
++				}
++				pred, rec := make([]byte, 7*stride+8), make([]byte, 7*stride+8)
++				for i := range pred {
++					pred[i] = byte(i)
++				}
++				b.ReportAllocs()
++				switch mode {
++				case "prior-paired":
++					for b.Loop() {
++						idctFourT4RecAVX2(rec, stride, pred, stride, coeff[:])
++					}
++				case "packed":
++					for b.Loop() {
++						idctFourT4RecPackedAVX2(&rec[0], stride, &pred[0], stride, &coeff)
++					}
++				case "checked":
++					for b.Loop() {
++						WelsIDctFourT4Rec_sse2(rec, 0, int32(stride), pred, 0, int32(stride), coeff[:])
++					}
++				}
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/idct_four_guard_linux_amd64_test.go b/pkg/h264/internal/encoder/idct_four_guard_linux_amd64_test.go
+new file mode 100644
+index 0000000..ce241c0
+--- /dev/null
++++ b/pkg/h264/internal/encoder/idct_four_guard_linux_amd64_test.go
+@@ -0,0 +1,56 @@
++//go:build linux && amd64
++
++package encoder
++
++import (
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++	"golang.org/x/sys/unix"
++)
++
++func TestIDctFourPackedGuardPages(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	pred, predStride := sampleSatd8GuardedRows(t, 8, 17)
++	page := unix.Getpagesize()
++	mapping, err := unix.Mmap(-1, 0, 16*page, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANON|unix.MAP_PRIVATE)
++	if err != nil {
++		t.Fatal(err)
++	}
++	t.Cleanup(func() {
++		if err := unix.Munmap(mapping); err != nil {
++			t.Error(err)
++		}
++	})
++	for y := range 8 {
++		if err := unix.Mprotect(mapping[(2*y+1)*page:(2*y+2)*page], unix.PROT_NONE); err != nil {
++			t.Fatal(err)
++		}
++	}
++	rec := mapping[page-8 : 15*page : 15*page]
++	coeffBytes := idctGuardedBuffer(t, 128)
++	coeff := (*[64]int16)(unsafe.Pointer(&coeffBytes[0]))
++	for i := range coeff {
++		coeff[i] = int16(i*701 - 20000)
++	}
++	before := *coeff
++	var densePred, want [64]byte
++	for y := range 8 {
++		copy(densePred[y*8:y*8+8], pred[y*int(predStride):y*int(predStride)+8])
++	}
++	WelsIDctFourT4Rec_c(want[:], 0, 8, densePred[:], 0, 8, coeff[:])
++	idctFourT4RecPackedAVX2(&rec[0], 2*page, &pred[0], int(predStride), coeff)
++	for y := range 8 {
++		for x := range 8 {
++			if got := rec[y*2*page+x]; got != want[y*8+x] {
++				t.Fatalf("pixel %d,%d: got %d, want %d", x, y, got, want[y*8+x])
++			}
++		}
++	}
++	if *coeff != before {
++		t.Fatal("coefficients were modified")
++	}
++}
+diff --git a/pkg/h264/internal/encoder/inter_luma_bookkeeping_bench_test.go b/pkg/h264/internal/encoder/inter_luma_bookkeeping_bench_test.go
+new file mode 100644
+index 0000000..aa7d6b0
+--- /dev/null
++++ b/pkg/h264/internal/encoder/inter_luma_bookkeeping_bench_test.go
+@@ -0,0 +1,55 @@
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++var interLumaBookkeepingBenchmarkSink uint8
++
++// The unchanged public entry and the same residual reset are timed in both
++// trees. Inputs remain representative after every iteration's dequantization.
++func BenchmarkInterLumaBookkeeping(b *testing.B) {
++	for _, qp := range []uint8{20, 32} {
++		for _, content := range []string{"Dense", "Motion", "Sparse", "Zero"} {
++			b.Run(fmt.Sprintf("%s/QP%d", content, qp), func(b *testing.B) {
++				var input, residual [384]int16
++				for i := range input {
++					value := int16((i*1701+13)%2049 - 1024)
++					switch content {
++					case "Motion":
++						if i%7 >= 3 {
++							value = 0
++						}
++					case "Sparse":
++						if i%17 != 0 {
++							value = 0
++						}
++						value /= 8
++					case "Zero":
++						value = 0
++					}
++					input[i] = value
++				}
++				var functions SWelsFuncPtrList
++				flags := common.WelsCPUFeatureDetect(nil)
++				WelsInitEncodingFuncs(&functions, flags)
++				WelsInitReconstructionFuncs(&functions, flags)
++				functions.pfSetMemZeroSize64 = WelsSetMemZero_c
++				var dct SDCTCoeff
++				var nonzero [24]int8
++				mb := SMB{uiLumaQp: qp, pNonZeroCount: nonzero[:]}
++				cache := SMbCache{pCoeffLevel: residual[:], pDct: &dct}
++				b.ReportAllocs()
++				for b.Loop() {
++					residual = input
++					mb.uiCbp = 0x30
++					WelsEncInterY(&functions, &mb, &cache)
++				}
++				interLumaBookkeepingBenchmarkSink = mb.uiCbp
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/inter_luma_bookkeeping_test.go b/pkg/h264/internal/encoder/inter_luma_bookkeeping_test.go
+new file mode 100644
+index 0000000..14d7a18
+--- /dev/null
++++ b/pkg/h264/internal/encoder/inter_luma_bookkeeping_test.go
+@@ -0,0 +1,266 @@
++package encoder
++
++import (
++	"fmt"
++	"math/bits"
++	"math/rand"
++	"reflect"
++	"testing"
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++type interLumaCallbackEvent struct {
++	kind     byte
++	offset   int
++	length   int
++	size     int32
++	cbp      uint8
++	counts   [24]int8
++	residual [64]int16
++}
++
++type interLumaBookkeepingState struct {
++	backing         [1024]int16
++	residual        [384]int16
++	dct             SDCTCoeff
++	counts          [32]int8
++	alternateCounts [32]int8
++	mb              SMB
++	cache           SMbCache
++	functions       SWelsFuncPtrList
++	events          []interLumaCallbackEvent
++}
++
++func newInterLumaBookkeepingState(input [384]int16, qp, cbp uint8, mutate bool) *interLumaBookkeepingState {
++	s := &interLumaBookkeepingState{residual: input}
++	for i := range s.dct.iLumaBlock {
++		s.dct.iLumaBlock[i] = -12345
++	}
++	for i := range s.dct.iChromaBlock {
++		s.dct.iChromaBlock[i] = 23456
++	}
++	for i := range s.dct.iLumaI16x16Dc {
++		s.dct.iLumaI16x16Dc[i] = int16(100 + i)
++	}
++	s.dct.iChromaDc = [2][4]int16{{11, 13, 17, 19}, {23, 29, 31, 37}}
++	for i := range s.counts {
++		s.counts[i], s.alternateCounts[i] = int8(17+i), int8(71+i)
++	}
++	s.mb = SMB{uiMbType: common.MB_TYPE_16x16, uiLumaQp: qp, uiChromaQp: 31, uiCbp: cbp, pNonZeroCount: s.counts[:24]}
++	s.cache = SMbCache{pCoeffLevel: s.residual[:], pDct: &s.dct}
++	WelsInitEncodingFuncs(&s.functions, 0)
++	WelsInitReconstructionFuncs(&s.functions, 0)
++	s.functions.pfGetNoneZeroCount = WelsGetNoneZeroCount_c
++	record := func(kind byte, data []int16, size int32) {
++		event := interLumaCallbackEvent{kind: kind, length: len(data), size: size, cbp: s.mb.uiCbp}
++		event.offset = int(uintptr(unsafe.Pointer(&data[0]))-uintptr(unsafe.Pointer(&s.cache.pCoeffLevel[0]))) / 2
++		copy(event.counts[:], s.mb.pNonZeroCount)
++		copy(event.residual[:], data)
++		s.events = append(s.events, event)
++	}
++	mutateState := func() {
++		if mutate && len(s.events) == 1 {
++			s.mb.uiCbp ^= 0x80
++			s.mb.pNonZeroCount = s.alternateCounts[:24]
++			s.cache.pCoeffLevel[192] = 17
++		}
++	}
++	s.functions.pfSetMemZeroSize64 = func(data []int16, size int32) {
++		record('z', data, size)
++		WelsSetMemZero_c(data, size)
++		mutateState()
++	}
++	s.functions.pfDequantizationFour4x4 = func(data []int16, factors []uint16) {
++		record('d', data, 128)
++		WelsDequantFour4x4_c(data, factors)
++		mutateState()
++	}
++	return s
++}
++
++func compareInterLumaBookkeeping(t *testing.T, input [384]int16, qp, cbp uint8, mutate bool) {
++	t.Helper()
++	got := newInterLumaBookkeepingState(input, qp, cbp, mutate)
++	want := newInterLumaBookkeepingState(input, qp, cbp, mutate)
++	WelsEncInterY(&got.functions, &got.mb, &got.cache)
++	// Existing frozen pre-fusion reference independently scans, scores and
++	// counts coefficients instead of using the candidate's masks/bookkeeping.
++	coefficientInterYReference(&want.functions, &want.mb, &want.cache)
++	checkInterLumaBookkeepingStates(t, got, want)
++}
++
++func checkInterLumaBookkeepingStates(t *testing.T, got, want *interLumaBookkeepingState) {
++	t.Helper()
++	if got.backing != want.backing || got.residual != want.residual || got.dct != want.dct || got.counts != want.counts ||
++		got.alternateCounts != want.alternateCounts || got.mb.uiCbp != want.mb.uiCbp ||
++		got.mb.uiLumaQp != want.mb.uiLumaQp || got.mb.uiChromaQp != want.mb.uiChromaQp ||
++		!reflect.DeepEqual(got.events, want.events) {
++		t.Fatalf("state or callback trace differs: CBP=%#x/%#x events=%v/%v", got.mb.uiCbp, want.mb.uiCbp, got.events, want.events)
++	}
++	gotAlternate := &got.mb.pNonZeroCount[0] == &got.alternateCounts[0]
++	wantAlternate := &want.mb.pNonZeroCount[0] == &want.alternateCounts[0]
++	if gotAlternate != wantAlternate {
++		t.Fatal("callback-selected nonzero buffer changed")
++	}
++}
++
++func interLumaUnitInput(t *testing.T, qp, index, level int) int16 {
++	t.Helper()
++	ff, mf := int(g_kiQuantInterFF[qp][index&7]), int(g_kiQuantMF[qp][index&7])
++	value := (level*65536+mf-1)/mf - ff
++	if value < 0 || value > 32767 || int(wels_NEW_QUANT(int16(value), int16(ff), int16(mf))) != level {
++		t.Fatalf("cannot construct QP%d position%d quantized level%d", qp, index, level)
++	}
++	return int16(value)
++}
++
++func TestInterLumaBookkeepingThresholds(t *testing.T) {
++	// A lone block in each group has precisely this run score. Cases straddle
++	// both the macroblock threshold six and the retained-group threshold four.
++	masks := [...]uint16{0, 1 << 3, 1 << 1, 1, 1 | 1<<4, 1 | 1<<2, 3}
++	scan := [...]int{0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15}
++	for qp := range 52 {
++		for _, scores := range [][4]int{{0, 0, 0, 0}, {3, 2, 0, 0}, {3, 3, 0, 0}, {4, 1, 0, 0}, {4, 2, 0, 0}, {5, 1, 0, 0}, {6, 0, 0, 0}, {1, 4, 5, 6}, {6, 5, 4, 3}} {
++			t.Run(fmt.Sprintf("QP%d/scores%v", qp, scores), func(t *testing.T) {
++				var input [384]int16
++				for i := 256; i < len(input); i++ {
++					input[i] = int16(i*17 + 3)
++				}
++				for group, score := range scores {
++					for position, index := range scan {
++						if masks[score]&(1<<position) != 0 {
++							input[group*64+index] = interLumaUnitInput(t, qp, index, 1)
++							if (group+position)&1 != 0 {
++								input[group*64+index] = -input[group*64+index]
++							}
++						}
++					}
++				}
++				for _, cbp := range []uint8{0, 0x30, 0xa5} {
++					compareInterLumaBookkeeping(t, input, uint8(qp), cbp, false)
++				}
++			})
++		}
++	}
++}
++
++func TestInterLumaBookkeepingRandomAndCallbacks(t *testing.T) {
++	rng := rand.New(rand.NewSource(0x26416))
++	for qp := range 52 {
++		for fixture := range 18 {
++			var input [384]int16
++			for i := range input {
++				switch fixture % 3 {
++				case 0:
++					input[i] = int16(rng.Uint32())
++				case 1:
++					input[i] = [...]int16{-32768, -32767, -1, 0, 1, 32766, 32767}[rng.Intn(7)]
++				case 2:
++					if rng.Intn(4) == 0 {
++						input[i] = int16(rng.Intn(513) - 256)
++					}
++				}
++			}
++			compareInterLumaBookkeeping(t, input, uint8(qp), uint8(fixture*37), fixture&1 != 0)
++		}
++	}
++}
++
++func TestInterLumaBookkeepingAliases(t *testing.T) {
++	for _, qp := range []uint8{0, 20, 32, 51} {
++		for _, shift := range []int{-64, 0, 4, 64} {
++			for _, countsOffset := range []int{-1, 0, 31, 192} {
++				for _, mutate := range []bool{false, true} {
++					t.Run(fmt.Sprintf("QP%d/residual%d/counts%d/mutate%t", qp, shift, countsOffset, mutate), func(t *testing.T) {
++						setup := func() *interLumaBookkeepingState {
++							s := newInterLumaBookkeepingState([384]int16{}, qp, 0x30, mutate)
++							for i := range s.backing {
++								s.backing[i] = int16(i*713 + 19 + int(qp))
++							}
++							// SDCTCoeff contains only int16 arrays. This one backing
++							// allocation deliberately crosses residual/scan boundaries.
++							s.cache.pDct = (*SDCTCoeff)(unsafe.Pointer(&s.backing[256]))
++							s.cache.pCoeffLevel = s.backing[256+shift : 256+shift+384]
++							if countsOffset >= 0 {
++								s.mb.pNonZeroCount = unsafe.Slice((*int8)(unsafe.Pointer(&s.backing[256+countsOffset])), 24)
++							}
++							return s
++						}
++						got, want := setup(), setup()
++						WelsEncInterY(&got.functions, &got.mb, &got.cache)
++						interLumaFrozenBookkeeping(&want.functions, &want.mb, &want.cache)
++						checkInterLumaBookkeepingStates(t, got, want)
++					})
++				}
++			}
++		}
++	}
++}
++
++// Frozen immediately before this bookkeeping change. Unlike the independent
++// pre-fusion reference above, this retains already-established mask semantics
++// when nonzero counts, scanned levels and residuals deliberately alias.
++func interLumaFrozenBookkeeping(pFuncList *SWelsFuncPtrList, pCurMb *SMB, pMbCache *SMbCache) {
++	pfSetMemZeroSize64 := pFuncList.pfSetMemZeroSize64
++	pfDequantizationFour4x4 := pFuncList.pfDequantizationFour4x4
++	pRes := pMbCache.pCoeffLevel
++	iSingleCtrMb := int32(0)
++	var iSingleCtr8x8 [4]int32
++	pBlock := pMbCache.pDct.iLumaBlock[:]
++	uiQp := pCurMb.uiLumaQp
++	pMF := g_kiQuantMF[uiQp][:]
++	pFF := g_kiQuantInterFF[uiQp][:]
++	var aMax [16]int16
++	var masks [16]uint16
++	iNoneZeroCount := int32(0)
++
++	quantScanLuma(pRes, pBlock, pFF, pMF, aMax[:], masks[:])
++
++	iResOff := 0
++	iBlockOff := 0
++	for i := 0; i < 4; i++ {
++		iSingleCtr8x8[i] = 0
++		for j := 0; j < 4; j++ {
++			if aMax[(i<<2)+j] != 0 {
++				mask := masks[(i<<2)+j]
++				if aMax[(i<<2)+j] > 1 {
++					iSingleCtr8x8[i] += 9
++				} else if iSingleCtr8x8[i] < 6 {
++					iSingleCtr8x8[i] += coefficientScoreMask(mask)
++				}
++			}
++			iResOff += 16
++			iBlockOff += 16
++		}
++		iSingleCtrMb += iSingleCtr8x8[i]
++	}
++	iBlockOff -= 256
++	iResOff -= 256
++
++	clear(pCurMb.pNonZeroCount[:16])
++
++	if iSingleCtrMb < 6 { //from JVT-O079
++		pfSetMemZeroSize64(pRes[iResOff:], 768) // confirmed_safe_unsafe_usage
++	} else {
++		kpNoneZeroCountIdx := common.G_kuiMbCountScan4Idx[:]
++		for i := 0; i < 4; i++ {
++			if iSingleCtr8x8[i] >= 4 {
++				for j := 0; j < 4; j++ {
++					iNoneZeroCount = int32(bits.OnesCount16(masks[(i<<2)+j]))
++					pCurMb.pNonZeroCount[kpNoneZeroCountIdx[0]] = int8(iNoneZeroCount)
++					kpNoneZeroCountIdx = kpNoneZeroCountIdx[1:]
++					iBlockOff += 16
++				}
++				pfDequantizationFour4x4(pRes[iResOff:], common.G_kuiDequantCoeff[uiQp][:])
++				pCurMb.uiCbp |= uint8(1 << i)
++			} else { // set zero for an 8x8 pBlock
++				pfSetMemZeroSize64(pRes[iResOff:], 128) // confirmed_safe_unsafe_usage
++				kpNoneZeroCountIdx = kpNoneZeroCountIdx[4:]
++				iBlockOff += 64
++			}
++			iResOff += 64
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/quant_scan_avx2_amd64_test.go b/pkg/h264/internal/encoder/quant_scan_avx2_amd64_test.go
+new file mode 100644
+index 0000000..1d0d76d
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_avx2_amd64_test.go
+@@ -0,0 +1,78 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"math/rand/v2"
++	"testing"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestQuantScanAVX2MatchesSSSE3(t *testing.T) {
++	if !cpu.X86.HasAVX2 || !cpu.X86.HasSSSE3 {
++		t.Skip("AVX2/SSSE3 unavailable")
++	}
++	rng := rand.New(rand.NewPCG(264, 216))
++	edges := [...]int16{-32768, -32767, -1, 0, 1, 16383, 16384, 32766, 32767}
++	for _, blocks := range []int{4, 16} {
++		for _, ac := range []bool{false, true} {
++			if blocks == 16 && ac {
++				continue
++			}
++			t.Run(fmt.Sprintf("blocks%d/AC%t", blocks, ac), func(t *testing.T) {
++				for fixture := range 1024 {
++					var gotDCT, gotLevels [260]int16
++					var gotMax [20]int16
++					var gotMask [20]uint16
++					var ff, mf [8]int16
++					for i := range ff {
++						switch fixture % 4 {
++						case 0:
++							ff[i], mf[i] = g_kiQuantInterFF[fixture%52][i], g_kiQuantMF[fixture%52][i]
++						case 1:
++							ff[i], mf[i] = int16(rng.Uint32()), int16(rng.Uint32())
++						case 2:
++							ff[i], mf[i] = edges[(fixture+i)%len(edges)], edges[(fixture/4+i)%len(edges)]
++						case 3:
++							// One lane can have a zero signed maximum despite
++							// nonzero raster values while the other is populated.
++							ff[i], mf[i] = 20000, -1
++						}
++					}
++					for i := range gotDCT {
++						gotDCT[i], gotLevels[i] = -12345, 23456
++					}
++					for i := range blocks * 16 {
++						gotDCT[i+2] = int16(fixture*64 + i)
++						if fixture%4 == 3 {
++							gotDCT[i+2] = 0
++							if (i/16+fixture/4)%2 == 0 {
++								gotDCT[i+2] = 32767
++							}
++						}
++					}
++					for i := range gotMax {
++						gotMax[i], gotMask[i] = -23456, 0xbeef
++					}
++					wantDCT, wantLevels, wantMax, wantMask := gotDCT, gotLevels, gotMax, gotMask
++					if blocks == 4 {
++						acFlag := int32(0)
++						if ac {
++							acFlag = 1
++						}
++						quantScanFour4x4SSSE3((*[64]int16)(wantDCT[2:66]), (*[64]int16)(wantLevels[2:66]), &ff, &mf, (*[4]int16)(wantMax[2:6]), (*[4]uint16)(wantMask[2:6]), acFlag)
++						quantScanFour4x4AVX2((*[64]int16)(gotDCT[2:66]), (*[64]int16)(gotLevels[2:66]), &ff, &mf, (*[4]int16)(gotMax[2:6]), (*[4]uint16)(gotMask[2:6]), acFlag)
++					} else {
++						quantScanLumaSSSE3((*[256]int16)(wantDCT[2:258]), (*[256]int16)(wantLevels[2:258]), &ff, &mf, (*[16]int16)(wantMax[2:18]), (*[16]uint16)(wantMask[2:18]))
++						quantScanLumaAVX2((*[256]int16)(gotDCT[2:258]), (*[256]int16)(gotLevels[2:258]), &ff, &mf, (*[16]int16)(gotMax[2:18]), (*[16]uint16)(gotMask[2:18]))
++					}
++					if gotDCT != wantDCT || gotLevels != wantLevels || gotMax != wantMax || gotMask != wantMask {
++						t.Fatalf("fixture %d: raster, levels, maxima, masks or canaries differ", fixture)
++					}
++				}
++			})
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/quant_scan_avx2_bench_amd64_test.go b/pkg/h264/internal/encoder/quant_scan_avx2_bench_amd64_test.go
+new file mode 100644
+index 0000000..1b01de3
+--- /dev/null
++++ b/pkg/h264/internal/encoder/quant_scan_avx2_bench_amd64_test.go
+@@ -0,0 +1,57 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"golang.org/x/sys/cpu"
++)
++
++func BenchmarkQuantScanAVX2(b *testing.B) {
++	if !cpu.X86.HasAVX2 || !cpu.X86.HasSSSE3 {
++		b.Skip("AVX2/SSSE3 unavailable")
++	}
++	for _, blocks := range []int{4, 16} {
++		for _, density := range []string{"Zero", "Sparse", "Dense"} {
++			for _, avx2 := range []bool{false, true} {
++				b.Run(fmt.Sprintf("blocks%d/%s/AVX2%t", blocks, density, avx2), func(b *testing.B) {
++					var input, dct, levels [256]int16
++					var maxima [16]int16
++					var masks [16]uint16
++					ff, mf := g_kiQuantInterFF[20], g_kiQuantMF[20]
++					for i := range blocks * 16 {
++						if density == "Dense" || (density == "Sparse" && i%17 == 0) {
++							input[i] = int16(i*71 - 9000)
++						}
++					}
++					b.ReportAllocs()
++					if blocks == 4 {
++						if avx2 {
++							for b.Loop() {
++								copy(dct[:64], input[:64])
++								quantScanFour4x4AVX2((*[64]int16)(dct[:]), (*[64]int16)(levels[:]), &ff, &mf, (*[4]int16)(maxima[:]), (*[4]uint16)(masks[:]), 0)
++							}
++						} else {
++							for b.Loop() {
++								copy(dct[:64], input[:64])
++								quantScanFour4x4SSSE3((*[64]int16)(dct[:]), (*[64]int16)(levels[:]), &ff, &mf, (*[4]int16)(maxima[:]), (*[4]uint16)(masks[:]), 0)
++							}
++						}
++					} else if avx2 {
++						for b.Loop() {
++							dct = input
++							quantScanLumaAVX2(&dct, &levels, &ff, &mf, &maxima, &masks)
++						}
++					} else {
++						for b.Loop() {
++							dct = input
++							quantScanLumaSSSE3(&dct, &levels, &ff, &mf, &maxima, &masks)
++						}
++					}
++				})
++			}
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/sample_quarter_batch_amd64_test.go b/pkg/h264/internal/encoder/sample_quarter_batch_amd64_test.go
+new file mode 100644
+index 0000000..000d13c
+--- /dev/null
++++ b/pkg/h264/internal/encoder/sample_quarter_batch_amd64_test.go
+@@ -0,0 +1,166 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++type quarterBatchFixture struct {
++	funcs   SWelsFuncPtrList
++	me      SWelsME
++	refine  SMeRefinePointer
++	params  SQuarRefineParams
++	scratch []byte
++}
++
++func newQuarterBatchFixture(block uint8) *quarterBatchFixture {
++	f := &quarterBatchFixture{}
++	WelsInitSampleSadFunc(&f.funcs, common.WELS_CPU_SSE2|common.WELS_CPU_SSSE3|common.WELS_CPU_SSE41|common.WELS_CPU_AVX2)
++	common.InitMcFunc(&f.funcs.sMcFuncs, common.WELS_CPU_SSE2)
++	f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSatd
++	f.me = SWelsME{pEncMb: make([]byte, 1024), iEncMbOff: 3, uiBlockSize: block}
++	f.scratch = bytes.Repeat([]byte{0xa5}, 2048)
++	f.refine = SMeRefinePointer{pQuarPixBest: f.scratch[:], pQuarPixTmp: f.scratch[640:]}
++	f.params = SQuarRefineParams{iStrideA: 27, iStrideB: 29, iBestCost: 1 << 30, iBestQuarPix: ME_NO_BEST_QUAR_PIXEL}
++	rng := rand.New(rand.NewSource(66420))
++	rng.Read(f.me.pEncMb)
++	for i := range 4 {
++		f.params.pSrcA[i], f.params.pSrcB[i] = make([]byte, 1024), make([]byte, 1024)
++		rng.Read(f.params.pSrcA[i])
++		rng.Read(f.params.pSrcB[i])
++		f.params.iSrcAOff[i], f.params.iSrcBOff[i] = i+1, i+3
++		f.params.iLms[i] = int32((3 - i) * 7)
++	}
++	return f
++}
++
++func TestQuarterRefineValidatedMatchesSequential(t *testing.T) {
++	requireSampleAVX2(t)
++	sizes := [][3]int32{{16, 16, BLOCK_16x16}, {16, 8, BLOCK_16x8}, {8, 16, BLOCK_8x16}, {8, 8, BLOCK_8x8}, {8, 4, BLOCK_8x4}, {4, 4, BLOCK_4x4}, {4, 8, BLOCK_4x8}}
++	for _, size := range sizes {
++		for scenario := range 11 {
++			t.Run(fmt.Sprintf("%dx%d/scenario%d", size[0], size[1], scenario), func(t *testing.T) {
++				run := func(validated bool) (*quarterBatchFixture, int) {
++					f := newQuarterBatchFixture(uint8(size[2]))
++					calls := 0
++					if validated {
++						f.funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated = func(enc *byte, encStride int,
++							a *byte, aStride int, b *byte, bStride, width, height int) int {
++							calls++
++							return satdAvgBlockAVX2(enc, encStride, a, aStride, b, bStride, width, height)
++						}
++					} else {
++						f.funcs.sSampleDealingFuncs.pfSampleAvgSatd = nil
++					}
++					encStride := int32(31)
++					switch scenario {
++					case 1:
++						f.params.iBestCost = 0
++					case 2, 3:
++						clear(f.me.pEncMb)
++						for i := range 4 {
++							clear(f.params.pSrcA[i])
++							clear(f.params.pSrcB[i])
++							f.params.iLms[i] = 20
++							if scenario == 3 {
++								f.params.iLms[i] -= int32(i * 5)
++							}
++						}
++					case 4:
++						f.params.pSrcA[2], f.params.iSrcAOff[2] = f.refine.pQuarPixTmp, 0
++					case 5:
++						f.params.pSrcB[3], f.params.iSrcBOff[3] = f.refine.pQuarPixBest, 1
++					case 6:
++						f.me.pEncMb = f.refine.pQuarPixTmp
++					case 7:
++						f.refine.pQuarPixTmp = f.scratch[1:]
++					case 8:
++						f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSad
++					case 9:
++						f.params.iStrideA, f.params.iStrideB = 0, 0
++					case 10:
++						encStride = 0
++					}
++					MeRefineQuarPixel(&f.funcs, &f.me, &f.refine, size[0], size[1], &f.params, encStride)
++					return f, calls
++				}
++				got, calls := run(true)
++				want, _ := run(false)
++				if got.params.iBestCost != want.params.iBestCost || got.params.iBestQuarPix != want.params.iBestQuarPix {
++					t.Fatalf("got cost/mode=%d/%d, want %d/%d", got.params.iBestCost, got.params.iBestQuarPix,
++						want.params.iBestCost, want.params.iBestQuarPix)
++				}
++				gotSwap := &got.refine.pQuarPixBest[0] != &got.scratch[0]
++				wantSwap := &want.refine.pQuarPixBest[0] != &want.scratch[0]
++				if gotSwap != wantSwap {
++					t.Fatalf("buffer swap=%v, want %v", gotSwap, wantSwap)
++				}
++				shouldValidate := size[0] >= 8 && scenario < 4
++				if (calls == 4) != shouldValidate || (calls != 0 && calls != 4) {
++					t.Fatalf("validated calls=%d, enabled=%v", calls, shouldValidate)
++				}
++				for y := int32(0); y < size[1]; y++ {
++					start, end := y*ME_REFINE_BUF_STRIDE, y*ME_REFINE_BUF_STRIDE+size[0]
++					if !bytes.Equal(got.refine.pQuarPixBest[start:end], want.refine.pQuarPixBest[start:end]) {
++						t.Fatalf("best row %d differs", y)
++					}
++					if !shouldValidate && !bytes.Equal(got.refine.pQuarPixTmp[start:end], want.refine.pQuarPixTmp[start:end]) {
++						t.Fatalf("fallback temporary row %d differs", y)
++					}
++				}
++			})
++		}
++	}
++}
++
++func TestQuarterRefineValidatedChecksEveryVisibleSpan(t *testing.T) {
++	requireSampleAVX2(t)
++	for input := range 11 {
++		t.Run(fmt.Sprintf("span%d", input), func(t *testing.T) {
++			f := newQuarterBatchFixture(BLOCK_16x16)
++			calls := 0
++			f.funcs.sSampleDealingFuncs.pfSampleAvgSatdValidated = func(_ *byte, _ int,
++				_ *byte, _ int, _ *byte, _, _, _ int) int {
++				calls++
++				return 0
++			}
++			switch input {
++			case 0:
++				f.me.pEncMb = f.me.pEncMb[:f.me.iEncMbOff+15*31+15]
++			case 1:
++				f.refine.pQuarPixBest = f.refine.pQuarPixBest[:15*ME_REFINE_BUF_STRIDE+15]
++			case 2:
++				f.refine.pQuarPixTmp = f.refine.pQuarPixTmp[:15*ME_REFINE_BUF_STRIDE+15]
++			default:
++				i := (input - 3) / 2
++				if input%2 == 1 {
++					f.params.pSrcA[i] = f.params.pSrcA[i][:f.params.iSrcAOff[i]+15*ME_REFINE_BUF_STRIDE+15]
++				} else {
++					stride := f.params.iStrideA
++					if i >= 2 {
++						stride = f.params.iStrideB
++					}
++					f.params.pSrcB[i] = f.params.pSrcB[i][:f.params.iSrcBOff[i]+15*int(stride)+15]
++				}
++			}
++			// This check must use len, even though the backing allocation is
++			// large enough. It must reject the whole batch before any raw call.
++			if quarterRefineBuffersDisjoint(&f.me, &f.refine, &f.params, 31, 16, 16) {
++				t.Fatal("short visible span accepted")
++			}
++			func() {
++				defer func() { _ = recover() }()
++				MeRefineQuarPixel(&f.funcs, &f.me, &f.refine, 16, 16, &f.params, 31)
++			}()
++			if calls != 0 {
++				t.Fatalf("invalid batch made %d raw calls", calls)
++			}
++		})
++	}
++}
+diff --git a/pkg/h264/internal/encoder/sample_quarter_batch_bench_amd64_test.go b/pkg/h264/internal/encoder/sample_quarter_batch_bench_amd64_test.go
+new file mode 100644
+index 0000000..42a2e5b
+--- /dev/null
++++ b/pkg/h264/internal/encoder/sample_quarter_batch_bench_amd64_test.go
+@@ -0,0 +1,51 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// This benchmark only uses the pre-existing refinement API so its source can
++// also measure the frozen implementation before validation was batched.
++func BenchmarkQuarterRefineShapes(b *testing.B) {
++	if common.WelsCPUFeatureDetect(nil)&common.WELS_CPU_AVX2 == 0 {
++		b.Skip("AVX2 required")
++	}
++	for _, size := range [][3]int32{{16, 16, BLOCK_16x16}, {16, 8, BLOCK_16x8}, {8, 16, BLOCK_8x16}, {8, 8, BLOCK_8x8}, {8, 4, BLOCK_8x4}} {
++		for _, wins := range []bool{false, true} {
++			b.Run(fmt.Sprintf("%dx%d/wins=%v", size[0], size[1], wins), func(b *testing.B) {
++				var funcs SWelsFuncPtrList
++				WelsInitSampleSadFunc(&funcs, common.WELS_CPU_SSE2|common.WELS_CPU_SSSE3|common.WELS_CPU_SSE41|common.WELS_CPU_AVX2)
++				common.InitMcFunc(&funcs.sMcFuncs, common.WELS_CPU_SSE2)
++				funcs.sSampleDealingFuncs.pfMeCost = &funcs.sSampleDealingFuncs.pfSampleSatd
++				enc, scratch := make([]byte, 1024), make([]byte, 2048)
++				for i := range enc {
++					enc[i] = byte(i*17 + 3)
++				}
++				me := SWelsME{pEncMb: enc, iEncMbOff: 3, uiBlockSize: uint8(size[2])}
++				params := SQuarRefineParams{iStrideA: 29, iStrideB: 31}
++				for i := range 4 {
++					params.pSrcA[i], params.pSrcB[i] = make([]byte, 1024), make([]byte, 1024)
++					for j := range params.pSrcA[i] {
++						params.pSrcA[i][j], params.pSrcB[i][j] = byte(j*13+i), byte(j*31+i)
++					}
++				}
++				refine := SMeRefinePointer{pQuarPixBest: scratch, pQuarPixTmp: scratch[640:]}
++				initialCost := int32(0)
++				if wins {
++					initialCost = 1 << 30
++				}
++				b.ReportAllocs()
++				for b.Loop() {
++					params.iBestCost, params.iBestQuarPix = initialCost, ME_NO_BEST_QUAR_PIXEL
++					MeRefineQuarPixel(&funcs, &me, &refine, size[0], size[1], &params, 32)
++				}
++				sampleSatdBenchmarkSink = params.iBestCost
++			})
++		}
++	}
++}

@@ -1,0 +1,133 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                         │ /tmp/h264-parity-target-20261022/motion-component-motion-round6-base.txt │ /tmp/h264-parity-target-20261022/motion-component-motion-batch-next.txt │
+                                                         │                                  sec/op                                  │                      sec/op                       vs base               │
+QuarterRefineShapes/16x16/wins=false-4                                                                                 200.2n ± 23%                                       176.7n ±  2%  -11.71% (p=0.002 n=6)
+QuarterRefineShapes/16x16/wins=true-4                                                                                  260.3n ±  8%                                       241.5n ± 10%   -7.20% (p=0.041 n=6)
+QuarterRefineShapes/16x8/wins=false-4                                                                                  143.2n ±  4%                                       119.4n ±  2%  -16.68% (p=0.002 n=6)
+QuarterRefineShapes/16x8/wins=true-4                                                                                   183.8n ±  2%                                       159.6n ±  3%  -13.17% (p=0.002 n=6)
+QuarterRefineShapes/8x16/wins=false-4                                                                                  149.6n ±  1%                                       130.0n ±  8%  -13.04% (p=0.002 n=6)
+QuarterRefineShapes/8x16/wins=true-4                                                                                   197.3n ±  7%                                       178.6n ± 14%   -9.48% (p=0.026 n=6)
+QuarterRefineShapes/8x8/wins=false-4                                                                                  120.60n ±  8%                                       95.77n ±  2%  -20.58% (p=0.002 n=6)
+QuarterRefineShapes/8x8/wins=true-4                                                                                    152.3n ±  7%                                       127.2n ±  4%  -16.51% (p=0.002 n=6)
+QuarterRefineShapes/8x4/wins=false-4                                                                                  107.05n ±  3%                                       95.85n ±  4%  -10.46% (p=0.002 n=6)
+QuarterRefineShapes/8x4/wins=true-4                                                                                    135.2n ±  5%                                       131.0n ±  6%        ~ (p=0.121 n=6)
+QuarterRefineFourCandidates/16x16/stride32/winsfalse-4                                                                 194.8n ±  2%                                       174.2n ±  8%  -10.55% (p=0.002 n=6)
+QuarterRefineFourCandidates/16x16/stride32/winstrue-4                                                                  256.2n ±  3%                                       239.0n ±  2%   -6.70% (p=0.002 n=6)
+QuarterRefineFourCandidates/16x16/stride2048/winsfalse-4                                                               256.9n ±  5%                                       236.2n ±  6%   -8.06% (p=0.002 n=6)
+QuarterRefineFourCandidates/16x16/stride2048/winstrue-4                                                                328.8n ± 10%                                       311.3n ±  8%        ~ (p=0.394 n=6)
+QuarterRefineFourCandidates/16x8/stride32/winsfalse-4                                                                  139.2n ± 13%                                       118.6n ± 12%  -14.83% (p=0.002 n=6)
+QuarterRefineFourCandidates/16x8/stride32/winstrue-4                                                                   179.0n ±  7%                                       162.0n ±  1%   -9.49% (p=0.002 n=6)
+QuarterRefineFourCandidates/16x8/stride2048/winsfalse-4                                                                152.6n ±  6%                                       135.4n ± 10%  -11.27% (p=0.004 n=6)
+QuarterRefineFourCandidates/16x8/stride2048/winstrue-4                                                                 196.0n ±  5%                                       194.7n ±  7%        ~ (p=0.818 n=6)
+QuarterRefineFourCandidates/8x16/stride32/winsfalse-4                                                                  142.2n ±  3%                                       128.8n ±  5%   -9.42% (p=0.002 n=6)
+QuarterRefineFourCandidates/8x16/stride32/winstrue-4                                                                   189.9n ±  2%                                       180.4n ±  9%        ~ (p=0.065 n=6)
+QuarterRefineFourCandidates/8x16/stride2048/winsfalse-4                                                                196.5n ±  9%                                       172.2n ± 13%  -12.37% (p=0.015 n=6)
+QuarterRefineFourCandidates/8x16/stride2048/winstrue-4                                                                 254.4n ±  6%                                       242.7n ±  5%   -4.58% (p=0.045 n=6)
+QuarterRefineFourCandidates/8x8/stride32/winsfalse-4                                                                  114.05n ±  4%                                       97.94n ±  3%  -14.13% (p=0.002 n=6)
+QuarterRefineFourCandidates/8x8/stride32/winstrue-4                                                                    142.4n ±  2%                                       129.8n ±  4%   -8.81% (p=0.002 n=6)
+QuarterRefineFourCandidates/8x8/stride2048/winsfalse-4                                                                 129.2n ±  2%                                       117.2n ± 20%        ~ (p=0.058 n=6)
+QuarterRefineFourCandidates/8x8/stride2048/winstrue-4                                                                  175.0n ±  2%                                       161.6n ±  3%   -7.69% (p=0.002 n=6)
+QuarterRefineFourCandidates/8x4/stride32/winsfalse-4                                                                  109.05n ±  4%                                       93.63n ± 12%  -14.14% (p=0.002 n=6)
+QuarterRefineFourCandidates/8x4/stride32/winstrue-4                                                                    132.8n ±  4%                                       120.0n ± 35%        ~ (p=0.058 n=6)
+QuarterRefineFourCandidates/8x4/stride2048/winsfalse-4                                                                111.95n ±  5%                                       99.81n ±  3%  -10.85% (p=0.002 n=6)
+QuarterRefineFourCandidates/8x4/stride2048/winstrue-4                                                                  148.5n ±  4%                                       136.5n ± 37%        ~ (p=0.058 n=6)
+QuarterRefineFourCandidates/4x4/stride32/winsfalse-4                                                                   167.0n ± 21%                                       165.2n ±  1%        ~ (p=0.132 n=6)
+QuarterRefineFourCandidates/4x4/stride32/winstrue-4                                                                    170.8n ±  2%                                       172.5n ±  4%        ~ (p=0.394 n=6)
+QuarterRefineFourCandidates/4x4/stride2048/winsfalse-4                                                                 167.2n ±  4%                                       168.5n ±  4%        ~ (p=0.589 n=6)
+QuarterRefineFourCandidates/4x4/stride2048/winstrue-4                                                                  173.8n ±  2%                                       177.0n ±  7%   +1.84% (p=0.026 n=6)
+QuarterRefineFourCandidates/4x8/stride32/winsfalse-4                                                                   282.1n ±  7%                                       275.6n ±  3%   -2.34% (p=0.026 n=6)
+QuarterRefineFourCandidates/4x8/stride32/winstrue-4                                                                    282.9n ±  2%                                       285.9n ±  4%        ~ (p=0.485 n=6)
+QuarterRefineFourCandidates/4x8/stride2048/winsfalse-4                                                                 286.2n ±  9%                                       293.0n ±  4%        ~ (p=0.394 n=6)
+QuarterRefineFourCandidates/4x8/stride2048/winstrue-4                                                                  293.8n ±  4%                                       300.9n ±  7%        ~ (p=0.132 n=6)
+geomean                                                                                                                176.2n                                             162.1n         -7.99%
+
+                                                         │ /tmp/h264-parity-target-20261022/motion-component-motion-round6-base.txt │ /tmp/h264-parity-target-20261022/motion-component-motion-batch-next.txt │
+                                                         │                                   B/op                                   │                      B/op                        vs base                │
+QuarterRefineShapes/16x16/wins=false-4                                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/16x16/wins=true-4                                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/16x8/wins=false-4                                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/16x8/wins=true-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x16/wins=false-4                                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x16/wins=true-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x8/wins=false-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x8/wins=true-4                                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x4/wins=false-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x4/wins=true-4                                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride32/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride32/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride2048/winsfalse-4                                                               0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride2048/winstrue-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride32/winsfalse-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride32/winstrue-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride2048/winsfalse-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride2048/winstrue-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride32/winsfalse-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride32/winstrue-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride2048/winsfalse-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride2048/winstrue-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                           ²                                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                         │ /tmp/h264-parity-target-20261022/motion-component-motion-round6-base.txt │ /tmp/h264-parity-target-20261022/motion-component-motion-batch-next.txt │
+                                                         │                                allocs/op                                 │                    allocs/op                     vs base                │
+QuarterRefineShapes/16x16/wins=false-4                                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/16x16/wins=true-4                                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/16x8/wins=false-4                                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/16x8/wins=true-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x16/wins=false-4                                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x16/wins=true-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x8/wins=false-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x8/wins=true-4                                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x4/wins=false-4                                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineShapes/8x4/wins=true-4                                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride32/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride32/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride2048/winsfalse-4                                                               0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x16/stride2048/winstrue-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride32/winsfalse-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride32/winstrue-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride2048/winsfalse-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/16x8/stride2048/winstrue-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride32/winsfalse-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride32/winstrue-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride2048/winsfalse-4                                                                0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x16/stride2048/winstrue-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x8/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/8x4/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x4/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride32/winsfalse-4                                                                   0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride32/winstrue-4                                                                    0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride2048/winsfalse-4                                                                 0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+QuarterRefineFourCandidates/4x8/stride2048/winstrue-4                                                                  0.000 ± 0%                                          0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                                           ²                                                    +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

@@ -1,0 +1,1549 @@
+{
+  "experiment": "intra4 scratch cache-line isolation",
+  "retention_decision": "Not made by this archival helper",
+  "baseline_source_files_verified": 566,
+  "candidate_source_files_verified": 570,
+  "changed_files": 5,
+  "full_path_cases_retained": 6,
+  "codec_cases_retained": 10,
+  "source_mutations": false,
+  "copied_artifacts": [
+    {
+      "archive": "component/after-addresses.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/after-addresses.txt",
+      "sha256": "d49b76d519e9c39e45239bfb33d2162dea055cd13baf6202922b3352b5ae8b6a",
+      "bytes": 22358
+    },
+    {
+      "archive": "component/after-race-tests.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/after-race-tests.txt",
+      "sha256": "8d952e303724904a9c289d7804b1c282c56ea509063dcf6e141988342fe4f4c1",
+      "bytes": 77
+    },
+    {
+      "archive": "component/after-tests.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/after-tests.txt",
+      "sha256": "ccbd914aabcd7cc7f7650b35fc575431e6f215d16da88377bde22bad9ad728f4",
+      "bytes": 77
+    },
+    {
+      "archive": "component/after.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/after.txt",
+      "sha256": "01154c4392802780eca9209ab2148a773d72c56d6e2cb8a11289c9fafc70db69",
+      "bytes": 14110
+    },
+    {
+      "archive": "component/base-addresses.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/base-addresses.txt",
+      "sha256": "57040e01a3459d3bb03fe586518960498c527751cbca4c579ba7b88a44c65394",
+      "bytes": 24233
+    },
+    {
+      "archive": "component/base-tests.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/base-tests.txt",
+      "sha256": "9749db578a3de0aacf05ee6b43db69f566db5881f5a32778c6e4769e4ef89522",
+      "bytes": 77
+    },
+    {
+      "archive": "component/base.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/base.txt",
+      "sha256": "681bb9850c2ae8a2508cf2c02b819dbffeb081d3a27fa6e643b8b33460cbfc10",
+      "bytes": 14028
+    },
+    {
+      "archive": "component/benchstat.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-review/benchstat.txt",
+      "sha256": "36ddfe3469f4dac453ad629a1f2334419b72439c45901936784a458db6d7b6bb",
+      "bytes": 11347
+    },
+    {
+      "archive": "full-path/build.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/build.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/candidate-overlay.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/candidate-overlay.json",
+      "sha256": "ab73e129034a8cae83a4b686dd5b5db3a09b1233c45056045f13f8894dfa2342",
+      "bytes": 417
+    },
+    {
+      "archive": "full-path/candidate-sources.sha256",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/candidate-sources.sha256",
+      "sha256": "b5fe1cb18a42ebf4bd85e97de8ba939737438510a97eb89e3d3bee8dfcc9dd6e",
+      "bytes": 65407
+    },
+    {
+      "archive": "full-path/compare_test.go.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/compare_test.go",
+      "sha256": "851f0ba72566674e8fd332f58da91bce572896202fc7b8537b7e09ed0c4faf9a",
+      "bytes": 3843
+    },
+    {
+      "archive": "full-path/complete.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/complete.json",
+      "sha256": "2f30f9c5ee4740d69580005e4dc854609593e718d91a26b42bbf6078827f2f9c",
+      "bytes": 122
+    },
+    {
+      "archive": "full-path/full/Dense-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-1-after.log",
+      "sha256": "1e06c6c0cb6a7bfaa6bce2063a3c958ed3d991f1f165e5c6b8b04ccaf305eb7a",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-1-before.log",
+      "sha256": "778bffee2fa85e7ed7e21139521cf6a7518b7480baf1c67560e39b8024c54c1a",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-2-after.log",
+      "sha256": "a222149af7ebde31eb455451ed9735acd3e38f86ccf8d65a4d992c7ce03c3201",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-2-before.log",
+      "sha256": "cfc4173fcc78fa4d0eb1fcb723e75f5f42eed1811688a52cb5ffcad9581dbf88",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-3-after.log",
+      "sha256": "60754e94444329560ed43c4f52f0565088ed583bc23278f9e688ea3063efe18a",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-3-before.log",
+      "sha256": "a2890f1f875b139bbeaeacaf6c0a3054fa36bfc62549e91b693ed140c4fd4d6d",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-4-after.log",
+      "sha256": "128d272429b1f18ad9bec1df1e916b7d9de3c44abf9bc541cf9f159e8df88e5a",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-4-before.log",
+      "sha256": "dae4f846637e14a0507deeec879a5cb096585ee042e7a76e0d39bdc665a819c1",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-5-after.log",
+      "sha256": "c354bb664a7a8809b6cf49eb502d2d30db120c65507973a96041f83b203eec2e",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-5-before.log",
+      "sha256": "3b022aa216c47263be0b988e0551114e9094b8b6edd2e2192bcd1e8d022396e2",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-6-after.log",
+      "sha256": "f0346aaa1cc551188dcaabaffe0e3780b8d6a0549ac9bc2c4ab01c72b75e49fc",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-1s-6-before.log",
+      "sha256": "2d449c4481a599c20511086b47e5dde2f2d5abdcc3a270cd97995e245323d664",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-1-after.log",
+      "sha256": "4b1505b1169c79b0dd1422ca3252bb6fb3ec0971328d4e890982cbe6d70d5151",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-1-before.log",
+      "sha256": "72f53e5eca7a4bcd33e26222630262b44d05688ebfecab35beaaf576447deb95",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-2-after.log",
+      "sha256": "69914e57034682b001fffe00d2547acca4d940a2e7d750a7cea3d328041bbf6b",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-2-before.log",
+      "sha256": "82086eef6e1d6c826013011f227c6936e1acc77c56393d60559dc49e9e8b34c7",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-3-after.log",
+      "sha256": "97c6cf0bc6ed4f5ffb249e7595d4238895c28a3fd96af6060da864dad445c581",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-3-before.log",
+      "sha256": "d5d2b9857ec8ca2f7f173b751a397a91b6b346743d98e727fad13e31608f6ac6",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-4-after.log",
+      "sha256": "be3fc00e9a1e376d23b860c9ca9165ac4bb62aa36654b195e388f9f767ceb836",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-4-before.log",
+      "sha256": "f8daab70fe557272d8799834aa119299c8085383e171e3fe7aa1771203929014",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-5-after.log",
+      "sha256": "dc401a49d38a6aa3481638432ad8835c1a076b82a44ed230c09175cb5787ec4d",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-5-before.log",
+      "sha256": "f3d39089038a7421b78a07b80281b13c9ba32e40208beb0d3be0076e66e03f29",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-6-after.log",
+      "sha256": "2416241e31b453823483f26453e7752ed343f7bc3430de11194b0205716362da",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Dense-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Dense-4s-6-before.log",
+      "sha256": "896ea68ecc766c0d93cc5189b452d1e35d05230c557d84c5aa2384c3d02e05a7",
+      "bytes": 413
+    },
+    {
+      "archive": "full-path/full/Road-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-1-after.log",
+      "sha256": "2b9d6b53d7100d97aa651744c3961cdf3f4853557f5df4b1c7b4e4ad1c3bf822",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-1-before.log",
+      "sha256": "5e499debef8d9efd1a8079e5cb59bb224ae6ceb3a501315238e80ef622f70cc0",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-2-after.log",
+      "sha256": "99ebab806140c4f9b9c7512a7718ad6d20fb339dbc304324b5b57a2d728b3ddc",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-2-before.log",
+      "sha256": "5d040bb19dcaa313adef1cb2635815e79e313ee418c4f51ea986f29187634b76",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-3-after.log",
+      "sha256": "1f208ce9326a1285b79c021f2422f6cf7d9f7a1d830e975bfb813581f5902304",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-3-before.log",
+      "sha256": "e0ca4c134b31869afdf1f8244fe1b5cb2f315aab4266370be9783de3366580a4",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-4-after.log",
+      "sha256": "58fc3c36b6cebffe1c819c208a1da50d4d0c48019d25da6f504832f69bf38ac2",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-4-before.log",
+      "sha256": "551f18556f0a4d6a30d784b9e9fbf4be6136cc37d9d93445630cf95f05442d53",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-5-after.log",
+      "sha256": "a63882579e7c87080c9396d333359f70c834bccb7d44fc45804077fbbd4a6418",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-5-before.log",
+      "sha256": "a1a1f3d6cc5f4095d466b76dcce34135639c486f09bf27500eb18a8d991976f7",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-6-after.log",
+      "sha256": "02f30c36c9d19019365cc5acecf875602c17271deea8c86cc1b0b46363c90c5b",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-1s-6-before.log",
+      "sha256": "3a27591fe55752678d9ffa215a08df33daff6ae9a40114e5c4b5b85a5f093489",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-1-after.log",
+      "sha256": "f9cde766f3712bb7066093a50eb0d6493ecc0403692a67816cb77931893573d3",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-1-before.log",
+      "sha256": "b933dd5ef83e4ac5a6b1099591130a230a763d085cd623edcfb7e10d4962d8ec",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-2-after.log",
+      "sha256": "3c5200c21cc9ea314e8201438fd709be547555e11cd152b0b21ec53475981e15",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-2-before.log",
+      "sha256": "889e5a5af8d366ffe28b87c55391b3715951be92a14c1ed9482c2be35812069e",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-3-after.log",
+      "sha256": "8ef10680396a6673a97ff202e4d26318bf92cb37819e2502b73b2f131fba9c78",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-3-before.log",
+      "sha256": "b37e54fadf23f3efc44b52794607d5869dcf57be6a7d2899f4c4a594150927cc",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-4-after.log",
+      "sha256": "fc5746e5cdb7a34731a8943ac4e7e47c549548e944fa7c20bdb3e1162f3e64c5",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-4-before.log",
+      "sha256": "31f7aa6b6155f8371f2e23644621655b23af7627ed4b64ca0556d4add05ad4ba",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-5-after.log",
+      "sha256": "9ca7c5f8e3e38bec77ab51ff976bf1c66293eeb8f4dca427842fe0140295c03c",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-5-before.log",
+      "sha256": "4af6081b9c0153f45a45370cc72bf2cba688f6ebfdc4f84f16ce55807a81eb90",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-6-after.log",
+      "sha256": "01e5a0c3352386cc4618b90e418628835a5c948b6efb78f7d25da64ea8ff605c",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/Road-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/Road-4s-6-before.log",
+      "sha256": "bce574439b2461bd1aff8555e786acb6176c483d767ee4b9e410f083e321c17d",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-1-after.log",
+      "sha256": "42df02c4a1398cf4f51f0645fc59dff860e0ecfc9efe7e7b97558dda4f8b6719",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-1-before.log",
+      "sha256": "75bc9c9a2c35ce673480b0e567af3c8ca7be984d338a8ac45b81089162b1ae7c",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-2-after.log",
+      "sha256": "0a76dfbf8b8766fa7755207d8ec359b1892cc84b7dad8b594aa5e03ee426b1dd",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-2-before.log",
+      "sha256": "5d4cd199d8279f2c0a233394990aae912febbe9f5029abfcdc3c24a24904992e",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-3-after.log",
+      "sha256": "2b2564051722163d077900cd39e7f919b44a7825319f1897e20dc0567e38ac19",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-3-before.log",
+      "sha256": "079066cc58cdeb0150ebcb08201128e81555637504295b3ac4701064eb8274ea",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-4-after.log",
+      "sha256": "814f37061884f225c61cb4fa89e4dd675a1252b7308c439eb4dd66a0230c15e5",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-4-before.log",
+      "sha256": "6cab8c91f2520128fe05331b7051a2ebbf7b9228de4cfdd1f11398aee7c0eed3",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-5-after.log",
+      "sha256": "a96580bbb6eb94ce26a553545b7f8839b8c6c41ae56ce5a13fbd56695040974e",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-5-before.log",
+      "sha256": "728d9a4ab94065fc4d95c479c69d7fb4e38238f1ab25b123475592046eb63577",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-6-after.log",
+      "sha256": "f8f054b80bac2d957eed625d488f4b4605b101e8d64ce1738c923f31e7968e86",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-1s-6-before.log",
+      "sha256": "97e7993010886eb8a5dee784a3f94424a1f320b49a3b94eaa33ef913dfd50d25",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-1-after.log",
+      "sha256": "9e873415de944b9e2b21a42ac5eb1e7ecf848fc653d21dc804dfa32655dde99e",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-1-before.log",
+      "sha256": "d3296f03725574e75c62a8af043c983d6382d80ef45603b34a5468f29fcf2a3b",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-2-after.log",
+      "sha256": "0ea28dc5bab9c83a397f7703dc36009863d68818da9498bdcbd0ee687321025b",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-2-before.log",
+      "sha256": "58dd528ac722bd6f686fb35541f06e90bdda40b715246547e0d7de5adcc1c08d",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-3-after.log",
+      "sha256": "8d28aadceb20f302c7a4674377a6035aaf1ef9118eaf991ae1e5ee907f123dab",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-3-before.log",
+      "sha256": "af954505dedb8ef8b5bdc3e4e7cd13fa680d35ff0aecad4562381b38689274b5",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-4-after.log",
+      "sha256": "d6fa41c4caeeb0580bf6839f659a00341fb6baeacc1472debaac01930767dfc8",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-4-before.log",
+      "sha256": "21c3f62a56a9044f45554c46f31fd91430679b81ac3aade45daf9aec8f236bad",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-5-after.log",
+      "sha256": "b2de73a5e088472c40538a68a9a44cd4eb649ae7e947707c78cedbf5b057e224",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-5-before.log",
+      "sha256": "860bdf5390f2c9480d751d26c44a5c9cc33728c8f414636a19de3f97386aa3c8",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-6-after.log",
+      "sha256": "91d8df02c6c6635e236f6e0abeb0043b45ae55878d75f58cbbd35a57879aad7f",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/ShortClip-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/ShortClip-4s-6-before.log",
+      "sha256": "0f90ef2a7a4eb908ce799fe8416c70d4f9d72da1747d9163021e278840b7369c",
+      "bytes": 412
+    },
+    {
+      "archive": "full-path/full/after.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/after.txt",
+      "sha256": "581ed9ce9f953749ff79a026ab5d4e124aec3096a2270ae9aa2fe5090b778eef",
+      "bytes": 9900
+    },
+    {
+      "archive": "full-path/full/before.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full/before.txt",
+      "sha256": "f65cad3ee8c31574736746e6a99af1313103729322c0a06a01c8f18a2bcd9ff9",
+      "bytes": 9900
+    },
+    {
+      "archive": "full-path/full-benchstat.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full-benchstat.txt",
+      "sha256": "cadbf37200345fe9d449bc429f66921756209a287be25484d988f1956f40631a",
+      "bytes": 17239
+    },
+    {
+      "archive": "full-path/full-summary.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/full-summary.json",
+      "sha256": "55de62bca5f7befbebf61a09c77d331bf077a96bd047bc6e5d047f24a33bfdf7",
+      "bytes": 4495
+    },
+    {
+      "archive": "full-path/fullscreen_test.go.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/fullscreen_test.go",
+      "sha256": "e966fffe4c17e702d5f0bbea8ade6e20378df0a5c5bbf861178e43e0f348fa02",
+      "bytes": 4795
+    },
+    {
+      "archive": "full-path/parity/PDF-1920x1080-qp20-1s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/PDF-1920x1080-qp20-1s-after.log",
+      "sha256": "5e143be29050ce9928e0cb872e1c90c20db617778c473879c1c4335b8d169952",
+      "bytes": 3076
+    },
+    {
+      "archive": "full-path/parity/PDF-1920x1080-qp20-1s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/PDF-1920x1080-qp20-1s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/PDF-1920x1080-qp20-1s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/PDF-1920x1080-qp20-1s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/PDF-1920x1080-qp20-4s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/PDF-1920x1080-qp20-4s-after.log",
+      "sha256": "7c4f8a0bf8d41af1c0f9793ca6ea7a1430d0efcc2991f589f4951cdfba8f28dc",
+      "bytes": 3087
+    },
+    {
+      "archive": "full-path/parity/PDF-1920x1080-qp20-4s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/PDF-1920x1080-qp20-4s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/PDF-1920x1080-qp20-4s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/PDF-1920x1080-qp20-4s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/Road-1280x720-qp20-1s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1280x720-qp20-1s-after.log",
+      "sha256": "2cee4e3be16ba287add8e46f2558d7fd4b2a073c9081f0a2ed573f6d30565659",
+      "bytes": 3074
+    },
+    {
+      "archive": "full-path/parity/Road-1280x720-qp20-1s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1280x720-qp20-1s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/Road-1280x720-qp20-1s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1280x720-qp20-1s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/Road-1280x720-qp20-4s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1280x720-qp20-4s-after.log",
+      "sha256": "f77801b42730a27b41db3d18942b3e5b16a6f5efb7790d748cdc0d563290fa4d",
+      "bytes": 3080
+    },
+    {
+      "archive": "full-path/parity/Road-1280x720-qp20-4s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1280x720-qp20-4s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/Road-1280x720-qp20-4s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1280x720-qp20-4s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp20-1s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp20-1s-after.log",
+      "sha256": "038b77d59407fdc89d9cb195d91e5e12538f52dba00316dbf3a728821a8003d5",
+      "bytes": 3078
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp20-1s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp20-1s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp20-1s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp20-1s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp20-4s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp20-4s-after.log",
+      "sha256": "1be58e0035cf2e4772a29b4c0dd0cb2619b62a9b047e0afecd7aad178bd07df7",
+      "bytes": 3090
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp20-4s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp20-4s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp20-4s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp20-4s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp32-1s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp32-1s-after.log",
+      "sha256": "17fea4d07d4830695c91dc6544be186d6a6e5a7d03b6d5118ae492271dab7add",
+      "bytes": 3077
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp32-1s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp32-1s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp32-1s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp32-1s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp32-4s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp32-4s-after.log",
+      "sha256": "8badd6da379fde7060aa46735e5a2d14b06f7cd8ddc1133e4615039cfeec11f5",
+      "bytes": 3088
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp32-4s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp32-4s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/Road-1920x1080-qp32-4s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/Road-1920x1080-qp32-4s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/ShortClip-1920x1080-qp20-1s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/ShortClip-1920x1080-qp20-1s-after.log",
+      "sha256": "42e35b7b6377ec130986a217821f3ec6e0805dc1112a377f0774215d92289dcd",
+      "bytes": 3083
+    },
+    {
+      "archive": "full-path/parity/ShortClip-1920x1080-qp20-1s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/ShortClip-1920x1080-qp20-1s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/ShortClip-1920x1080-qp20-1s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/ShortClip-1920x1080-qp20-1s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/ShortClip-1920x1080-qp20-4s-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/ShortClip-1920x1080-qp20-4s-after.log",
+      "sha256": "281c25369b542deb868ca231bfe8836874617850e8c2eca68c1a904dedf38cbb",
+      "bytes": 3094
+    },
+    {
+      "archive": "full-path/parity/ShortClip-1920x1080-qp20-4s-decode.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/ShortClip-1920x1080-qp20-4s-decode.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "archive": "full-path/parity/ShortClip-1920x1080-qp20-4s-probe.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/ShortClip-1920x1080-qp20-4s-probe.log",
+      "sha256": "d93844f8f37e55564be3f194656bf33b5d0fb5e589a0fe17eb7c2d4e8593ec9c",
+      "bytes": 3
+    },
+    {
+      "archive": "full-path/parity/parity.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/parity.json",
+      "sha256": "0a33d4705fcbb56f873567e8f8aae126d583b927f98997beb940a58cfcd06f92",
+      "bytes": 5863
+    },
+    {
+      "archive": "full-path/parity/parity.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/parity/parity.txt",
+      "sha256": "b841346745d843107b077bc81a2e3b365853583c2abbfdfd9ddf7a2c4ddcd301",
+      "bytes": 1488
+    },
+    {
+      "archive": "full-path/provenance.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-frame-review/provenance.json",
+      "sha256": "86b9c2ba2dca706c71e6de49fa647306b1e67c2d3bb4e69cd383cd22530caef8",
+      "bytes": 1034
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-1-after.log",
+      "sha256": "fca3fcf8cf9cb21427700756d29a2703f26f7c1d9c3b6e5dddec88b101c96ab5",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-1-before.log",
+      "sha256": "ff669fa792598ddbec0932d5c3cd402500fe6821f9730c142e04f9c5667abc9a",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-2-after.log",
+      "sha256": "a4eda652a1459ba6ef18c4e81bf7aa5dae5b5b6cff3fe369acd7f653d2751325",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-2-before.log",
+      "sha256": "8e5cc115073ab35b76ddc443cdc2a297c77c03b1b4d7b79820e341718f0ec1af",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-3-after.log",
+      "sha256": "7a8bd68b8394e740abfe55f5913f679dec3b579bbc5f2bf819e4eab6705be467",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-3-before.log",
+      "sha256": "c4368b4c4cba6e0756c4e2cd50e60a0754e1013295de6d3e2d04440aa275129f",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-4-after.log",
+      "sha256": "a78c101c7fe4253190841e110f5c170a8f40a0a9389e3a7ebfa7da7ba5f55370",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-4-before.log",
+      "sha256": "3833535734f94d51b482589f5a5ef935939d1cf36f19e0651a335b3118e765aa",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-5-after.log",
+      "sha256": "517ef153dc55ddb2f7fc259b7d45f4a6d36545d4c2fb081b111ed90f3adbd8e6",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-5-before.log",
+      "sha256": "d69c0cd376d4caaf4b85067fc711959bd6df02fc0076321e83967aa21195a450",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-6-after.log",
+      "sha256": "2cc192dac0917ff743dc26cc4099f2a24f304cd0b5ad5fcbefe8f9d11e3ab73b",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-1s-6-before.log",
+      "sha256": "edf573236bc1ca52769cbde0fd67cebf7076c744e8f9fb28bffeb5b1bccd654b",
+      "bytes": 3076
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-1-after.log",
+      "sha256": "0a1a40dbf568c046dd26b60451f3657d7065f99d0f2bce325a3e0bff819b0c54",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-1-before.log",
+      "sha256": "7be63affcecfb8a8d827528f429b875c1743e1fab53fb6662f5c3666d3f3941b",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-2-after.log",
+      "sha256": "0f0f8aa6a6b16c920ca7f89c81f617a687c204859468be493f9533ecc18f711a",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-2-before.log",
+      "sha256": "af5e9c0c16c18f1a31009b7cde4224863f0614bad68f8a79f0776d2ee7421b5f",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-3-after.log",
+      "sha256": "ea3930430f302e82588df2f89146929555e64617560095e558f8c9082d1318b9",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-3-before.log",
+      "sha256": "654e72e44dcf9c40a61bb51817ccaf2e27da3da1a05f41e75033ed90cba5ff49",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-4-after.log",
+      "sha256": "33a3466ae9cc2ab354e1a8ad03865f0615ce5b37641de2b60e4e45981260268d",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-4-before.log",
+      "sha256": "039ef3071099b59bac4dbd883433d08af42dce33c907005d5882c9622be4a797",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-5-after.log",
+      "sha256": "3450ba8aa7f5bdf054d4a2e66113fde7e7d1ac28d5b449df44fb843088fb3110",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-5-before.log",
+      "sha256": "d4301442fd060327ebb2c3297da7e22c86a86d5a1340945ec3a669bee9b83477",
+      "bytes": 3087
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-6-after.log",
+      "sha256": "c7210e8a8a5bedb8d2ff90f44c484318987778ecf96f61c6ab75f971fb650de9",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/PDF-1920x1080-qp20-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/PDF-1920x1080-qp20-4s-6-before.log",
+      "sha256": "196e7f71ecfbbded8881f5b9050c1540d3546521c130c51c6eb9ad0f34a5bbd5",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-1-after.log",
+      "sha256": "ea788ca7da9ed19c5df25034344127aaab89f5b1d881384d44a5dcd628e219cb",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-1-before.log",
+      "sha256": "5f9dcee1cacd5f25945e74dffb22ece02a9b73367c0a966758b8c894c68501f4",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-2-after.log",
+      "sha256": "5688f82d809579abc803e885fa6f600f92e63d14cdbd9c4997c254826e9f49c7",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-2-before.log",
+      "sha256": "7d8e28184d2b814059718af6eb85f4492a68df098616f93fab4fbcae52c3d80a",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-3-after.log",
+      "sha256": "de76f9f1d4388d3ebd25ddef7b5c92b133a8eebe5dbef889acb02405d65d4aeb",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-3-before.log",
+      "sha256": "eb792243b8a8346499ec8f84b8031022f4e3eb051adf77681dc155b2cabcffb4",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-4-after.log",
+      "sha256": "fe230739bb79dbf3691ee09a224c251c5f315a635eea5a81827d168a07394b19",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-4-before.log",
+      "sha256": "a1acf6814eefb2f157acc59cd5b237f6ffa8cf16de01676780e572509d92a081",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-5-after.log",
+      "sha256": "98975014251ab35a853ba281bbbd60b4b5f27c2c0bdc311fd6faaa85cd4fb975",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-5-before.log",
+      "sha256": "5248b6a3e4f3a4ead64cc2ebe588a6a7ebca323c836d5799072f677f5bd730d6",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-6-after.log",
+      "sha256": "b016987a2b702994b6ced984e85fcaeea0cac87e5dfd853b973a1cfaf686d23a",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-1s-6-before.log",
+      "sha256": "2ed19db21238a4b64746b506aaa8686efdd854a35819efa1b5c23b00b85d8735",
+      "bytes": 3074
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-1-after.log",
+      "sha256": "7d64053ace54b9e76cfe327d1cdbf67e7a3495912080de2097f1e8d06af99230",
+      "bytes": 3080
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-1-before.log",
+      "sha256": "90fa7bf5d6c2f8e375565639a2321f31fecbac83143797cec806dcf95b219035",
+      "bytes": 3081
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-2-after.log",
+      "sha256": "d436931a7b400da34b8836a1a1a133648b6b9c6b611804744846a6184c1e8fd8",
+      "bytes": 3080
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-2-before.log",
+      "sha256": "016e7c953a109614c7d3dfff0579e8c9d1fbedadcb8c9d3a89ae8ed1c39a3f90",
+      "bytes": 3080
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-3-after.log",
+      "sha256": "501c22f0ee5aaef66b2be749153ebe39ef8f9d4626a9bd0c453d8905bd9246c1",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-3-before.log",
+      "sha256": "297af3e829fc3c152e736d1d29ea33c49aac1ca836d51a9495a149439270e8a5",
+      "bytes": 3082
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-4-after.log",
+      "sha256": "7c942d6adead11af25b63664eab9d39d15f64c73b5a61d553f66e132c646eade",
+      "bytes": 3081
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-4-before.log",
+      "sha256": "ae311103bc1bba260b11ef5045b074f50ee09ebdd668b2649aa7fd9f7b07eeb1",
+      "bytes": 3082
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-5-after.log",
+      "sha256": "d24064ea7f2714196e85a429b79f97c35302d4c3dd1e14daf36d07f8f4ac9f95",
+      "bytes": 3082
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-5-before.log",
+      "sha256": "eeeafe0661cbdb4a5951268c4a4ffc3ad31a4f1c77dc4c321acd6702f69acc33",
+      "bytes": 3081
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-6-after.log",
+      "sha256": "27a5ac7da528ddb884b819a497f7df10a2a181cfb9abd06e1efc9cd2c352799b",
+      "bytes": 3081
+    },
+    {
+      "archive": "codec/Road-1280x720-qp20-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1280x720-qp20-4s-6-before.log",
+      "sha256": "5970378262029d7c10a18c2842f6e7323d14e861216e2d9721e1cb32a3c496a7",
+      "bytes": 3082
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-1-after.log",
+      "sha256": "2504e6dec502fd2a3389abdc1a9f78472d294e967056a2bbf9f5f14d4d14f048",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-1-before.log",
+      "sha256": "fcbaa365c8ef1154d2c12ca0f96808cf9b294641295584977b933873c7e6aaed",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-2-after.log",
+      "sha256": "77649090548dfdf40b2c18a7034659f5b4542616b541e8640c2be1934d23ab1b",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-2-before.log",
+      "sha256": "dd7c8d5b8a9b29da147e14f1eff537daf51385b426371f56943a96f2ed5d0882",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-3-after.log",
+      "sha256": "87155f819e06f53609cf3e8205ea4add7d32e6c2693e9f7fd53c74750dcaa430",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-3-before.log",
+      "sha256": "7182d4ce04fad18d3aeb9dab04d00ad06f13dfa14719e690d0dbd48922bf8aa4",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-4-after.log",
+      "sha256": "a0f306c0f3c68500cafb75c8122f530c7024e7c23e9cc083e3e5bf324273cc31",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-4-before.log",
+      "sha256": "2159ba879cec5f843d521508f8b2a8efd6c415ab7b0daa74e46b41a6fb3dc0ae",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-5-after.log",
+      "sha256": "f11cff41d6fa1de1d8988bce5c3f82fcc7e5c0b58c2c495a5bd76762d544fa26",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-5-before.log",
+      "sha256": "e27c7530fc170d0dee019cc34b16bd4ac8bcb88bda183ba1418981841f166440",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-6-after.log",
+      "sha256": "9aaac43be7279eccf450aa8491bd1c0d998e0957c3fd2de9bb2d2d742bcfb2d3",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-1s-6-before.log",
+      "sha256": "91510b83226118ce102d097afb5f50cb60e6f0710efedeff45655308fb7c6b96",
+      "bytes": 3078
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-1-after.log",
+      "sha256": "d321785a7ca93079cfe8fc5f94399d218c650803ccbeae84ddf631a0ce5cf141",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-1-before.log",
+      "sha256": "5ac4455f55ca9ddd9048e018195dbddf233320748a391872e01329aac4a7acd1",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-2-after.log",
+      "sha256": "d283eef8e83e504a254eab1cfa4d145e1c21a363b2e9653fed35ede1f25ca810",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-2-before.log",
+      "sha256": "50d1a7282029635f3161eacc467c6f2011d03068cd9730f798f801b5711af323",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-3-after.log",
+      "sha256": "9dcaa8dbc24057396e5fa210876500ccf8f08150a8844e93b1f22c26eb86e994",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-3-before.log",
+      "sha256": "9f1c24ce8b6bb979a93345fb9e02aa452e929003e315c54ac9f2a1393c953367",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-4-after.log",
+      "sha256": "fcb966b207b0554676b39560574903e7e70ff900fa5adf1f8f228361900d58be",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-4-before.log",
+      "sha256": "9316bd7fcfec305032a5f872871834ea6f50d5f4c518b0165a722634a1b7eadc",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-5-after.log",
+      "sha256": "da781a946ff2b37d0e50ec04b4bbb0bcddcf236761ed86546e1a18c136758957",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-5-before.log",
+      "sha256": "37ac95dbee592b45bf11b2477df6f6abc903f3b04d5d132e03726fbcf7bc0b3f",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-6-after.log",
+      "sha256": "cc3e0bee3586325b0d92f5c90c66f73054d197cc5f9b9ea0eca7fbb5ac868489",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp20-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp20-4s-6-before.log",
+      "sha256": "e84cc991724c6a395548326e8655b2f8ef739be6d2c5707a851070c116d07a36",
+      "bytes": 3090
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-1-after.log",
+      "sha256": "7a59d62132cf210a8e4d3e7c4a718db1f9a9de2889055eebb6da628277c322b5",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-1-before.log",
+      "sha256": "b30d19a168925dcc7f140a4b3c7435f1b3319a3ea6ce5525146986147ee6da62",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-2-after.log",
+      "sha256": "2432656fcfc9505ed3351658f2e5ea2c989aa445618439d82b8a12111915ec55",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-2-before.log",
+      "sha256": "c9ffda6cf067f437472b2f1a0d48505df7293eb93b343f833912f6c0175c5a90",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-3-after.log",
+      "sha256": "23df906623adafb17d67d1c01978a4abb3af57e1e1b5612bcb410172869b5997",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-3-before.log",
+      "sha256": "9eb7475aa1bced984d6524797c02760637eb769934b11ce3f924e74136eebe3a",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-4-after.log",
+      "sha256": "bc21c67cf6c505317240d85cce77b3e9879f79e4ff2b696e2c4198230266bf2b",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-4-before.log",
+      "sha256": "82c886ae1d3d149bee65500fbc2a0725fd4a3d98d164b323bea96590927c90a3",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-5-after.log",
+      "sha256": "dd7caf9461b528d8fbf4ee08f9ee55b8b1e4c2f0ee563af9833918808f728d03",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-5-before.log",
+      "sha256": "22c4e8807c4caf5434380a454e5f83236ade817281b0c7fa7d327aa77add1eb2",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-6-after.log",
+      "sha256": "173d2eb59c50a481c6c63c172b218ca436b7ae9ed5aae575c8ad9546440e3272",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-1s-6-before.log",
+      "sha256": "83035b73b985d5b35e85b2ab26a2d82c9d055aa4b799e3264b68ff6d07db30f1",
+      "bytes": 3077
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-1-after.log",
+      "sha256": "29fc00e4974e0dc302f6148225b134377a98f28faa6c8cb20adfff37a229a78c",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-1-before.log",
+      "sha256": "b5181b21d7cc4c87eee61392a04836001766693875123a1fa0ebdc33ee2180f1",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-2-after.log",
+      "sha256": "965020c7c5b94a0adbe4d2f96d9a595d349592ec00d40e6e69164fd40dc07097",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-2-before.log",
+      "sha256": "b073195a4175cb4d2b264d5da53008b959f318d4259d5d26fd5f4e659b143378",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-3-after.log",
+      "sha256": "5f8bd92c26652bf33cafb7239538d6f42f5b5d27dd5aebfa6d2d4b4a402b2476",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-3-before.log",
+      "sha256": "8d76a69a04a082af9e636e8cf5dc37d8d5a2522997ef435acde33051354dbb40",
+      "bytes": 3088
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-4-after.log",
+      "sha256": "0e82e6269ab0a2704b546b4d842acdd14b87faa8e9240259f92d327dfc4b3ac9",
+      "bytes": 3089
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-4-before.log",
+      "sha256": "4cd927ee24dd19d5455685d6f4c9337416bef93598040d8f7c912378803380fd",
+      "bytes": 3089
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-5-after.log",
+      "sha256": "951b601e1a75be99e247c7ab72d7e28f167dccba87764c68fdfc019a1232e546",
+      "bytes": 3089
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-5-before.log",
+      "sha256": "db27975f7a7b45be8aa4c2b61ca8849279e249460726da3e598b63557b91e76f",
+      "bytes": 3089
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-6-after.log",
+      "sha256": "639c0d392a6b6fa95a9e3ab4780ec66ec4c1abf5795d34492a12df9425608664",
+      "bytes": 3089
+    },
+    {
+      "archive": "codec/Road-1920x1080-qp32-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/Road-1920x1080-qp32-4s-6-before.log",
+      "sha256": "04374fe8e87497bbe1577557d3165dd20c970753fb9a312c3b3e683a3f7d2d27",
+      "bytes": 3089
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-1-after.log",
+      "sha256": "110ecde4eeabe3347f71858a1cc80c3bd00c7bbc5878b6140165aed208ad2b87",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-1-before.log",
+      "sha256": "197e890621dae2559d748c19faf72960887c0071f65fca7ee291b9b3ededaacc",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-2-after.log",
+      "sha256": "99732152fe177f347226fc6cfd373b1296948a4fd22feeecd3bab916c8b526e1",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-2-before.log",
+      "sha256": "69107d6b6d1387b12cf96620aa70768c8cc2d87047b0e6e6ba1cedfe1ba3b222",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-3-after.log",
+      "sha256": "8a95d0c06d56693d91216f6def66af6a1ebd44cc10a791dd1087a9305540e41a",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-3-before.log",
+      "sha256": "aba6ec97b7ecdf4ce743f1e120f58958349aba76d935a36d303fcbf52d490c8e",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-4-after.log",
+      "sha256": "cfa5ba1be79327cbe5e989aa061613c9fe4f75d2cc65ab351cbb46269b30530b",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-4-before.log",
+      "sha256": "9b69d24edf4b27a7a85853388716b72e26c4cfce953d8b34887bc661a44b8f6b",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-5-after.log",
+      "sha256": "b34658a76aaddf3ef2472c218dc83bbd30a75f6582e8531138481586b766e41a",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-5-before.log",
+      "sha256": "c305647862de2acbd1ca4aed5e80555405446de7fc77b99050ea25facc16d8f4",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-6-after.log",
+      "sha256": "2f320ff30c417fb34f11349d9d05f7252249009ce4464d4062c351c17c886681",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-1s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-1s-6-before.log",
+      "sha256": "20c4044b60ceca1d4738257f3a4f4681f7d0518e3834bf635d334e1f0b079da3",
+      "bytes": 3083
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-1-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-1-after.log",
+      "sha256": "8202966c4d2c8459f44c7348bd7d105aef664df4ba10f0f8069d03c32e4aef84",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-1-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-1-before.log",
+      "sha256": "9cb2e9409ce2632bdb8fd7ee17ee595baf4d45c2f9c2a80c74ed8829b0994689",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-2-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-2-after.log",
+      "sha256": "b44578107b66c06089b70d31f1ce2434b9b276e6081c1686c0c6fd541bb2bbc9",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-2-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-2-before.log",
+      "sha256": "f455d7a00305f81476b17f24afdd27ea94540f520695364d16b2e86548476ce5",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-3-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-3-after.log",
+      "sha256": "4f3f86115df1c825d8e49a9fe1bd35f4e225b710f0468c96ba9b9b47bd821e0e",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-3-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-3-before.log",
+      "sha256": "36bbf4bd415be137f521ffd64f30c195842f5471e8680d479629e57b6b440768",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-4-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-4-after.log",
+      "sha256": "d03c8d8f65f35875dc2c8b3c2f1592f3bcddd69e7b1954276a3e1436cfbd5fd2",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-4-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-4-before.log",
+      "sha256": "9fe68a7c3782cb5cf5a1dfeb53adce6ae41697fef21e508f7085c6ae66e28649",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-5-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-5-after.log",
+      "sha256": "5f835ed3c24565bb42a4602db7867141605ee29c21b5824114057af491995afc",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-5-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-5-before.log",
+      "sha256": "8a0014f8f3bfd5bf60e9803afe3683e50ad869937e29da42adad68c1fb61fffd",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-6-after.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-6-after.log",
+      "sha256": "2574a1c7d35aa13add3799076080ddefc1143c024f450720f2d35f916f7d7e1e",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/ShortClip-1920x1080-qp20-4s-6-before.log",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/ShortClip-1920x1080-qp20-4s-6-before.log",
+      "sha256": "d05b99ae5c5af258bd6422e71d1c6dd11e703168886f7e5012355e9969c3c91f",
+      "bytes": 3095
+    },
+    {
+      "archive": "codec/after.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/after.txt",
+      "sha256": "aef8402775c8147b9e9f487da0d22d247c58e0abf47817501c8d5c1a15be4fb2",
+      "bytes": 8449
+    },
+    {
+      "archive": "codec/before.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/before.txt",
+      "sha256": "e07d265f47d721abcb29e45cc4ee1760132cb6eae3b13e2608c2d5ae4b1b758b",
+      "bytes": 8449
+    },
+    {
+      "archive": "codec/benchstat.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/benchstat.txt",
+      "sha256": "19255d91d2cd1c7c37e70d524a297d83227229d2011bd0cff4bde7804207ac63",
+      "bytes": 10056
+    },
+    {
+      "archive": "codec/complete.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/complete.json",
+      "sha256": "7cec23960dd40bdef5105f9863c22a6f318b94fb2df6703420611186d4de2400",
+      "bytes": 139
+    },
+    {
+      "archive": "codec/provenance.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/provenance.json",
+      "sha256": "51287b76cca3a8adef85f9df73550593c8d6ff13adf369eb7b3a5bd808587a48",
+      "bytes": 2119
+    },
+    {
+      "archive": "codec/summary.json",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-codec-review/summary.json",
+      "sha256": "1df1f1c69712d05d2b8c8c0b8442f79b9c80daf1acfdc3f2ca36db003d7b9647",
+      "bytes": 5100
+    },
+    {
+      "archive": "measure_intra4_scratch.py",
+      "source": "/tmp/h264-parity-target-20261022/measure_intra4_scratch.py",
+      "sha256": "43d3fa30b6f1b6a902e23838416914355aa50e9375fd4fabce0c96de8319fb11",
+      "bytes": 2781
+    },
+    {
+      "archive": "measure_intra4_scratch_frames.py",
+      "source": "/tmp/h264-parity-target-20261022/measure_intra4_scratch_frames.py",
+      "sha256": "751090f380be69a89116e7703bc0413c3246519af228c603a7d6aed9b166eb12",
+      "bytes": 12781
+    },
+    {
+      "archive": "measure_intra4_scratch_codec.py",
+      "source": "/tmp/h264-parity-target-20261022/measure_intra4_scratch_codec.py",
+      "sha256": "2d020f9214ea974e5bfedd93a245cf902ede906ebe1aad16a75ce2d74e6541b8",
+      "bytes": 8143
+    },
+    {
+      "archive": "archive_intra4_scratch_review.py",
+      "source": "/tmp/h264-parity-target-20261022/archive_intra4_scratch_review.py",
+      "sha256": "e8cc77549f933ada31353e355247db142133c52aa5ed264f7034366217caf47c",
+      "bytes": 12373
+    },
+    {
+      "archive": "intra4-scratch-isolation-next-README.txt",
+      "source": "/tmp/h264-parity-target-20261022/intra4-scratch-isolation-next-README.txt",
+      "sha256": "0277b0ab26fb2f9c649a9b639d0cb7cdd934ffabcb2d489e8a2a13fd2084db10",
+      "bytes": 8110
+    },
+    {
+      "archive": "cases.json",
+      "source": "/tmp/h264-parity-target-20261022/cases.json",
+      "sha256": "c9169e3d0604c05067f17a91dd07a6740d2c53a4087cb58a721272321191cf41",
+      "bytes": 721
+    },
+    {
+      "archive": "round11-sources.sha256",
+      "source": "/tmp/h264-parity-target-20261022/round11-sources.sha256",
+      "sha256": "08c290e150913e99884098980b361a7ae784153659a8dd3d044805c0e795c7e1",
+      "bytes": 64935
+    }
+  ],
+  "omitted_payload_count": 13
+}

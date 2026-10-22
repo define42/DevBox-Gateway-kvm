@@ -1,0 +1,43 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                   │ /tmp/h264-parity-target-20261022/inter-next-component-next-base-results.txt │ /tmp/h264-parity-target-20261022/inter-next-inter-next-results.txt │
+                                   │                                   sec/op                                    │                    sec/op                     vs base              │
+InterLumaBookkeeping/Dense/QP20-4                                                                    210.5n ± 5%                                   197.2n ±  1%  -6.34% (p=0.002 n=6)
+InterLumaBookkeeping/Motion/QP20-4                                                                   212.1n ± 2%                                   195.7n ±  2%  -7.78% (p=0.002 n=6)
+InterLumaBookkeeping/Sparse/QP20-4                                                                   193.4n ± 2%                                   184.2n ±  1%  -4.71% (p=0.002 n=6)
+InterLumaBookkeeping/Zero/QP20-4                                                                     119.9n ± 5%                                   119.2n ±  1%       ~ (p=0.180 n=6)
+InterLumaBookkeeping/Dense/QP32-4                                                                    212.0n ± 7%                                   196.8n ±  3%  -7.22% (p=0.002 n=6)
+InterLumaBookkeeping/Motion/QP32-4                                                                   212.8n ± 2%                                   197.0n ±  1%  -7.45% (p=0.002 n=6)
+InterLumaBookkeeping/Sparse/QP32-4                                                                   132.6n ± 1%                                   131.8n ±  3%       ~ (p=0.784 n=6)
+InterLumaBookkeeping/Zero/QP32-4                                                                     119.9n ± 9%                                   122.2n ± 23%       ~ (p=0.461 n=6)
+geomean                                                                                              171.3n                                        164.2n        -4.15%
+
+                                   │ /tmp/h264-parity-target-20261022/inter-next-component-next-base-results.txt │ /tmp/h264-parity-target-20261022/inter-next-inter-next-results.txt │
+                                   │                                    B/op                                     │                    B/op                     vs base                │
+InterLumaBookkeeping/Dense/QP20-4                                                                   0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP20-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP20-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP20-4                                                                    0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Dense/QP32-4                                                                   0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP32-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP32-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP32-4                                                                    0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                        ²                                               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                   │ /tmp/h264-parity-target-20261022/inter-next-component-next-base-results.txt │ /tmp/h264-parity-target-20261022/inter-next-inter-next-results.txt │
+                                   │                                  allocs/op                                  │                 allocs/op                   vs base                │
+InterLumaBookkeeping/Dense/QP20-4                                                                   0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP20-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP20-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP20-4                                                                    0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Dense/QP32-4                                                                   0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP32-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP32-4                                                                  0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP32-4                                                                    0.000 ± 0%                                     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                        ²                                               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

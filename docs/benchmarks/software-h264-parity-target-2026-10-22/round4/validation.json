@@ -1,0 +1,143 @@
+[
+  {
+    "name": "tests",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/...",
+      "./internal/rdp/avc"
+    ],
+    "environment": {},
+    "exit_code": 0
+  },
+  {
+    "name": "race",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-race",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "CGO_ENABLED": "1"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "fallback-avx2",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.avx2=off"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "fallback-all",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.all=off"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "arm64-common",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/arm64-common.test",
+      "./pkg/h264/internal/common"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "arm64-encoder",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/arm64-encoder.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "arm64-avc",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/arm64-avc.test",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0
+  },
+  {
+    "name": "gopls",
+    "command": [
+      "/home/define42/go/bin/gopls",
+      "check",
+      "pkg/h264/internal/common/chroma_simd_amd64.go",
+      "pkg/h264/internal/common/copy_simd_amd64.go",
+      "pkg/h264/internal/common/copy_simd_amd64_test.go",
+      "pkg/h264/internal/common/copy_simd_motion_amd64_test.go",
+      "pkg/h264/internal/common/copy_simd_motion_bench_test.go",
+      "pkg/h264/internal/common/mc_avx2_amd64.go",
+      "pkg/h264/internal/common/mc_simd_amd64.go",
+      "pkg/h264/internal/common/sad_four_rows_amd64_test.go",
+      "pkg/h264/internal/common/sad_four_rows_bench_amd64_test.go",
+      "pkg/h264/internal/common/sad_packed_rows_amd64_test.go",
+      "pkg/h264/internal/common/sad_packed_rows_bench_amd64_test.go",
+      "pkg/h264/internal/common/sad_simd_amd64.go",
+      "pkg/h264/internal/encoder/copy_simd_bench_test.go",
+      "pkg/h264/internal/encoder/encode_mb_aux.go",
+      "pkg/h264/internal/encoder/idct_four_amd64_test.go",
+      "pkg/h264/internal/encoder/idct_four_bench_amd64_test.go",
+      "pkg/h264/internal/encoder/idct_simd_amd64.go",
+      "pkg/h264/internal/encoder/inter_luma_bookkeeping_bench_test.go",
+      "pkg/h264/internal/encoder/inter_luma_bookkeeping_test.go",
+      "pkg/h264/internal/encoder/quant_scan_amd64.go",
+      "pkg/h264/internal/encoder/quant_scan_avx2_amd64_test.go",
+      "pkg/h264/internal/encoder/quant_scan_avx2_bench_amd64_test.go",
+      "pkg/h264/internal/encoder/quant_scan_luma_amd64.go",
+      "pkg/h264/internal/encoder/sample_quarter_batch_amd64_test.go",
+      "pkg/h264/internal/encoder/sample_quarter_batch_bench_amd64_test.go",
+      "pkg/h264/internal/encoder/sample_simd.go",
+      "pkg/h264/internal/encoder/sample_simd_amd64.go",
+      "pkg/h264/internal/encoder/sample_simd_batch_amd64_test.go",
+      "pkg/h264/internal/encoder/svc_encode_mb.go",
+      "pkg/h264/internal/encoder/wels_func_ptr_def_h.go"
+    ],
+    "environment": {},
+    "exit_code": 0
+  }
+]

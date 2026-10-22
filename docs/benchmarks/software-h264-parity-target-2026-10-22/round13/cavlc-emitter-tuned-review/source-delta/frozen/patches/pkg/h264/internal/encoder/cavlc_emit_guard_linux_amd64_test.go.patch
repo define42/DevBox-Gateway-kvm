@@ -1,0 +1,50 @@
+--- base/pkg/h264/internal/encoder/cavlc_emit_guard_linux_amd64_test.go
++++ candidate/pkg/h264/internal/encoder/cavlc_emit_guard_linux_amd64_test.go
+@@ -0,0 +1,47 @@
++//go:build linux && amd64
++
++package encoder
++
++import (
++	"bytes"
++	"fmt"
++	"reflect"
++	"testing"
++	"unsafe"
++)
++
++func TestCavlcEmitterExactGuards(t *testing.T) {
++	for _, atEnd := range []bool{false, true} {
++		t.Run(fmt.Sprint(atEnd), func(t *testing.T) {
++			levelBytes, levelReadOnly := intraDCGuardedBuffer(t, 32, atEnd)
++			runBytes, runReadOnly := intraDCGuardedBuffer(t, 16, atEnd)
++			levels := (*[16]int16)(unsafe.Pointer(&levelBytes[0]))
++			runs := (*[16]uint8)(unsafe.Pointer(&runBytes[0]))
++			coeff := [16]int16{2, -3, 7, -11, 31, -63, 127, -255, 511, -1023, 3, -2, 1, -1, 1, -1}
++			var total int32
++			zeros := CavlcParamCal_c(coeff[:], runs[:], levels[:], &total, 15)
++			beforeLevels, beforeRuns := *levels, *runs
++			levelReadOnly()
++			runReadOnly()
++			output, _ := intraDCGuardedBuffer(t, 132, atEnd)
++			for _, left := range []int32{1, 17, 32} {
++				for i := range output {
++					output[i] = 0xa5
++				}
++				wantBuffer := bytes.Clone(output)
++				got, want := cavlcEmitterState(output, left, 0xd3a6815f, 0), cavlcEmitterState(wantBuffer, left, 0xd3a6815f, 0)
++				local := cavlcBsInit(&got)
++				if status := cavlcEmit(&local, levels, runs, &got, total, zeros, 15, int32(LUMA_4x4), 3); status != cavlcEmitSuccess {
++					t.Fatalf("status=%d", status)
++				}
++				local.uninit(&got)
++				if code := writeCavlcEmitterBaseline(nil, coeff[:], 15, 1, int32(LUMA_4x4), 3, &want); code != 0 {
++					t.Fatal(code)
++				}
++				if !reflect.DeepEqual(got, want) || *levels != beforeLevels || *runs != beforeRuns {
++					t.Fatal("guarded emitter differs or changed its read-only inputs")
++				}
++			}
++		})
++	}
++}

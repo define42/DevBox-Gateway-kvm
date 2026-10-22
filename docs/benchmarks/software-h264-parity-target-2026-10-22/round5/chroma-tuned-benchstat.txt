@@ -1,0 +1,46 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                         │ /tmp/h264-parity-target-20261022/chroma-tuned-component-round5-base.txt │ /tmp/h264-parity-target-20261022/chroma-tuned-intra-next.txt │
+                                         │                                 sec/op                                  │                sec/op                  vs base               │
+ChromaSSSE3Dispatch/8x4-4                                                                             25.89n ± 26%                            20.71n ± 22%  -20.01% (p=0.002 n=6)
+ChromaSSSE3Dispatch/8x7-4                                                                             31.62n ±  1%                            24.09n ±  2%  -23.81% (p=0.002 n=6)
+ChromaSSSE3Dispatch/8x8-4                                                                             34.17n ±  3%                            25.31n ±  3%  -25.93% (p=0.002 n=6)
+ChromaSSSE3Dispatch/8x16-4                                                                            49.17n ±  2%                            34.87n ±  2%  -29.10% (p=0.002 n=6)
+ChromaSSSE3Dispatch/8x8Horizontal-4                                                                   33.89n ±  7%                            25.26n ±  1%  -25.48% (p=0.002 n=6)
+ChromaSSSE3Dispatch/8x8Vertical-4                                                                     34.24n ±  6%                            25.59n ±  4%  -25.26% (p=0.002 n=6)
+ChromaSSSE3Dispatch/8x8IntegerControl-4                                                               19.12n ± 41%                            18.95n ±  2%        ~ (p=0.121 n=6)
+ChromaSSSE3Dispatch/8x16IntegerControl-4                                                              25.06n ±  3%                            24.64n ±  2%        ~ (p=0.310 n=6)
+ChromaSSSE3Dispatch/4x8Control-4                                                                      38.39n ±  3%                            38.71n ±  5%        ~ (p=0.699 n=6)
+geomean                                                                                               31.36n                                  25.84n        -17.60%
+
+                                         │ /tmp/h264-parity-target-20261022/chroma-tuned-component-round5-base.txt │ /tmp/h264-parity-target-20261022/chroma-tuned-intra-next.txt │
+                                         │                                  B/op                                   │                 B/op                  vs base                │
+ChromaSSSE3Dispatch/8x4-4                                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x7-4                                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8-4                                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x16-4                                                                            0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8Horizontal-4                                                                   0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8Vertical-4                                                                     0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8IntegerControl-4                                                               0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x16IntegerControl-4                                                              0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/4x8Control-4                                                                      0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                          ²                                         +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                         │ /tmp/h264-parity-target-20261022/chroma-tuned-component-round5-base.txt │ /tmp/h264-parity-target-20261022/chroma-tuned-intra-next.txt │
+                                         │                                allocs/op                                │              allocs/op                vs base                │
+ChromaSSSE3Dispatch/8x4-4                                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x7-4                                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8-4                                                                             0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x16-4                                                                            0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8Horizontal-4                                                                   0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8Vertical-4                                                                     0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x8IntegerControl-4                                                               0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/8x16IntegerControl-4                                                              0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ChromaSSSE3Dispatch/4x8Control-4                                                                      0.000 ± 0%                               0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                          ²                                         +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

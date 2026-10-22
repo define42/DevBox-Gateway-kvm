@@ -1,0 +1,37 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                            │ /tmp/h264-parity-target-20261022/component-round5-base-intra-word.txt │ /tmp/h264-parity-target-20261022/intra-word-next-intra-word.txt │
+                            │                                sec/op                                 │                  sec/op                   vs base               │
+I4WordPredictors/DC-4                                                                 12.825n ±  8%                               7.420n ±  7%  -42.14% (p=0.002 n=6)
+I4WordPredictors/DCAndSAD-4                                                            19.96n ±  4%                               14.88n ± 13%  -25.44% (p=0.002 n=6)
+I4WordPredictors/H-4                                                                  18.300n ±  6%                               5.827n ±  3%  -68.16% (p=0.002 n=6)
+I4WordPredictors/HAndSAD-4                                                             23.25n ±  4%                               13.21n ±  4%  -43.22% (p=0.002 n=6)
+I4WordPredictors/V-4                                                                   9.460n ±  2%                               4.470n ±  4%  -52.76% (p=0.002 n=6)
+I4WordPredictors/VAndSAD-4                                                             16.97n ± 13%                               11.94n ±  4%  -29.64% (p=0.002 n=6)
+geomean                                                                                16.11n                                     8.765n        -45.60%
+
+                            │ /tmp/h264-parity-target-20261022/component-round5-base-intra-word.txt │ /tmp/h264-parity-target-20261022/intra-word-next-intra-word.txt │
+                            │                                 B/op                                  │                  B/op                    vs base                │
+I4WordPredictors/DC-4                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/DCAndSAD-4                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/H-4                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/HAndSAD-4                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/V-4                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/VAndSAD-4                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                           ²                                            +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                            │ /tmp/h264-parity-target-20261022/component-round5-base-intra-word.txt │ /tmp/h264-parity-target-20261022/intra-word-next-intra-word.txt │
+                            │                               allocs/op                               │                allocs/op                 vs base                │
+I4WordPredictors/DC-4                                                                  0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/DCAndSAD-4                                                            0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/H-4                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/HAndSAD-4                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/V-4                                                                   0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+I4WordPredictors/VAndSAD-4                                                             0.000 ± 0%                                  0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                           ²                                            +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

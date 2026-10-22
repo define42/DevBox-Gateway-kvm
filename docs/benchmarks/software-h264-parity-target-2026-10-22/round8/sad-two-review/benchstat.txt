@@ -1,0 +1,157 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                                       │ /tmp/h264-parity-target-20261022/sad-two-review/base.txt │ /tmp/h264-parity-target-20261022/sad-two-review/after.txt │
+                                                       │                          sec/op                          │               sec/op                vs base               │
+InitialPointTwoCandidates/16x16/stride32/mvcWins-4                                                   56.98n ±  6%                         46.35n ± 13%  -18.64% (p=0.002 n=6)
+InitialPointTwoCandidates/16x16/stride32/duplicate-4                                                 41.48n ±  8%                         43.38n ± 10%   +4.58% (p=0.009 n=6)
+InitialPointTwoCandidates/16x16/stride32/fiveMVC-4                                                   117.0n ±  5%                         121.1n ±  9%   +3.46% (p=0.043 n=6)
+InitialPointTwoCandidates/16x16/stride2048/mvcWins-4                                                 68.84n ± 13%                         55.45n ±  2%  -19.46% (p=0.002 n=6)
+InitialPointTwoCandidates/16x16/stride2048/duplicate-4                                               48.11n ±  4%                         50.95n ±  3%   +5.90% (p=0.009 n=6)
+InitialPointTwoCandidates/16x16/stride2048/fiveMVC-4                                                 149.2n ±  2%                         147.2n ±  8%        ~ (p=0.310 n=6)
+InitialPointTwoCandidates/16x8/stride32/mvcWins-4                                                    49.16n ±  5%                         40.53n ± 11%  -17.55% (p=0.002 n=6)
+InitialPointTwoCandidates/16x8/stride32/duplicate-4                                                  37.65n ±  8%                         40.37n ± 15%   +7.24% (p=0.004 n=6)
+InitialPointTwoCandidates/16x8/stride32/fiveMVC-4                                                    105.8n ±  5%                         103.8n ±  1%        ~ (p=0.065 n=6)
+InitialPointTwoCandidates/16x8/stride2048/mvcWins-4                                                  50.48n ±  3%                         40.96n ±  5%  -18.87% (p=0.002 n=6)
+InitialPointTwoCandidates/16x8/stride2048/duplicate-4                                                38.13n ±  7%                         41.26n ±  7%   +8.18% (p=0.002 n=6)
+InitialPointTwoCandidates/16x8/stride2048/fiveMVC-4                                                  106.7n ±  2%                         106.5n ±  3%        ~ (p=0.937 n=6)
+InitialPointTwoCandidates/8x16/stride32/mvcWins-4                                                    56.02n ±  5%                         45.09n ±  3%  -19.52% (p=0.002 n=6)
+InitialPointTwoCandidates/8x16/stride32/duplicate-4                                                  41.34n ±  7%                         42.83n ±  4%   +3.60% (p=0.009 n=6)
+InitialPointTwoCandidates/8x16/stride32/fiveMVC-4                                                    117.1n ±  2%                         117.9n ±  4%        ~ (p=0.177 n=6)
+InitialPointTwoCandidates/8x16/stride2048/mvcWins-4                                                  69.06n ±  2%                         55.38n ±  4%  -19.82% (p=0.002 n=6)
+InitialPointTwoCandidates/8x16/stride2048/duplicate-4                                                50.01n ±  2%                         49.66n ±  4%        ~ (p=0.818 n=6)
+InitialPointTwoCandidates/8x16/stride2048/fiveMVC-4                                                  145.7n ±  9%                         144.3n ±  2%        ~ (p=0.165 n=6)
+InitialPointTwoCandidates/8x8/stride32/mvcWins-4                                                     50.06n ±  5%                         40.52n ±  5%  -19.06% (p=0.002 n=6)
+InitialPointTwoCandidates/8x8/stride32/duplicate-4                                                   38.55n ±  8%                         39.71n ±  2%   +3.01% (p=0.004 n=6)
+InitialPointTwoCandidates/8x8/stride32/fiveMVC-4                                                     103.2n ±  2%                         101.9n ±  2%        ~ (p=0.130 n=6)
+InitialPointTwoCandidates/8x8/stride2048/mvcWins-4                                                   50.49n ±  7%                         40.17n ±  4%  -20.45% (p=0.002 n=6)
+InitialPointTwoCandidates/8x8/stride2048/duplicate-4                                                 38.38n ±  8%                         40.23n ±  3%   +4.81% (p=0.002 n=6)
+InitialPointTwoCandidates/8x8/stride2048/fiveMVC-4                                                   105.0n ±  3%                         104.5n ±  2%        ~ (p=0.567 n=6)
+InitialPointTwoCandidates/8x4/stride32/mvcWins-4                                                     45.54n ±  3%                         37.81n ±  5%  -16.97% (p=0.002 n=6)
+InitialPointTwoCandidates/8x4/stride32/duplicate-4                                                   36.97n ± 10%                         38.39n ±  4%   +3.84% (p=0.002 n=6)
+InitialPointTwoCandidates/8x4/stride32/fiveMVC-4                                                     90.76n ±  5%                         95.81n ± 25%   +5.56% (p=0.009 n=6)
+InitialPointTwoCandidates/8x4/stride2048/mvcWins-4                                                   46.35n ±  7%                         36.64n ±  5%  -20.94% (p=0.002 n=6)
+InitialPointTwoCandidates/8x4/stride2048/duplicate-4                                                 37.01n ± 11%                         38.54n ± 30%   +4.13% (p=0.002 n=6)
+InitialPointTwoCandidates/8x4/stride2048/fiveMVC-4                                                   93.15n ± 25%                         95.24n ±  5%        ~ (p=0.143 n=6)
+InitialPointTwoCandidates/4x4/stride32/mvcWins-4                                                     45.11n ±  4%                         50.00n ±  3%  +10.83% (p=0.002 n=6)
+InitialPointTwoCandidates/4x4/stride32/duplicate-4                                                   35.59n ±  5%                         38.24n ±  1%   +7.44% (p=0.002 n=6)
+InitialPointTwoCandidates/4x4/stride32/fiveMVC-4                                                     94.85n ±  4%                         95.75n ±  6%        ~ (p=0.240 n=6)
+InitialPointTwoCandidates/4x4/stride2048/mvcWins-4                                                   45.55n ±  7%                         50.16n ±  9%  +10.11% (p=0.004 n=6)
+InitialPointTwoCandidates/4x4/stride2048/duplicate-4                                                 35.69n ±  8%                         37.99n ±  4%   +6.45% (p=0.026 n=6)
+InitialPointTwoCandidates/4x4/stride2048/fiveMVC-4                                                   93.29n ±  3%                         93.79n ±  5%        ~ (p=0.818 n=6)
+InitialPointTwoCandidates/4x8/stride32/mvcWins-4                                                     49.05n ±  4%                         53.10n ±  2%   +8.25% (p=0.002 n=6)
+InitialPointTwoCandidates/4x8/stride32/duplicate-4                                                   37.83n ±  7%                         40.16n ±  1%   +6.16% (p=0.002 n=6)
+InitialPointTwoCandidates/4x8/stride32/fiveMVC-4                                                     102.3n ±  6%                         105.0n ±  6%        ~ (p=0.121 n=6)
+InitialPointTwoCandidates/4x8/stride2048/mvcWins-4                                                   51.85n ± 10%                         53.29n ±  4%        ~ (p=0.180 n=6)
+InitialPointTwoCandidates/4x8/stride2048/duplicate-4                                                 39.38n ±  7%                         40.80n ±  7%        ~ (p=0.093 n=6)
+InitialPointTwoCandidates/4x8/stride2048/fiveMVC-4                                                   104.9n ±  6%                         107.5n ± 11%        ~ (p=0.513 n=6)
+InitialPointLocalState/16x16-4                                                                       349.9n ± 13%                         342.0n ± 14%        ~ (p=0.981 n=6)
+InitialPointLocalState/16x8-4                                                                        330.2n ± 16%                         308.4n ± 12%        ~ (p=0.180 n=6)
+InitialPointLocalState/8x16-4                                                                        342.6n ± 17%                         323.5n ± 15%        ~ (p=0.310 n=6)
+InitialPointLocalState/8x8-4                                                                         338.1n ± 15%                         308.9n ± 11%        ~ (p=0.065 n=6)
+geomean                                                                                              70.34n                               68.42n         -2.73%
+
+                                                       │ /tmp/h264-parity-target-20261022/sad-two-review/base.txt │ /tmp/h264-parity-target-20261022/sad-two-review/after.txt │
+                                                       │                           B/op                           │               B/op                 vs base                │
+InitialPointTwoCandidates/16x16/stride32/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride32/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride32/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride2048/mvcWins-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride2048/duplicate-4                                               0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride2048/fiveMVC-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride32/mvcWins-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride32/duplicate-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride32/fiveMVC-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride2048/mvcWins-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride2048/duplicate-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride2048/fiveMVC-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride32/mvcWins-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride32/duplicate-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride32/fiveMVC-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride2048/mvcWins-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride2048/duplicate-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride2048/fiveMVC-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/16x16-4                                                                       192.0 ± 0%                            192.0 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/16x8-4                                                                        192.0 ± 0%                            192.0 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/8x16-4                                                                        192.0 ± 0%                            192.0 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/8x8-4                                                                         192.0 ± 0%                            192.0 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                         ²                                      +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                       │ /tmp/h264-parity-target-20261022/sad-two-review/base.txt │ /tmp/h264-parity-target-20261022/sad-two-review/after.txt │
+                                                       │                        allocs/op                         │             allocs/op              vs base                │
+InitialPointTwoCandidates/16x16/stride32/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride32/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride32/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride2048/mvcWins-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride2048/duplicate-4                                               0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x16/stride2048/fiveMVC-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride32/mvcWins-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride32/duplicate-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride32/fiveMVC-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride2048/mvcWins-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride2048/duplicate-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/16x8/stride2048/fiveMVC-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride32/mvcWins-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride32/duplicate-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride32/fiveMVC-4                                                    0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride2048/mvcWins-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride2048/duplicate-4                                                0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x16/stride2048/fiveMVC-4                                                  0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x8/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/8x4/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x4/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride32/mvcWins-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride32/duplicate-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride32/fiveMVC-4                                                     0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride2048/mvcWins-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride2048/duplicate-4                                                 0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointTwoCandidates/4x8/stride2048/fiveMVC-4                                                   0.000 ± 0%                            0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/16x16-4                                                                       1.000 ± 0%                            1.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/16x8-4                                                                        1.000 ± 0%                            1.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/8x16-4                                                                        1.000 ± 0%                            1.000 ± 0%       ~ (p=1.000 n=6) ¹
+InitialPointLocalState/8x8-4                                                                         1.000 ± 0%                            1.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                         ²                                      +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

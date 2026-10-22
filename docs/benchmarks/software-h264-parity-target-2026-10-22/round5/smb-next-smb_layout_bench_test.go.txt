@@ -1,0 +1,124 @@
+package encoder
+
+import (
+	"fmt"
+	"testing"
+	"unsafe"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+// Use the production initializer so this fixture and its benchmarks compile
+// unchanged with either slice fields or fixed-array-pointer fields in SMB.
+func newSMBLayoutFixture(width, height, layerID int) (*sWelsEncCtx, *SDqLayer, []SMB) {
+	count := width * height
+	ctx := &sWelsEncCtx{
+		pStrideTab:              &SStrideTables{},
+		pMvUnitBlock4x4:         make([]SMVUnitXY, 2*count*16),
+		pRefIndexBlock4x4:       make([]int8, 2*count*4),
+		pSadCostMb:              make([]int32, count),
+		pIntra4x4PredModeBlocks: make([]int8, count*8),
+		pNonZeroCountBlocks:     make([]int8, count*24),
+	}
+	ctx.pStrideTab.pMbIndexX[layerID] = make([]int16, count)
+	ctx.pStrideTab.pMbIndexY[layerID] = make([]int16, count)
+	for i := range count {
+		ctx.pStrideTab.pMbIndexX[layerID][i] = int16(i % width)
+		ctx.pStrideTab.pMbIndexY[layerID][i] = int16(i / width)
+	}
+	blocks := make([]SMB, count)
+	layer := &SDqLayer{iMbWidth: int16(width), iMbHeight: int16(height), sMbDataP: blocks}
+	layer.sSliceEncCtx.iMbNumInFrame = int32(count)
+	layer.sSliceEncCtx.pOverallMbMap = make([]uint16, count)
+	InitMbInfo(ctx, blocks, layer, int32(layerID), int32(count))
+	for i := range blocks {
+		mb := &blocks[i]
+		mb.uiMbType = common.MB_TYPE_16x16
+		if i%3 == 0 {
+			mb.uiMbType = common.MB_TYPE_SKIP
+		}
+		*mb.pSadCost = int32(i*71 + 13)
+		for j := range mb.sMv {
+			mb.sMv[j] = SMVUnitXY{int16((i+j*3)%63 - 31), int16((i*7+j)%31 - 15)}
+		}
+		for j := range mb.pRefIndex {
+			mb.pRefIndex[j] = int8((i + j) % 2)
+		}
+		for j := range mb.pIntra4x4PredMode {
+			mb.pIntra4x4PredMode[j] = int8((i + j) % 9)
+		}
+		for j := range mb.pNonZeroCount {
+			mb.pNonZeroCount[j] = int8((i + j) % 17)
+		}
+	}
+	return ctx, layer, blocks
+}
+
+var smbLayoutBenchmarkSink SMbCache
+
+// Each operation processes an entire macroblock grid. The small grid exposes
+// indexing costs; the 1080p grid also exercises the larger backing-store layout.
+func BenchmarkSMBLayout(b *testing.B) {
+	for _, dimensions := range [][2]int{{3, 3}, {120, 68}} {
+		width, height := dimensions[0], dimensions[1]
+		b.Run(fmt.Sprintf("%dx%d", width, height), func(b *testing.B) {
+			b.Run("NeighborInter", func(b *testing.B) {
+				ctx, _, blocks := newSMBLayoutFixture(width, height, 0)
+				cache := SMbCache{pEncSad: ctx.pSadCostMb}
+				b.ReportAllocs()
+				for b.Loop() {
+					for i := range blocks {
+						cache.iEncSadOff = i
+						FillNeighborCacheInterWithoutBGD(&cache, &blocks[i], int32(width), nil, i)
+					}
+				}
+				smbLayoutBenchmarkSink = cache
+				b.ReportMetric(float64(len(blocks)), "macroblocks/op")
+				b.ReportMetric(float64(unsafe.Sizeof(SMB{})), "bytes/SMB")
+			})
+			b.Run("NeighborIntra", func(b *testing.B) {
+				_, _, blocks := newSMBLayoutFixture(width, height, 0)
+				for i := range blocks {
+					blocks[i].uiMbType = common.MB_TYPE_INTRA4x4
+				}
+				var cache SMbCache
+				b.ReportAllocs()
+				for b.Loop() {
+					for i := range blocks {
+						FillNeighborCacheIntra(&cache, &blocks[i], int32(width))
+					}
+				}
+				smbLayoutBenchmarkSink = cache
+				b.ReportMetric(float64(len(blocks)), "macroblocks/op")
+				b.ReportMetric(float64(unsafe.Sizeof(SMB{})), "bytes/SMB")
+			})
+			b.Run("UpdateMotion16x16", func(b *testing.B) {
+				_, _, blocks := newSMBLayoutFixture(width, height, 0)
+				var cache SMbCache
+				mv := SMVUnitXY{13, -7}
+				b.ReportAllocs()
+				for b.Loop() {
+					for i := range blocks {
+						UpdateP16x16MotionInfo(&cache, &blocks[i], int8(i&1), &mv)
+					}
+				}
+				smbLayoutBenchmarkSink = cache
+				b.ReportMetric(float64(len(blocks)), "macroblocks/op")
+				b.ReportMetric(float64(unsafe.Sizeof(SMB{})), "bytes/SMB")
+			})
+			b.Run("NonZeroCache", func(b *testing.B) {
+				_, _, blocks := newSMBLayoutFixture(width, height, 0)
+				var cache SMbCache
+				b.ReportAllocs()
+				for b.Loop() {
+					for i := range blocks {
+						UpdateNonZeroCountCache(&blocks[i], &cache)
+					}
+				}
+				smbLayoutBenchmarkSink = cache
+				b.ReportMetric(float64(len(blocks)), "macroblocks/op")
+				b.ReportMetric(float64(unsafe.Sizeof(SMB{})), "bytes/SMB")
+			})
+		})
+	}
+}

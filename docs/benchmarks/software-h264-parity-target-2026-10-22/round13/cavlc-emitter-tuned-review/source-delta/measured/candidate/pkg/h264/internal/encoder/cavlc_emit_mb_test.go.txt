@@ -1,0 +1,190 @@
+package encoder
+
+import (
+	"bytes"
+	"fmt"
+	"reflect"
+	"testing"
+	"unsafe"
+)
+
+type cavlcScratchOutcome struct {
+	result int32
+	panic  string
+}
+
+func observeCavlcScratch(call func() int32) (out cavlcScratchOutcome) {
+	defer func() {
+		if p := recover(); p != nil {
+			out.panic = fmt.Sprintf("%T: %v", p, p)
+		}
+	}()
+	out.result = call()
+	return
+}
+
+func sameCavlcScratchState(t *testing.T, got, want *cavlcScratchMbFixture, g, w cavlcScratchOutcome) {
+	t.Helper()
+	if g != w || got.buffer != want.buffer || got.dct != want.dct ||
+		!reflect.DeepEqual(got.cache, want.cache) || !reflect.DeepEqual(got.mb, want.mb) ||
+		got.bits.PStartBuf != want.bits.PStartBuf || got.bits.PEndBuf != want.bits.PEndBuf ||
+		got.bits.IBits != want.bits.IBits || got.bits.IIndex != want.bits.IIndex ||
+		got.bits.PCurBuf != want.bits.PCurBuf || got.bits.UiCurBits != want.bits.UiCurBits ||
+		got.bits.ILeftBits != want.bits.ILeftBits || !bytes.Equal(got.bits.PBuf, want.bits.PBuf) ||
+		cap(got.bits.PBuf) != cap(want.bits.PBuf) {
+		t.Fatalf("macroblock result/partial state differs: got=%+v want=%+v; cursor%d/%d bits%x/%x left%d/%d",
+			g, w, got.bits.PCurBuf, want.bits.PCurBuf, got.bits.UiCurBits, want.bits.UiCurBits, got.bits.ILeftBits, want.bits.ILeftBits)
+	}
+}
+
+func compareCavlcScratchMb(t *testing.T, got, want *cavlcScratchMbFixture, nilWriter bool) (g, w cavlcScratchOutcome) {
+	t.Helper()
+	gb, wb := &got.bits, &want.bits
+	if nilWriter {
+		gb, wb = nil, nil
+	}
+	g = observeCavlcScratch(func() int32 { return WelsWriteMbResidual(&got.funcs, &got.cache, &got.mb, gb) })
+	w = observeCavlcScratch(func() int32 { return cavlcEmitterBaselineMb(&want.funcs, &want.cache, &want.mb, wb) })
+	sameCavlcScratchState(t, got, want, g, w)
+	return
+}
+
+func TestCavlcEmitterMbMacroblockParity(t *testing.T) {
+	for _, tc := range cavlcScratchMbCases {
+		for _, pattern := range []string{"Zero", "Sparse", "Dense", "Mixed"} {
+			for _, prefix := range []int32{0, 1, 17, 31} {
+				t.Run(fmt.Sprintf("%s/%s/prefix%d", tc.name, pattern, prefix), func(t *testing.T) {
+					got, want := newCavlcScratchMbFixture(tc, pattern), newCavlcScratchMbFixture(tc, pattern)
+					got.reset(prefix)
+					want.reset(prefix)
+					g, _ := compareCavlcScratchMb(t, got, want, false)
+					if g.result != ENC_RETURN_SUCCESS || g.panic != "" {
+						t.Fatalf("valid fixture failed: %+v", g)
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestCavlcEmitterMbMacroblockPartialFailures(t *testing.T) {
+	for _, tc := range []cavlcScratchMbCase{cavlcScratchMbCases[0], cavlcScratchMbCases[1], cavlcScratchMbCases[8], cavlcScratchMbCases[9]} {
+		for _, pattern := range []string{"Zero", "Sparse", "Dense", "Mixed"} {
+			for _, scenario := range []string{"nilWriter", "nilDct", "nilBoth", "badNC", "cursorNegative", "cursorMax", "leftNegative", "leftZero", "left33", "leftMax"} {
+				t.Run(fmt.Sprintf("%s/%s/%s", tc.name, pattern, scenario), func(t *testing.T) {
+					got, want := newCavlcScratchMbFixture(tc, pattern), newCavlcScratchMbFixture(tc, pattern)
+					for _, f := range []*cavlcScratchMbFixture{got, want} {
+						f.reset(31)
+						switch scenario {
+						case "nilDct", "nilBoth":
+							f.cache.pDct = nil
+						case "badNC":
+							f.cache.iNonZeroCoeffCount[8], f.cache.iNonZeroCoeffCount[1] = 127, 127
+						case "cursorNegative":
+							f.bits.PCurBuf = -1
+						case "cursorMax":
+							f.bits.PCurBuf = int(^uint(0) >> 1)
+						case "leftNegative":
+							f.bits.ILeftBits = -1
+						case "leftZero":
+							f.bits.ILeftBits = 0
+						case "left33":
+							f.bits.ILeftBits = 33
+						case "leftMax":
+							f.bits.ILeftBits = 1<<31 - 1
+						}
+					}
+					compareCavlcScratchMb(t, got, want, scenario == "nilWriter" || scenario == "nilBoth")
+				})
+			}
+		}
+	}
+	lengths := []int{131, 132, 133, 136, 160, 192}
+	for length := 0; length <= 65; length++ {
+		lengths = append(lengths, length)
+	}
+	for _, length := range lengths {
+		for _, pattern := range []string{"Zero", "Sparse", "Dense", "Mixed"} {
+			got, want := newCavlcScratchMbFixture(cavlcScratchMbCases[9], pattern), newCavlcScratchMbFixture(cavlcScratchMbCases[9], pattern)
+			for _, f := range []*cavlcScratchMbFixture{got, want} {
+				f.reset(31)
+				f.bits.PBuf = f.buffer[:length]
+			}
+			compareCavlcScratchMb(t, got, want, false)
+		}
+	}
+}
+
+func cavlcScratchI16OrderedBlocks(f *cavlcScratchMbFixture) [][]int16 {
+	result := [][]int16{f.dct.iLumaI16x16Dc[:]}
+	for block := range 16 {
+		result = append(result, f.dct.iLumaBlock[block*16:block*16+15])
+	}
+	result = append(result, f.dct.iChromaDc[0][:], f.dct.iChromaDc[1][:])
+	for block := range 8 {
+		result = append(result, f.dct.iChromaBlock[block*16:block*16+15])
+	}
+	return result
+}
+
+func TestCavlcEmitterMbOverflowCommitOrder(t *testing.T) {
+	for block := range 27 {
+		got, want := newCavlcScratchMbFixture(cavlcScratchMbCases[9], "Dense"), newCavlcScratchMbFixture(cavlcScratchMbCases[9], "Dense")
+		for _, f := range []*cavlcScratchMbFixture{got, want} {
+			f.reset(31)
+			coeff := cavlcScratchI16OrderedBlocks(f)[block]
+			clear(coeff)
+			coeff[len(coeff)-1] = 32767
+		}
+		g, _ := compareCavlcScratchMb(t, got, want, false)
+		if g.result != ENC_RETURN_VLCOVERFLOWFOUND || g.panic != "" {
+			t.Fatalf("block%d did not exercise VLC overflow: %+v", block, g)
+		}
+	}
+}
+
+func TestCavlcEmitterMbOutputAliases(t *testing.T) {
+	for _, pattern := range []string{"Zero", "Sparse", "Dense", "Mixed"} {
+		for _, alias := range []string{"coefficients", "counts", "writerState"} {
+			for _, offset := range []int{0, 1, 3} {
+				t.Run(fmt.Sprintf("%s/%s/offset%d", pattern, alias, offset), func(t *testing.T) {
+					got, want := newCavlcScratchMbFixture(cavlcScratchMbCases[9], pattern), newCavlcScratchMbFixture(cavlcScratchMbCases[9], pattern)
+					for _, f := range []*cavlcScratchMbFixture{got, want} {
+						f.reset(31)
+						var buffer []byte
+						switch alias {
+						case "coefficients":
+							buffer = unsafe.Slice((*byte)(unsafe.Pointer(&f.dct)), int(unsafe.Sizeof(f.dct)))
+						case "counts":
+							buffer = unsafe.Slice((*byte)(unsafe.Pointer(&f.cache.iNonZeroCoeffCount[0])), 48)
+						case "writerState":
+							// These are the final contiguous uint32/int32 fields;
+							// no pointer-containing header bytes are overwritten.
+							buffer = unsafe.Slice((*byte)(unsafe.Pointer(&f.bits.UiCurBits)), 8)
+						}
+						f.bits.PBuf = buffer[offset:]
+					}
+					compareCavlcScratchMb(t, got, want, false)
+				})
+			}
+		}
+	}
+}
+
+func TestCavlcEmitterMbUnusedCallbackAndAllocation(t *testing.T) {
+	for _, pattern := range []string{"Zero", "Sparse", "Dense", "Mixed"} {
+		got, want := newCavlcScratchMbFixture(cavlcScratchMbCases[9], pattern), newCavlcScratchMbFixture(cavlcScratchMbCases[9], pattern)
+		for _, f := range []*cavlcScratchMbFixture{got, want} {
+			f.funcs.pfCavlcParamCal = func([]int16, []uint8, []int16, *int32, int32) int32 {
+				panic("the existing direct extractor must not invoke this callback")
+			}
+		}
+		compareCavlcScratchMb(t, got, want, false)
+		if got := testing.AllocsPerRun(100, func() {
+			got.reset(17)
+			WelsWriteMbResidual(nil, &got.cache, &got.mb, &got.bits)
+		}); got != 0 {
+			t.Fatalf("%s allocated %g times", pattern, got)
+		}
+	}
+}

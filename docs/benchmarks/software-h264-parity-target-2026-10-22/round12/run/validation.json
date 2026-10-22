@@ -1,0 +1,318 @@
+[
+  {
+    "name": "go-version",
+    "command": [
+      "/snap/go/current/bin/go",
+      "version"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.004571437835693359,
+    "log": "validation/go-version.txt"
+  },
+  {
+    "name": "host",
+    "command": [
+      "uname",
+      "-a"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.0021409988403320312,
+    "log": "validation/host.txt"
+  },
+  {
+    "name": "native-commit",
+    "command": [
+      "git",
+      "-C",
+      "/home/define42/git/openh264",
+      "rev-parse",
+      "HEAD"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.0038154125213623047,
+    "log": "validation/native-commit.txt"
+  },
+  {
+    "name": "native-dynamic-dependencies",
+    "command": [
+      "readelf",
+      "-d",
+      "/tmp/h264-native-parity-20261021/native_bench"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.0025146007537841797,
+    "log": "validation/native-dynamic-dependencies.txt"
+  },
+  {
+    "name": "ffmpeg-version",
+    "command": [
+      "ffmpeg",
+      "-version"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.080169677734375,
+    "log": "validation/ffmpeg-version.txt"
+  },
+  {
+    "name": "ffprobe-version",
+    "command": [
+      "ffprobe",
+      "-version"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.06178689002990723,
+    "log": "validation/ffprobe-version.txt"
+  },
+  {
+    "name": "gofmt-changed",
+    "command": [
+      "/snap/go/current/bin/gofmt",
+      "-l",
+      "pkg/h264/internal/encoder/get_intra_predictor_simd_amd64.go",
+      "pkg/h264/internal/encoder/intra4_directional_amd64.go",
+      "pkg/h264/internal/encoder/intra4_directional_amd64_test.go",
+      "pkg/h264/internal/encoder/intra4_directional_bench_test.go",
+      "pkg/h264/internal/encoder/intra4_directional_caller_amd64_test.go",
+      "pkg/h264/internal/encoder/intra4_directional_guard_linux_amd64_test.go",
+      "pkg/h264/internal/encoder/intra4_sad_bench_test.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 0.006620883941650391,
+    "log": "validation/gofmt-changed.txt"
+  },
+  {
+    "name": "tests",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-count=1",
+      "./pkg/h264/...",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 29.63463568687439,
+    "log": "validation/tests.txt"
+  },
+  {
+    "name": "race",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-race",
+      "-count=1",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./pkg/h264/internal/processing",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "CGO_ENABLED": "1"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 232.70976161956787,
+    "log": "validation/race.txt"
+  },
+  {
+    "name": "fallback-avx2",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-count=1",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./pkg/h264/internal/processing",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GODEBUG": "cpu.avx2=off"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 19.97216796875,
+    "log": "validation/fallback-avx2.txt"
+  },
+  {
+    "name": "fallback-all",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-count=1",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./pkg/h264/internal/processing",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GODEBUG": "cpu.all=off"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 22.77428650856018,
+    "log": "validation/fallback-all.txt"
+  },
+  {
+    "name": "arm64-common",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/round12-review/bin/arm64-common.test",
+      "./pkg/h264/internal/common"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 1.584120273590088,
+    "log": "validation/arm64-common.txt"
+  },
+  {
+    "name": "arm64-encoder",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/round12-review/bin/arm64-encoder.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 5.5719780921936035,
+    "log": "validation/arm64-encoder.txt"
+  },
+  {
+    "name": "arm64-processing",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/round12-review/bin/arm64-processing.test",
+      "./pkg/h264/internal/processing"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 1.3049731254577637,
+    "log": "validation/arm64-processing.txt"
+  },
+  {
+    "name": "arm64-avc",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/h264-parity-target-20261022/round12-review/bin/arm64-avc.test",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "arm64",
+      "CGO_ENABLED": "0"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 3.353264808654785,
+    "log": "validation/arm64-avc.txt"
+  },
+  {
+    "name": "go-list-amd64",
+    "command": [
+      "/snap/go/current/bin/go",
+      "list",
+      "-json",
+      "./pkg/h264/...",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "amd64"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 0.4246201515197754,
+    "log": "validation/go-list-amd64.txt"
+  },
+  {
+    "name": "gopls-amd64",
+    "command": [
+      "/home/define42/go/bin/gopls",
+      "check",
+      "pkg/h264/internal/encoder/get_intra_predictor_simd_amd64.go",
+      "pkg/h264/internal/encoder/intra4_directional_amd64.go",
+      "pkg/h264/internal/encoder/intra4_directional_amd64_test.go",
+      "pkg/h264/internal/encoder/intra4_directional_bench_test.go",
+      "pkg/h264/internal/encoder/intra4_directional_caller_amd64_test.go",
+      "pkg/h264/internal/encoder/intra4_directional_guard_linux_amd64_test.go",
+      "pkg/h264/internal/encoder/intra4_sad_bench_test.go"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "amd64"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 3.695265293121338,
+    "log": "validation/gopls-amd64.txt"
+  },
+  {
+    "name": "go-list-arm64",
+    "command": [
+      "/snap/go/current/bin/go",
+      "list",
+      "-json",
+      "./pkg/h264/...",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {
+      "GOARCH": "arm64"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 0.3134317398071289,
+    "log": "validation/go-list-arm64.txt"
+  },
+  {
+    "name": "build-comparison",
+    "command": [
+      "/snap/go/current/bin/go",
+      "test",
+      "-c",
+      "-overlay=/tmp/h264-parity-target-20261022/round12-review/overlay.json",
+      "-o",
+      "/tmp/h264-parity-target-20261022/round12-review/bin/current-avc.test",
+      "./internal/rdp/avc"
+    ],
+    "cwd": "/tmp/h264-parity-target-20261022/round12-review/source",
+    "environment_override": {},
+    "exit_code": 0,
+    "elapsed_seconds": 1.8215386867523193,
+    "log": "validation/build-comparison.txt"
+  }
+]

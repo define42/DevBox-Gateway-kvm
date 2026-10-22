@@ -1,0 +1,204 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                     │ /tmp/h264-parity-target-20261022/sad-four-abi-review/base.txt │ /tmp/h264-parity-target-20261022/sad-four-abi-review/after.txt │
+                                     │                            sec/op                             │                 sec/op                   vs base               │
+SampleSadFourRows/16x16/stride32-4                                                      35.57n ± 23%                              36.85n ±  2%        ~ (p=0.394 n=6)
+SampleSadFourRows/16x16/stride2048-4                                                    45.37n ±  8%                              43.27n ±  9%   -4.63% (p=0.041 n=6)
+SampleSadFourRows/16x8/stride32-4                                                       24.93n ±  5%                              23.63n ±  9%   -5.19% (p=0.041 n=6)
+SampleSadFourRows/16x8/stride2048-4                                                     25.79n ±  6%                              24.32n ±  1%   -5.68% (p=0.002 n=6)
+SampleSadFourRows/8x16/stride32-4                                                       31.97n ±  2%                              29.61n ±  2%   -7.37% (p=0.002 n=6)
+SampleSadFourRows/8x16/stride2048-4                                                     41.20n ±  1%                              39.27n ±  4%   -4.70% (p=0.002 n=6)
+SampleSadFourRows/8x8/stride32-4                                                        22.07n ± 15%                              20.47n ± 25%        ~ (p=0.310 n=6)
+SampleSadFourRows/8x8/stride2048-4                                                      22.57n ±  5%                              21.40n ± 10%   -5.20% (p=0.041 n=6)
+SampleSadFourRows/8x4/stride32-4                                                        18.24n ±  3%                              16.39n ±  8%  -10.12% (p=0.004 n=6)
+SampleSadFourRows/8x4/stride2048-4                                                      17.96n ±  2%                              16.56n ±  4%   -7.80% (p=0.002 n=6)
+SampleSadFourRows/4x8/stride32-4                                                        23.84n ±  3%                              22.47n ±  7%   -5.77% (p=0.024 n=6)
+SampleSadFourRows/4x8/stride2048-4                                                      24.12n ±  8%                              23.05n ±  3%   -4.42% (p=0.004 n=6)
+SampleSadFourRows/4x4/stride32-4                                                        19.17n ±  1%                              17.78n ±  3%   -7.22% (p=0.002 n=6)
+SampleSadFourRows/4x4/stride2048-4                                                      19.30n ±  2%                              17.75n ±  7%   -8.05% (p=0.004 n=6)
+geomean                                                                                 25.44n                                    23.98n         -5.75%
+
+                                     │ /tmp/h264-parity-target-20261022/sad-four-abi-review/base.txt │ /tmp/h264-parity-target-20261022/sad-four-abi-review/after.txt │
+                                     │                             B/op                              │                  B/op                   vs base                │
+SampleSadFourRows/16x16/stride32-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride2048-4                                                    0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride32-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride2048-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride32-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride2048-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                            ²                                           +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                     │ /tmp/h264-parity-target-20261022/sad-four-abi-review/base.txt │ /tmp/h264-parity-target-20261022/sad-four-abi-review/after.txt │
+                                     │                           allocs/op                           │               allocs/op                 vs base                │
+SampleSadFourRows/16x16/stride32-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x16/stride2048-4                                                    0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride32-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/16x8/stride2048-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride32-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x16/stride2048-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x8/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/8x4/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x8/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride32-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SampleSadFourRows/4x4/stride2048-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                            ²                                           +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+                                                   │ /tmp/h264-parity-target-20261022/sad-four-abi-review/base.txt │ /tmp/h264-parity-target-20261022/sad-four-abi-review/after.txt │
+                                                   │                            sec/op                             │                  sec/op                   vs base              │
+DiamondSadFourCaller/16x16/stride32/Stationary-4                                                      55.39n ±  2%                               55.16n ±  3%       ~ (p=0.699 n=6)
+DiamondSadFourCaller/16x16/stride32/MoveX3-4                                                          186.4n ±  2%                               184.1n ±  3%       ~ (p=0.199 n=6)
+DiamondSadFourCaller/16x16/stride32/MoveY3-4                                                          184.3n ±  5%                               188.9n ±  8%       ~ (p=0.132 n=6)
+DiamondSadFourCaller/16x16/stride2048/Stationary-4                                                    66.39n ± 11%                               65.16n ±  8%       ~ (p=0.485 n=6)
+DiamondSadFourCaller/16x16/stride2048/MoveX3-4                                                        228.8n ±  6%                               221.0n ±  3%       ~ (p=0.071 n=6)
+DiamondSadFourCaller/16x16/stride2048/MoveY3-4                                                        228.8n ±  8%                               224.0n ±  5%       ~ (p=0.180 n=6)
+DiamondSadFourCaller/16x8/stride32/Stationary-4                                                       44.91n ±  5%                               43.56n ±  1%  -3.00% (p=0.002 n=6)
+DiamondSadFourCaller/16x8/stride32/MoveX3-4                                                           146.6n ±  2%                               141.7n ±  1%  -3.31% (p=0.002 n=6)
+DiamondSadFourCaller/16x8/stride32/MoveY3-4                                                           146.3n ± 13%                               142.2n ±  3%  -2.80% (p=0.011 n=6)
+DiamondSadFourCaller/16x8/stride2048/Stationary-4                                                     46.06n ±  5%                               44.95n ±  2%  -2.41% (p=0.009 n=6)
+DiamondSadFourCaller/16x8/stride2048/MoveX3-4                                                         147.2n ±  2%                               144.4n ±  2%       ~ (p=0.065 n=6)
+DiamondSadFourCaller/16x8/stride2048/MoveY3-4                                                         151.8n ±  4%                               147.6n ±  5%       ~ (p=0.173 n=6)
+DiamondSadFourCaller/8x16/stride32/Stationary-4                                                       51.37n ±  3%                               50.59n ±  2%       ~ (p=0.132 n=6)
+DiamondSadFourCaller/8x16/stride32/MoveX3-4                                                           173.4n ±  5%                               167.4n ±  2%  -3.52% (p=0.015 n=6)
+DiamondSadFourCaller/8x16/stride32/MoveY3-4                                                           173.1n ±  3%                               168.4n ±  3%  -2.71% (p=0.002 n=6)
+DiamondSadFourCaller/8x16/stride2048/Stationary-4                                                     61.66n ±  6%                               60.95n ±  1%       ~ (p=0.065 n=6)
+DiamondSadFourCaller/8x16/stride2048/MoveX3-4                                                         216.5n ±  6%                               211.0n ±  3%       ~ (p=0.065 n=6)
+DiamondSadFourCaller/8x16/stride2048/MoveY3-4                                                         215.1n ±  2%                               203.6n ±  2%  -5.32% (p=0.002 n=6)
+DiamondSadFourCaller/8x8/stride32/Stationary-4                                                        41.67n ±  3%                               40.95n ±  3%  -1.75% (p=0.026 n=6)
+DiamondSadFourCaller/8x8/stride32/MoveX3-4                                                            134.3n ±  2%                               128.6n ±  4%  -4.28% (p=0.004 n=6)
+DiamondSadFourCaller/8x8/stride32/MoveY3-4                                                            135.8n ± 10%                               127.0n ±  3%  -6.45% (p=0.002 n=6)
+DiamondSadFourCaller/8x8/stride2048/Stationary-4                                                      44.15n ±  5%                               42.33n ±  2%  -4.12% (p=0.009 n=6)
+DiamondSadFourCaller/8x8/stride2048/MoveX3-4                                                          140.1n ±  3%                               130.9n ±  4%  -6.57% (p=0.004 n=6)
+DiamondSadFourCaller/8x8/stride2048/MoveY3-4                                                          141.9n ±  2%                               135.8n ±  2%  -4.30% (p=0.002 n=6)
+DiamondSadFourCaller/8x4/stride32/Stationary-4                                                        37.63n ±  6%                               36.44n ±  2%  -3.15% (p=0.004 n=6)
+DiamondSadFourCaller/8x4/stride32/MoveX3-4                                                            120.4n ±  6%                               111.7n ±  2%  -7.27% (p=0.002 n=6)
+DiamondSadFourCaller/8x4/stride32/MoveY3-4                                                            119.5n ±  7%                               113.9n ± 16%       ~ (p=0.065 n=6)
+DiamondSadFourCaller/8x4/stride2048/Stationary-4                                                      38.03n ±  3%                               36.61n ±  2%  -3.73% (p=0.009 n=6)
+DiamondSadFourCaller/8x4/stride2048/MoveX3-4                                                          119.6n ±  3%                               112.7n ±  3%  -5.81% (p=0.002 n=6)
+DiamondSadFourCaller/8x4/stride2048/MoveY3-4                                                          120.1n ±  5%                               114.1n ±  2%  -5.04% (p=0.026 n=6)
+DiamondSadFourCaller/4x8/stride32/Stationary-4                                                        43.33n ±  6%                               43.02n ±  5%       ~ (p=0.859 n=6)
+DiamondSadFourCaller/4x8/stride32/MoveX3-4                                                            139.7n ±  8%                               138.2n ±  3%       ~ (p=0.240 n=6)
+DiamondSadFourCaller/4x8/stride32/MoveY3-4                                                            142.8n ±  3%                               138.2n ± 10%       ~ (p=0.093 n=6)
+DiamondSadFourCaller/4x8/stride2048/Stationary-4                                                      44.75n ±  3%                               43.79n ±  3%       ~ (p=0.065 n=6)
+DiamondSadFourCaller/4x8/stride2048/MoveX3-4                                                          142.7n ±  3%                               139.8n ±  5%       ~ (p=0.255 n=6)
+DiamondSadFourCaller/4x8/stride2048/MoveY3-4                                                          147.2n ±  2%                               142.3n ±  2%  -3.30% (p=0.011 n=6)
+DiamondSadFourCaller/4x4/stride32/Stationary-4                                                        38.34n ±  6%                               37.92n ±  4%       ~ (p=0.102 n=6)
+DiamondSadFourCaller/4x4/stride32/MoveX3-4                                                            121.5n ±  3%                               115.9n ±  2%  -4.57% (p=0.002 n=6)
+DiamondSadFourCaller/4x4/stride32/MoveY3-4                                                            122.5n ±  9%                               119.4n ±  6%       ~ (p=0.100 n=6)
+DiamondSadFourCaller/4x4/stride2048/Stationary-4                                                      38.42n ±  5%                               37.59n ±  5%       ~ (p=0.093 n=6)
+DiamondSadFourCaller/4x4/stride2048/MoveX3-4                                                          121.5n ±  1%                               115.4n ±  8%       ~ (p=0.310 n=6)
+DiamondSadFourCaller/4x4/stride2048/MoveY3-4                                                          121.3n ±  8%                               113.9n ±  6%  -6.10% (p=0.009 n=6)
+geomean                                                                                               101.0n                                     97.81n        -3.13%
+
+                                                   │ /tmp/h264-parity-target-20261022/sad-four-abi-review/base.txt │ /tmp/h264-parity-target-20261022/sad-four-abi-review/after.txt │
+                                                   │                             B/op                              │                  B/op                   vs base                │
+DiamondSadFourCaller/16x16/stride32/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride32/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride32/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride2048/Stationary-4                                                    0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride2048/MoveX3-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride2048/MoveY3-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride32/Stationary-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride32/MoveX3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride32/MoveY3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride2048/Stationary-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride2048/MoveX3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride2048/MoveY3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride32/Stationary-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride32/MoveX3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride32/MoveY3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride2048/Stationary-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride2048/MoveX3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride2048/MoveY3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                          ²                                           +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                   │ /tmp/h264-parity-target-20261022/sad-four-abi-review/base.txt │ /tmp/h264-parity-target-20261022/sad-four-abi-review/after.txt │
+                                                   │                           allocs/op                           │               allocs/op                 vs base                │
+DiamondSadFourCaller/16x16/stride32/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride32/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride32/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride2048/Stationary-4                                                    0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride2048/MoveX3-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x16/stride2048/MoveY3-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride32/Stationary-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride32/MoveX3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride32/MoveY3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride2048/Stationary-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride2048/MoveX3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/16x8/stride2048/MoveY3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride32/Stationary-4                                                       0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride32/MoveX3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride32/MoveY3-4                                                           0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride2048/Stationary-4                                                     0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride2048/MoveX3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x16/stride2048/MoveY3-4                                                         0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x8/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/8x4/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x8/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride32/Stationary-4                                                        0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride32/MoveX3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride32/MoveY3-4                                                            0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride2048/Stationary-4                                                      0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride2048/MoveX3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+DiamondSadFourCaller/4x4/stride2048/MoveY3-4                                                          0.000 ± 0%                                 0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                          ²                                           +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

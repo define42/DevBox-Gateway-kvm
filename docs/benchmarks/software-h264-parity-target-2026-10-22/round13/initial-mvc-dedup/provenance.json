@@ -1,0 +1,41 @@
+{
+  "scope": "Complete initial-search component callers only; no frame or native speed claim",
+  "source_paths": {
+    "base": "/tmp/h264-parity-target-20261022/round12-next",
+    "after": "/tmp/h264-parity-target-20261022/initial-mvc-dedup-next"
+  },
+  "source_digests": {
+    "base": "0570db217a03beeb4fc44bb202081147b24db54fb1debd1f129e898edd192f8b",
+    "after": "3d5fa8e0ffe276e61d1ae565112e160dda44ab7d9d99afe263ff23f6a0cee253"
+  },
+  "input_sha256": {
+    "/tmp/h264-parity-target-20261022/initial-mvc-dedup-measurement.json": "529726b8b3b416d30a80a93caaadfef1f5f4e6956554c5a926ab971b999a83f4",
+    "/tmp/h264-parity-target-20261022/measure_initial_mvc_dedup.py": "629a2a270b36ef04c1d86249408f207a10ae8f6ad5c52431bbecd110c8643304",
+    "/tmp/h264-parity-target-20261022/initial_mvc_dedup_bench_amd64_test.go": "a817d1d4f5ed67d1116e401430b6a805afa1b3d087eec51b0ee526b18426c876",
+    "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/summary.json": "d18678f54d85b038d5756b609dc54e0b9051fb999b33b1f49c66f02a761a5346",
+    "/tmp/h264-parity-target-20261022/initial-mvc-diagnostic-review/provenance.json": "2e089c16b2a347bc6a3d065b2da29ce5dfaa24bdbac66600e432403fb0ee6b27",
+    "/tmp/h264-parity-target-20261022/round12-review/current-sources.sha256": "afc44590421a4dbe77f31bd8238d33b3204456f20ace5a1870ac8341c629da4c",
+    "/tmp/h264-parity-target-20261022/round12-decision.json": "85d076455e2aa76abcd0aa93c61d0c0e892209a154a006cb3300215055b7800c",
+    "/tmp/h264-parity-target-20261022/initial-mvc-dedup-source-manifest.json": "08fa08707815d9dda38dce98d946dc46213260e427d8cc2c84fbcf6a04ff9a44"
+  },
+  "index_sha256_before": "9934f8c8c9d40124c58fb7b8b83d0572158cadf54738fe2c6385b63fbccf0b01",
+  "environment": {
+    "CGO_ENABLED": "0",
+    "GOMAXPROCS": "4",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "GOAMD64": "v1",
+    "GOWORK": "off"
+  },
+  "timing": {
+    "affinity": "2",
+    "repetitions": 6,
+    "benchtime": "200ms",
+    "order": "base/after on odd pairs, after/base on even pairs"
+  },
+  "decision_rule": "Require significant complete-caller benefit with no significant regression in any declared target or control. Any significant increase or all-inconclusive result holds the candidate. Use all six predeclared alternating pairs without pooling, sample exclusions, retiming or further source tuning. Only a component pass may proceed to the existing full stream/decoder/codec/EncodeDamage/native gate; no component result is a frame speedup.",
+  "binary_sha256": {
+    "base": "28ccf70dfe04cc6c2e5d75e5b8b3afb7e42dc4e5bfcb67340e5ca8d24aa59755",
+    "after": "f2fb1925c17bc4188ae1d6158a6f61ebd29aebdbcdea57212bb2765227301269"
+  }
+}

@@ -1,0 +1,8 @@
+//go:build amd64 && integration
+
+package processing
+
+// Candidate-only optional overlay; do not install in the frozen SSE2 baseline.
+func init() {
+	vaaNativeOracleCalls = append(vaaNativeOracleCalls, vaaNativeOracleCall{"AVX2", VAACalcSad_avx2})
+}

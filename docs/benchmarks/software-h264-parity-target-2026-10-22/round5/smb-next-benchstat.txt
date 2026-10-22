@@ -1,0 +1,92 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                     │ /tmp/h264-parity-target-20261022/smb-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/smb-next-smb-next.txt │
+                                     │                               sec/op                                │             sec/op               vs base               │
+InterLumaBookkeeping/Dense/QP20-4                                                             164.5n ±  1%                      172.0n ±  6%        ~ (p=0.071 n=6)
+InterLumaBookkeeping/Motion/QP20-4                                                            167.5n ±  4%                      164.2n ±  6%        ~ (p=0.589 n=6)
+InterLumaBookkeeping/Sparse/QP20-4                                                            157.7n ±  5%                      159.8n ±  2%        ~ (p=0.310 n=6)
+InterLumaBookkeeping/Zero/QP20-4                                                              97.23n ±  8%                      99.00n ± 15%        ~ (p=0.513 n=6)
+InterLumaBookkeeping/Dense/QP32-4                                                             164.6n ±  2%                      165.5n ±  2%        ~ (p=1.000 n=6)
+InterLumaBookkeeping/Motion/QP32-4                                                            164.1n ±  5%                      164.3n ±  2%        ~ (p=1.000 n=6)
+InterLumaBookkeeping/Sparse/QP32-4                                                            112.3n ±  2%                      115.2n ±  3%   +2.54% (p=0.004 n=6)
+InterLumaBookkeeping/Zero/QP32-4                                                              97.10n ±  5%                      97.83n ±  2%        ~ (p=1.000 n=6)
+SMBLayout/3x3/NeighborInter-4                                                                 205.6n ±  6%                      165.5n ±  3%  -19.51% (p=0.002 n=6)
+SMBLayout/3x3/NeighborIntra-4                                                                 91.24n ±  3%                      87.59n ±  9%        ~ (p=0.065 n=6)
+SMBLayout/3x3/UpdateMotion16x16-4                                                             352.9n ±  6%                      321.6n ±  3%   -8.88% (p=0.002 n=6)
+SMBLayout/3x3/NonZeroCache-4                                                                  68.15n ±  3%                      62.69n ±  4%   -8.02% (p=0.002 n=6)
+SMBLayout/120x68/NeighborInter-4                                                              256.2µ ±  1%                      191.2µ ±  5%  -25.37% (p=0.002 n=6)
+SMBLayout/120x68/NeighborIntra-4                                                              113.9µ ±  3%                      102.0µ ±  3%  -10.43% (p=0.002 n=6)
+SMBLayout/120x68/UpdateMotion16x16-4                                                          314.3µ ± 17%                      294.1µ ±  3%        ~ (p=0.310 n=6)
+SMBLayout/120x68/NonZeroCache-4                                                               81.60µ ±  8%                      72.75µ ±  5%  -10.84% (p=0.004 n=6)
+geomean                                                                                       820.3n                            774.3n         -5.61%
+
+                                     │ /tmp/h264-parity-target-20261022/smb-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/smb-next-smb-next.txt │
+                                     │                                B/op                                 │              B/op               vs base                │
+InterLumaBookkeeping/Dense/QP20-4                                                             0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP20-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP20-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP20-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Dense/QP32-4                                                             0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP32-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP32-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP32-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NeighborInter-4                                                                 0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NeighborIntra-4                                                                 0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/UpdateMotion16x16-4                                                             0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NonZeroCache-4                                                                  0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NeighborInter-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NeighborIntra-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/UpdateMotion16x16-4                                                          0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NonZeroCache-4                                                               0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                   +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                     │ /tmp/h264-parity-target-20261022/smb-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/smb-next-smb-next.txt │
+                                     │                              allocs/op                              │           allocs/op             vs base                │
+InterLumaBookkeeping/Dense/QP20-4                                                             0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP20-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP20-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP20-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Dense/QP32-4                                                             0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Motion/QP32-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Sparse/QP32-4                                                            0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+InterLumaBookkeeping/Zero/QP32-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NeighborInter-4                                                                 0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NeighborIntra-4                                                                 0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/UpdateMotion16x16-4                                                             0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NonZeroCache-4                                                                  0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NeighborInter-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NeighborIntra-4                                                              0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/UpdateMotion16x16-4                                                          0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NonZeroCache-4                                                               0.000 ± 0%                         0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                   +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                     │ /tmp/h264-parity-target-20261022/smb-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/smb-next-smb-next.txt │
+                                     │                              bytes/SMB                              │            bytes/SMB             vs base               │
+SMBLayout/3x3/NeighborInter-4                                                                   240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/3x3/NeighborIntra-4                                                                   240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/3x3/UpdateMotion16x16-4                                                               240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/3x3/NonZeroCache-4                                                                    240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/120x68/NeighborInter-4                                                                240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/120x68/NeighborIntra-4                                                                240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/120x68/UpdateMotion16x16-4                                                            240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+SMBLayout/120x68/NonZeroCache-4                                                                 240.0 ± 0%                        176.0 ± 0%  -26.67% (p=0.002 n=6)
+geomean                                                                                         240.0                             176.0       -26.67%
+
+                                     │ /tmp/h264-parity-target-20261022/smb-next-component-round5-base.txt │ /tmp/h264-parity-target-20261022/smb-next-smb-next.txt │
+                                     │                           macroblocks/op                            │         macroblocks/op          vs base                │
+SMBLayout/3x3/NeighborInter-4                                                                   9.000 ± 0%                       9.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NeighborIntra-4                                                                   9.000 ± 0%                       9.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/UpdateMotion16x16-4                                                               9.000 ± 0%                       9.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/3x3/NonZeroCache-4                                                                    9.000 ± 0%                       9.000 ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NeighborInter-4                                                               8.160k ± 0%                      8.160k ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NeighborIntra-4                                                               8.160k ± 0%                      8.160k ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/UpdateMotion16x16-4                                                           8.160k ± 0%                      8.160k ± 0%       ~ (p=1.000 n=6) ¹
+SMBLayout/120x68/NonZeroCache-4                                                                8.160k ± 0%                      8.160k ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                         271.0                            271.0       +0.00%
+¹ all samples are equal

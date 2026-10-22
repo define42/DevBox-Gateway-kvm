@@ -1,0 +1,20 @@
+Remaining native-performance gap after round-seven work
+
+Read the final README/codec-native-benchstat for measured speed ratios. Component improvements alone do not establish native parity. This review preserves encoding settings, byte-identical output and production memory checks.
+
+Measured workload counts (616 encoded frames per case, including 16 warmup; serial one-slice diagnostic; timings discarded):
+road1: CAVLC calls=41,424,464; known-zero=10,500,143 (25.35%); extracted-zero=1,842,404 (4.45%); nonzero=29,081,917.
+road1: initial ME calls=10,025,547; exactly one distinct MVC after current-best duplicate elision=5,895,438 (58.80%). These occur in 16x8, 8x16 and 8x8 partitions, not 16x16.
+pdf1: CAVLC calls=8,217,552; known-zero=2,126,451 (25.88%); extracted-zero=202,783 (2.47%); nonzero=5,888,318.
+pdf1: initial ME calls=1,073,336; exactly one distinct MVC after current-best duplicate elision=448,666 (41.80%). These occur in 16x8, 8x16 and 8x8 partitions, not 16x16.
+
+Next supported targets:
+1. Initial-point search: a checked two-candidate SAD path can share encoded rows in the measured one-distinct-MVC cases. Preserve clipping arithmetic, exact candidate/tie order, cost-table validation, directional callbacks and malformed-input behavior. Use a direct helper/capability flag, not a callback taking a local descriptor pointer. No speedup has been measured yet.
+2. Complete CAVLC sparse/mixed nonzero writing remains slower than native on shared fixtures. Dense small levels are much closer. The matched end14 mixed fixture costs Go 127.31 ns/block versus 97.47 for identical dense occupancy, while native shifts only 93.09 to 98.22; this points to the large-level slow helper. Separate unmeasured prototypes test a 128-level packed table (16 KiB versus 8 KiB) and a packed slow-helper return. L1 pressure makes full-codec verification necessary. Native also has an end3 SIMD extractor while Go uses scalar there; retain as a separate future target. The direct known-zero branch is already near native for some token classes; do not assume another generic flush rewrite is profitable. The bounded-level/run-loop candidate regressed chroma/zero controls and was rejected.
+3. Profile remaining high-level motion/macroblock work with the final binary. The earlier bounds-off diagnostic indicates 5–7% potentially attributable to bounds/control code on one-slice Road/PDF, but it does not justify disabling safety checks and cannot explain the complete native gap.
+
+Integration lesson: a callback receiving *SQuarRefineParams caused thousands of heap allocations per frame. Component benchmarks with setup outside the timer missed this. The repaired direct helper is covered by per-invocation local-parameter and complete MeRefineFracPixel allocation tests/benchmarks; final full-path allocations must return to the prior level.
+
+Diagnostic limitations: snapshot predates the retained zero-writer change and direct batch-call repair, with identical algorithm/output semantics. Only the specified serial fixture is supported; the non-atomic owner check is not a general concurrency guard. Final totals and stream hashes are checked against the final uninstrumented binary. No diagnostic timing is used as performance evidence.
+
+Additional source-supported, unmeasured candidates: WelsEncRecUV can stop scoring AC keep/drop once the decision is irrevocable because quantization and all scan stores already completed; complete-function parity and timing are required. Half-pixel scoring still calls SATD twice per filtered axis; sharing encoded transforms could help, but preserve vertical-score-horizontal callback order and malformed-span behavior. No gain from either is claimed here.

@@ -76,18 +76,21 @@ func writeBlockResidualCavlcScalarExtraction(pFuncList *SWelsFuncPtrList, pCoffL
 	}
 	for i = iTrailingOnes; i < iTotalCoeffs; i++ {
 		value := int32(iLevel[i])
-		var symbol cavlcLevelSymbol
+		var packed uint32
 		if index := uint32(value + cavlcLevelLimit); index < 2*cavlcLevelLimit {
-			symbol = cavlcLevelTable[adjustment][uiSuffixLength][index]
+			// The suffix starts at 0 or 1 and only advances through the table
+			// or escape calculation to values in 0..6. This mask proves the
+			// internal bound without relaxing any input-dependent checks.
+			packed = cavlcLevelTable[adjustment][uiSuffixLength&7][index]
 		} else {
-			var ok bool
-			symbol, ok = cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
+			symbol, ok := cavlcLevelSymbolSlow(value, uiSuffixLength, adjustment != 0)
 			if !ok {
 				return ENC_RETURN_VLCOVERFLOWFOUND
 			}
+			packed = packCavlcLevelSymbol(symbol)
 		}
-		bs.write(int32(symbol.length), int32(symbol.code))
-		uiSuffixLength = int32(symbol.nextSuffix)
+		bs.write(int32((packed>>16)&0xff), int32(packed&0xffff))
+		uiSuffixLength = int32(packed >> 24)
 		adjustment = 0
 	}
 

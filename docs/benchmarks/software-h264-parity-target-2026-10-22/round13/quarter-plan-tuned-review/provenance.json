@@ -1,0 +1,62 @@
+{
+  "scope": "Component gate only; no native, codec/frame, stream, or live RDP claim",
+  "source_paths": {
+    "base": "/tmp/h264-parity-target-20261022/round11",
+    "after": "/tmp/h264-parity-target-20261022/quarter-plan-tuned-next"
+  },
+  "working_paths": {
+    "base": "/tmp/h264-parity-target-20261022/quarter-plan-tuned-review/work/base",
+    "after": "/tmp/h264-parity-target-20261022/quarter-plan-tuned-review/work/after"
+  },
+  "frozen_source_map_sha256": {
+    "base": "c60f1bb69991e68584e2b9512b42acf4a3454c51ec68389da0844825cf95529f",
+    "after": "8f8d9a603b00107ef77a276a7e90e3952ede9490beb14d4212675b09bd873579"
+  },
+  "frozen_source_file_counts": {
+    "base": 1010,
+    "after": 1017
+  },
+  "input_sha256": {
+    "/tmp/h264-parity-target-20261022/measure_quarter_plan_tuned.py": "4743e992caad8063cec30e3b61cfd6437c0cff6fc990a878d84bf7b2342b5bed",
+    "/tmp/h264-parity-target-20261022/round11-sources.sha256": "08c290e150913e99884098980b361a7ae784153659a8dd3d044805c0e795c7e1",
+    "/tmp/h264-parity-target-20261022/quarter-plan-tuned-next-README.txt": "e3ea191260ed937b98395dae818531f81e68f39467a782e9de962cde5e5f829c",
+    "/tmp/h264-parity-target-20261022/quarter_plan_fallback_bench_amd64_test.go": "490fef44f3b3d55308e4adbfedecd6dff56415746c506414b774f04d5bb743f5"
+  },
+  "base_environment": {
+    "CGO_ENABLED": "0",
+    "GOMAXPROCS": "4",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "GOAMD64": "v1",
+    "GOWORK": "off"
+  },
+  "timing": {
+    "repetitions": 6,
+    "cpu_affinity": "2",
+    "benchtime": "200ms",
+    "order": "base/after on odd pairs, after/base on even pairs",
+    "groups": {
+      "BenchmarkMeRefineFracPixelCaller": 28,
+      "BenchmarkQuarterRefineLocalParams": 7,
+      "BenchmarkQuarterPlanFallbackCaller": 12
+    },
+    "case_count_per_run": 47,
+    "warmup": "Go benchmark calibration"
+  },
+  "benchmark_overlay": "The external fallback-only fixture is identical in both working copies; frozen trees stay untouched",
+  "held_original_evidence": {
+    "source_map_sha256": "1ea041b4427a143af820fa73934b7db5e3e5f912c55be3003467800dd86c440e",
+    "files": {
+      "quarter-plan-next-README.txt": "91285e4253fe0f8a325c7cfd05cc6d21dde46a90ea426dd8a7751eaad6a5c4d7",
+      "measure_quarter_plan.py": "efe24afa838bfa23c682214bc2c74377f21698aefc069946142c7fe9c1830903",
+      "quarter-plan-review/summary.json": "1c8fb88c48b5835ea955cd0122575fa8d47e451bb6843d2e4598d59970223431",
+      "quarter-plan-review/benchstat.txt": "47383111eddb228c6bf636ee95858867045c5cc35c535318f74abe6a218ceada",
+      "quarter-plan-review/commands.json": "bb916694c83cfed7ea168e99249bd2b01c7467cccc026c805ef648aec99683e5",
+      "quarter-plan-review/provenance.json": "4b4cd18afa952183996ae07305799b40188af7d95f2e3ef6afaede67cc208379"
+    }
+  },
+  "binary_sha256": {
+    "base": "0c6a12063ed82668209b535e322f375b4f663aad7d43a51803a32786aaebbec2",
+    "after": "b0c0d7c0df18c6096e4e0f82a3b7ceed5e31393f9b697130a71b276fd6fb3781"
+  }
+}

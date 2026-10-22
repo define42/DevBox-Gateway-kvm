@@ -8,12 +8,20 @@ import "unsafe"
 func mcChromaSSE2(src []byte, srcStride int, dst []byte, dstStride, width, height int, weights uint64)
 
 // McChroma_sse2 interpolates the common chroma block widths with a single
-// rounding step, matching McChroma_c. Integer motion retains the copy path.
+// rounding step, matching McChroma_c. Integer motion uses exact-width block copies.
 func McChroma_sse2(src []byte, srcOff int, srcStride int32, dst []byte, dstOff int, dstStride int32, mvX, mvY int16, width, height int32) {
 	if width <= 0 || height <= 0 {
 		return
 	}
-	if (mvX&7 == 0 && mvY&7 == 0) || (width != 2 && width != 4 && width != 8) {
+	if mvX&7 == 0 && mvY&7 == 0 {
+		if height == 16 && (width == 8 || width == 16) {
+			mcCopySSE2(src, srcOff, srcStride, dst, dstOff, dstStride, width, height)
+		} else {
+			McCopy_c(src, srcOff, srcStride, dst, dstOff, dstStride, width, height)
+		}
+		return
+	}
+	if width != 2 && width != 4 && width != 8 {
 		McChroma_c(src, srcOff, srcStride, dst, dstOff, dstStride, mvX, mvY, width, height)
 		return
 	}

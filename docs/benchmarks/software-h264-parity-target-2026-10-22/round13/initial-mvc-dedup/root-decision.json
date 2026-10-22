@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "status": "held",
+  "latest_main_milestone": 12,
+  "counts": {
+    "reduction": 9,
+    "regression": 6,
+    "inconclusive": 19
+  },
+  "cases": [
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique1/mvpWins",
+      "base_median_ns": 62.305,
+      "after_median_ns": 63.345,
+      "median_change_percent": 1.6692079287376593,
+      "outcome": "inconclusive",
+      "p_value": 0.734,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/unique1/mvpWins-4                                                                 62.30n \u00b1  4%                                   63.34n \u00b1  3%        ~ (p=0.734 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique2/mvpWins",
+      "base_median_ns": 111.2,
+      "after_median_ns": 85.285,
+      "median_change_percent": -23.30485611510792,
+      "outcome": "reduction",
+      "p_value": 0.004,
+      "significant_change_percent": -23.3,
+      "benchstat_line": "InitialMVCDedup/stride32/unique2/mvpWins-4                                                                111.20n \u00b1  5%                                   85.28n \u00b1 24%  -23.30% (p=0.004 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique2/laterWins",
+      "base_median_ns": 107.8,
+      "after_median_ns": 83.70500000000001,
+      "median_change_percent": -22.35157699443412,
+      "outcome": "inconclusive",
+      "p_value": 0.065,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/unique2/laterWins-4                                                              107.80n \u00b1  7%                                   83.70n \u00b1 64%        ~ (p=0.065 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique3/mvpWins",
+      "base_median_ns": 123.19999999999999,
+      "after_median_ns": 106.1,
+      "median_change_percent": -13.879870129870131,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -13.88,
+      "benchstat_line": "InitialMVCDedup/stride32/unique3/mvpWins-4                                                                 123.2n \u00b1  9%                                   106.1n \u00b1  8%  -13.88% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique3/laterWins",
+      "base_median_ns": 124.15,
+      "after_median_ns": 104.2,
+      "median_change_percent": -16.069271043093035,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -16.07,
+      "benchstat_line": "InitialMVCDedup/stride32/unique3/laterWins-4                                                               124.2n \u00b1  4%                                   104.2n \u00b1  2%  -16.07% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique4/mvpWins",
+      "base_median_ns": 125.35,
+      "after_median_ns": 120.95,
+      "median_change_percent": -3.510171519744709,
+      "outcome": "reduction",
+      "p_value": 0.004,
+      "significant_change_percent": -3.51,
+      "benchstat_line": "InitialMVCDedup/stride32/unique4/mvpWins-4                                                                 125.3n \u00b1  1%                                   121.0n \u00b1  3%   -3.51% (p=0.004 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique4/laterWins",
+      "base_median_ns": 138.2,
+      "after_median_ns": 125.9,
+      "median_change_percent": -8.900144717800273,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -8.9,
+      "benchstat_line": "InitialMVCDedup/stride32/unique4/laterWins-4                                                               138.2n \u00b1 12%                                   125.9n \u00b1  5%   -8.90% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique5/mvpWins",
+      "base_median_ns": 123.75,
+      "after_median_ns": 145.65,
+      "median_change_percent": 17.6969696969697,
+      "outcome": "regression",
+      "p_value": 0.002,
+      "significant_change_percent": 17.7,
+      "benchstat_line": "InitialMVCDedup/stride32/unique5/mvpWins-4                                                                 123.8n \u00b1  5%                                   145.7n \u00b1  4%  +17.70% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique5/laterWins",
+      "base_median_ns": 141.0,
+      "after_median_ns": 141.9,
+      "median_change_percent": 0.6382978723404209,
+      "outcome": "inconclusive",
+      "p_value": 0.699,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/unique5/laterWins-4                                                               141.0n \u00b1  4%                                   141.9n \u00b1  4%        ~ (p=0.699 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique6/mvpWins",
+      "base_median_ns": 139.55,
+      "after_median_ns": 162.7,
+      "median_change_percent": 16.58903618774632,
+      "outcome": "regression",
+      "p_value": 0.002,
+      "significant_change_percent": 16.59,
+      "benchstat_line": "InitialMVCDedup/stride32/unique6/mvpWins-4                                                                 139.5n \u00b1 10%                                   162.7n \u00b1  4%  +16.59% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/unique6/laterWins",
+      "base_median_ns": 137.2,
+      "after_median_ns": 162.35,
+      "median_change_percent": 18.33090379008746,
+      "outcome": "regression",
+      "p_value": 0.002,
+      "significant_change_percent": 18.33,
+      "benchstat_line": "InitialMVCDedup/stride32/unique6/laterWins-4                                                               137.2n \u00b1  4%                                   162.4n \u00b1  4%  +18.33% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/control/capabilityOff",
+      "base_median_ns": 124.05,
+      "after_median_ns": 123.55000000000001,
+      "median_change_percent": -0.4030632809351009,
+      "outcome": "inconclusive",
+      "p_value": 0.818,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/control/capabilityOff-4                                                           124.0n \u00b1  2%                                   123.6n \u00b1  2%        ~ (p=0.818 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/control/scalar",
+      "base_median_ns": 2140.5,
+      "after_median_ns": 2149.5,
+      "median_change_percent": 0.42046250875964475,
+      "outcome": "inconclusive",
+      "p_value": 0.699,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/control/scalar-4                                                                  2.141\u00b5 \u00b1  3%                                   2.150\u00b5 \u00b1  1%        ~ (p=0.699 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/control/custom",
+      "base_median_ns": 140.14999999999998,
+      "after_median_ns": 136.3,
+      "median_change_percent": -2.7470567249375466,
+      "outcome": "inconclusive",
+      "p_value": 0.619,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/control/custom-4                                                                  140.1n \u00b1  6%                                   136.3n \u00b1  6%        ~ (p=0.619 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/control/count0",
+      "base_median_ns": 37.445,
+      "after_median_ns": 38.03,
+      "median_change_percent": 1.5622913606623046,
+      "outcome": "inconclusive",
+      "p_value": 0.31,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/control/count0-4                                                                  37.45n \u00b1 13%                                   38.03n \u00b1  4%        ~ (p=0.310 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/control/count1",
+      "base_median_ns": 47.519999999999996,
+      "after_median_ns": 49.295,
+      "median_change_percent": 3.7352693602693776,
+      "outcome": "inconclusive",
+      "p_value": 0.132,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/control/count1-4                                                                  47.52n \u00b1  7%                                   49.30n \u00b1  3%        ~ (p=0.132 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride32/control/narrow",
+      "base_median_ns": 99.725,
+      "after_median_ns": 98.38,
+      "median_change_percent": -1.3487089496114324,
+      "outcome": "inconclusive",
+      "p_value": 0.818,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride32/control/narrow-4                                                                  99.72n \u00b1  4%                                   98.38n \u00b1  8%        ~ (p=0.818 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique1/mvpWins",
+      "base_median_ns": 69.745,
+      "after_median_ns": 70.36,
+      "median_change_percent": 0.8817836404043211,
+      "outcome": "inconclusive",
+      "p_value": 0.258,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique1/mvpWins-4                                                               69.74n \u00b1  3%                                   70.36n \u00b1  4%        ~ (p=0.258 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique2/mvpWins",
+      "base_median_ns": 131.64999999999998,
+      "after_median_ns": 100.9,
+      "median_change_percent": -23.35738701101403,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -23.36,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique2/mvpWins-4                                                               131.6n \u00b1  5%                                   100.9n \u00b1  6%  -23.36% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique2/laterWins",
+      "base_median_ns": 131.05,
+      "after_median_ns": 96.795,
+      "median_change_percent": -26.13887829072874,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -26.14,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique2/laterWins-4                                                            131.05n \u00b1  4%                                   96.80n \u00b1  4%  -26.14% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique3/mvpWins",
+      "base_median_ns": 152.65,
+      "after_median_ns": 123.45,
+      "median_change_percent": -19.128725843432694,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -19.13,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique3/mvpWins-4                                                               152.7n \u00b1  2%                                   123.5n \u00b1  3%  -19.13% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique3/laterWins",
+      "base_median_ns": 155.6,
+      "after_median_ns": 121.94999999999999,
+      "median_change_percent": -21.625964010282782,
+      "outcome": "inconclusive",
+      "p_value": 0.065,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique3/laterWins-4                                                             155.6n \u00b1 13%                                   122.0n \u00b1 58%        ~ (p=0.065 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique4/mvpWins",
+      "base_median_ns": 153.0,
+      "after_median_ns": 148.75,
+      "median_change_percent": -2.777777777777779,
+      "outcome": "inconclusive",
+      "p_value": 0.18,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique4/mvpWins-4                                                               153.0n \u00b1  7%                                   148.8n \u00b1 14%        ~ (p=0.180 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique4/laterWins",
+      "base_median_ns": 175.45,
+      "after_median_ns": 150.5,
+      "median_change_percent": -14.220575662581926,
+      "outcome": "reduction",
+      "p_value": 0.002,
+      "significant_change_percent": -14.22,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique4/laterWins-4                                                             175.4n \u00b1  5%                                   150.5n \u00b1  5%  -14.22% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique5/mvpWins",
+      "base_median_ns": 154.85,
+      "after_median_ns": 173.8,
+      "median_change_percent": 12.237649338069101,
+      "outcome": "regression",
+      "p_value": 0.004,
+      "significant_change_percent": 12.24,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique5/mvpWins-4                                                               154.8n \u00b1  8%                                   173.8n \u00b1  4%  +12.24% (p=0.004 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique5/laterWins",
+      "base_median_ns": 178.35,
+      "after_median_ns": 177.2,
+      "median_change_percent": -0.6447995514437976,
+      "outcome": "inconclusive",
+      "p_value": 1.0,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique5/laterWins-4                                                             178.3n \u00b1  7%                                   177.2n \u00b1  2%        ~ (p=1.000 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique6/mvpWins",
+      "base_median_ns": 171.35000000000002,
+      "after_median_ns": 203.64999999999998,
+      "median_change_percent": 18.850306390428926,
+      "outcome": "regression",
+      "p_value": 0.002,
+      "significant_change_percent": 18.85,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique6/mvpWins-4                                                               171.3n \u00b1  7%                                   203.6n \u00b1  3%  +18.85% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/unique6/laterWins",
+      "base_median_ns": 174.3,
+      "after_median_ns": 202.14999999999998,
+      "median_change_percent": 15.978198508318965,
+      "outcome": "regression",
+      "p_value": 0.002,
+      "significant_change_percent": 15.98,
+      "benchstat_line": "InitialMVCDedup/stride2048/unique6/laterWins-4                                                             174.3n \u00b1  4%                                   202.1n \u00b1  5%  +15.98% (p=0.002 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/control/capabilityOff",
+      "base_median_ns": 153.64999999999998,
+      "after_median_ns": 158.7,
+      "median_change_percent": 3.286690530426295,
+      "outcome": "inconclusive",
+      "p_value": 0.394,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/control/capabilityOff-4                                                         153.7n \u00b1 16%                                   158.7n \u00b1  7%        ~ (p=0.394 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/control/scalar",
+      "base_median_ns": 2241.5,
+      "after_median_ns": 2226.5,
+      "median_change_percent": -0.6691947356680772,
+      "outcome": "inconclusive",
+      "p_value": 0.905,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/control/scalar-4                                                                2.242\u00b5 \u00b1  4%                                   2.227\u00b5 \u00b1  9%        ~ (p=0.905 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/control/custom",
+      "base_median_ns": 163.7,
+      "after_median_ns": 165.8,
+      "median_change_percent": 1.282834453268178,
+      "outcome": "inconclusive",
+      "p_value": 0.589,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/control/custom-4                                                                163.7n \u00b1 21%                                   165.8n \u00b1  5%        ~ (p=0.589 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/control/count0",
+      "base_median_ns": 45.155,
+      "after_median_ns": 45.45,
+      "median_change_percent": 0.653305281807115,
+      "outcome": "inconclusive",
+      "p_value": 0.937,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/control/count0-4                                                                45.16n \u00b1 25%                                   45.45n \u00b1  5%        ~ (p=0.937 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/control/count1",
+      "base_median_ns": 57.55,
+      "after_median_ns": 57.3,
+      "median_change_percent": -0.4344048653344923,
+      "outcome": "inconclusive",
+      "p_value": 0.394,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/control/count1-4                                                                57.55n \u00b1  2%                                   57.30n \u00b1  2%        ~ (p=0.394 n=6)"
+    },
+    {
+      "case": "BenchmarkInitialMVCDedup/stride2048/control/narrow",
+      "base_median_ns": 97.66499999999999,
+      "after_median_ns": 96.345,
+      "median_change_percent": -1.3515589003225248,
+      "outcome": "inconclusive",
+      "p_value": 0.394,
+      "significant_change_percent": null,
+      "benchstat_line": "InitialMVCDedup/stride2048/control/narrow-4                                                                97.67n \u00b1 25%                                   96.34n \u00b1  5%        ~ (p=0.394 n=6)"
+    }
+  ],
+  "rationale": "The predeclared complete-caller gate fails: nine significant reductions do not offset six significant regressions. Both five-unique/MVP-wins cases regress12.24\u201317.70%, and all four all-distinct cases regress15.98\u201318.85%. All twelve fallback controls are inconclusive. Keep the candidate out of main; no cutoff tuning or timing repeat follows this one bounded experiment. Diagnostic repeated-SAD counts were real, but removing those evaluations does not guarantee a faster complete search.",
+  "correctness": "Full encoder, all six required focused race tests, full CPU-disabled tests and ARM64 compilation passed. All408 timed samples allocated zero bytes. These are component correctness checks, not a full candidate stream/decoder gate.",
+  "full_frame_gain_demonstrated": false,
+  "native_speed_parity_achieved": false,
+  "source_merged": false,
+  "full_driver_selected": false,
+  "timing_repeats_planned": false,
+  "statistical_caveat": "Benchstat significance is reported without multiplicity correction. Inconclusive does not prove neutral; the unweighted component geomean is not a workload speedup.",
+  "evidence_sha256": {
+    "initial-mvc-dedup-review/summary.json": "b28f1240f194ba977bb00efb3a5f9f951037fabe8b551b2339e7b599a7c2116e",
+    "initial-mvc-dedup-review/benchstat.txt": "ab72bd95b13666812d145dfc4c42c40f50c386f669591220260b5d7d7bf53ca0",
+    "initial-mvc-dedup-review/samples.json": "eecbdbe20604ff7e5c54d4e666d7abb08bb374f592935d4f1c1c156856266e06",
+    "initial-mvc-dedup-review/commands.json": "fea27215b5d9a7e39712eef803f9940e96f92b7300aa91fa578e4b1bd8243b28",
+    "initial-mvc-dedup-review/provenance.json": "186fbf711e953415987da62a5405f5d6e4ed5f433339b6d46b92c6da78375d4c",
+    "initial-mvc-dedup-measurement.json": "529726b8b3b416d30a80a93caaadfef1f5f4e6956554c5a926ab971b999a83f4",
+    "initial-mvc-dedup-source-manifest.json": "08fa08707815d9dda38dce98d946dc46213260e427d8cc2c84fbcf6a04ff9a44"
+  }
+}

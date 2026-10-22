@@ -332,6 +332,9 @@ func WelsInitEncodingFuncs(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32) {
 	pFuncList.pfQuantizationFour4x4Max = WelsQuantFour4x4Max_c
 
 	if uiCpuFlag&common.WELS_CPU_SSE2 != 0 {
+		pFuncList.pfCopy8x16Aligned = common.WelsCopy8x16_sse2
+		pFuncList.pfCopy16x16Aligned = common.WelsCopy16x16_sse2
+		pFuncList.pfCopy16x16NotAligned = common.WelsCopy16x16_sse2
 		pFuncList.pfDctT4 = WelsDctT4_sse2
 		pFuncList.pfDctFourT4 = WelsDctFourT4_sse2
 	}

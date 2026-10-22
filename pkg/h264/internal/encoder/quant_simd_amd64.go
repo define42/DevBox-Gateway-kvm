@@ -2,10 +2,15 @@
 
 package encoder
 
-import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+import (
+	"unsafe"
 
-// The assembly entry points use slices so the Go runtime keeps their backing
-// arrays live for the duration of each call.
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+	"golang.org/x/sys/cpu"
+)
+
+// Slice and typed-pointer assembly arguments keep their backing arrays live
+// for the duration of each call.
 
 //go:noescape
 func quant4x4SSE2(dct []int16, ff []int16, mf []int16)
@@ -21,6 +26,9 @@ func quantFour4x4SSE2(dct []int16, ff []int16, mf []int16)
 
 //go:noescape
 func quantFour4x4MaxSSE2(dct []int16, ff []int16, mf []int16, max []int16)
+
+//go:noescape
+func quantFour4x4MaxAVX2(dct *[64]int16, ff, mf *[8]int16, maxima *[4]int16)
 
 func WelsQuant4x4_sse2(dct []int16, ff []int16, mf []int16) {
 	_ = dct[15]
@@ -46,6 +54,13 @@ func WelsQuantFour4x4Max_sse2(dct []int16, ff []int16, mf []int16, max []int16) 
 	_ = ff[7]
 	_ = mf[7]
 	_ = max[3]
+	// The SSE2 kernel writes each maximum before loading the next block.
+	// Keep that order when maxima can alter later coefficient loads. FF/MF
+	// may alias either output: both kernels snapshot the tables first.
+	if cpu.X86.HasAVX2 && !quantScanRangesOverlap(unsafe.Pointer(&dct[0]), 128, unsafe.Pointer(&max[0]), 8) {
+		quantFour4x4MaxAVX2((*[64]int16)(dct), (*[8]int16)(ff), (*[8]int16)(mf), (*[4]int16)(max))
+		return
+	}
 	quantFour4x4MaxSSE2(dct, ff, mf, max)
 }
 

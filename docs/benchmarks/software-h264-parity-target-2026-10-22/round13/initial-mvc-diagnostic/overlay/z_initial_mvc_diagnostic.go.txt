@@ -1,0 +1,197 @@
+package encoder
+
+// DIAGNOSTIC OVERLAY ONLY: never merge. One serial encoder/layer/thread/slice
+// owns these non-atomic counters. Instrumented timings are not performance data.
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"reflect"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+)
+
+var mvcDiagnosticEnabled = os.Getenv("H264_MVC_UNIQUE_DIAGNOSTIC") == "1"
+var mvcDiagnosticOwner *CWelsH264SVCEncoder
+var mvcDiagnosticActive bool
+var mvcDiagnosticFrames uint64
+var mvcDiagnosticSadPC = reflect.ValueOf(common.WelsSampleSad16x16_sse2).Pointer()
+
+type mvcDiagnosticExclusions struct {
+	OtherBlock      uint64 `json:"other_block"`
+	OtherMVCCount   uint64 `json:"other_mvc_count"`
+	ShortList       uint64 `json:"short_list"`
+	CapabilityOff   uint64 `json:"capability_off"`
+	CustomSad       uint64 `json:"custom_sad"`
+	NegativeStride  uint64 `json:"negative_stride"`
+	EncodedBounds   uint64 `json:"encoded_bounds"`
+	ReferenceBounds uint64 `json:"reference_bounds"`
+	MVDBounds       uint64 `json:"mvd_bounds"`
+}
+
+type mvcDiagnosticCounters struct {
+	Calls               uint64                  `json:"initial_calls"`
+	Eligible            uint64                  `json:"eligible_16x16_five_mvc"`
+	UniqueCounts        [7]uint64               `json:"unique_clipped_mv_histogram"`
+	UniqueSlots         uint64                  `json:"unique_clipped_mv_total"`
+	DuplicateSlots      uint64                  `json:"duplicate_clipped_mv_total"`
+	InitialDuplicates   uint64                  `json:"mvc_slots_equal_initial"`
+	PreflightEligible   uint64                  `json:"preflight_eligible"`
+	PreflightUnique     [7]uint64               `json:"preflight_unique_histogram"`
+	PreflightDuplicates uint64                  `json:"preflight_duplicate_total"`
+	Exclusions          mvcDiagnosticExclusions `json:"short_circuit_exclusions"`
+}
+
+var mvcDiagnosticCounts mvcDiagnosticCounters
+
+func mvcDiagnosticBeginFrame(p *CWelsH264SVCEncoder) {
+	if !mvcDiagnosticEnabled {
+		return
+	}
+	mvcDiagnosticActive = false
+	if p == nil || p.m_pEncContext == nil {
+		return
+	}
+	param := p.m_pEncContext.pSvcParam
+	if param == nil || param.ISpatialLayerNum != 1 || param.IMultipleThreadIdc != 1 || len(param.SSpatialLayers) == 0 {
+		return
+	}
+	slice := param.SSpatialLayers[0].SSliceArgument
+	if slice.UiSliceMode != api.SM_SINGLE_SLICE &&
+		!(slice.UiSliceMode == api.SM_FIXEDSLCNUM_SLICE && slice.UiSliceNum == 1) {
+		return
+	}
+	if mvcDiagnosticOwner == nil {
+		mvcDiagnosticCounts = mvcDiagnosticCounters{}
+		mvcDiagnosticFrames = 0
+		mvcDiagnosticOwner = p
+	} else if mvcDiagnosticOwner != p {
+		return
+	}
+	mvcDiagnosticActive = true
+	mvcDiagnosticFrames++
+}
+
+// This call follows the original initial-MV clipping and reference-offset
+// calculation, before any SAD callback. It changes only diagnostic counters.
+// Every added read is checked; malformed inputs continue to the original code
+// so only the original operation can panic. No cost/pixel is evaluated here.
+func mvcDiagnosticRecord(pSad PSampleSadSatdCostFunc, capability bool, me *SWelsME, slice *SSlice,
+	initial SMVUnitXY, encStride, refStride int32) {
+	if !mvcDiagnosticEnabled || !mvcDiagnosticActive || mvcDiagnosticOwner == nil {
+		return
+	}
+	c := &mvcDiagnosticCounts
+	c.Calls++
+	if me.uiBlockSize != BLOCK_16x16 {
+		c.Exclusions.OtherBlock++
+		return
+	}
+	if slice.uiMvcNum != 5 {
+		c.Exclusions.OtherMVCCount++
+		return
+	}
+	c.Eligible++
+	list := slice.sMvc[:]
+	if len(list) < 5 {
+		c.Exclusions.ShortList++
+		return
+	}
+	var unique [6]SMVUnitXY
+	unique[0] = initial
+	n := 1
+	for _, original := range list[:5] {
+		mv := SMVUnitXY{
+			iMvX: int16(common.WELS_CLIP3((2+int32(original.iMvX))>>2, int32(slice.sMvStartMin.iMvX), int32(slice.sMvStartMax.iMvX))),
+			iMvY: int16(common.WELS_CLIP3((2+int32(original.iMvY))>>2, int32(slice.sMvStartMin.iMvY), int32(slice.sMvStartMax.iMvY))),
+		}
+		if mv == initial {
+			c.InitialDuplicates++
+		}
+		found := false
+		for _, prior := range unique[:n] {
+			if prior == mv {
+				found = true
+				break
+			}
+		}
+		if !found {
+			unique[n] = mv
+			n++
+		}
+	}
+	c.UniqueCounts[n]++
+	c.UniqueSlots += uint64(n)
+	c.DuplicateSlots += uint64(6 - n)
+
+	// Estimate conservative eligibility for a future exact built-in batch. These
+	// exclusions are diagnostic labels, never changes to the encoder's route.
+	if !capability {
+		c.Exclusions.CapabilityOff++
+		return
+	}
+	if pSad == nil || reflect.ValueOf(pSad).Pointer() != mvcDiagnosticSadPC {
+		c.Exclusions.CustomSad++
+		return
+	}
+	if encStride < 0 || refStride < 0 {
+		c.Exclusions.NegativeStride++
+		return
+	}
+	validBlock := func(buf []byte, off int, stride int32) bool {
+		span := int64(15)*int64(stride) + 16
+		return off >= 0 && span <= int64(len(buf)) && int64(off) <= int64(len(buf))-span
+	}
+	if !validBlock(me.pEncMb, me.iEncMbOff, encStride) {
+		c.Exclusions.EncodedBounds++
+		return
+	}
+	for _, mv := range unique[:n] {
+		// Preserve the original int32 multiply/add before conversion to int.
+		off := me.iRefMbOff + int(int32(mv.iMvY)*refStride+int32(mv.iMvX))
+		if !validBlock(me.pRefMb, off, refStride) {
+			c.Exclusions.ReferenceBounds++
+			return
+		}
+	}
+	// Requiring a base offset within the table is conservative for malformed
+	// offset/delta cancellation. It avoids overflow without indexing the table.
+	if me.iMvdCostOff < 0 || me.iMvdCostOff >= len(me.pMvdCost) {
+		c.Exclusions.MVDBounds++
+		return
+	}
+	lo := -int64(me.iMvdCostOff)
+	hi := int64(len(me.pMvdCost)-1) - int64(me.iMvdCostOff)
+	for _, mv := range unique[:n] {
+		dx := int64(int32(mv.iMvX)*4 - int32(me.sMvp.iMvX))
+		dy := int64(int32(mv.iMvY)*4 - int32(me.sMvp.iMvY))
+		if dx < lo || dx > hi || dy < lo || dy > hi {
+			c.Exclusions.MVDBounds++
+			return
+		}
+	}
+	c.PreflightEligible++
+	c.PreflightUnique[n]++
+	c.PreflightDuplicates += uint64(6 - n)
+}
+
+func mvcDiagnosticFinish(p *CWelsH264SVCEncoder) {
+	if !mvcDiagnosticEnabled || mvcDiagnosticOwner != p {
+		return
+	}
+	record := struct {
+		Kind   string                `json:"kind"`
+		Case   string                `json:"case"`
+		Frames uint64                `json:"frames_including_warmup"`
+		Final  bool                  `json:"final"`
+		Counts mvcDiagnosticCounters `json:"counts"`
+	}{"initial_unique_mvc", os.Getenv("COMPARE_CASE"), mvcDiagnosticFrames, true, mvcDiagnosticCounts}
+	if data, err := json.Marshal(record); err == nil {
+		fmt.Fprintf(os.Stderr, "H264_MVC_UNIQUE %s\n", data)
+	}
+	mvcDiagnosticCounts = mvcDiagnosticCounters{}
+	mvcDiagnosticFrames = 0
+	mvcDiagnosticOwner = nil
+	mvcDiagnosticActive = false
+}

@@ -5,10 +5,11 @@ package encoder
 import "golang.org/x/sys/cpu"
 
 // welsDctT4SSE2 computes one 4x4 forward integer transform. All amd64
-// processors supported by Go provide SSE2.
+// processors supported by Go provide SSE2. Typed pointers keep the checked
+// single-block call from passing unused slice lengths and capacities.
 //
 //go:noescape
-func welsDctT4SSE2(dct []int16, pixel1 []byte, stride1 int, pixel2 []byte, stride2 int)
+func welsDctT4SSE2(dct *[16]int16, pixel1 *byte, stride1 int, pixel2 *byte, stride2 int)
 
 //go:noescape
 func welsDctFourT4SSE2(dct []int16, pixel1 []byte, stride1 int, pixel2 []byte, stride2 int)
@@ -28,7 +29,7 @@ func WelsDctT4_sse2(
 	_ = dct[15]
 	checkSampleSIMDBlock(pixel1, pixel1Off, stride1, 4, 4)
 	checkSampleSIMDBlock(pixel2, pixel2Off, stride2, 4, 4)
-	welsDctT4SSE2(dct, pixel1[pixel1Off:], s1, pixel2[pixel2Off:], s2)
+	welsDctT4SSE2((*[16]int16)(dct), &pixel1[pixel1Off], s1, &pixel2[pixel2Off], s2)
 }
 
 // WelsDctFourT4_sse2 computes the four 4x4 transforms in an 8x8 block.
