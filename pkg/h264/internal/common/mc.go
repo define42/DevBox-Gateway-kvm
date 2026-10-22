@@ -351,6 +351,7 @@ func InitMcFunc(pMcFuncs *SMcFunc, uiCpuFlag uint32) {
 	pMcFuncs.PfSampleAveraging = PixelAvg_c
 	pMcFuncs.PMcChromaFunc = McChroma_c
 	pMcFuncs.PMcLumaFunc = McLuma_c
+	pMcFuncs.BRefineAVX2 = false
 
 	if uiCpuFlag&WELS_CPU_SSE2 != 0 {
 		pMcFuncs.PfLumaHalfpelHor = McHorVer20_sse2

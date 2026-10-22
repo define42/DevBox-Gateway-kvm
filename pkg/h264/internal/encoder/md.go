@@ -485,6 +485,9 @@ func meRefineQuarPixelUnfused(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *
 }
 
 func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME, pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) {
+	if meRefineFracPixelFast(pEncCtx, pMemPredInterMb, iMemPredInterMbOff, pMe, pMeRefine, iWidth, iHeight) {
+		return
+	}
 	pFunc := pEncCtx.pFuncList
 	iMvx := pMe.sMv.iMvX
 	iMvy := pMe.sMv.iMvY
