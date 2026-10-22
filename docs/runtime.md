@@ -532,13 +532,32 @@ Fluxbox autostart, place it at `~/.local/bin/devbox-kvm-resize` and add
 
 ## H.264 and hardware encoding
 
-The default software backend is the bundled [OpenH264 port](../pkg/h264).
-AVC420 requires no C compiler, native codec library, or special build tag;
-selected amd64 codec kernels use SIMD with scalar fallbacks.
+With cgo enabled, the software backend is native [OpenH264](https://github.com/cisco/openh264)
+v2.7.0, built from pinned sources with its NASM assembly and linked statically.
+`make devbox-kvm`, `make gateway` and the Docker image build it automatically;
+manual builds run the script once. It needs git, make, a C/C++ compiler and NASM:
+
+```bash
+sudo apt-get install nasm
+tools/build-openh264.sh   # installs third_party/openh264
+go build -o devbox-kvm .
+```
+
+`CGO_ENABLED=0`, or `-tags purego`, selects the bundled pure-Go [OpenH264
+port](../pkg/h264) instead. It requires no C compiler, native codec library or
+build step; selected amd64 kernels use SIMD with scalar fallbacks. The release
+binaries use it.
 
 ```bash
 CGO_ENABLED=0 go build -o devbox-kvm .
 ```
+
+Both backends produce identical streams for full-picture updates. Only the
+pure-Go port uses damage hints to skip unchanged macroblocks; native OpenH264
+analyzes every picture completely. Native is about 1.6x faster for full-screen
+video and 1.3x faster for scrolling, but 2.7-3.4x slower for small desktop
+updates such as a changing widget (about 2-3 ms instead of 0.7-0.9 ms per 1080p
+frame). Encoded sizes are the same.
 
 Follow the [software-only gateway setup](gateway.md#build-without-nvenc) and set
 `H264_ENCODER=software`. All RDP connections still use the gateway UI's downloaded

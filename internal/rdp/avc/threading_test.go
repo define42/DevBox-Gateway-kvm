@@ -37,21 +37,14 @@ func TestOpenH264ProductionPolicy(t *testing.T) {
 	}
 	defer encoder.Close()
 
-	codec, ok := encoder.codec.(*openH264Encoder)
-	if !ok {
-		t.Fatalf("codec type = %T", encoder.codec)
-	}
-	var effective api.SEncParamExt
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &effective); rv != 0 {
-		t.Fatalf("GetOption returned %d", rv)
-	}
-	if got, want := effective.IMultipleThreadIdc, uint16(encoder.Threads()); got != want {
+	effective := softwareSettings(t, encoder)
+	if got, want := effective.threads, encoder.Threads(); got != want {
 		t.Fatalf("codec workers = %d, slices = %d", got, want)
 	}
-	if got := effective.UiIntraPeriod; got != codecIntraPeriod {
+	if got := effective.intraPeriod; got != codecIntraPeriod {
 		t.Fatalf("codec intra period = %d, want %d", got, codecIntraPeriod)
 	}
-	if got := effective.ILoopFilterDisableIdc; got != codecLoopFilterDisableIDC {
+	if got := effective.loopFilterDisableIDC; got != codecLoopFilterDisableIDC {
 		t.Fatalf("codec loop-filter disable IDC = %d, want %d", got, codecLoopFilterDisableIDC)
 	}
 

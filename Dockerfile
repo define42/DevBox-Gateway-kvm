@@ -6,12 +6,16 @@ FROM golang:1.26-trixie AS build
 RUN test "$(dpkg --print-architecture)" = amd64 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        libavcodec-dev libavutil-dev libvirglrenderer-dev libegl-dev libgbm-dev pkg-config \
+        libavcodec-dev libavutil-dev libvirglrenderer-dev libegl-dev libgbm-dev pkg-config nasm \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+# Native OpenH264 with NASM assembly is the image's software H.264 encoder.
+COPY tools/build-openh264.sh ./tools/
+RUN tools/build-openh264.sh
 
 COPY *.go ./
 COPY internal/ ./internal/

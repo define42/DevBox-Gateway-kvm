@@ -33,7 +33,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y qemu-utils util-linux iproute2 ovmf \
-          build-essential binutils gnu-efi dosfstools mtools
+          build-essential binutils gnu-efi dosfstools mtools nasm
         sudo chmod 666 /dev/kvm
 
     - name: Display system information
@@ -142,7 +142,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y ffmpeg pkg-config libavcodec-dev libavutil-dev \
-          libvirglrenderer-dev libegl1 libegl-mesa0 libgl1-mesa-dri
+          libvirglrenderer-dev libegl1 libegl-mesa0 libgl1-mesa-dri nasm
     - name: Build bundled pure-Go AVC without cgo
       env:
         CGO_ENABLED: '0'
@@ -151,6 +151,16 @@ jobs:
       env:
         CGO_ENABLED: '0'
       run: go test -short ./internal/rdp/... ./internal/virgl ./internal/virtio ./internal/vmm ./internal/flag
+    - name: Build native OpenH264 with NASM
+      run: tools/build-openh264.sh
+    - name: Test native OpenH264 software backend
+      env:
+        CGO_ENABLED: '1'
+      run: go test -short ./internal/rdp/...
+    - name: Test pure-Go AVC backend with cgo enabled
+      env:
+        CGO_ENABLED: '1'
+      run: go test -short -tags purego ./internal/rdp/avc
     - name: Build and test optional NVENC/virgl backends without a GPU
       env:
         CGO_ENABLED: '1'

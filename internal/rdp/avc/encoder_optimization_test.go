@@ -1,3 +1,5 @@
+//go:build !cgo || purego
+
 package avc
 
 import (
@@ -12,6 +14,8 @@ import (
 
 // These digests were captured before the second optimization pass. They cover
 // complete access units, including refreshes, slice boundaries and reused input.
+// They pin the pure-Go backend, whose output depends on damage hints; the
+// native backend encodes complete pictures (see openh264_native_test.go).
 func TestEncoderOptimizationBitstreamParity(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

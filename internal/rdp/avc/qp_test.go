@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	openh264 "github.com/define42/DevBox-Gateway-kvm/pkg/h264"
-	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 func TestResolveQP(t *testing.T) {
@@ -222,23 +221,11 @@ func TestQPDamageHintsPreserveDecodedFrames(t *testing.T) {
 
 func checkSoftwareQP(t *testing.T, encoder *Encoder, want int) {
 	t.Helper()
-	codec, ok := encoder.codec.(*openH264Encoder)
-	if !ok {
-		t.Fatalf("codec type = %T, want software", encoder.codec)
-	}
-	var effective api.SEncParamExt
-	var statistics api.SEncoderStatistics
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &effective); rv != 0 {
-		t.Fatalf("read effective settings: %d", rv)
-	}
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_GET_STATISTICS, &statistics); rv != 0 {
-		t.Fatalf("read encoded-frame statistics: %d", rv)
-	}
-	if encoder.QP() != want || effective.SSpatialLayers[0].IDLayerQp != int32(want) ||
-		statistics.UiAverageFrameQP != uint32(want) || statistics.UiInputFrameCount == 0 {
+	effective := softwareSettings(t, encoder)
+	if encoder.QP() != want || effective.layerQP != want ||
+		effective.averageFrameQP != uint32(want) || effective.inputFrames == 0 {
 		t.Fatalf("QP: configured=%d layer=%d actual=%d frames=%d, want %d",
-			encoder.QP(), effective.SSpatialLayers[0].IDLayerQp, statistics.UiAverageFrameQP,
-			statistics.UiInputFrameCount, want)
+			encoder.QP(), effective.layerQP, effective.averageFrameQP, effective.inputFrames, want)
 	}
 }
 

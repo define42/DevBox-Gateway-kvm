@@ -34,15 +34,21 @@ endif
 $(GOPATH)/bin/stringer:
 	$(GO) install golang.org/x/tools/cmd/stringer@latest
 
+# cgo builds link native OpenH264 (NASM assembly) as the software H.264
+# encoder; CGO_ENABLED=0 or -tags purego keeps the bundled pure-Go encoder.
+.PHONY: openh264
+openh264:
+	tools/build-openh264.sh
+
 # Let Go track nested package sources and embedded assets through its build cache.
 .PHONY: devbox-kvm
-devbox-kvm:
+devbox-kvm: openh264
 	$(MAKE) generate
 	$(GO) build -o devbox-kvm .
 
 # Optional guest OpenGL; the ordinary build remains usable with CGO_ENABLED=0.
 .PHONY: devbox-kvm-virgl
-devbox-kvm-virgl: generate
+devbox-kvm-virgl: generate openh264
 	CGO_ENABLED=1 $(GO) build -tags virgl -o devbox-kvm .
 
 golangci-lint:
@@ -54,7 +60,7 @@ generate: $(GOPATH)/bin/stringer
 	$(GO) generate ./...
 
 .PHONY: golangci
-golangci: golangci-lint
+golangci: golangci-lint openh264
 	$(MAKE) generate
 	./golangci-lint run ./...
 	./golangci-lint run --build-tags=integration ./internal/vmm ./internal/machine ./internal/virtio
@@ -71,7 +77,7 @@ test:
 # Count statements reached through other packages as well as package-local tests.
 # Keep all module packages in the denominator, including bundled codec tools.
 .PHONY: coverage
-coverage:
+coverage: openh264
 	# A fresh network namespace starts with loopback down.
 	unshare --user --net --map-root-user \
 		sh -c 'ip link set lo up && exec "$$@"' sh \
@@ -208,7 +214,7 @@ gateway: export LDAP_CA_FILE ?= $(GATEWAY_LDAP_CA)
 ifeq ($(GATEWAY_LDAP_LOCAL),1)
 gateway: ldap
 endif
-gateway: generate
+gateway: generate openh264
 	CGO_ENABLED=1 $(GO) build -tags "$(GATEWAY_BUILD_TAGS)" -o devbox-kvm .
 	@set -eu; mkdir -p -m 700 "$(DATA_ROOT_DIR)"; \
 	if [ -n "$(BASE_IMAGE)" ] && [ ! -e "$(BASE_IMAGE)" ]; then \

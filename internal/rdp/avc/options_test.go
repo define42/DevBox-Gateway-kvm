@@ -5,8 +5,6 @@ import (
 	"image"
 	"slices"
 	"testing"
-
-	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 func TestThreadOptions(t *testing.T) {
@@ -158,18 +156,11 @@ func TestFrameRateTimestampsAndRetry(t *testing.T) {
 
 func checkSoftwareFrameRate(t *testing.T, encoder *Encoder, want int) {
 	t.Helper()
-	codec, ok := encoder.codec.(*openH264Encoder)
-	if !ok {
-		t.Fatalf("codec type = %T, want software", encoder.codec)
-	}
-	var effective api.SEncParamExt
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &effective); rv != 0 {
-		t.Fatalf("GetOption returned %d", rv)
-	}
-	if encoder.FrameRate() != want || effective.FMaxFrameRate != float32(want) ||
-		effective.SSpatialLayers[0].FFrameRate != float32(want) {
+	effective := softwareSettings(t, encoder)
+	if encoder.FrameRate() != want || effective.maxFrameRate != float32(want) ||
+		effective.layerFrameRate != float32(want) {
 		t.Fatalf("frame rates: encoder %d, codec %v, layer %v; want %d",
-			encoder.FrameRate(), effective.FMaxFrameRate, effective.SSpatialLayers[0].FFrameRate, want)
+			encoder.FrameRate(), effective.maxFrameRate, effective.layerFrameRate, want)
 	}
 }
 
@@ -205,4 +196,19 @@ func TestEncodeMeasurements(t *testing.T) {
 			t.Fatal("failed frame retained measurements")
 		}
 	}
+}
+
+// softwareSettings reads the effective configuration of either software backend.
+func softwareSettings(t *testing.T, encoder *Encoder) codecSettings {
+	t.Helper()
+	codec, ok := encoder.codec.(softwareCodec)
+	if !ok {
+		t.Fatalf("codec type = %T, want software", encoder.codec)
+	}
+	settings, err := codec.settings()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return settings
 }

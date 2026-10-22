@@ -385,7 +385,9 @@ contributing code, tests, bug reports, and documentation; see the
 ## License
 
 DevBox-Gateway-kvm is licensed under the [MIT License](LICENSE). The bundled
-OpenH264 port is covered by the [BSD 2-Clause license](LICENSE-OpenH264). The repository also
+OpenH264 port, and native OpenH264 when cgo builds link it, are covered by the
+[BSD 2-Clause license](LICENSE-OpenH264). Cisco's H.264 patent license covers only
+Cisco-distributed OpenH264 binaries, not libraries built from source. The repository also
 retains the [go.264 license notice](LICENSE-go.264). The QCOW2 import reader
 retains its [upstream license notice](internal/qcow2import/LICENSE), and the
 copied gateway UI and LDAP assets retain their upstream license notices.

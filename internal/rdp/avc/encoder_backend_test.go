@@ -162,7 +162,7 @@ func TestEncoderBackendFailure(t *testing.T) {
 				t.Fatal("fallback invalidated a previously returned frame")
 			}
 			checkSoftwareFrameRate(t, encoder, frameRate)
-			if got, want := encoder.codec.(*openH264Encoder).frame.Timestamp, int64(2*1000/frameRate); got != want {
+			if got, want := softwareSettings(t, encoder).lastTimestamp, int64(2*1000/frameRate); got != want {
 				t.Fatalf("fallback timestamp = %d, want %d", got, want)
 			}
 			checkSoftwareFallbackImage(t, data, img)
