@@ -286,6 +286,9 @@ func TestManagerRejectsUnsafeLegacyDiskCapacity(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
+			if test.name == "metadata write" && os.Geteuid() == 0 {
+				t.Skip("requires an unprivileged user to reproduce filesystem permission failures")
+			}
 			manager := newTestManager(t, "graceful")
 			vm := createQCOW2CapacityVM(t, manager, "catalog")
 			if test.name == "missing template" {

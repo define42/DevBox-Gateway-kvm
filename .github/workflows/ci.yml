@@ -67,6 +67,15 @@ jobs:
         GOFLAGS: "-buildvcs=false"
       run: make devbox-kvm
 
+    - name: Run filesystem permission tests as the unprivileged runner
+      env:
+        GOFLAGS: "-buildvcs=false"
+      # The coverage and stability runs use a user namespace mapped to root.
+      run: |
+        test "$(id -u)" -ne 0
+        go test -count=1 -timeout=2m ./internal/gateway \
+          -run '^TestManager(RejectsUnsafeLegacyDiskCapacity|DeleteCleanupFailureDoesNotBlockRestart)$'
+
     - name: Run tests (iteration 1/10 with lint and coverage)
       env:
         GOFLAGS: "-buildvcs=false"
