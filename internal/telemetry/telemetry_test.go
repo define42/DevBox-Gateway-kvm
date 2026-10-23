@@ -8,26 +8,26 @@ import (
 	"time"
 )
 
-func TestCollectorReconnectAndFallback(t *testing.T) {
+func TestCollectorReconnectAndEncoderTransition(t *testing.T) {
 	t.Parallel()
 	collector := New()
 	connection := collector.Connect()
-	connection.Encoded("nvenc", 2*time.Millisecond)
+	connection.Encoded("bitmap", 2*time.Millisecond)
 	connection.Written(3 * time.Millisecond)
 	connection.Sent(100)
 	connection.Acknowledge(20 * time.Millisecond)
 	first := collector.Snapshot()
-	if first.Connections != 1 || first.Encoder != "nvenc" || first.ACKNanos != uint64(20*time.Millisecond) {
+	if first.Connections != 1 || first.Encoder != "bitmap" || first.ACKNanos != uint64(20*time.Millisecond) {
 		t.Fatalf("initial connection gauges: %+v", first)
 	}
 	connection.Encoded("software", 4*time.Millisecond)
 	connection.Sent(200)
 	if got := collector.Snapshot().Encoder; got != "software" {
-		t.Fatalf("fallback backend = %q", got)
+		t.Fatalf("active backend = %q", got)
 	}
 	connection.Close()
 	connection.Close()
-	connection.Encoded("nvenc", time.Second)
+	connection.Encoded("software", time.Second)
 	connection.Written(time.Second)
 	connection.Sent(999)
 	connection.Acknowledge(time.Second)
@@ -68,7 +68,7 @@ func TestCollectorMembershipBoundAndMixedBackend(t *testing.T) {
 	if collector.Connect() != nil {
 		t.Fatal("connection state exceeded bound")
 	}
-	connections[0].Encoded("nvenc", 0)
+	connections[0].Encoded("software", 0)
 	connections[0].Acknowledge(10 * time.Millisecond)
 	connections[1].Acknowledge(30 * time.Millisecond)
 	mixed := collector.Snapshot()
@@ -136,6 +136,7 @@ func TestCollectorDisabledAndInvalidObservations(t *testing.T) {
 	connection = collector.Connect()
 	defer connection.Close()
 	connection.Encoded("unknown", time.Second)
+	connection.Encoded("nvenc", time.Second)
 	connection.Encoded("bitmap", -1)
 	connection.Written(-1)
 	connection.Sent(-1)
@@ -162,6 +163,7 @@ func TestSnapshotValidation(t *testing.T) {
 		{name: "infinite CPU", mutate: func(s *Snapshot) { value := math.Inf(1); s.CPUSeconds = &value }},
 		{name: "oversized CPU", mutate: func(s *Snapshot) { value := 1e13; s.CPUSeconds = &value }},
 		{name: "unknown encoder", mutate: func(s *Snapshot) { s.Encoder = "unknown" }},
+		{name: "removed nvenc", mutate: func(s *Snapshot) { s.Connections, s.Encoder = 1, "nvenc" }},
 		{name: "connection bound", mutate: func(s *Snapshot) { s.Connections = maxConnections + 1 }},
 		{name: "idle backend", mutate: func(s *Snapshot) { s.Encoder = "bitmap" }},
 		{name: "idle ACK", mutate: func(s *Snapshot) { s.ACKNanos = 1 }},

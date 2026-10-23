@@ -7,7 +7,12 @@
 - Module: github.com/define42/DevBox-Gateway-kvm; executable: devbox-kvm.
 - Application entry points are at the repository root. The commands are serve,
   boot, probe, seed, and auth-user; use each command's -help for current flags.
-- Build from the repository root: CGO_ENABLED=0 go build -o devbox-kvm .
+- Default build: make devbox-kvm, or CGO_ENABLED=0 go build -o devbox-kvm .
+  Application builds are static with cgo disabled and use the bundled Go H.264 codec.
+- make docker and its make docker-purego alias use Go H.264 with 2D rendering.
+  Host GPU acceleration and native guest 3D processing are not supported.
+- H264_ENCODER defaults to software. auto is a compatibility alias for software;
+  nvenc is unsupported. Both office and smooth profiles cap H.264 at 30 FPS.
 - Requires Go 1.26.0 or newer. Running guests requires Linux KVM access.
 - This is experimental software, not a production security boundary.
 
@@ -39,7 +44,7 @@
 - [Gateway](docs/gateway.md): authentication, provisioning, cgroups, RDP, and shutdown.
 - [Configuration](docs/configuration.md): environment settings, defaults, and precedence.
 - [Runtime](docs/runtime.md): local boot, networking, guest devices, and graphics.
-- [Docker](docs/docker.md): container setup, devices, volumes, and optional NVENC.
+- [Docker](docs/docker.md): container setup, KVM access, and persistent volumes.
 - [Contributing](CONTRIBUTING.md): first build, focused tests, and contribution checklist.
 - [Development](docs/development.md): architecture, CI, integration tests, and debugging.
 - [Storage isolation](docs/storage-isolation.md): private state and storage constraints.
@@ -54,8 +59,9 @@ Run focused tests before the full make test target; the full suite requires KVM,
 network namespaces, and host tools. make test includes lint, QCOW2/UEFI, and audio
 checks and an 80% repository-wide statement coverage gate. make coverage runs the
 default suite with cross-package instrumentation, retaining all module packages
-in the denominator. Optional NVENC hardware tests need explicit opt-in; compilation alone does
-not verify GPU encoding. Use the development guide for exact commands.
+in the denominator. Application builds and ordinary tests disable cgo; race
+tests enable it for Go's instrumentation. Use the development guide for exact
+commands and optional integration checks.
 
 Do not use live gateway disks as fixtures or publish private state, credentials,
 tokens, or keys. Dated performance reviews and benchmark artifacts describe their

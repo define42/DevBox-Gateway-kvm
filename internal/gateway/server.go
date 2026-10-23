@@ -354,6 +354,8 @@ func backendError(err error) (int, string) {
 			"Stop another desktop or contact your administrator."
 	case errors.Is(err, errMemoryCheck):
 		return http.StatusServiceUnavailable, "Host memory could not be checked. Please contact your administrator."
+	case errors.Is(err, ErrStartupFailed):
+		return http.StatusInternalServerError, "The desktop failed to start. Please contact your administrator."
 	case errors.Is(err, ErrConflict):
 		return http.StatusConflict, "That desktop is busy or has reached a configured limit. Please try again later."
 	case errors.Is(err, ErrInvalid):

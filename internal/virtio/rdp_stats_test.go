@@ -41,12 +41,12 @@ func TestRDPTelemetryWithoutLogs(t *testing.T) {
 	if stats.begin().IsZero() {
 		t.Fatal("managed telemetry did not enable timing independently of logs")
 	}
-	stats.encoded("nvenc", 2*time.Millisecond)
+	stats.encoded("bitmap", 2*time.Millisecond)
 	stats.copied(time.Millisecond)
 	stats.converted(4 * time.Millisecond)
 	stats.written(3 * time.Millisecond)
 	stats.sent(100)
-	stats.captured("nvenc", image.Pt(1280, 720), image.Pt(1280, 720),
+	stats.captured("bitmap", image.Pt(1280, 720), image.Pt(1280, 720),
 		rdp.GraphicsStats{ACKTurnaround: 20 * time.Millisecond})
 	stats.report(1, true)
 	stats.encoded("software", 4*time.Millisecond)
@@ -56,7 +56,7 @@ func TestRDPTelemetryWithoutLogs(t *testing.T) {
 		snapshot.EncodeCount != 2 || snapshot.EncodeNanos != uint64(6*time.Millisecond) ||
 		snapshot.WriteCount != 1 || snapshot.WriteNanos != uint64(3*time.Millisecond) ||
 		snapshot.ACKNanos != uint64(20*time.Millisecond) {
-		t.Fatalf("managed telemetry lost measurements or fallback: %+v", snapshot)
+		t.Fatalf("managed telemetry lost measurements or encoder transitions: %+v", snapshot)
 	}
 	if stats.enabled || stats.frames != 0 {
 		t.Fatal("telemetry enabled log output or local log counters")
@@ -121,7 +121,7 @@ func TestRDPStatsDisabled(t *testing.T) {
 	}
 	stats.waiting(true, time.Time{})
 	stats.captured(
-		"nvenc",
+		"bitmap",
 		image.Pt(1280, 720),
 		image.Pt(1024, 768),
 		rdp.GraphicsStats{FrameInterval: time.Second / 60, ACKTurnaround: time.Millisecond},
@@ -155,12 +155,12 @@ func TestRDPStatsCaptureTracksBackendAndGeometryChanges(t *testing.T) {
 	t.Parallel()
 	stats := rdpFrameStats{enabled: true}
 	stats.captured(
-		"nvenc",
+		"bitmap",
 		image.Pt(1280, 720),
 		image.Pt(1024, 768),
 		rdp.GraphicsStats{FrameInterval: 20 * time.Millisecond, ACKTurnaround: 10 * time.Millisecond},
 	)
-	// A fallback and resize update the reported configuration while pacing
+	// A switch to H.264 and resize update the reported configuration while pacing
 	// retains both samples for the reporting window.
 	stats.captured(
 		"software",
@@ -170,7 +170,7 @@ func TestRDPStatsCaptureTracksBackendAndGeometryChanges(t *testing.T) {
 	)
 	if stats.encoder != "software" ||
 		stats.source != image.Pt(1920, 1080) || stats.output != image.Pt(1280, 720) {
-		t.Fatalf("stale encoder or geometry after fallback/resize: %+v", stats)
+		t.Fatalf("stale encoder or geometry after encoder change/resize: %+v", stats)
 	}
 	if got := stats.pacing.String(); got != "30.00/40.00ms" {
 		t.Fatalf("pacing avg/max = %s, want 30.00/40.00ms", got)

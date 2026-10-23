@@ -14,10 +14,9 @@ for host requirements and the project overview.
 The example uses matching OVMF CODE/VARS files, Docker with the Compose plugin,
 and OpenSSL. Image imports use the built-in Go QCOW2 normalizer.
 No desktop image is required at startup. The `make gateway` target builds with
-cgo and the `nvenc` tag, so it also requires a C compiler, `pkg-config`, and
-FFmpeg development libraries
-(`libavcodec-dev` and `libavutil-dev` on Debian/Ubuntu). Its default encoder is
-`auto`: NVIDIA encoding is used when available, with software fallback.
+the bundled pure Go H.264 encoder and requires no C compiler or native codec SDK.
+The default encoder setting is `software`; `auto` remains a compatibility alias
+for the same Go encoder.
 
 ```bash
 make gateway
@@ -76,13 +75,12 @@ Make helper still uses `qemu-img` from `qemu-utils` to prepare the default image
 Without `GATEWAY_IMAGE`, the gateway uses only its uploaded catalog and needs no
 external conversion tool.
 
-### Build without NVENC
+### Run the gateway directly
 
-To use the bundled software encoder without a C compiler or native codec
-libraries, build directly and start LDAP separately:
+To build the application and start LDAP separately:
 
 ```bash
-CGO_ENABLED=0 go build -o devbox-kvm .
+make devbox-kvm
 make ldap
 H264_ENCODER=software \
 LDAP_URL=ldaps://127.0.0.1:1636 LDAP_BASE_DN=dc=glauth,dc=com \
@@ -96,10 +94,8 @@ ADMIN_GROUP=devbox-admins LDAP_CA_FILE=./testldap/.tls/cert.pem \
 Open the same **https://localhost:8443** page and use the demo accounts above.
 Sign in as `administrator` to upload the first template if the catalog is empty.
 The default OVMF paths must exist; set `UEFI_CODE` and `UEFI_VARS_TEMPLATE` if
-needed. Catalog imports, including compressed QCOW2 images, work in this
-cgo-free build. `H264_ENCODER=auto` also uses software encoding
-when the binary has no NVENC support. `make gateway` always rebuilds the NVENC
-target, so use the direct `serve` command to keep this build.
+needed. `CGO_ENABLED=0 go build -o devbox-kvm .` is also supported; catalog
+imports, including compressed QCOW2 images, work in that build too.
 As with `make gateway`, configure the [required VM cgroup delegation](#serve-options)
 and pass `VM_CGROUP_ROOT` when launching `serve` before trying to start desktops.
 
@@ -155,7 +151,7 @@ not overlaid on the native RDP session.
 | Host resident memory | RAM resident in the VM process, not the guest's used/free RAM. Configured guest memory is shown separately. |
 | RDP download / upload | VM → client and client → VM traffic over the measured sampling interval, in decimal Mbps (1 Mbps = 1,000,000 bits/s). |
 | Data sent / received | Cumulative VM → client and client → VM bytes since this VM process started, displayed as B, KiB, MiB, GiB, or TiB. |
-| Encoder | The active encoding backend: software, NVIDIA NVENC, or bitmap fallback. No active connection means no active encoder. |
+| Encoder | The active encoding backend: pure Go software H.264 or bitmap fallback. No active connection means no active encoder. |
 | Frames sent / sent FPS | Successful server frame sends since this VM process started, and the recent send rate. These are not frames displayed by the client; an idle screen can correctly show zero FPS. |
 | Encoding | Average H.264 codec time during the latest sample interval; excludes capture and color conversion. Unavailable for bitmap-only intervals. |
 | Transport write | Average time writing graphics data to the local RDP transport during the latest sample interval. Can include backpressure; it is not end-to-end network latency. |
@@ -231,24 +227,23 @@ own VMs.
 Use TLS in the RDP client; NLA/CredSSP is not supported. Clients must send the
 entered password in the TLS-protected Client Info packet. The guest console accepts
 one RDP connection at a time. Managed VMs enable H.264, with bitmap fallback for
-clients without AVC420 support. The default `RDP_PROFILE=office` caps graphics at
-30 FPS to reduce shared-host encoding cost; select `RDP_PROFILE=smooth` (or
-`serve -rdp-profile smooth`) for a 60 FPS AVC420 cap. Bitmap fallback stays at
-30 FPS with either profile. The cap is applied before copying the framebuffer for
+clients without AVC420 support. The default `RDP_PROFILE=office` and
+`RDP_PROFILE=smooth` (or `serve -rdp-profile smooth`) both cap AVC420 graphics at
+30 FPS and currently behave identically. Bitmap fallback also stays at 30 FPS.
+The cap is applied before copying the framebuffer for
 encoding, converting colors, and invoking the full-picture H.264 codec.
 Changes between frames are coalesced without losing pending damage; idle screens
 are not encoded. This controls graphics only, not input, cursor updates, or audio.
 
 `H264_QP` (or `serve -h264-qp`) sets H.264 quantization: default `20`, minimum `0`,
 maximum `51`, inclusive. Lower values improve quality and increase traffic;
-higher values compress more and reduce quality. The same value applies to
-software and NVENC, including automatic fallback. QP does not impose a guaranteed
+higher values compress more and reduce quality. QP does not impose a guaranteed
 Mbps cap, and even QP `0` retains AVC420 chroma subsampling. Restart the gateway
 and start new VM processes to apply a change; see the
 [configuration reference](configuration.md#storage-and-desktops).
 
 Four continuously changing AVC420 sessions target at most 120 encoded frames per second
-with `office`, instead of 240 with `smooth`. These are workload caps, not measured
+with either `office` or `smooth`. These are workload caps, not measured
 throughput or guarantees of session density; CPU, resolution, content, and the
 selected encoder still determine actual performance. See the
 [runtime profile reference](runtime.md#rdp-graphics-profiles) for details.

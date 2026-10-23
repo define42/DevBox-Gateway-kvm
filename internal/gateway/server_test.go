@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -255,5 +256,50 @@ func TestRDPRechecksOwnerAfterDownload(t *testing.T) {
 	defer backend.mu.Unlock()
 	if len(backend.calls) != 0 {
 		t.Fatal("ownership check occurred after backend resolution")
+	}
+}
+
+func TestBackendErrorDistinguishesStartupFailureFromConflict(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		err     error
+		status  int
+		message string
+	}{
+		{
+			name:    "startup failure",
+			err:     ErrStartupFailed,
+			status:  http.StatusInternalServerError,
+			message: "The desktop failed to start. Please contact your administrator.",
+		},
+		{
+			name: "wrapped startup failure with private diagnostics",
+			err: fmt.Errorf("desktop process exited during startup: %w", errors.Join(
+				ErrStartupFailed, fmt.Errorf("driver initialization failed at /private/driver/path: %w", io.ErrUnexpectedEOF),
+			)),
+			status:  http.StatusInternalServerError,
+			message: "The desktop failed to start. Please contact your administrator.",
+		},
+		{
+			name:    "busy desktop",
+			err:     ErrConflict,
+			status:  http.StatusConflict,
+			message: "That desktop is busy or has reached a configured limit. Please try again later.",
+		},
+		{
+			name:    "running desktop limit",
+			err:     fmt.Errorf("running desktop limit reached: %w", ErrConflict),
+			status:  http.StatusConflict,
+			message: "That desktop is busy or has reached a configured limit. Please try again later.",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			status, message := backendError(tc.err)
+			if status != tc.status || message != tc.message {
+				t.Fatalf("backendError() = (%d, %q), want (%d, %q)", status, message, tc.status, tc.message)
+			}
+		})
 	}
 }

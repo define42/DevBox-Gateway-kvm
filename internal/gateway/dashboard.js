@@ -17,7 +17,7 @@
       stale: ["Stale", "warning", "The last sample is out of date. Measurements are hidden until a fresh sample arrives."],
       unavailable: ["Unavailable", "secondary", "Performance measurements are unavailable. This panel will retry automatically."],
     };
-    const encoders = { "": "Not active", bitmap: "Bitmap", software: "Software H.264", nvenc: "NVIDIA NVENC", mixed: "Mixed" };
+    const encoders = { "": "Not active", bitmap: "Bitmap", software: "Pure Go H.264", mixed: "Mixed" };
     const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
     const bandwidthNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 });
     let selected = null;

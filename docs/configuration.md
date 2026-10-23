@@ -51,15 +51,14 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `DATA_ROOT_DIR` | `.devbox-kvm-gateway` | `-state` | Private persistent state directory. |
 | `BASE_IMAGE` | Empty | `-image` | Optional immutable standalone uncompressed QCOW2 default template. Omit to use administrator uploads. |
 | `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
-| `VM_GPU_3D` | `false` | `-gpu-3d` | Enable guest OpenGL via virglrenderer; requires a `virgl` build and host EGL. `false` retains the 2D device without initializing a renderer. Applies when each VM starts. |
 | `VM_NETWORK_POLICY` | `internet` | `-vm-network-policy` | Managed IPv4 TCP/UDP access: `internet` permits public destinations, while `allowlist` permits only explicit CIDRs. Visible host interface subnets, private and special ranges require an exception. DHCP/DNS remain available; see [networking](runtime.md#networking) for routed/NAT LAN limits. |
 | `VM_NETWORK_ALLOW_CIDRS` | Empty | `-vm-network-allow-cidrs` | Up to 64 comma-separated canonical IPv4 CIDRs allowed in addition to the policy. No `/0` or IPv6. Applies to newly started workers; host alias access requires `127.0.0.1/32`. See [networking](runtime.md#networking). |
 | `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
-| `H264_ENCODER` | `auto` | `-encoder` | `auto`, `nvenc`, or `software`. |
+| `H264_ENCODER` | `software` | `-encoder` | Bundled pure Go H.264. `auto` is a compatibility alias for `software`; other values are rejected. |
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
-| `H264_SLICES` | `1` | `-h264-slices` | Requested software H.264 slices: `1`, `2`, or `4`. The worker CPU budget and picture size can reduce the count. NVENC ignores it; software fallback uses it. Applies when a managed VM starts. |
-| `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` (30 FPS) or `smooth` (60 FPS); bitmap fallback stays at 30 FPS. Applies when a managed VM starts. |
+| `H264_SLICES` | `1` | `-h264-slices` | Requested Go H.264 slices: `1`, `2`, or `4`. The worker CPU budget and picture size can reduce the count. Applies when a managed VM starts. |
+| `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` or `smooth`, both 30 FPS with identical behavior; bitmap fallback also stays at 30 FPS. Applies when a managed VM starts. |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
 | `VM_VCPU_COUNT` | `2` | `-cpus` | vCPUs per desktop, from 1 to 64. |
@@ -77,22 +76,22 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Guest ACPI shutdown wait; a dashboard stop timeout leaves the guest running. Gateway exit also has separate forced-termination and host-cleanup waits. |
 
-Set `VM_GPU_3D=false` to disable guest 3D. After changing it, restart the gateway
-and start new VM workers; reconnecting RDP or rebooting within a running guest
-does not apply a gateway configuration change. See [guest graphics](runtime.md#guest-graphics)
-for builds, host/guest requirements, and renderer verification.
+Guest graphics use the pure Go 2D virtio-gpu framebuffer. No host GPU settings
+or native graphics libraries are required.
 
-`H264_QP` is shared by software and NVENC encoding, including automatic fallback.
-Zero is valid and selects the highest supported quality; AVC420 still uses chroma
-subsampling, so it does not promise lossless RGB. QP controls compression, not a
+`H264_QP` configures the bundled Go encoder. Zero is valid and selects the highest
+supported quality; AVC420 still uses chroma subsampling, so it does not promise lossless RGB. QP controls compression, not a
 guaranteed Mbps limit. Set `H264_QP=28` in Compose's `.env`, or run
-`H264_QP=28 make nvidia`. Recreate/restart the gateway and start new VM processes
+`H264_QP=28 make docker`. Recreate/restart the gateway and start new VM processes
 to apply the change; reconnecting RDP does not apply it.
 
-Set `H264_SLICES=2` (or `serve -h264-slices=2`) to try parallel software encoding.
-The default remains `1`. More slices can lower frame encoding latency while
-using more CPU concurrently and producing larger frames; compare concurrent
-desktops before choosing `4`. The cap subtracts the configured guest CPUs and
+Every build uses the bundled Go codec with cgo disabled. No codec build selector
+or native codec SDK is needed.
+
+Set `H264_SLICES=2` (or `serve -h264-slices=2`) to try parallel encoding
+with the bundled Go codec. The default remains `1`. More slices can lower frame
+encoding latency while using more CPU concurrently and producing larger frames;
+compare concurrent desktops before choosing `4`. The cap subtracts the configured guest CPUs and
 one additional CPU from the worker's Go execution budget, allowing at least one
 slice. For example, a budget of four with two guest CPUs permits only one slice.
 This is a per-worker cap, not a CPU reservation across VMs.

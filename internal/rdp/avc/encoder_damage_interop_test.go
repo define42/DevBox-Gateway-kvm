@@ -63,8 +63,8 @@ func damageInteropFrames(t *testing.T, threads, width, height int) ([]byte, [][]
 		t.Fatal(err)
 	}
 	defer encoder.Close()
-	if encoder.Threads() != threads {
-		t.Fatalf("effective slices = %d, want %d", encoder.Threads(), threads)
+	if want := expectedSoftwareSlices(threads); encoder.Threads() != want {
+		t.Fatalf("effective slices = %d, want %d", encoder.Threads(), want)
 	}
 
 	// A subimage also exercises nonzero origins and padding in the RGBA stride.

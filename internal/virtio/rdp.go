@@ -34,7 +34,7 @@ const rdpResizeDelay = 150 * time.Millisecond
 
 var (
 	errRDPQP              = errors.New("rdp: H.264 QP must be between 0 and 51 and requires H.264")
-	errRDPEncoder         = errors.New("rdp: H.264 encoder must be software, nvenc, or auto and requires H.264")
+	errRDPEncoder         = errors.New("rdp: H.264 encoder must be software or auto and requires H.264")
 	errRDPListener        = errors.New("rdp: an inherited abstract Unix listener is required")
 	errRDPGatewayIdentity = errors.New("rdp: a valid gateway process identity is required")
 	errRDPGatewayParent   = errors.New("rdp: gateway parent identity changed")
@@ -53,7 +53,7 @@ type RDPConfig struct {
 	H264        bool
 	H264Encoder string // Empty selects the software encoder.
 	H264QP      *int   // Nil selects QP 20; 0..51, with lower values using more bandwidth for higher quality.
-	Profile     string // office (30 FPS) or smooth (60 FPS); empty selects smooth.
+	Profile     string // office or smooth (30 FPS); empty retains the standalone 60-FPS default.
 	Audio       bool
 	H264Threads int // Slice request; zero chooses a bounded automatic count.
 	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
@@ -109,14 +109,14 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 	}
 	backend := avc.Backend(options.H264Encoder)
 	switch backend {
-	case "", avc.BackendSoftware, avc.BackendNVENC, avc.BackendAuto:
+	case "", avc.BackendSoftware, avc.BackendAuto:
 	default:
 		return nil, errRDPEncoder
 	}
 	if backend != "" && !options.H264 {
 		return nil, errRDPEncoder
 	}
-	if backend == "" {
+	if backend == "" || backend == avc.BackendAuto {
 		backend = avc.BackendSoftware
 	}
 	if options.H264Threads < 0 || options.H264Threads > avc.MaxThreads ||
@@ -151,9 +151,6 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 			return nil, err
 		}
 		log.Printf("rdp: H.264 encoder=%s requested=%s max_fps=%d qp=%d", encoder.Backend(), backend, frameRate, qp)
-		if reason := encoder.FallbackReason(); reason != nil {
-			log.Printf("rdp: H.264 using software fallback: %v", reason)
-		}
 		encoder.Close()
 	}
 	config := options.TLS
@@ -833,10 +830,9 @@ func (w *rdpFrameWriter) write(frame displayFrame, damage []image.Rectangle, for
 		return false, err
 	}
 	force = force || created
-	previousBackend := w.avc.Backend()
 	data, err := w.avc.EncodeDamage(img, damage, force)
 
-	return w.writeAVC(data, err, previousBackend, img.Bounds(), damage, force)
+	return w.writeAVC(data, err, img.Bounds(), damage, force)
 }
 
 // ensureAVC initializes outside the framebuffer lock. New encoders need every
@@ -862,9 +858,6 @@ func (w *rdpFrameWriter) ensureAVC() (bool, error) {
 		encoder.FrameRate(),
 		encoder.QP(),
 	)
-	if reason := encoder.FallbackReason(); reason != nil {
-		log.Printf("rdp: client %s H.264 using software fallback: %v", w.stats.peer, reason)
-	}
 
 	return true, nil
 }
@@ -896,27 +889,17 @@ func (w *rdpFrameWriter) writeGraphics(display *framebuffer) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	previousBackend := w.avc.Backend()
 	// captureAVC has released the publication lock; encoding and socket writes
 	// only read viewer-owned I420, so guest flushes can continue independently.
 	data, err := w.avc.EncodePrepared()
 	source := image.Rect(0, 0, w.frame.width, w.frame.height)
 
-	return w.writeAVC(data, err, previousBackend, source, damage, force)
+	return w.writeAVC(data, err, source, damage, force)
 }
 
 func (w *rdpFrameWriter) writeAVC(
-	data []byte, err error, previousBackend avc.Backend, source image.Rectangle, damage []image.Rectangle, force bool,
+	data []byte, err error, source image.Rectangle, damage []image.Rectangle, force bool,
 ) (bool, error) {
-	if w.avc.Backend() != previousBackend {
-		log.Printf(
-			"rdp: client %s H.264 encoder=%s after %s failure: %v",
-			w.stats.peer,
-			w.avc.Backend(),
-			previousBackend,
-			w.avc.FallbackReason(),
-		)
-	}
 	if w.stats.measuring() {
 		stats := w.avc.LastStats()
 		w.stats.converted(stats.Conversion)

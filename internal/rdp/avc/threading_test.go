@@ -37,23 +37,7 @@ func TestOpenH264ProductionPolicy(t *testing.T) {
 	}
 	defer encoder.Close()
 
-	codec, ok := encoder.codec.(*openH264Encoder)
-	if !ok {
-		t.Fatalf("codec type = %T", encoder.codec)
-	}
-	var effective api.SEncParamExt
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &effective); rv != 0 {
-		t.Fatalf("GetOption returned %d", rv)
-	}
-	if got, want := effective.IMultipleThreadIdc, uint16(encoder.Threads()); got != want {
-		t.Fatalf("codec workers = %d, slices = %d", got, want)
-	}
-	if got := effective.UiIntraPeriod; got != codecIntraPeriod {
-		t.Fatalf("codec intra period = %d, want %d", got, codecIntraPeriod)
-	}
-	if got := effective.ILoopFilterDisableIdc; got != codecLoopFilterDisableIDC {
-		t.Fatalf("codec loop-filter disable IDC = %d, want %d", got, codecLoopFilterDisableIDC)
-	}
+	checkSoftwarePolicy(t, encoder)
 
 	decoder, err := openh264.NewDecoder(nil)
 	if err != nil {
@@ -106,7 +90,9 @@ func TestOpenH264ProductionPolicy(t *testing.T) {
 	}
 }
 
-func TestOpenH264ParallelSlicesMatchSequential(t *testing.T) {
+// TestBundledOpenH264ParallelSlicesMatchSequential checks that scheduling
+// the bundled codec across multiple workers preserves the encoded stream.
+func TestBundledOpenH264ParallelSlicesMatchSequential(t *testing.T) {
 	t.Parallel()
 
 	const width, height, slices = 320, 240, 4

@@ -58,7 +58,7 @@ func (s Snapshot) Validate() error {
 		return ErrSnapshot
 	}
 	switch s.Encoder {
-	case "", "bitmap", "software", "nvenc", "mixed":
+	case "", "bitmap", "software", "mixed":
 	default:
 		return ErrSnapshot
 	}
@@ -181,7 +181,7 @@ type Connection struct {
 	blockedSince time.Time // Protected by collector.mu; may start after pacing ends.
 }
 
-// Encoded records codec service time and its actual (possibly fallback) backend.
+// Encoded records codec service time and the active bitmap or H.264 encoder.
 // A zero duration updates the backend without recording an encode operation.
 func (c *Connection) Encoded(backend string, elapsed time.Duration) {
 	if c == nil || c.closed.Load() {
@@ -193,8 +193,6 @@ func (c *Connection) Encoded(backend string, elapsed time.Duration) {
 		value = 1
 	case "software":
 		value = 2
-	case "nvenc":
-		value = 3
 	default:
 		return
 	}
@@ -244,8 +242,6 @@ func backendName(value uint32) string {
 		return "bitmap"
 	case 2:
 		return "software"
-	case 3:
-		return "nvenc"
 	default:
 		return ""
 	}

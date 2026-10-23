@@ -335,25 +335,7 @@ func (m *Machine) AddGPUDisplay(display virtio.Display) error {
 // AddGPUDisplayWithTelemetry borrows process-lifetime pipeline counters and
 // configures them before the GPU worker starts.
 func (m *Machine) AddGPUDisplayWithTelemetry(display virtio.Display, collector *telemetry.Collector) error {
-	return m.AddGPUDisplayWithOptions(display, collector, false)
-}
-
-// AddGPUDisplayWithOptions initializes the optional renderer before exposing
-// the PCI device or starting its worker. Explicit 3D initialization errors
-// propagate to the VM launcher instead of silently using software rendering.
-func (m *Machine) AddGPUDisplayWithOptions(
-	display virtio.Display, collector *telemetry.Collector, enable3D bool,
-) error {
-	var v *virtio.GPU
-	if enable3D {
-		var err error
-		v, err = virtio.NewGPUWith3D(virtioGPUIRQ, m, m.mem, display)
-		if err != nil {
-			return err
-		}
-	} else {
-		v = virtio.NewGPU(virtioGPUIRQ, m, m.mem, display)
-	}
+	v := virtio.NewGPU(virtioGPUIRQ, m, m.mem, display)
 	v.SetTelemetry(collector)
 	m.connectVirtioIRQ(v.ModernTransport, virtioGPUIRQ)
 	if resizable, ok := display.(interface{ SetResizeHandler(func(int, int) error) }); ok {

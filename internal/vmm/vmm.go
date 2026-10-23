@@ -16,7 +16,6 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/term"
-	"github.com/define42/DevBox-Gateway-kvm/internal/virgl"
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"golang.org/x/sync/errgroup"
 )
@@ -29,7 +28,7 @@ var errAudioConfig = errors.New("audio must be 'none' or 'rdp'; 'rdp' requires a
 
 var errRDPH264ThreadsConfig = errors.New("RDP H.264 slices must be 0 (auto) or 1..16; a slice count requires H.264")
 
-var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software, nvenc, or auto and requires H.264")
+var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software or auto and requires H.264")
 
 var errRDPH264QPConfig = errors.New("RDP H.264 QP must be between 0 and 51; an explicit QP requires H.264")
 
@@ -61,7 +60,6 @@ type Config struct {
 	Disk              string
 	DiskSizeBytes     int64 // Fixed QCOW2 capacity; zero resolves once for standalone boot.
 	CloudInit         string
-	GPU3D             bool // Enable guest OpenGL through the optional virglrenderer backend.
 	RDPProfile        string
 	RDPWait           bool
 	RDPCert           string
@@ -115,13 +113,16 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 		return errRDPProfileConfig
 	}
 	switch v.RDPH264Encoder {
-	case "", "software", "nvenc", "auto":
+	case "", "software", "auto":
 	default:
 
 		return errRDPH264EncoderConfig
 	}
 	if v.RDPH264Encoder != "" && !v.RDPH264 {
 		return errRDPH264EncoderConfig
+	}
+	if v.RDPH264 {
+		v.RDPH264Encoder = "software"
 	}
 	if v.RDPH264Threads < 0 || v.RDPH264Threads > 16 || (v.RDPH264Threads != 0 && !v.RDPH264) {
 		return errRDPH264ThreadsConfig
@@ -145,12 +146,6 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 // Init validates configuration, opens KVM and attaches the configured devices.
 // Call it once before Setup. On failure it closes any machine it created.
 func (v *VMM) Init() (initErr error) {
-	if v.GPU3D && !virgl.Available() {
-		return fmt.Errorf(
-			"guest OpenGL requires CGO_ENABLED=1 and -tags virgl; "+
-				"disable with VM_GPU_3D=false or -gpu-3d=false: %w", virgl.ErrUnavailable,
-		)
-	}
 	if err := v.validateUEFIBootSource(); err != nil {
 		return err
 	}
@@ -245,10 +240,6 @@ func (v *VMM) initNetwork(m *machine.Machine) error {
 
 func (v *VMM) initDisplay(m *machine.Machine) error {
 	if v.RDPListenerFile == nil {
-		if v.GPU3D {
-			return m.AddGPUDisplayWithOptions(nil, v.Telemetry, true)
-		}
-
 		return nil
 	}
 
@@ -264,7 +255,7 @@ func (v *VMM) initDisplay(m *machine.Machine) error {
 		return err
 	}
 
-	if err := m.AddGPUDisplayWithOptions(display, v.Telemetry, v.GPU3D); err != nil {
+	if err := m.AddGPUDisplayWithTelemetry(display, v.Telemetry); err != nil {
 		_ = display.Close()
 
 		return err

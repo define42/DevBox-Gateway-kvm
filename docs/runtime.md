@@ -8,10 +8,10 @@ For the LDAP dashboard, image catalog, managed desktops, and RDP downloads, see 
 and the product overview.
 
 Commands below run from the repository root. A normal server build needs Go
-1.26.0 or newer and no C compiler or native codec library:
+1.26.0 or newer and uses the bundled [pure Go H.264 encoder](#h264-encoding):
 
 ```bash
-CGO_ENABLED=0 go build -o devbox-kvm .
+make devbox-kvm
 ./devbox-kvm probe
 ./devbox-kvm boot -help
 ```
@@ -27,7 +27,7 @@ boot an operating system.
 - [Storage and cloud-init](#storage-and-cloud-init)
 - [Networking](#networking)
 - [Remote display and input](#remote-display-and-input)
-- [H.264 and hardware encoding](#h264-and-hardware-encoding)
+- [H.264 encoding](#h264-encoding)
 - [Audio](#audio)
 - [Diagnostics and compatibility checks](#diagnostics-and-compatibility-checks)
 
@@ -406,9 +406,10 @@ A virtio-tablet-only guest continues to use absolute input.
 
 ### RDP graphics profiles
 
-Managed desktops default to `RDP_PROFILE=office` for a 30 FPS AVC420 cap. Use
-`smooth` for a 60 FPS cap; bitmap output remains capped at 30 FPS with either
-profile. For example, with gateway prerequisites configured:
+Managed desktops default to `RDP_PROFILE=office` for a 30 FPS AVC420 cap.
+`RDP_PROFILE=smooth` also caps AVC420 at 30 FPS; both profiles currently behave
+identically. Bitmap output remains capped at 30 FPS. For example, with gateway
+prerequisites configured:
 
 ```bash
 RDP_PROFILE=office make gateway
@@ -418,85 +419,29 @@ Configure the gateway with `RDP_PROFILE` or `serve -rdp-profile`; only `office`
 and `smooth` are accepted. The selected
 H.264 cap is applied before copying the framebuffer for encoding and converting
 colors. H.264 still encodes a full picture for each changed output frame:
-the office cap reduces how often this work runs rather than making the codec
+the frame cap reduces how often this work runs rather than making the codec
 encode individual dirty rectangles. Pending damage is combined into the next
 frame; unchanged screens do not incur periodic encoding. Input, cursor updates,
 and audio are not rate-limited by the graphics profile.
 
-Use `smooth` when 60 FPS AVC420 animation is worth the higher encoding load. A profile
-sets an upper bound, not a guaranteed frame rate. Changing a managed desktop's
-profile requires restarting its VM.
-See the [four-stream work-budget measurements](benchmarks/office-profile-2026-10-12/README.md)
-for a reproducible comparison and its limits.
+The 30 FPS cap is an upper bound, not a guaranteed frame rate. Changing a managed
+desktop's profile requires restarting its VM. The historical
+[four-stream work-budget measurements](benchmarks/office-profile-2026-10-12/README.md)
+compare the earlier 30 FPS office and 60 FPS smooth caps; they do not reflect the
+current identical caps.
 
 ### Guest graphics
 
-Virtio-gpu defaults to a 2D framebuffer. Optional virglrenderer support enables
-OpenGL for Linux guests using Mesa's virgl driver. The host renders submitted
-3D commands through EGL, and completed frames are read back into the existing
-RDP framebuffer. This path accelerates guest rendering independently of the
-selected H.264 encoder; it does not provide GPU passthrough, Vulkan, or zero-copy
-video encoding.
-
-On Debian/Ubuntu, build the optional backend with:
-
-```bash
-sudo apt install build-essential pkg-config libvirglrenderer-dev libegl-dev libgbm-dev
-make devbox-kvm-virgl
-# Or: CGO_ENABLED=1 go build -tags virgl -o devbox-kvm .
-```
-
-For both guest OpenGL and NVENC, also install the NVENC build dependencies below
-and use `CGO_ENABLED=1 go build -tags 'nvenc virgl' -o devbox-kvm .`.
-`make gateway-virgl` builds both backends before starting the gateway.
-A normal `CGO_ENABLED=0` build remains supported with 3D disabled.
-
-Enable the renderer in the gateway service environment, with the usual gateway
-settings already configured:
-
-```bash
-VM_GPU_3D=true ./devbox-kvm serve
-# Disable guest 3D, including in a binary compiled with virgl support:
-VM_GPU_3D=false ./devbox-kvm serve
-```
-
-The same environment variable applies to direct `boot` commands, which attach
-a headless 3D GPU when enabled and retain the serial console without requiring
-an RDP listener. Explicit
-`serve -gpu-3d=false` or `boot -gpu-3d=false` overrides the environment. The
-gateway forwards its resolved boolean to every worker, so a false override
-cannot accidentally be re-enabled by the worker's inherited environment.
-When enabled, an unavailable build or a failed renderer initialization is an
-error. Setting `false` skips renderer initialization entirely.
-
-The host needs working EGL/OpenGL drivers and access to its DRM render node,
-usually `/dev/dri/renderD128`. Grant the service user the node's group access
-and restart its service/session after group membership changes. No X server or
-host graphical session is needed. Containers must pass through the render node
-and its group; see [Docker guest OpenGL](docker.md#guest-opengl).
-
-The guest needs `CONFIG_DRM_VIRTIO_GPU` and Mesa with the virgl Gallium driver.
-Inside the guest's graphical session, run `glxinfo -B` (usually supplied by
-`mesa-utils`) and check that the OpenGL renderer reports `virgl`. Then run a
-small OpenGL application and view it through RDP. A renderer containing
-`llvmpipe` or `softpipe` indicates software rendering; check host drivers/device
-access as well as guest Mesa. Confirm host GPU activity while rendering before
-claiming hardware acceleration: a virgl renderer can itself use a host software
-EGL implementation.
-
-Native 3D textures and buffers share a 2 GiB accounting budget. This allows
-GNOME wallpaper transitions to retain previous textures, the incoming image,
-its mipmaps, and an upload buffer at the same time. Guest-memory backing has a
-separate 512 MiB limit; these limits do not preallocate memory or change the
-worker's enforced cgroup memory limit.
-
-Apply a changed gateway setting by restarting the gateway and starting fresh
-VM workers. Reconnecting RDP or rebooting only the guest keeps its existing
-virtual GPU configuration.
+The application implements a 2D virtio-gpu framebuffer in Go. It copies guest
+framebuffer updates into the RDP display and handles cursor and resize updates.
+Host GPU acceleration, virgl/OpenGL command processing, Vulkan, and GPU
+passthrough are not supported. Guest applications can use the guest's own
+software renderer; rendering and Go H.264 encoding both consume CPU time.
 
 For framebuffer console output, a custom Linux kernel needs
 `CONFIG_DRM_VIRTIO_GPU`, `CONFIG_DRM_FBDEV_EMULATION`, and
-`CONFIG_FRAMEBUFFER_CONSOLE` built in.
+`CONFIG_FRAMEBUFFER_CONSOLE` built in. No host render node or GPU driver is
+required by the gateway.
 
 ### Resolution changes
 
@@ -530,19 +475,24 @@ Fluxbox autostart, place it at `~/.local/bin/devbox-kvm-resize` and add
 `sh "$HOME/.local/bin/devbox-kvm-resize" &` before Fluxbox starts in
 `~/.fluxbox/startup`. Desktops already handling preferred modes need no helper.
 
-## H.264 and hardware encoding
+## H.264 encoding
 
-The default software backend is the bundled [OpenH264 port](../pkg/h264).
-AVC420 requires no C compiler, native codec library, or special build tag;
-selected amd64 codec kernels use SIMD with scalar fallbacks.
+Every build uses the bundled [pure Go H.264 codec](../pkg/h264). It supports
+AVC420 without a native codec SDK, C compiler, or encoder build tag:
 
 ```bash
-CGO_ENABLED=0 go build -o devbox-kvm .
+make devbox-kvm
+# Or: CGO_ENABLED=0 go build -o devbox-kvm .
 ```
 
-Follow the [software-only gateway setup](gateway.md#build-without-nvenc) and set
-`H264_ENCODER=software`. All RDP connections still use the gateway UI's downloaded
-files.
+The default `H264_ENCODER=software` selects this encoder. `auto` is retained as a
+compatibility alias for the same Go encoder. Other values, including `nvenc`,
+are rejected; remove an old hardware encoder selection before restarting the
+gateway. All application builds use cgo-disabled Go code for the display and
+encoder.
+
+Follow the [gateway setup](gateway.md#run-the-gateway-directly) for direct launch.
+All RDP connections still use the gateway UI's downloaded files.
 
 Clients without AVC420 support receive bitmap updates. AVC420 uses lossy YUV
 4:2:0, so small colored text can appear softer than bitmap output. AVC444 is
@@ -554,46 +504,9 @@ quality and increases traffic; higher QP compresses more and reduces quality.
 QP `0` is the highest supported quality, but AVC420 chroma subsampling still
 precludes a promise of lossless RGB. QP is not a guaranteed Mbps cap.
 
-The gateway passes the value to each worker with `-rdp-h264-qp`. Software and
-NVENC use the same value, including when `auto` falls back to software. Changing
-it requires restarting the gateway and starting new VM processes; reconnecting
+The gateway passes the value to each worker with `-rdp-h264-qp`. Changing it
+requires restarting the gateway and starting new VM processes; reconnecting
 RDP or rebooting within the guest does not update the worker's setting.
-
-### Optional NVIDIA NVENC
-
-Build with cgo and `-tags nvenc` to encode through FFmpeg's `libavcodec`. On
-Debian/Ubuntu:
-
-```bash
-sudo apt install build-essential pkg-config libavcodec-dev libavutil-dev
-CGO_ENABLED=1 go build -tags nvenc -o devbox-kvm .
-```
-
-Select `H264_ENCODER=nvenc` to require hardware encoding, or `auto` to allow
-software fallback, in the [gateway configuration](configuration.md).
-
-Runtime requires an NVIDIA GPU with H.264 NVENC support, a working NVIDIA
-driver, and FFmpeg libraries containing `h264_nvenc`. devbox-kvm links to these
-libraries; it does not launch `ffmpeg`. If the CLI tool is installed, check the
-host encoder independently:
-
-```bash
-ffmpeg -hide_banner -f lavfi -i testsrc2=size=1280x720:rate=30 \
-  -frames:v 3 -c:v h264_nvenc -f null -
-```
-
-| Encoder setting | Behavior |
-| --- | --- |
-| `software` | Always uses the bundled codec, including in an NVENC build. |
-| `nvenc` | Requires hardware initialization and encoding to succeed. |
-| `auto` | Tries NVENC, falling back to software on initialization or encoding failure. |
-
-An ordinary build supports `software` and `auto`; requesting `nvenc` explicitly
-reports that cgo and the build tag are required. NVENC uses low-latency settings
-without B-frames or lookahead. Framebuffer copying and RGB-to-YUV conversion
-remain on the CPU. Software slice settings do not affect NVENC, which reports
-zero software slices. Intel VA-API and Quick Sync backends are not
-implemented.
 
 ### FreeRDP build and cursor troubleshooting
 
@@ -602,8 +515,9 @@ Check `xfreerdp /buildconfig` for `WITH_GFX_H264=ON` before requesting
 when its help lists it. Installing OpenH264 afterward does not change the
 client's build features. Rebuild the client or use bitmap mode.
 
-The repository can build pinned FreeRDP 3.32.1 with OpenH264 decoding. Install
-these Debian/Ubuntu dependencies, then run `make freerdp`:
+The repository can build pinned FreeRDP 3.32.1 with OpenH264 decoding in the
+client. This is independent of the gateway's Go encoder. Install these
+Debian/Ubuntu dependencies, then run `make freerdp`:
 
 ```bash
 sudo apt install build-essential cmake curl pkg-config libssl-dev libicu-dev libopenh264-dev \
@@ -651,16 +565,16 @@ time waiting for a free acknowledgement slot after the pacing deadline. Zero
 `ack_wait` does not rule out reduced frame rate from adaptive pacing or guest
 rendering. Reported frame rate includes idle time in the reporting window.
 
-The gateway's default software encoder uses one slice/worker. Set `H264_SLICES`
-(or `serve -h264-slices`) to `1`, `2`, or `4` to request software parallelism.
-The worker CPU budget and small pictures can reduce the count. More slices can
-reduce encoding latency while using more CPU concurrently and increasing output
-size, so compare concurrent desktop workloads before raising the default.
-NVENC ignores this setting; automatic software fallback uses it. Restart the
-gateway and start new VM processes to apply changes. See the
-[configuration guide](configuration.md#storage-and-desktops) for the CPU cap.
+Set `H264_SLICES` (or `serve -h264-slices`) to `1`, `2`, or `4` to request
+Go codec parallelism. The worker CPU budget and small pictures can reduce that
+count. More slices can reduce encoding latency while using more CPU concurrently
+and increasing output size, so compare concurrent desktop workloads before
+raising the default. Restart the gateway and start new VM processes to apply
+changes. See the [configuration guide](configuration.md#storage-and-desktops)
+for the CPU cap.
 
-Changed H.264 frames can be sent at up to 60 fps; bitmap output is capped at
+Managed H.264 sessions with either named profile are capped at 30 fps; the
+standalone encoder API retains its 60 fps default. Bitmap output is capped at
 30 fps. Dirty rectangles reduce pixel conversion/copying, bitmap updates use
 64×64 tiles, and a slow client receives the latest frame rather than an expanding
 queue. H.264 still encodes a complete picture using references to previous
@@ -668,10 +582,9 @@ frames. IDR frames are sent for initialization, resize, refresh, and recovery;
 the software path disables deblocking to reduce latency. A two-frame decode
 window and acknowledgement-based pacing also bound the work sent to a client.
 
-Browser rendering can remain CPU-bound inside the guest when `VM_GPU_3D=false`,
-even when host NVENC is active. Check the active encoder in the
-gateway's **Performance** view before attributing choppy scrolling to hardware
-encoding. Managed worker output is discarded rather than saved in console logs.
+Browser rendering and H.264 encoding can both be CPU-bound. Use the gateway's
+**Performance** view to distinguish encoding time from transport/client delays,
+and inspect guest CPU use when diagnosing choppy scrolling. Managed worker output is discarded rather than saved in console logs.
 
 ## Audio
 
@@ -733,26 +646,3 @@ Set `UEFI_KEEP_ARTIFACTS=1` to retain successful runs, `UEFI_CPUS=4` to change C
 count, or `DEVBOX_KVM_BINARY=/path/to/devbox-kvm` for an existing binary. Alternate GNU-EFI
 locations use `EFI_INCLUDE_DIR` and `EFI_LIB_DIR`. This checks the firmware
 platform, not every guest OS.
-
-For native virgl transfers, reset/fence completion, and readback into the RDP
-framebuffer, with the virgl build dependencies and working host EGL:
-
-```bash
-DEVBOX_KVM_TEST_VIRGL=1 CGO_ENABLED=1 go test -tags 'virgl integration' \
-  ./internal/virgl ./internal/virtio -run 'TestNative|TestGPUVirgl.*Integration' \
-  -count=1 -timeout 2m -v
-```
-
-This exercises the native renderer without starting a guest. It can run with a
-software host EGL driver and therefore does not prove hardware acceleration;
-also verify the renderer and GPU activity in a real guest as described above.
-
-For actual NVIDIA encoding, with `ffmpeg` and the NVENC build dependencies:
-
-```bash
-DEVBOX_KVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
-  ./internal/rdp/avc -run '^TestNVENCHardware' -count=1 -timeout 2m -v
-```
-
-This checks independent decoding, forced IDR refreshes, non-macroblock-aligned
-sizes, full-range BT.709 metadata, and output buffer ownership.

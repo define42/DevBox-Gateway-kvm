@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"unsafe"
@@ -15,14 +14,12 @@ import (
 )
 
 // Policy grants access to individual VM resources. No parent state directory or
-// cgroup-management path is granted. Optional GPU access remains a trusted native
-// driver boundary and is enabled only for workers configured to use it.
+// cgroup-management path or host GPU device is granted.
 type Policy struct {
 	ReadOnly  []string
 	ReadWrite []string
 	SocketDir string
 	KVM       string
-	GPU       bool
 }
 
 const (
@@ -63,7 +60,7 @@ func ABI() (int, error) {
 
 // Environment deliberately excludes gateway credentials, VM_* overrides, loader
 // injection variables and the inherited service environment. Arguments supply VM
-// configuration. These display/driver settings contain no gateway secrets.
+// configuration. Only locale and timezone settings are inherited.
 func Environment(parent []string) []string {
 	result := []string{"PATH=/usr/local/bin:/usr/bin:/bin", "GOTRACEBACK=none"}
 	for _, entry := range parent {
@@ -72,7 +69,7 @@ func Environment(parent []string) []string {
 			continue
 		}
 		switch key {
-		case "LANG", "LC_ALL", "TZ", "NVIDIA_VISIBLE_DEVICES", "NVIDIA_DRIVER_CAPABILITIES":
+		case "LANG", "LC_ALL", "TZ":
 			result = append(result, entry)
 		}
 	}
@@ -166,9 +163,9 @@ func addResources(ruleset int, executable string, policy Policy) error {
 			return err
 		}
 	}
-	// Dynamic libraries and their public configuration are needed by CGO, EGL
-	// and NVENC. Library directories are read-only; the runtime filter forbids
-	// executing additional programs after this one controlled re-exec.
+	// Read-only runtime libraries also support dynamically linked test helpers.
+	// Library directories are read-only; the runtime filter forbids executing
+	// additional programs after this one controlled re-exec.
 	for _, path := range []string{"/lib", "/lib64", "/usr/lib", "/usr/lib64", "/usr/local/lib"} {
 		if err := allowPath(ruleset, path, readTree|unix.LANDLOCK_ACCESS_FS_EXECUTE, true); err != nil {
 			return err
@@ -177,7 +174,7 @@ func addResources(ruleset int, executable string, policy Policy) error {
 	for _, path := range []string{
 		"/etc/ld.so.cache", "/etc/ld.so.conf", "/etc/ld.so.conf.d", "/etc/resolv.conf",
 		"/etc/hosts", "/etc/nsswitch.conf", "/etc/gai.conf", "/etc/localtime",
-		"/usr/share/zoneinfo", "/usr/share/glvnd", "/usr/share/drirc.d",
+		"/usr/share/zoneinfo",
 		"/proc/self/statm", "/proc/self/maps", "/proc/meminfo", "/sys/devices/system/cpu",
 	} {
 		if err := allowPath(ruleset, path, readTree, true); err != nil {
@@ -187,23 +184,6 @@ func addResources(ruleset int, executable string, policy Policy) error {
 	for _, path := range []string{"/dev/null", "/dev/zero", "/dev/urandom", "/dev/random"} {
 		if err := allowPath(ruleset, path, deviceAccess, false); err != nil {
 			return err
-		}
-	}
-	if policy.GPU {
-		for _, pattern := range []string{"/dev/dri/renderD*", "/dev/nvidia*", "/proc/driver/nvidia", "/sys/dev/char"} {
-			paths, err := filepath.Glob(pattern)
-			if err != nil {
-				return err
-			}
-			for _, path := range paths {
-				access := deviceAccess | unix.LANDLOCK_ACCESS_FS_READ_DIR
-				if strings.HasPrefix(path, "/proc/") || strings.HasPrefix(path, "/sys/") {
-					access = readTree
-				}
-				if err := allowPath(ruleset, path, access, false); err != nil {
-					return err
-				}
-			}
 		}
 	}
 

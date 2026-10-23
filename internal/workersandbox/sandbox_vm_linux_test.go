@@ -12,9 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
 	"github.com/define42/DevBox-Gateway-kvm/internal/profiling"
 	"github.com/define42/DevBox-Gateway-kvm/internal/vmm"
 )
+
+const confinedKVMDiskSize = 1 << 20
 
 func TestConfinedKVMLifecycle(t *testing.T) {
 	t.Parallel()
@@ -38,8 +41,13 @@ func TestConfinedKVMLifecycle(t *testing.T) {
 		t.Skipf("firmware variables unavailable: %v", err)
 	}
 	dir := t.TempDir()
-	disk, vars, profiles := filepath.Join(dir, "disk.img"), filepath.Join(dir, "vars.fd"), filepath.Join(dir, "profiles")
-	if err := os.WriteFile(disk, make([]byte, 1<<20), 0o600); err != nil {
+	diskPath := filepath.Join(dir, "disk.qcow2")
+	vars, profiles := filepath.Join(dir, "vars.fd"), filepath.Join(dir, "profiles")
+	image, err := disk.CreateQCOW2(diskPath, confinedKVMDiskSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := errors.Join(image.Sync(), image.Close()); err != nil {
 		t.Fatal(err)
 	}
 	// #nosec G703 -- vars is inside the private test temporary directory.
@@ -50,7 +58,7 @@ func TestConfinedKVMLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	// #nosec G204 G702 -- Re-exec this test binary with private fixtures created above.
-	cmd := exec.Command(os.Args[0], "-test.run=^TestConfinedKVMHelper$", "--", disk, vars, profiles, code)
+	cmd := exec.Command(os.Args[0], "-test.run=^TestConfinedKVMHelper$", "--", diskPath, vars, profiles, code)
 	cmd.Env = append(os.Environ(), "DEVBOX_SANDBOX_KVM=launch", "GORACE=atexit_sleep_ms=0")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("confined VM: %v\n%s", err, output)
@@ -96,7 +104,7 @@ func TestConfinedKVMHelper(t *testing.T) {
 	// lifecycle; the same sandbox remains active throughout both instances.
 	for range 2 {
 		vm := vmm.New(vmm.Config{
-			Dev: "/dev/kvm", NCPUs: 2, MemSize: 256 << 20,
+			Dev: "/dev/kvm", NCPUs: 2, MemSize: 256 << 20, DiskSizeBytes: confinedKVMDiskSize,
 			UEFI: paths[3], UEFIVars: paths[1], Disk: paths[0], Network: "user-isolated",
 		})
 		if err := vm.Init(); err != nil {

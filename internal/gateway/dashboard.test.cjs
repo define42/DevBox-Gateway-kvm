@@ -286,7 +286,7 @@ test("stale and stopped responses hide runtime numbers instead of claiming zero"
 });
 
 test("failed or malformed samples clear old metrics and retry without displaying server text", async () => {
-  for (const failure of [null, sample({ cpuPercent: NaN }), sample({ state: "<script>" }), sample({ encoder: "<img>" })]) {
+  for (const failure of [null, sample({ cpuPercent: NaN }), sample({ state: "<script>" }), sample({ encoder: "<img>" }), sample({ encoder: "nvenc" })]) {
     const f = fixture();
     f.panel.open(row());
     reply(f.requests[0]);

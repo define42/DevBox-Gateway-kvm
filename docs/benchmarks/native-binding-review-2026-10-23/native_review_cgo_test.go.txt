@@ -1,0 +1,60 @@
+//go:build cgo
+
+package avc
+
+import openh264 "github.com/define42/openh264/go"
+
+func init() { nativeReviewRawFactory = nativeReviewNewRaw }
+
+func nativeReviewNewRaw(width, height, _, fps, qp int) (codecEncoder, int, error) {
+	codec, err := openh264.NewEncoder(openh264.Config{Width: width, Height: height, QP: qp, FrameRate: float64(fps), IDRInterval: codecIntraPeriod})
+	if err != nil {
+		return nil, 0, err
+	}
+	return &nativeReviewBindingCodec{codec: codec, width: width, height: height}, 1, nil
+}
+
+type nativeReviewBindingCodec struct {
+	codec         *openh264.Encoder
+	width, height int
+	frame         openh264.I420Frame
+	unchanged     []byte
+}
+
+func (e *nativeReviewBindingCodec) encode(i420 []byte, force bool, timestamp int64) ([]byte, error) {
+	return e.encodeDamage(i420, force, timestamp, nil)
+}
+func (e *nativeReviewBindingCodec) encodeDamage(i420 []byte, force bool, timestamp int64, unchanged []bool) ([]byte, error) {
+	if force {
+		if err := e.codec.ForceIDR(); err != nil {
+			return nil, err
+		}
+	}
+	luma := e.width * e.height
+	chroma := luma / 4
+	e.frame = openh264.I420Frame{Y: i420[:luma], U: i420[luma : luma+chroma], V: i420[luma+chroma:], Timestamp: timestamp}
+	if len(unchanged) > 0 && !force {
+		if cap(e.unchanged) < len(unchanged) {
+			e.unchanged = make([]byte, len(unchanged))
+		} else {
+			e.unchanged = e.unchanged[:len(unchanged)]
+		}
+		for i, v := range unchanged {
+			e.unchanged[i] = 0
+			if v {
+				e.unchanged[i] = 1
+			}
+		}
+		e.frame.Hints.Unchanged = e.unchanged
+	}
+	encoded, err := e.codec.Encode(e.frame)
+	e.frame.Y, e.frame.U, e.frame.V = nil, nil, nil
+	e.frame.Hints = openh264.MacroblockHints{}
+	return encoded.Data, err
+}
+func (e *nativeReviewBindingCodec) close() {
+	_ = e.codec.Close()
+	e.codec = nil
+	e.frame = openh264.I420Frame{}
+	e.unchanged = nil
+}

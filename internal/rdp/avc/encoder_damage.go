@@ -6,8 +6,8 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/damage"
 )
 
-// The optional extension keeps hardware backends on their existing full-picture
-// API. Hints never change AVC dimensions, surface placement or the reference chain.
+// Damage hints let the codec reuse unchanged macroblocks without changing AVC
+// dimensions, surface placement, or the reference chain.
 type damageCodecEncoder interface {
 	encodeDamage([]byte, bool, int64, []bool) ([]byte, error)
 }

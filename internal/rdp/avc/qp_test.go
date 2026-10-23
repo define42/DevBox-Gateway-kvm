@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	openh264 "github.com/define42/DevBox-Gateway-kvm/pkg/h264"
-	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 func TestResolveQP(t *testing.T) {
@@ -72,26 +71,17 @@ func TestEncoderQPOptionsAndEffectiveFrames(t *testing.T) {
 	}
 }
 
-func TestHardwareQPOptionsAndValidation(t *testing.T) {
+func TestEncoderQPValidation(t *testing.T) {
 	t.Parallel()
 	for _, requested := range []int{MinQP - 1, MinQP, DefaultQP, MaxQP, MaxQP + 1} {
 		t.Run(fmt.Sprintf("QP%d", requested), func(t *testing.T) {
 			t.Parallel()
-			for _, backend := range []Backend{BackendSoftware, BackendNVENC, BackendAuto} {
-				probes := 0
-				encoder, err := newEncoderWithNVENC(64, 48,
-					Options{Threads: 1, Backend: backend, QP: &requested},
-					func(width, height, rate, qp int) (codecEncoder, error) {
-						probes++
-						if width != 64 || height != 48 || rate != FrameRate || qp != requested {
-							t.Fatalf("hardware options: %dx%d, %d FPS, QP %d", width, height, rate, qp)
-						}
-
-						return &recordingCodec{}, nil
-					})
+			for _, backend := range []Backend{BackendSoftware, BackendAuto} {
+				encoder, err := NewEncoderWithOptions(64, 48,
+					Options{Threads: 1, Backend: backend, QP: &requested})
 				if requested < MinQP || requested > MaxQP {
-					if !errors.Is(err, ErrQP) || probes != 0 || encoder != nil {
-						t.Fatalf("invalid QP reached backend %s: encoder=%v probes=%d error=%v", backend, encoder, probes, err)
+					if !errors.Is(err, ErrQP) || encoder != nil {
+						t.Fatalf("invalid QP for %s: encoder=%v error=%v", backend, encoder, err)
 					}
 
 					continue
@@ -99,50 +89,18 @@ func TestHardwareQPOptionsAndValidation(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if encoder.QP() != requested || backend != BackendSoftware && probes != 1 {
-					t.Fatalf("backend %s: QP=%d probes=%d", backend, encoder.QP(), probes)
+				if encoder.QP() != requested || encoder.Backend() != BackendSoftware {
+					t.Fatalf("backend %s: QP=%d selected=%s", backend, encoder.QP(), encoder.Backend())
 				}
+				packet, err := encoder.Encode(qpTestImage(64, 48), false)
+				if err != nil || !hasNAL(packet, 5) {
+					encoder.Close()
+					t.Fatalf("initial frame: bytes=%d error=%v", len(packet), err)
+				}
+				checkSoftwareQP(t, encoder, requested)
 				encoder.Close()
 			}
 		})
-	}
-}
-
-func TestEncoderQPSurvivesFallback(t *testing.T) {
-	t.Parallel()
-	for _, qp := range []int{MinQP, 32, MaxQP} {
-		for _, failAtInitialization := range []bool{false, true} {
-			t.Run(fmt.Sprintf("QP%d/initFailure=%t", qp, failAtInitialization), func(t *testing.T) {
-				t.Parallel()
-				hardware := &failingHardwareCodec{codecEncoder: &recordingCodec{}}
-				encoder, err := newEncoderWithNVENC(64, 48,
-					Options{Threads: 1, Backend: BackendAuto, QP: &qp},
-					func(_, _, _, gotQP int) (codecEncoder, error) {
-						if gotQP != qp {
-							t.Fatalf("hardware QP=%d, want %d", gotQP, qp)
-						}
-						if failAtInitialization {
-							return nil, ErrCodec
-						}
-
-						return hardware, nil
-					})
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer encoder.Close()
-				img := qpTestImage(64, 48)
-				if _, err := encoder.Encode(img, false); err != nil {
-					t.Fatal(err)
-				}
-				hardware.err = ErrCodec
-				packet, err := encoder.Encode(img, true)
-				if err != nil || !hasNAL(packet, 5) || encoder.Backend() != BackendSoftware {
-					t.Fatalf("fallback frame: error=%v backend=%s bytes=%d", err, encoder.Backend(), len(packet))
-				}
-				checkSoftwareQP(t, encoder, qp)
-			})
-		}
 	}
 }
 
@@ -217,28 +175,6 @@ func TestQPDamageHintsPreserveDecodedFrames(t *testing.T) {
 				t.Fatal("damage hints changed decoded pixels at configured QP")
 			}
 		})
-	}
-}
-
-func checkSoftwareQP(t *testing.T, encoder *Encoder, want int) {
-	t.Helper()
-	codec, ok := encoder.codec.(*openH264Encoder)
-	if !ok {
-		t.Fatalf("codec type = %T, want software", encoder.codec)
-	}
-	var effective api.SEncParamExt
-	var statistics api.SEncoderStatistics
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &effective); rv != 0 {
-		t.Fatalf("read effective settings: %d", rv)
-	}
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_GET_STATISTICS, &statistics); rv != 0 {
-		t.Fatalf("read encoded-frame statistics: %d", rv)
-	}
-	if encoder.QP() != want || effective.SSpatialLayers[0].IDLayerQp != int32(want) ||
-		statistics.UiAverageFrameQP != uint32(want) || statistics.UiInputFrameCount == 0 {
-		t.Fatalf("QP: configured=%d layer=%d actual=%d frames=%d, want %d",
-			encoder.QP(), effective.SSpatialLayers[0].IDLayerQp, statistics.UiAverageFrameQP,
-			statistics.UiInputFrameCount, want)
 	}
 }
 

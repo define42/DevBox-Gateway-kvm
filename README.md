@@ -48,22 +48,18 @@ The local setup below needs:
   `/usr/share/OVMF/OVMF_CODE_4M.fd` and `/usr/share/OVMF/OVMF_VARS_4M.fd`.
 - **Docker with the Compose plugin and OpenSSL** for the bundled development LDAP
   directory. An external LDAP directory can be used instead.
-- **A C compiler, `pkg-config`, and FFmpeg development libraries** for the
-  NVENC-enabled build used by `make gateway`. NVIDIA hardware is optional:
-  automatic encoding falls back to software.
 - Enough RAM for the configured desktops and disk space for templates and each
   VM's independent disk. A new desktop defaults to **2 vCPUs and 4 GiB RAM**.
 
-On Debian/Ubuntu, the firmware and native build dependencies are:
+On Debian/Ubuntu, install the firmware and local TLS tools with:
 
 ```bash
-sudo apt install ovmf openssl build-essential pkg-config \
-  libavcodec-dev libavutil-dev
+sudo apt install ovmf openssl ca-certificates
 ```
 
-Go, Git, Make, and Docker Compose must also be installed. For a build without a C
-compiler or FFmpeg libraries, use the
-[software-only gateway setup](docs/gateway.md#build-without-nvenc).
+Go, Git, Make, and Docker Compose must also be installed. The application builds
+with `CGO_ENABLED=0` and needs no C compiler or native libraries. H.264 encoding
+uses the bundled pure Go codec; guest graphics use a 2D framebuffer.
 
 A desktop image must already contain an x86-64 UEFI-bootable Linux installation,
 systemd, cloud-init, a graphical desktop, a display manager, and virtio drivers
@@ -204,9 +200,9 @@ of the host's entire cgroup hierarchy.
 
 After that host setup, use `make docker` to rebuild and start the gateway and
 LDAP with software rendering and encoding. It selects the base and cgroup
-Compose files and forces `VM_GPU_3D=false` and `H264_ENCODER=software`, overriding
-saved GPU settings without enabling the NVIDIA or virgl overlays. Host Go is
-not required.
+Compose files and selects `H264_ENCODER=software`. Host Go is not required.
+Every image contains the static Go application and bundled Go H.264 encoder;
+`make docker-purego` is an alias for `make docker`.
 
 Open **https://localhost:8443**, accept the local self-signed certificate, and
 sign in as `administrator` / `dogood`. Open **Admin → Base Images** and upload
@@ -220,10 +216,9 @@ contents. The administrator remains responsible for aggregate filesystem
 capacity, quotas, and free-space reserves; the per-disk virtual-size limit is
 not an aggregate storage quota.
 
-The `scratch`-based gateway image includes OVMF and NVENC support
-with automatic software fallback. The [Docker guide](docs/docker.md) covers
-image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
-`compose.nvidia.yaml` override for NVIDIA GPUs.
+The `scratch`-based gateway image includes the static Go application, OVMF,
+and CA certificates. The [Docker guide](docs/docker.md) covers image uploads,
+storage, automatic TLS/ACME, and external LDAP.
 
 ## Features and behavior
 
@@ -238,8 +233,8 @@ image uploads, storage, automatic TLS/ACME, external LDAP, and the optional
 | Administrator controls | View all owners' VMs, start/stop/delete them, and upload or remove shared QCOW2 images. |
 | Image catalog | Validated standalone QCOW2 uploads become available in Create DevBox; DEFLATE- and Zstd-compressed images are normalized in Go. |
 | Desktop access | Owner-only, short-lived RDP grants; administrators do not gain access to other users' consoles. |
-| Graphics | Native RDP console with bitmap or H.264 AVC420 output, software encoding, and optional NVIDIA NVENC. |
-| Display and input | Virtio-gpu display with optional virgl OpenGL (`VM_GPU_3D=true`), keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
+| Graphics | Native RDP console with bitmap or H.264 AVC420 output using the bundled pure Go encoder. |
+| Display and input | 2D virtio-gpu framebuffer, keyboard and pointer input, and client-driven single-monitor resizing with guest support. |
 | Audio | RDP playback enabled by default: 48 kHz stereo PCM16 with guest driver/audio-stack and client support; no microphone capture. |
 | Networking | Managed VMs use bounded DHCP/DNS and IPv4 outbound networking; host/LAN access requires explicit allowed CIDRs. |
 | Persistence | VM disks, firmware settings, seeds, image catalog, and metadata survive gateway restarts. |
@@ -307,9 +302,9 @@ filter for each managed worker. Host users must still be trusted. Managed guest
 networking restricts private ranges and visible host interface subnets; see the
 [worker sandbox](docs/worker-sandbox.md) and [network policy](docs/runtime.md#networking). The RDP
 implementation uses TLS and does not support NLA, clipboard/drive redirection,
-or multiple monitors. Graphics default to 2D; optional [guest OpenGL](docs/runtime.md#guest-graphics)
-uses virglrenderer and can be disabled with `VM_GPU_3D=false`. Intel VA-API and
-Quick Sync encoding are not implemented. Audio supports playback only, not microphone capture.
+or multiple monitors. Graphics use a 2D virtio-gpu framebuffer; host GPU
+acceleration and guest 3D command processing are not supported. Audio supports
+playback only, not microphone capture.
 
 The migrated DevBox workflow includes authentication, provisioning, RDP access,
 and administrator image/VM management. The former application's libvirt, Splunk,
@@ -353,16 +348,20 @@ checks.
 Build the application from the repository root:
 
 ```bash
-CGO_ENABLED=0 go build -o devbox-kvm .
+make devbox-kvm
+# Or: CGO_ENABLED=0 go build -o devbox-kvm .
 ```
 
-This includes software H.264 encoding. Each push to `main` publishes its tested
+Application and release builds use `CGO_ENABLED=0`, including the bundled Go
+H.264 codec. Race tests enable cgo only for Go's race instrumentation; see the
+[development guide](docs/development.md#build-and-contribute).
+Each push to `main` publishes its tested
 head commit to [GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases)
 after CI passes. Versions use the commit's UTC date and time plus its short SHA,
 for example `v2026.10.11-195952-g012345abcdef`. A rerun reuses the same version.
 Pull requests and scheduled checks do not publish releases.
 
-Releases include a Linux amd64 binary archive and SHA-256 checksums. The gateway
+Releases include a static Linux amd64 binary archive and SHA-256 checksums. The gateway
 and LDAP containers are published to GHCR with the same version
 and full commit SHA; see [published container images](docs/docker.md#published-container-images).
 For development checks and VM test fixtures, follow the

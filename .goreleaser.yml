@@ -40,15 +40,15 @@ release:
   header: |
     DevBox-Gateway-kvm built from commit `{{ .FullCommit }}`.
 
-    The Linux amd64 archive includes the `devbox-kvm` binary with software H.264
-    encoding and native Go QCOW2 image import. Install OVMF on the host for
-    gateway use.
+    The Linux amd64 archive includes a static `devbox-kvm` binary with the
+    bundled pure Go H.264 encoder and Go QCOW2 image import. Install OVMF on
+    the host for gateway use.
 
-    The container includes OVMF and NVENC support:
+    The container includes the static Go application, OVMF, and CA certificates:
     ```sh
     docker pull {{ .Env.RELEASE_IMAGE }}:{{ .Tag }}
     ```
     The matching Compose LDAP image is
     `{{ .Env.RELEASE_IMAGE }}-ldap:{{ .Tag }}`.
     See the [Docker guide](https://github.com/{{ .Env.GITHUB_REPOSITORY }}/blob/{{ .Tag }}/docs/docker.md)
-    for KVM access, LDAP, TLS, and NVIDIA setup.
+    for KVM access, LDAP, TLS, and persistent storage setup.

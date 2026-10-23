@@ -22,7 +22,7 @@ func i420ConversionWorkers(threads, procs int, region image.Rectangle) int {
 // EncodeDamage calls this synchronously for each mapped rectangle, so damage
 // rectangles that overlap after alignment never write the same pixels at once.
 func (e *Encoder) convertI420Region(img *image.RGBA, region image.Rectangle) bool {
-	if e.backend != BackendSoftware || e.threads <= 1 ||
+	if e.threads <= 1 ||
 		region.Dx()*region.Dy() < 2*i420MinPixelsPerWorker {
 		return scaleI420Region(e.i420, e.width, e.height, img, region)
 	}

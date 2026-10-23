@@ -23,13 +23,13 @@ requests still require your existing browser session. Never share a session
 cookie, password, or RDP routing token.
 
 Deploying a rebuilt gateway interrupts managed desktops. Save guest work before
-redeploying. For the NVIDIA Compose setup, keep both Compose files:
+redeploying. Keep the base and cgroup Compose files:
 
 ```sh
-docker compose -f compose.yaml -f compose.nvidia.yaml up --build -d gateway
+docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
 ```
 
-For the non-NVIDIA setup, omit `-f compose.nvidia.yaml`. Start the desktop again
+Start the desktop again
 from the dashboard after deployment if needed. This document does not imply that
 the running container has been upgraded automatically.
 
@@ -64,8 +64,8 @@ backend errors fail the request instead of returning a misleading partial report
 | --- | --- |
 | `state`, `sampledAt` | Telemetry availability and timestamp. Only `live` represents fresh running-worker data; `stale` retains old values, not current measurements. |
 | `vcpus`, `guestMemoryBytes` | Configured VM resources, not utilization. |
-| `requestedEncoder`, `rdpProfile` | Configured encoder selection (`auto`, `nvenc`, `software`) and pacing profile (`office`, `smooth`). |
-| `encoder`, `connections` | Active RDP backend and viewer count. `nvenc` confirms active hardware encoding, `software` is software H.264, `bitmap` is the bitmap path, `mixed` means viewers use different backends. An empty encoder means no active encoder. |
+| `requestedEncoder`, `rdpProfile` | Configured encoder selection (`software`, or its compatibility alias `auto`) and pacing profile (`office`, `smooth`). |
+| `encoder`, `connections` | Active RDP backend and viewer count. `software` is the bundled pure Go H.264 encoder, `bitmap` is the bitmap path, `mixed` means viewers use different backends. An empty encoder means no active encoder. |
 | `cpuPercent` | Worker CPU including guest execution and encoding; 100% is one host CPU. It is not normalized by `vcpus`. |
 | `residentBytes` | Host worker resident memory, not guest used/free RAM. |
 | `sampleIntervalSeconds` | Actual interval used for this VM's rate calculations. The report-level field is the nominal five-second export period. |
@@ -126,7 +126,9 @@ Configuration may be empty for alternate backends that do not supply it.
 Use reports as evidence, not automatic root-cause verdicts. Low FPS on an idle
 desktop is expected. Slow encode time suggests codec work is worth investigating;
 slow write/ACK time may involve transport backpressure or client processing.
-NVENC only accelerates encoding, not rendering in the guest browser.
+Guest rendering, Go H.264 encoding, and client decoding each have their own
+performance costs. The guest uses software rendering; the gateway's 2D display
+and H.264 encoder run in Go.
 
 These snapshots do **not** measure guest disk latency, guest GPU use, host-wide
 contention, guest application call stacks, or client decoding/display
@@ -174,7 +176,7 @@ assumes the default `/var/lib/devbox-kvm` state mount. Adapt the mount destinati
 your deployment overrides it. Use your desktop ID from `/perf`.
 
 ```sh
-perf_container=$(docker compose -f compose.yaml -f compose.nvidia.yaml ps -q gateway)
+perf_container=$(docker compose -f compose.yaml -f compose.cgroup.yaml ps -q gateway)
 perf_state=$(docker inspect "$perf_container" --format \
   '{{range .Mounts}}{{if eq .Destination "/var/lib/devbox-kvm"}}{{.Source}}{{end}}{{end}}')
 perf_vm='YOUR_VM_ID'
@@ -182,7 +184,7 @@ test -n "$perf_state" && sudo find "$perf_state/vms/$perf_vm" \
   -mindepth 2 -maxdepth 2 -type s -name cpu.sock -printf '%T+ %P\n'
 ```
 
-Omit the NVIDIA Compose file for a non-NVIDIA deployment. Copy the relative path
+Copy the relative path
 for the **current launch** from the output (normally the only socket; after a
 crash, use the newest launch). Do not delete older sockets while a worker may
 still own them. The relative socket path below also avoids Linux's short Unix

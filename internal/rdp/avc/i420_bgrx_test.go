@@ -107,7 +107,7 @@ func TestBGRXI420ParallelDamageParity(t *testing.T) {
 				img, pix, _ := newBGRXI420TestSource(fixture.sourceWidth, fixture.sourceHeight)
 				encoder := Encoder{
 					width: width, height: height, i420: make([]byte, width*height*3/2),
-					backend: BackendSoftware, threads: threads,
+					threads: threads,
 				}
 				full := image.Rect(0, 0, width, height)
 				want := referenceI420(width, height, img)

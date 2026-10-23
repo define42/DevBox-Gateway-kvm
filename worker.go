@@ -37,7 +37,6 @@ func runWorker(args []string) error {
 		ReadOnly:  []string{boot.UEFI, boot.CloudInit, boot.RDPCert, boot.RDPKey},
 		ReadWrite: []string{boot.Disk, boot.UEFIVars},
 		KVM:       boot.Dev,
-		GPU:       boot.GPU3D || (boot.RDPH264 && boot.RDPH264Encoder != "software"),
 	}
 	if boot.ProfileSocket != "" {
 		policy.SocketDir = filepath.Dir(boot.ProfileSocket)

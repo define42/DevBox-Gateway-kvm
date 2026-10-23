@@ -86,8 +86,8 @@ func TestI420ParallelConversionParity(t *testing.T) {
 						copyI420TestRegion(want, reference, width, height, region.rect)
 						wantChanged := !bytes.Equal(pixels, want)
 						encoder := Encoder{
-							width: width, height: height, i420: pixels, backend: BackendSoftware,
-							threads: threads, requestedThreads: 16,
+							width: width, height: height, i420: pixels,
+							threads: threads,
 						}
 						if changed := encoder.convertI420Region(img, region.rect); changed != wantChanged ||
 							!bytes.Equal(pixels, want) {
@@ -137,19 +137,16 @@ func TestI420ParallelConversionSerialFallbacks(t *testing.T) {
 	want := referenceI420(width, height, img)
 	for _, test := range []struct {
 		name           string
-		backend        Backend
 		threads, procs int
 	}{
-		{"one-thread", BackendSoftware, 1, 4},
-		{"one-processor", BackendSoftware, 4, 1},
-		{"hardware", BackendNVENC, 4, 4},
-		{"unset-backend", "", 4, 4},
+		{"one-thread", 1, 4},
+		{"one-processor", 4, 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			runtime.GOMAXPROCS(test.procs)
 			encoder := Encoder{
 				width: width, height: height, i420: make([]byte, len(want)),
-				backend: test.backend, threads: test.threads,
+				threads: test.threads,
 			}
 			region := image.Rect(0, 0, width, height)
 			if !encoder.convertI420Region(img, region) || !bytes.Equal(encoder.i420, want) ||
@@ -170,11 +167,11 @@ func TestI420ParallelEncodeDamageState(t *testing.T) {
 			serialCodec, parallelCodec := &damageCodec{}, &damageCodec{}
 			serial := Encoder{
 				codec: serialCodec, frameRate: FrameRate, width: width, height: height,
-				i420: make([]byte, width*height*3/2), backend: BackendSoftware, threads: 1,
+				i420: make([]byte, width*height*3/2), threads: 1,
 			}
 			parallel := Encoder{
 				codec: parallelCodec, frameRate: FrameRate, width: width, height: height,
-				i420: make([]byte, width*height*3/2), backend: BackendSoftware, threads: threads,
+				i420: make([]byte, width*height*3/2), threads: threads,
 			}
 			compare := func(label string, img *image.RGBA, regions []image.Rectangle, force bool, wantErr error) {
 				t.Helper()

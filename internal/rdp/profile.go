@@ -5,7 +5,7 @@ import "errors"
 const (
 	// ProfileOffice caps full-picture encoding at 30 FPS for desktop density.
 	ProfileOffice = "office"
-	// ProfileSmooth retains the 60-FPS ceiling for smoother motion.
+	// ProfileSmooth caps full-picture encoding at 30 FPS.
 	ProfileSmooth = "smooth"
 )
 
@@ -17,9 +17,9 @@ var ErrProfile = errors.New("RDP profile must be office or smooth")
 // Bitmap clients retain their existing, lower 30-FPS ceiling.
 func ProfileFrameRate(profile string) (int, error) {
 	switch profile {
-	case ProfileOffice:
+	case ProfileOffice, ProfileSmooth:
 		return 30, nil
-	case "", ProfileSmooth:
+	case "":
 		return 60, nil
 	default:
 		return 0, ErrProfile

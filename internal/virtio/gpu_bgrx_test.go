@@ -9,7 +9,7 @@ import (
 )
 
 // gpuBGRXSink models a display that owns only flushed pixels, while retaining
-// the legacy interface so a format or renderer change can use either path.
+// the legacy interface so a format change can use either path.
 type gpuBGRXSink struct {
 	gpuDamageSink
 	directCalls int
@@ -248,20 +248,6 @@ func TestGPUBGRXRequiresSeparateCursor(t *testing.T) {
 	g.flush(res)
 	if d.directCalls != 0 || g.frame == nil || d.frame.RGBAAt(0, 0) != (color.RGBA{G: 255, A: 255}) {
 		t.Fatal("display without separate cursor skipped legacy composition")
-	}
-}
-
-func TestGPUBGRXNativeResourceUsesReadback(t *testing.T) {
-	t.Parallel()
-	d := &gpuBGRXSink{}
-	r := &gpuRendererStub{readColor: color.RGBA{G: 255, A: 255}}
-	g := newGPUWithRenderer(11, nil, nil, d, r)
-	t.Cleanup(func() { _ = g.Close() })
-	gpuDamageOK(t, g, gpu3DTestRequest(gpuCmdResourceCreate2D, 0, 1, gpuFormatB8G8R8X8, 4, 4))
-	gpuDamageOK(t, g, gpuDamageCommand(gpuCmdSetScanout, 1, image.Rect(0, 0, 4, 4)))
-	gpuDamageOK(t, g, gpuDamageCommand(gpuCmdResourceFlush, 1, image.Rect(1, 1, 2, 2)))
-	if d.directCalls != 0 || g.frame == nil || d.frame.RGBAAt(0, 0) != r.readColor {
-		t.Fatal("native resource bypassed renderer readback")
 	}
 }
 

@@ -5,8 +5,6 @@ import (
 	"image"
 	"slices"
 	"testing"
-
-	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
 )
 
 func TestThreadOptions(t *testing.T) {
@@ -23,19 +21,21 @@ func TestFrameRateOptions(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
 		name            string
+		backend         Backend
 		requested, want int
 		wantErr         error
 	}{
 		{name: "default", want: FrameRate},
 		{name: "minimum", requested: 1, want: 1},
 		{name: "office", requested: 30, want: 30},
+		{name: "auto compatibility alias", backend: BackendAuto, requested: 30, want: 30},
 		{name: "maximum", requested: FrameRate, want: FrameRate},
 		{name: "negative", requested: -1, wantErr: ErrFrameRate},
 		{name: "above maximum", requested: FrameRate + 1, wantErr: ErrFrameRate},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			encoder, err := NewEncoderWithOptions(64, 48, Options{Threads: 1, FrameRate: test.requested})
+			encoder, err := NewEncoderWithOptions(64, 48, Options{Threads: 1, Backend: test.backend, FrameRate: test.requested})
 			if !errors.Is(err, test.wantErr) {
 				t.Fatalf("NewEncoderWithOptions: got %v, want %v", err, test.wantErr)
 			}
@@ -53,59 +53,6 @@ func TestFrameRateOptions(t *testing.T) {
 	}
 }
 
-func TestHardwareFrameRateOptions(t *testing.T) {
-	t.Parallel()
-	for _, test := range []struct {
-		name        string
-		rate        int
-		backend     Backend
-		hardwareErr error
-		want        int
-		wantErr     error
-	}{
-		{name: "default", backend: BackendNVENC, want: FrameRate},
-		{name: "office", rate: 30, backend: BackendNVENC, want: 30},
-		{name: "auto", rate: 30, backend: BackendAuto, want: 30},
-		{name: "initialization fallback", rate: 30, backend: BackendAuto, hardwareErr: ErrCodec, want: 30},
-		{name: "invalid", rate: FrameRate + 1, backend: BackendNVENC, wantErr: ErrFrameRate},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			probes := 0
-			encoder, err := newEncoderWithNVENC(64, 48,
-				Options{Threads: 1, FrameRate: test.rate, Backend: test.backend},
-				func(width, height, rate, _ int) (codecEncoder, error) {
-					probes++
-					if width != 64 || height != 48 || rate != test.want {
-						t.Fatalf("NVENC options = %dx%d at %d FPS", width, height, rate)
-					}
-					if test.hardwareErr != nil {
-						return nil, test.hardwareErr
-					}
-
-					return &recordingCodec{}, nil
-				})
-			if !errors.Is(err, test.wantErr) {
-				t.Fatalf("newEncoderWithNVENC: got %v, want %v", err, test.wantErr)
-			}
-			if err != nil {
-				if probes != 0 || encoder != nil {
-					t.Fatalf("invalid rate reached codec: probes %d, encoder %v", probes, encoder)
-				}
-
-				return
-			}
-			defer encoder.Close()
-			if probes != 1 || encoder.FrameRate() != test.want {
-				t.Fatalf("probes %d, rate %d; want 1, %d", probes, encoder.FrameRate(), test.want)
-			}
-			if test.hardwareErr != nil {
-				checkSoftwareFrameRate(t, encoder, test.want)
-			}
-		})
-	}
-}
-
 func TestFrameRateTimestampsAndRetry(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
@@ -119,14 +66,14 @@ func TestFrameRateTimestampsAndRetry(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			recorded := &recordingCodec{}
-			hardware := &failingHardwareCodec{codecEncoder: recorded}
-			encoder, err := newEncoderWithNVENC(16, 16,
-				Options{Threads: 1, Backend: BackendNVENC, FrameRate: test.requested},
-				func(int, int, int, int) (codecEncoder, error) { return hardware, nil })
+			codec := &failingCodec{codecEncoder: recorded}
+			encoder, err := NewEncoderWithOptions(16, 16, Options{Threads: 1, FrameRate: test.requested})
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer encoder.Close()
+			encoder.codec.close()
+			encoder.codec = codec
 			img := image.NewRGBA(image.Rect(0, 0, 16, 16))
 			if _, err := encoder.Encode(img, false); err != nil {
 				t.Fatal(err)
@@ -134,11 +81,11 @@ func TestFrameRateTimestampsAndRetry(t *testing.T) {
 			if data, err := encoder.Encode(img, false); data != nil || err != nil {
 				t.Fatalf("unchanged frame = %v, %v", data, err)
 			}
-			hardware.err = ErrCodec
+			codec.err = ErrCodec
 			if _, err := encoder.Encode(img, true); !errors.Is(err, ErrCodec) {
 				t.Fatalf("injected failure = %v", err)
 			}
-			hardware.err = nil
+			codec.err = nil
 			if _, err := encoder.EncodeDamage(img, []image.Rectangle{}, false); err != nil {
 				t.Fatal(err)
 			}
@@ -153,23 +100,6 @@ func TestFrameRateTimestampsAndRetry(t *testing.T) {
 					recorded.timestamps, recorded.forces, wantTimestamps)
 			}
 		})
-	}
-}
-
-func checkSoftwareFrameRate(t *testing.T, encoder *Encoder, want int) {
-	t.Helper()
-	codec, ok := encoder.codec.(*openH264Encoder)
-	if !ok {
-		t.Fatalf("codec type = %T, want software", encoder.codec)
-	}
-	var effective api.SEncParamExt
-	if rv := codec.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &effective); rv != 0 {
-		t.Fatalf("GetOption returned %d", rv)
-	}
-	if encoder.FrameRate() != want || effective.FMaxFrameRate != float32(want) ||
-		effective.SSpatialLayers[0].FFrameRate != float32(want) {
-		t.Fatalf("frame rates: encoder %d, codec %v, layer %v; want %d",
-			encoder.FrameRate(), effective.FMaxFrameRate, effective.SSpatialLayers[0].FFrameRate, want)
 	}
 }
 

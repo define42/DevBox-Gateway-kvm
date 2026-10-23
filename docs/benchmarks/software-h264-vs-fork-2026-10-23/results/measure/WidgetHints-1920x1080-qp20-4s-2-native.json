@@ -1,0 +1,89 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "0-3",
+    "/tmp/h264-vs-fork-20261023/native_bench",
+    "/tmp/h264-vs-fork-20261023/fixtures/widget1080.i420",
+    "4",
+    "480"
+  ],
+  "environment": {
+    "GOMAXPROCS": "4",
+    "COMPARE_RUN": "1",
+    "COMPARE_CASE": "WidgetHints",
+    "COMPARE_I420": "/tmp/h264-vs-fork-20261023/fixtures/widget1080.i420",
+    "COMPARE_WIDTH": "1920",
+    "COMPARE_HEIGHT": "1080",
+    "COMPARE_QP": "20",
+    "COMPARE_SLICES": "4",
+    "COMPARE_FRAMES": "480",
+    "COMPARE_HINTS": "/tmp/h264-vs-fork-20261023/fixtures/widget1080.hints",
+    "COMPARE_DURATIONS": "/tmp/h264-vs-fork-20261023/measure/WidgetHints-1920x1080-qp20-4s-2-native.csv"
+  },
+  "returncode": 0,
+  "host_before": {
+    "time": 1792744189.6650524,
+    "load": [
+      4.38232421875,
+      3.4814453125,
+      3.4482421875
+    ],
+    "cpu_stat": [
+      "cpu  14320616 3151 3505949 65783217 239579 0 79089 0 1724995 0",
+      "cpu0 1579376 210 461127 8318316 28662 0 23339 0 170650 0",
+      "cpu1 1705603 313 434308 8315725 31823 0 5859 0 208166 0",
+      "cpu2 2799447 184 428472 7261994 27390 0 3999 0 205647 0",
+      "cpu3 1551376 250 444759 8406482 30315 0 21214 0 161510 0",
+      "cpu4 1690797 408 430669 8363122 31328 0 3291 0 253491 0",
+      "cpu5 1632595 209 433799 8418090 32395 0 3205 0 229574 0",
+      "cpu6 1638573 329 433887 8369503 30182 0 14624 0 237530 0",
+      "cpu7 1722846 1243 438926 8329982 27480 0 3555 0 258425 0"
+    ],
+    "temperature": {
+      "/sys/class/thermal/thermal_zone2/temp": "20000",
+      "/sys/class/thermal/thermal_zone0/temp": "25000",
+      "/sys/class/thermal/thermal_zone9/temp": "45050",
+      "/sys/class/thermal/thermal_zone7/temp": "34050",
+      "/sys/class/thermal/thermal_zone10/temp": "63000",
+      "/sys/class/thermal/thermal_zone5/temp": "51050",
+      "/sys/class/thermal/thermal_zone3/temp": "41050",
+      "/sys/class/thermal/thermal_zone1/temp": "53500",
+      "/sys/class/thermal/thermal_zone8/temp": "36050",
+      "/sys/class/thermal/thermal_zone6/temp": "46050",
+      "/sys/class/thermal/thermal_zone4/temp": "72050"
+    }
+  },
+  "host_after": {
+    "time": 1792744189.905895,
+    "load": [
+      4.38232421875,
+      3.4814453125,
+      3.4482421875
+    ],
+    "cpu_stat": [
+      "cpu  14320644 3151 3505958 65783370 239579 0 79089 0 1724995 0",
+      "cpu0 1579377 210 461129 8318336 28662 0 23339 0 170650 0",
+      "cpu1 1705604 313 434308 8315748 31823 0 5859 0 208166 0",
+      "cpu2 2799450 184 428474 7262012 27390 0 3999 0 205647 0",
+      "cpu3 1551392 250 444761 8406487 30315 0 21214 0 161510 0",
+      "cpu4 1690798 408 430669 8363145 31328 0 3291 0 253491 0",
+      "cpu5 1632597 209 433800 8418111 32395 0 3205 0 229574 0",
+      "cpu6 1638574 329 433888 8369525 30182 0 14624 0 237530 0",
+      "cpu7 1722848 1243 438926 8330003 27480 0 3555 0 258425 0"
+    ],
+    "temperature": {
+      "/sys/class/thermal/thermal_zone2/temp": "20000",
+      "/sys/class/thermal/thermal_zone0/temp": "25000",
+      "/sys/class/thermal/thermal_zone9/temp": "45050",
+      "/sys/class/thermal/thermal_zone7/temp": "34050",
+      "/sys/class/thermal/thermal_zone10/temp": "62000",
+      "/sys/class/thermal/thermal_zone5/temp": "51050",
+      "/sys/class/thermal/thermal_zone3/temp": "41050",
+      "/sys/class/thermal/thermal_zone1/temp": "53500",
+      "/sys/class/thermal/thermal_zone8/temp": "36050",
+      "/sys/class/thermal/thermal_zone6/temp": "46050",
+      "/sys/class/thermal/thermal_zone4/temp": "72050"
+    }
+  }
+}

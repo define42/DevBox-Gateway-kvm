@@ -1,48 +1,16 @@
 # Docker
 
-The default Docker image starts from `scratch` and includes DevBox-Gateway-kvm,
-OVMF, CA certificates, and the shared libraries needed for NVENC and
-virglrenderer/Mesa OpenGL. QCOW2 image imports run entirely in Go.
-The executable uses dynamic linking; NVENC also loads NVIDIA driver libraries
-supplied by the host. The runtime has no shell, package manager, or FFmpeg
-command-line tool.
+The default Docker image starts from `scratch` and includes the static
+DevBox-Gateway-kvm executable, OVMF firmware, and CA certificates. The application
+builds with `CGO_ENABLED=0`; H.264 encoding and QCOW2 image imports run entirely in
+Go. Guest graphics use a 2D virtio-gpu framebuffer. The runtime has no native
+graphics or codec libraries, shell, package manager, or FFmpeg command-line tool.
 
 It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
 and working `/dev/kvm` access. Managed desktop starts require Linux 6.12+ with
 Landlock ABI 6 enabled, seccomp, and the delegated memory and pids controllers
 described below. See [worker confinement](worker-sandbox.md). If Linux itself
 runs in a VM, nested virtualization must be enabled.
-
-## Guest OpenGL
-
-The gateway image includes the `virgl` backend, but guest 3D is disabled by
-default. The base Compose file does not require a host GPU. For a Mesa-compatible
-DRM render node, complete the
-[storage and cgroup setup below](#start-the-gateway-and-ldap-with-compose), then
-add the optional GPU overlay:
-
-```bash
-RENDER_GID=$(stat -c %g /dev/dri/renderD128) VM_GPU_3D=true \
-  docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.virgl.yaml \
-    up --build -d gateway
-```
-
-Persist `RENDER_GID` and `VM_GPU_3D=true` in `.env` for later invocations. Keep all
-three Compose files by also setting
-`COMPOSE_FILE=compose.yaml:compose.cgroup.yaml:compose.virgl.yaml`. If the
-render node is different, set `GPU_RENDER_NODE` to its absolute host path and
-use that node's group ID. It is mapped to `/dev/dri/renderD128` inside the
-container so the renderer can discover it at the usual location. The overlay
-grants the container user access to that node without running as root. Host GPU
-drivers must support EGL/OpenGL; NVIDIA NVENC configuration alone does not
-provide guest OpenGL.
-
-To disable guest 3D, set `VM_GPU_3D=false` in `.env` and recreate the gateway
-with the same Compose files. The renderer will not initialize, even if a GPU
-is still exposed. Stop and start desktops with the new gateway configuration;
-reconnecting RDP does not change the virtual GPU. See
-[guest graphics](runtime.md#guest-graphics) for guest Mesa requirements and
-renderer verification. The existing KVM and cgroup requirements still apply.
 
 ## Start the gateway and LDAP with Compose
 
@@ -99,10 +67,20 @@ make docker
 ```
 
 This runs `docker/configure.sh` and starts the gateway and LDAP with only
-`compose.yaml` and `compose.cgroup.yaml`. It forces `VM_GPU_3D=false` and
-`H264_ENCODER=software`, overriding saved GPU settings and excluding the NVIDIA
-and virgl overlays. Other `.env` settings are retained, and host Go is not
-required.
+`compose.yaml` and `compose.cgroup.yaml`, selecting `H264_ENCODER=software`.
+Other `.env` settings are retained, and host Go is not required. Both
+`make docker` and its compatibility alias `make docker-purego` build the same
+static Go application and bundled Go H.264 encoder.
+
+When upgrading from a GPU-enabled deployment, remove `compose.virgl.yaml` and
+`compose.nvidia.yaml` from saved `COMPOSE_FILE` settings. Remove old
+`VM_GPU_3D`, render-node settings, GPU device mappings, and NVIDIA runtime
+options. The application no longer supports native guest 3D or GPU driver access.
+
+Save your work and stop desktops before recreating the gateway; start them again
+afterward. `H264_ENCODER=software` is the default; `auto` is a compatibility
+alias for the same Go encoder. Remove any old `H264_ENCODER=nvenc` setting before
+starting the updated gateway, because that backend is no longer supported.
 
 Persist the Compose file selection in `.env` so subsequent commands, including
 `make gateway-docker`, retain the delegation:
@@ -111,9 +89,8 @@ Persist the Compose file selection in `.env` so subsequent commands, including
 COMPOSE_FILE=compose.yaml:compose.cgroup.yaml
 ```
 
-With guest OpenGL, append `:compose.virgl.yaml` and configure the GPU as described
-above. Explicit `-f` options override `COMPOSE_FILE`, so include every required
-overlay when using them. The base `compose.yaml` alone leaves `VM_CGROUP_ROOT`
+Explicit `-f` options override `COMPOSE_FILE`, so include the base and cgroup
+files when using them. The base `compose.yaml` alone leaves `VM_CGROUP_ROOT`
 empty: management remains available, but desktop starts are refused.
 
 After updating this checkout, run `make gateway-docker` to rebuild the
@@ -202,15 +179,16 @@ address. The gateway's built-in self-signed mode also works on LAN addresses;
 clients must explicitly trust that certificate.
 
 All gateway settings are passed through environment variables from `.env` or
-the shell. Set `RDP_PROFILE=office` (the default) for a 30 FPS H.264 cap, or
-`smooth` for 60 FPS. Bitmap fallback remains capped at 30 FPS. Restart managed
+the shell. Both `RDP_PROFILE=office` (the default) and `smooth` cap H.264 at
+30 FPS and currently behave identically. Bitmap fallback also stays capped at
+30 FPS. Restart managed
 VMs to apply a profile change. `H264_QP` controls H.264 compression quality with
 a default of `20` and an inclusive range of `0`–`51`. Lower values improve
 quality and increase traffic; higher values compress more and reduce quality.
 This is not a guaranteed Mbps cap. Set
 `H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`,
 `VM_MEMORY_OVERHEAD_MIB`, `VM_CGROUP_ROOT`, and `MAX_RUNNING_VMS` to change the
-defaults of automatic encoding, 2 vCPUs, 4096 MiB per guest, 512 MiB of worker
+defaults of pure Go H.264 encoding, 2 vCPUs, 4096 MiB per guest, 512 MiB of worker
 overhead, fail-closed cgroup configuration, and 4 running desktops. Allow enough
 host memory for guest RAM plus the overhead described below. See the
 [configuration reference](configuration.md) for every setting and the legacy Compose aliases retained for existing `.env`
@@ -290,7 +268,7 @@ migrate the legacy `gateway-state` named volume into `GATEWAY_STORAGE_PATH`.
 After the checks pass for a push to `main`, CI publishes the pushed head commit
 as a GitHub release and two Linux amd64 container images:
 
-- `ghcr.io/define42/devbox-gateway-kvm`: the gateway runtime with NVENC support.
+- `ghcr.io/define42/devbox-gateway-kvm`: the static Go gateway runtime with bundled Go H.264.
 - `ghcr.io/define42/devbox-gateway-kvm-ldap`: LDAP with automatic private TLS setup.
 
 New GHCR packages default to private. After the first release, set both packages
@@ -333,10 +311,10 @@ docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.published.yaml 
 ```
 
 The override selects prebuilt images; `--no-build` keeps Compose from building
-local targets. Add `-f compose.nvidia.yaml` to enable the NVIDIA runtime.
-Persistent gateway storage, LDAP accounts, and admin image uploads work as
-described above. The downloaded binary archive uses software encoding; the published
-container retains NVENC support through the host's NVIDIA Container Toolkit.
+local targets. Persistent gateway storage, LDAP accounts, and admin image
+uploads work as described above. The downloaded static binary archive and
+published container both use the static Go application and bundled Go H.264
+encoder. Neither requires host GPU devices or native libraries.
 
 ## Build and inspect
 
@@ -551,87 +529,18 @@ launch cgroup. The reservation is not released until that succeeds. If cleanup
 cannot be verified, management remains available but every later VM start is
 blocked. Inspect and recover the dedicated subtree, then restart the gateway.
 
-## Enable NVIDIA NVENC
+## Diagnostic image
 
-After the host storage/cgroup setup and NVIDIA Container Toolkit installation,
-start the NVIDIA variant with:
-
-```bash
-make nvidia
-```
-
-This rebuilds and starts the gateway and its LDAP dependency with the cgroup,
-virgl, and NVIDIA Compose overlays. It detects the first NVIDIA DRM render node
-and its group, enables guest 3D by default, and requests the NVIDIA graphics and
-video driver libraries. Select a particular GPU with
-`make nvidia NVIDIA_RENDER_NODE=/dev/dri/renderD129`. Disable guest 3D while
-retaining the NVIDIA runtime with `VM_GPU_3D=false make nvidia` (or
-`make nvidia VM_GPU_3D=false`). Host Go is not required. The existing
-`H264_ENCODER` setting controls whether NVENC is required or may fall back to
-software.
-
-For example, use QP 28 to trade some image quality for lower H.264 traffic:
-
-```bash
-H264_QP=28 make nvidia
-```
-
-Or persist `H264_QP=28` in `.env`. The same value applies to NVENC and software,
-including automatic fallback. Save guest work before recreating the gateway,
-then start the desktops again; the setting applies to new VM processes.
-
-Install a compatible NVIDIA driver and the
-[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-on the host, and configure its Docker runtime. With Compose, enable the NVIDIA
-override:
-
-```bash
-docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.nvidia.yaml \
-  up --build -d
-```
-
-Set `H264_ENCODER=nvenc` in `.env` to require hardware encoding. Keep the same
-`-f compose.yaml -f compose.cgroup.yaml -f compose.nvidia.yaml` options for
-subsequent Compose commands, or persist those files in `COMPOSE_FILE`.
-
-For `docker run`, add these options before the image name:
-
-```bash
---runtime=nvidia --gpus all
-```
-
-The image sets `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility`. Keep `video`
-enabled if overriding this variable; it exposes the driver libraries needed for
-NVENC. To also use NVIDIA's OpenGL/EGL driver for `VM_GPU_3D=true`, set
-`NVIDIA_DRIVER_CAPABILITIES=compute,video,utility,graphics` in `.env` (the NVIDIA
-Compose overlay forwards it), or pass that value with `docker run -e`. Include
-the render-node overlay if the renderer needs the host's DRM device. Driver
-capabilities enable the host libraries; verify guest/host renderers as described
-in [guest graphics](runtime.md#guest-graphics). See NVIDIA's
-[driver capability reference](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/docker-specialized.html#driver-capabilities).
-
-The default `H264_ENCODER=auto` falls back to software if NVENC cannot be
-initialized. Set `H264_ENCODER=nvenc` to require hardware encoding, or `H264_ENCODER=software`
-to select software explicitly. This accelerates the gateway's desktop video
-encoding; it does not expose a GPU or 3D acceleration to the guest.
-
-For a hardware encoding probe, build the optional Debian-based `diagnostics`
-target. It includes the FFmpeg command-line tool and a shell alongside the
-gateway:
+The optional Debian-based `diagnostics` image includes a shell and FFmpeg for
+independent decoding and troubleshooting:
 
 ```bash
 docker build --platform linux/amd64 --target diagnostics \
   -t devbox-gateway-kvm:diagnostics .
-docker run --rm --runtime=nvidia --gpus all \
-  --entrypoint ffmpeg devbox-gateway-kvm:diagnostics \
-  -hide_banner -f lavfi -i testsrc2=size=1280x720:rate=30 \
-  -frames:v 3 -c:v h264_nvenc -f null -
 ```
 
-This probe needs an NVENC-capable GPU and a host driver compatible with the
-image's FFmpeg libraries. `nvidia-smi` alone only verifies GPU visibility. Shell
-debugging is available through the `diagnostics` target; the default image has
-no `/bin/sh` for `docker exec`.
+FFmpeg is a diagnostic tool, not the gateway's encoder. The default image has no
+`/bin/sh` for `docker exec`.
 
 ## Logs and shutdown
 

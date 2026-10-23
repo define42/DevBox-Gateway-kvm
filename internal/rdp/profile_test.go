@@ -13,7 +13,7 @@ func TestProfileFrameRate(t *testing.T) {
 	}{
 		{name: "compatible default", want: 60},
 		{name: "office", profile: ProfileOffice, want: 30},
-		{name: "smooth", profile: ProfileSmooth, want: 60},
+		{name: "smooth", profile: ProfileSmooth, want: 30},
 		{name: "unknown", profile: "fast"},
 		{name: "case sensitive", profile: "Office"},
 	} {

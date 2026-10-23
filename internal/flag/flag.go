@@ -22,7 +22,7 @@ var ErrRDPH264 = errors.New("-rdp-h264 requires gateway-internal -rdp-fd")
 
 var ErrRDPProfile = errors.New("-rdp-profile must be office or smooth and requires gateway-internal -rdp-fd")
 
-var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software, nvenc, or auto and requires -rdp-h264")
+var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software or auto and requires -rdp-h264")
 
 var ErrRDPH264QP = errors.New("-rdp-h264-qp must be between 0 and 51 and requires -rdp-h264")
 
@@ -63,7 +63,6 @@ type BootArgs struct {
 	Disk              string
 	DiskSizeBytes     int64
 	CloudInit         string
-	GPU3D             bool
 	RDPProfile        string
 	RDPFD             int
 	TelemetryFD       int
@@ -111,10 +110,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"fixed primary disk capacity in bytes; standalone resolves once if omitted")
 	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
 		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
-	bootCmd.BoolVar(&c.GPU3D, "gpu-3d", settings.Bool(config.VM_GPU_3D),
-		settings.Description(config.VM_GPU_3D)+" ["+config.VM_GPU_3D+"]")
 	bootCmd.StringVar(&c.RDPProfile, "rdp-profile", rdp.ProfileSmooth,
-		"gateway-internal RDP display profile: office (30 FPS) or smooth (60 FPS); requires -rdp-fd")
+		"gateway-internal RDP display profile: office or smooth (both 30 FPS); requires -rdp-fd")
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
 		"gateway-internal inherited Unix listener descriptor (>=3); 0 disables RDP")
 	bootCmd.IntVar(&c.TelemetryFD, "telemetry-fd", 0,
@@ -129,7 +126,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.BoolVar(&c.RDPH264, "rdp-h264", false,
 		"enable H.264 AVC420 graphics for compatible RDP clients")
 	bootCmd.StringVar(&c.RDPH264Encoder, "rdp-h264-encoder", "software",
-		"H.264 encoder: software, nvenc, or auto (NVENC with software fallback); requires -rdp-h264")
+		"H.264 encoder: software or auto (alias for the bundled pure Go encoder); requires -rdp-h264")
 	bootCmd.IntVar(&c.RDPH264QP, "rdp-h264-qp", avc.DefaultQP,
 		"H.264 quantization: min 0, max 51; lower means higher quality and more bandwidth (requires -rdp-h264)")
 	bootCmd.IntVar(&c.RDPH264Threads, "rdp-h264-threads", 0,
@@ -236,13 +233,14 @@ func validateRDPH264Options(c *BootArgs, threadsSet, encoderSet, qpSet bool) err
 		return ErrRDPH264
 	}
 	switch c.RDPH264Encoder {
-	case "software", "nvenc", "auto":
+	case "software", "auto":
 	default:
 		return ErrRDPH264Encoder
 	}
 	if encoderSet && !c.RDPH264 {
 		return ErrRDPH264Encoder
 	}
+	c.RDPH264Encoder = "software"
 	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
 		return ErrRDPH264Threads
 	}

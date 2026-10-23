@@ -1,9 +1,0 @@
-# Optional Mesa/DRM host rendering. Keep the chosen render node and group explicit.
-# Example: RENDER_GID=$(stat -c %g /dev/dri/renderD128) VM_GPU_3D=true \
-#   docker compose -f compose.yaml -f compose.virgl.yaml up --build -d gateway
-services:
-  gateway:
-    devices:
-      - "${GPU_RENDER_NODE:-/dev/dri/renderD128}:/dev/dri/renderD128"
-    group_add:
-      - "${RENDER_GID:?Set RENDER_GID to the host render node group ID}"

@@ -1,0 +1,219 @@
+package avc
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"slices"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
+	"golang.org/x/sys/unix"
+)
+
+// This file is overlaid into internal/rdp/avc for the comparison only. It calls
+// the production constructor and includes the production owned-bitstream copy.
+// Inputs, masks and logging buffers are prepared before encoding. Stream capture
+// is for separate validation invocations, not the reported performance runs.
+func TestOpenH264Comparison(t *testing.T) {
+	if os.Getenv("COMPARE_RUN") == "" {
+		t.Skip("comparison not requested")
+	}
+	const fps = 60
+	width := comparisonInt(t, "COMPARE_WIDTH", 1920)
+	height := comparisonInt(t, "COMPARE_HEIGHT", 1080)
+	qp := comparisonInt(t, "COMPARE_QP", 20)
+	requested := comparisonInt(t, "COMPARE_SLICES", 1)
+	count := comparisonInt(t, "COMPARE_FRAMES", 60)
+	warmup := comparisonInt(t, "COMPARE_WARMUP", 16)
+	if width < 2 || height < 2 || width%2 != 0 || height%2 != 0 || qp < 0 || qp > 51 ||
+		(requested != 1 && requested != 4) || count < 1 || warmup < 0 {
+		t.Fatal("invalid geometry, QP, slices, frame count or warmup")
+	}
+	data, err := os.ReadFile(os.Getenv("COMPARE_I420"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	frameBytes := width * height * 3 / 2
+	if len(data) == 0 || len(data)%frameBytes != 0 {
+		t.Fatal("invalid I420 input length")
+	}
+	inputFrames := len(data) / frameBytes
+	mbCount := ((width + 15) / 16) * ((height + 15) / 16)
+	var masks [][]bool
+	if name := os.Getenv("COMPARE_HINTS"); name != "" {
+		raw, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(raw) != inputFrames*mbCount {
+			t.Fatalf("hint length %d; want %d (one byte per MB per input frame)", len(raw), inputFrames*mbCount)
+		}
+		masks = make([][]bool, inputFrames)
+		for frame := range masks {
+			masks[frame] = make([]bool, mbCount)
+			for mb := range masks[frame] {
+				value := raw[frame*mbCount+mb]
+				if value > 1 {
+					t.Fatalf("hint frame %d MB %d: expected 0/1, got %d", frame, mb, value)
+				}
+				masks[frame][mb] = value == 1
+			}
+		}
+	}
+	codec, actual, err := newCodecEncoder(width, height, requested, fps, qp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer codec.close()
+	encoder := codec.(*openH264Encoder)
+	var params api.SEncParamExt
+	if rv := encoder.codec.Raw().GetOption(api.ENCODER_OPTION_SVC_ENCODE_PARAM_EXT, &params); rv != 0 {
+		t.Fatalf("effective params: %d", rv)
+	}
+	l := params.SSpatialLayers[0]
+	wantMode := api.SM_SINGLE_SLICE
+	if requested > 1 {
+		wantMode = api.SM_FIXEDSLCNUM_SLICE
+	}
+	if actual != requested || int(params.IMultipleThreadIdc) != requested || int(l.SSliceArgument.UiSliceNum) != requested ||
+		l.SSliceArgument.UiSliceMode != wantMode || int(params.IPicWidth) != width || int(params.IPicHeight) != height ||
+		params.FMaxFrameRate != fps || l.FFrameRate != fps || int(l.IDLayerQp) != qp ||
+		params.IComplexityMode != api.LOW_COMPLEXITY || params.IUsageType != api.CAMERA_VIDEO_REAL_TIME ||
+		params.INumRefFrame != 1 || params.ITemporalLayerNum != 1 || params.ISpatialLayerNum != 1 ||
+		params.IRCMode != api.RC_OFF_MODE || params.ILoopFilterDisableIdc != 1 || params.UiIntraPeriod != 0 ||
+		params.BEnableFrameSkip || params.BEnableSceneChangeDetect || params.BEnableBackgroundDetection ||
+		params.BEnableAdaptiveQuant || params.BEnableLongTermReference || params.BEnableDenoise || params.BUseLoadBalancing ||
+		params.IEntropyCodingModeFlag != 0 || params.ESpsPpsIdStrategy != api.CONSTANT_ID || l.UiProfileIdc != api.PRO_BASELINE ||
+		!l.BFullRange || l.UiColorMatrix != uint8(api.CM_BT709) {
+		t.Fatalf("effective parameters differ from matched policy: %+v", params)
+	}
+	settings := comparisonSettings(params)
+	settingsJSON, err := json.Marshal(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("PARAMS %s\n", settingsJSON)
+	fmt.Printf("input_frames=%d hint_frames=%d macroblocks_per_frame=%d warmup=%d timed_frames=%d capture=%t\n", inputFrames, len(masks), mbCount, warmup, count, os.Getenv("COMPARE_STREAM") != "")
+	timings := make([]int64, count)
+	cpuTimings := make([]int64, count)
+	frameSizes := make([]int, count)
+	var total, cpuTotal, bytes int64
+	var saved [][]byte
+	if os.Getenv("COMPARE_STREAM") != "" {
+		saved = make([][]byte, 0, warmup+count)
+	}
+	var cpuStart, cpuEnd unix.Timespec
+	for i := 0; i < warmup+count; i++ {
+		index := i % inputFrames
+		frame := data[index*frameBytes : (index+1)*frameBytes]
+		var unchanged []bool
+		if masks != nil && i > 0 {
+			unchanged = masks[index]
+		}
+		if err := unix.ClockGettime(unix.CLOCK_PROCESS_CPUTIME_ID, &cpuStart); err != nil {
+			t.Fatal(err)
+		}
+		start := time.Now()
+		encoded, err := encoder.encodeDamage(frame, i == 0, int64(i)*1000/fps, unchanged)
+		elapsed := time.Since(start).Nanoseconds()
+		if clockErr := unix.ClockGettime(unix.CLOCK_PROCESS_CPUTIME_ID, &cpuEnd); clockErr != nil {
+			t.Fatal(clockErr)
+		}
+		if err != nil || len(encoded) == 0 {
+			t.Fatalf("frame %d: len=%d err=%v", i, len(encoded), err)
+		}
+		if i >= warmup {
+			n := i - warmup
+			timings[n] = elapsed
+			cpuTimings[n] = cpuEnd.Nano() - cpuStart.Nano()
+			frameSizes[n] = len(encoded)
+			total += elapsed
+			cpuTotal += cpuTimings[n]
+			bytes += int64(len(encoded))
+		}
+		if saved != nil {
+			saved = append(saved, encoded)
+		}
+	}
+	if name := os.Getenv("COMPARE_DURATIONS"); name != "" {
+		var log strings.Builder
+		log.WriteString("frame,input_frame,wall_ns,cpu_ns,bytes\n")
+		for n, elapsed := range timings {
+			fmt.Fprintf(&log, "%d,%d,%d,%d,%d\n", warmup+n, (warmup+n)%inputFrames, elapsed, cpuTimings[n], frameSizes[n])
+		}
+		if err := os.WriteFile(name, []byte(log.String()), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	slices.Sort(timings)
+	p95 := timings[(count*95+99)/100-1]
+	caseName := os.Getenv("COMPARE_CASE")
+	if caseName == "" {
+		caseName = "Clip"
+	}
+	fmt.Printf("BenchmarkOpenH264/%s/%dx%d/QP%d/%dSlices-4 %d %.3f ns/op %.3f cpu_ns/frame %.3f bytes/frame %d p95_ns/frame\n",
+		caseName, width, height, qp, actual, count, float64(total)/float64(count), float64(cpuTotal)/float64(count), float64(bytes)/float64(count), p95)
+	fmt.Printf("timed_bytes=%d warmup=%d timed_frames=%d\n", bytes, warmup, count)
+	if name := os.Getenv("COMPARE_STREAM"); name != "" {
+		file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, frame := range saved {
+			if _, err := file.Write(frame); err != nil {
+				file.Close()
+				t.Fatal(err)
+			}
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func comparisonInt(t *testing.T, name string, fallback int) int {
+	t.Helper()
+	if os.Getenv(name) == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(os.Getenv(name))
+	if err != nil {
+		t.Fatalf("%s: %v", name, err)
+	}
+	return value
+}
+
+func comparisonSettings(p api.SEncParamExt) map[string]any {
+	l := p.SSpatialLayers[0]
+	return map[string]any{
+		"width": p.IPicWidth, "height": p.IPicHeight, "fps": p.FMaxFrameRate,
+		"layer_width": l.IVideoWidth, "layer_height": l.IVideoHeight, "layer_fps": l.FFrameRate,
+		"qp": l.IDLayerQp, "threads": p.IMultipleThreadIdc, "slices": l.SSliceArgument.UiSliceNum,
+		"slice_mode": l.SSliceArgument.UiSliceMode, "slice_size_constraint": l.SSliceArgument.UiSliceSizeConstraint,
+		"complexity": p.IComplexityMode, "usage": p.IUsageType, "refs": p.INumRefFrame,
+		"temporal": p.ITemporalLayerNum, "spatial": p.ISpatialLayerNum, "rc": p.IRCMode,
+		"target_bitrate": p.ITargetBitrate, "max_bitrate": p.IMaxBitrate,
+		"layer_bitrate": l.ISpatialBitrate, "layer_max_bitrate": l.IMaxSpatialBitrate,
+		"min_qp": p.IMinQp, "max_qp": p.IMaxQp, "max_nal": p.UiMaxNalSize,
+		"deblock": p.ILoopFilterDisableIdc, "deblock_alpha": p.ILoopFilterAlphaC0Offset, "deblock_beta": p.ILoopFilterBetaOffset,
+		"frame_skip": p.BEnableFrameSkip, "scene": p.BEnableSceneChangeDetect,
+		"background": p.BEnableBackgroundDetection, "aq": p.BEnableAdaptiveQuant,
+		"ltr": p.BEnableLongTermReference, "ltr_refs": p.ILTRRefNum, "ltr_period": p.ILtrMarkPeriod,
+		"denoise": p.BEnableDenoise, "load_balance": p.BUseLoadBalancing,
+		"entropy": p.IEntropyCodingModeFlag, "profile": l.UiProfileIdc, "level": l.UiLevelIdc,
+		"intra": p.UiIntraPeriod, "sps_strategy": p.ESpsPpsIdStrategy,
+		"prefix_nal": p.BPrefixNalAddingCtrl, "ssei": p.BEnableSSEI, "simulcast": p.BSimulcastAVC,
+		"padding": p.IPaddingFlag, "cropping": p.BEnableFrameCroppingFlag,
+		"lossless_link": p.BIsLosslessLink, "fix_rc_overshoot": p.BFixRCOverShoot, "idr_bitrate_ratio": p.IIdrBitrateRatio,
+		"psnr_y": p.BPsnrY, "psnr_u": p.BPsnrU, "psnr_v": p.BPsnrV,
+		"video_signal": l.BVideoSignalTypePresent, "video_format": l.UiVideoFormat,
+		"full_range": l.BFullRange, "color_description": l.BColorDescriptionPresent,
+		"color_primaries": l.UiColorPrimaries, "transfer": l.UiTransferCharacteristics, "matrix": l.UiColorMatrix,
+		"aspect_ratio_present": l.BAspectRatioPresent, "aspect_ratio": l.EAspectRatio,
+		"aspect_width": l.SAspectRatioExtWidth, "aspect_height": l.SAspectRatioExtHeight,
+	}
+}

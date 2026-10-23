@@ -88,7 +88,6 @@ func run(ctx context.Context, args []string) error {
 		Disk:              bootArgs.Disk,
 		DiskSizeBytes:     bootArgs.DiskSizeBytes,
 		CloudInit:         bootArgs.CloudInit,
-		GPU3D:             bootArgs.GPU3D,
 		RDPProfile:        rdpProfile,
 		RDPWait:           bootArgs.RDPWait,
 		RDPCert:           bootArgs.RDPCert,

@@ -137,12 +137,12 @@ func TestProcessPerformanceDeltasAndReconnect(t *testing.T) {
 	}
 	reconnected := idle
 	reconnected.Sequence, reconnected.ElapsedSeconds = 5, 16
-	reconnected.Connections, reconnected.Encoder, reconnected.FramesSent = 1, "nvenc", 25
+	reconnected.Connections, reconnected.Encoder, reconnected.FramesSent = 1, "bitmap", 25
 	if !p.decode(performanceTestJSON(t, reconnected), now.Add(15*time.Second)) {
 		t.Fatal("reconnected sample rejected")
 	}
 	got = p.snapshot(now.Add(15 * time.Second))
-	if got.Encoder != "nvenc" || got.FramesPerSecond == nil || *got.FramesPerSecond != 1 || got.ACKMs != nil {
+	if got.Encoder != "bitmap" || got.FramesPerSecond == nil || *got.FramesPerSecond != 1 || got.ACKMs != nil {
 		t.Fatalf("reconnect used incorrect counters or stale ACK: %+v", got)
 	}
 	if got := p.snapshot(now.Add(31 * time.Second)); got.State != "stale" || got.SampledAt == nil {

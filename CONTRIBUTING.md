@@ -2,19 +2,24 @@
 
 ## Start here
 
-Use x86-64 Linux, Go 1.26.0 or newer, Git, and Make. Building the default software
-H.264 encoder needs no C compiler. These commands build the application and run
-focused tests without booting a guest:
+Use x86-64 Linux, Go 1.26.0 or newer, Git, and Make. All builds use the bundled
+pure Go H.264 encoder. Build the application and run focused tests without
+booting a guest:
 
 ```bash
 git clone https://github.com/define42/DevBox-Gateway-kvm.git
 cd DevBox-Gateway-kvm
-CGO_ENABLED=0 go build -o devbox-kvm .
+make devbox-kvm
 ./devbox-kvm serve -help
 ./devbox-kvm boot -help
 CGO_ENABLED=0 go test -short ./internal/config ./internal/flag \
   ./internal/gateway ./internal/cloudinit
 ```
+
+Application builds use `CGO_ENABLED=0` and need no C compiler or native
+libraries. The [development guide](docs/development.md#focused-checks) also
+covers decoder interoperability and race tests. Go's race detector and the
+UEFI test fixture require a C compiler; the application does not.
 
 Some tests open loopback TCP listeners. Running guests needs `/dev/kvm`; the
 full test suite also needs networking, firmware, and image tools. See the

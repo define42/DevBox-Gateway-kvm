@@ -12,7 +12,7 @@ import (
 func (e *Encoder) convertBGRXI420Region(
 	pix []byte, stride, sourceWidth, sourceHeight int, region image.Rectangle,
 ) bool {
-	if e.backend != BackendSoftware || e.threads <= 1 ||
+	if e.threads <= 1 ||
 		region.Dx()*region.Dy() < 2*i420MinPixelsPerWorker {
 		return scaleBGRXI420Region(e.i420, e.width, e.height, pix, stride, sourceWidth, sourceHeight, region)
 	}

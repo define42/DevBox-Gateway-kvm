@@ -108,7 +108,7 @@ func TestBootCLIPropagatesDiskSize(t *testing.T) {
 	path := writeBootQCOW2(t)
 	missingKVM := filepath.Join(t.TempDir(), "missing-kvm")
 	args := []string{
-		"devbox-kvm", "boot", "-d", path, "-disk-size-bytes=4096", "-D", missingKVM, "-gpu-3d=false",
+		"devbox-kvm", "boot", "-d", path, "-disk-size-bytes=4096", "-D", missingKVM,
 	}
 	err := run(t.Context(), args)
 	var pathErr *os.PathError

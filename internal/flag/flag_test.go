@@ -62,7 +62,7 @@ func TestParseBootArgs(t *testing.T) {
 		"-rdp-key", "console.key",
 		"-rdp-h264",
 		"-rdp-h264-threads", "4",
-		"-rdp-h264-encoder", "nvenc",
+		"-rdp-h264-encoder", "software",
 		"-rdp-stats",
 		"-m",
 		"1G",
@@ -106,7 +106,7 @@ func TestParseBootArgs(t *testing.T) {
 	if c.RDPFD != 3 || c.RDPCert != "console.crt" || c.RDPKey != "console.key" || !c.RDPH264 {
 		t.Errorf("invalid RDP options: %+v", c)
 	}
-	if c.RDPH264Threads != 4 || c.RDPH264Encoder != "nvenc" || !c.RDPStats {
+	if c.RDPH264Threads != 4 || c.RDPH264Encoder != "software" || !c.RDPStats {
 		t.Errorf("invalid RDP performance options: %+v", c)
 	}
 
@@ -326,12 +326,12 @@ func TestRDPH264EncoderOptions(t *testing.T) {
 		{
 			name: "nvenc",
 			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder=nvenc"},
-			want: "nvenc",
+			err:  flag.ErrRDPH264Encoder,
 		},
 		{
 			name: "auto",
 			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder=auto"},
-			want: "auto",
+			want: "software",
 		},
 		{
 			name: "unknown",

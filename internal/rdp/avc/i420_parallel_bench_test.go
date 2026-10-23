@@ -25,7 +25,7 @@ func BenchmarkI420Parallel(b *testing.B) {
 					e := Encoder{
 						width: test.width, height: test.height,
 						i420:    make([]byte, test.width*test.height*3/2),
-						threads: workers, backend: BackendSoftware,
+						threads: workers,
 					}
 					// Warm the destination and goroutine stack cache before timing.
 					for _, frame := range frames {

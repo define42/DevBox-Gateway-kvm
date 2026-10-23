@@ -9,8 +9,9 @@ import (
 var errBenchmarkEmptyAccessUnit = errors.New("scroll frame produced empty access unit")
 
 // BenchmarkOfficeProfileBudget measures the work budget of one nominal second
-// for four software sessions. Each stream alternates the same two immutable
-// scrolling pictures on every encode, so both profiles encode identical changes
+// for four software sessions at explicit 30/60-FPS codec rates. Both named RDP
+// profiles now cap at 30 FPS; 60 FPS remains a reference workload. Each stream
+// alternates the same two immutable scrolling pictures, encoding identical changes
 // per frame. Sampling an alternating 60-Hz source at 30 Hz would instead select
 // identical pictures and incorrectly measure unchanged-frame suppression.
 //
@@ -25,8 +26,8 @@ func BenchmarkOfficeProfileBudget(b *testing.B) {
 		name string
 		rate int
 	}{
-		{name: "profile=smooth60", rate: 60},
-		{name: "profile=office30", rate: 30},
+		{name: "fps=60", rate: 60},
+		{name: "fps=30", rate: 30},
 	} {
 		b.Run(profile.name, func(b *testing.B) {
 			var streams [streamCount]struct {

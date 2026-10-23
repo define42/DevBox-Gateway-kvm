@@ -54,7 +54,7 @@ func TestProcessPerformanceNetworkRatesAndReconnect(t *testing.T) {
 	}
 	// Bytes from subsequent handshakes/sessions contribute to the same totals.
 	sample.Sequence, sample.ElapsedSeconds = 6, 21
-	sample.Connections, sample.Encoder = 1, "nvenc"
+	sample.Connections, sample.Encoder = 1, "bitmap"
 	sample.Network = &telemetry.NetworkSnapshot{SentBytes: 11_251_000, ReceivedBytes: 502_625}
 	if !p.decode(performanceTestJSON(t, sample), now.Add(30*time.Second)) {
 		t.Fatal("reconnected sample rejected")

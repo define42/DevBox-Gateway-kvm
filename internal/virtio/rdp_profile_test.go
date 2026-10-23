@@ -20,7 +20,7 @@ func TestRDPDisplayProfiles(t *testing.T) {
 	}{
 		{name: "default", fps: 60},
 		{name: "office", profile: rdp.ProfileOffice, fps: 30},
-		{name: "smooth", profile: rdp.ProfileSmooth, fps: 60},
+		{name: "smooth", profile: rdp.ProfileSmooth, fps: 30},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -45,9 +45,9 @@ func TestRDPProfileFrameIntervals(t *testing.T) {
 	}{
 		{name: "default AVC", graphics: true, want: time.Second / 60},
 		{name: "office AVC", fps: 30, graphics: true, want: time.Second / 30},
-		{name: "smooth AVC", fps: 60, graphics: true, want: time.Second / 60},
+		{name: "smooth AVC", fps: 30, graphics: true, want: time.Second / 30},
 		{name: "office bitmap", fps: 30, want: time.Second / 30},
-		{name: "smooth bitmap", fps: 60, want: time.Second / 30},
+		{name: "smooth bitmap", fps: 30, want: time.Second / 30},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()

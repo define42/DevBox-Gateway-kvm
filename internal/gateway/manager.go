@@ -39,8 +39,7 @@ type ManagerConfig struct {
 	H264QP                                             *int // Nil selects QP 20; explicit 0 is valid.
 	H264Slices                                         int  // Software slices: 1, 2, or 4; zero defaults to 1.
 	Encoder, Keyboard                                  string
-	GPU3D                                              bool   // Enable virgl guest OpenGL when each worker starts.
-	RDPProfile                                         string // office (30 FPS) by default; smooth selects 60 FPS.
+	RDPProfile                                         string // office (default) or smooth; both cap at 30 FPS.
 	VMProfiling                                        bool   // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	MemoryBudgetMiB                                    int    // Zero selects an automatic host-memory budget.
@@ -282,10 +281,10 @@ func normalizeManagerLimits(c *ManagerConfig) error {
 	if c.MemoryBudgetMiB < 0 || c.MemoryBudgetMiB > 1<<30 {
 		return fmt.Errorf("memory budget must be between 0 and 1073741824 MiB: %w", ErrInvalid)
 	}
-	if c.Encoder == "" {
-		c.Encoder = "auto"
+	if c.Encoder == "" || c.Encoder == "auto" {
+		c.Encoder = "software"
 	}
-	if c.Encoder != "auto" && c.Encoder != "nvenc" && c.Encoder != "software" {
+	if c.Encoder != "software" {
 		return fmt.Errorf("invalid H.264 encoder: %w", ErrInvalid)
 	}
 	if c.Keyboard == "" {
@@ -727,8 +726,6 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-h264-qp", fmt.Sprint(*m.config.H264QP),
 		"-rdp-h264-threads", strconv.Itoa(m.config.H264Slices),
 		"-rdp-profile", m.config.RDPProfile,
-		// Explicit false prevents the worker from inheriting a conflicting VM_GPU_3D.
-		fmt.Sprintf("-gpu-3d=%t", m.config.GPU3D),
 		"-audio", "rdp",
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
@@ -787,7 +784,7 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-run.done:
-			return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrConflict))
+			return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrStartupFailed))
 		case <-tick.C:
 			probeCtx, cancelProbe := context.WithTimeout(ctx, time.Second)
 			conn, err := dialRDPBackend(probeCtx, run.endpoint)
@@ -799,7 +796,7 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 				}
 				select {
 				case <-run.done:
-					return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrConflict))
+					return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrStartupFailed))
 				default:
 					return nil
 				}

@@ -19,7 +19,6 @@ const (
 	DATA_ROOT_DIR              = "DATA_ROOT_DIR"
 	BASE_IMAGE                 = "BASE_IMAGE"
 	VM_BINARY                  = "VM_BINARY"
-	VM_GPU_3D                  = "VM_GPU_3D"
 	VM_NETWORK_POLICY          = "VM_NETWORK_POLICY"
 	VM_NETWORK_ALLOW_CIDRS     = "VM_NETWORK_ALLOW_CIDRS"
 	UEFI_CODE                  = "UEFI_CODE"
@@ -123,18 +122,17 @@ func NewSettings() *Settings {
 	s.SetString(DATA_ROOT_DIR, "Private persistent VM state directory", ".devbox-kvm-gateway")
 	s.SetString(BASE_IMAGE, "Optional immutable standalone uncompressed QCOW2 default image", "")
 	s.SetString(VM_BINARY, "VM worker executable; empty uses the current executable", "")
-	s.SetBool(VM_GPU_3D, "Enable guest OpenGL through virglrenderer (requires a virgl build and host EGL)", false)
 	s.SetString(VM_NETWORK_POLICY,
 		"Managed IPv4 access: internet (public destinations) or allowlist (explicit CIDRs only)", "internet")
 	s.SetString(VM_NETWORK_ALLOW_CIDRS, "Comma-separated IPv4 CIDRs allowed in addition to the managed network policy; "+
 		"empty denies LAN/host access", "")
 	s.SetString(UEFI_CODE, "OVMF CODE firmware", "/usr/share/OVMF/OVMF_CODE_4M.fd")
 	s.SetString(UEFI_VARS_TEMPLATE, "Matching pristine OVMF variables template", "/usr/share/OVMF/OVMF_VARS_4M.fd")
-	s.SetString(H264_ENCODER, "H.264 encoder: auto, nvenc, software", "auto")
+	s.SetString(H264_ENCODER, "H.264 encoder: software (bundled pure Go); auto is a compatibility alias", "software")
 	s.SetInt(H264_QP, "H.264 quantizer: min 0, max 51; lower = higher quality/more bandwidth, "+
 		"higher = more compression", 20)
-	s.SetInt(H264_SLICES, "Software H.264 slices: 1, 2, or 4, limited by the worker CPU budget; NVENC ignores this", 1)
-	s.SetString(RDP_PROFILE, "Desktop graphics profile: office (30 FPS), smooth (60 FPS)", "office")
+	s.SetInt(H264_SLICES, "Software H.264 slices: 1, 2, or 4, limited by the worker CPU budget", 1)
+	s.SetString(RDP_PROFILE, "Desktop graphics profile: office or smooth (both 30 FPS)", "office")
 	s.SetBool(GATEWAY_VM_PROFILING, "Enable private, on-demand VM worker CPU profiling sockets", false)
 	s.SetString(VM_KEYBOARD, "Guest keyboard layout", "us")
 	s.SetInt(VM_VCPU_COUNT, "vCPUs per desktop", 2)

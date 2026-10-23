@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// These digests were captured before the second optimization pass. They cover
+// These bundled pure-Go codec digests were captured before the second optimization pass. They cover
 // complete access units, including refreshes, slice boundaries and reused input.
 func TestEncoderOptimizationBitstreamParity(t *testing.T) {
 	t.Parallel()

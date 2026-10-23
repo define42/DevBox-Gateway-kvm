@@ -134,28 +134,6 @@ func TestManagerRDPProfiles(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // The inherited environment is part of the worker configuration contract.
-func TestManagerGPU3DOverridesWorkerEnvironment(t *testing.T) {
-	for _, enabled := range []bool{false, true} {
-		t.Run(strconv.FormatBool(enabled), func(t *testing.T) {
-			t.Setenv("VM_GPU_3D", strconv.FormatBool(!enabled))
-			m := newTestManager(t, "graceful")
-			m.config.GPU3D = enabled
-			vm := createManagerVM(t, m, "alice", "desktop")
-			if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
-				t.Fatal(err)
-			}
-			value, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.gpu-3d"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if string(value) != strconv.FormatBool(enabled) {
-				t.Fatalf("child GPU 3D setting = %q, want %t", value, enabled)
-			}
-		})
-	}
-}
-
 func TestManagerAudioPlayback(t *testing.T) {
 	t.Parallel()
 	m := newTestManager(t, "graceful")
@@ -421,8 +399,11 @@ func TestManagerStartReportsEarlyExit(t *testing.T) {
 	m := newTestManager(t, "startup-exit")
 	vm := createManagerVM(t, m, "alice", "desktop")
 	err := m.Start(t.Context(), vm.Owner, vm.ID)
-	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("startup exit did not preserve the conflict error: %v", err)
+	if !errors.Is(err, ErrStartupFailed) {
+		t.Fatalf("startup exit did not report a startup failure: %v", err)
+	}
+	if errors.Is(err, ErrConflict) {
+		t.Fatalf("startup exit was classified as a state or capacity conflict: %v", err)
 	}
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 2 {
@@ -633,17 +614,12 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 			fmt.Fprintln(os.Stderr, "parse helper boot arguments:", err)
 			os.Exit(2)
 		}
-		args["-gpu-3d"] = strconv.FormatBool(boot.GPU3D)
 		args["-rdp-h264-qp"] = strconv.Itoa(boot.RDPH264QP)
 		args["-rdp-h264-threads"] = strconv.Itoa(boot.RDPH264Threads)
 
 		break
 	}
 	dir := filepath.Dir(args["-d"])
-	if err := os.WriteFile(filepath.Join(dir, "helper.gpu-3d"), []byte(args["-gpu-3d"]), 0o600); err != nil {
-		fmt.Fprintln(os.Stderr, "write helper GPU configuration:", err)
-		os.Exit(2)
-	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-h264-qp"), []byte(args["-rdp-h264-qp"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper QP:", err)
 		os.Exit(2)

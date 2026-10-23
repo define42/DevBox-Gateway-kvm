@@ -1,0 +1,104 @@
+{
+  "mode": "preflight",
+  "repetitions": 6,
+  "cases": [
+    {
+      "name": "Road",
+      "file": "/tmp/h264-vs-fork-20261023/fixtures/road1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20,
+      "frames": 120
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-vs-fork-20261023/fixtures/road1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 32,
+      "frames": 120
+    },
+    {
+      "name": "PDF",
+      "file": "/tmp/h264-vs-fork-20261023/fixtures/pdf1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20,
+      "frames": 120
+    },
+    {
+      "name": "Road",
+      "file": "/tmp/h264-vs-fork-20261023/fixtures/road720.i420",
+      "width": 1280,
+      "height": 720,
+      "qp": 20,
+      "frames": 120
+    },
+    {
+      "name": "WidgetNoHints",
+      "file": "/tmp/h264-vs-fork-20261023/fixtures/widget1080.i420",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20,
+      "frames": 480
+    },
+    {
+      "name": "WidgetHints",
+      "file": "/tmp/h264-vs-fork-20261023/fixtures/widget1080.i420",
+      "hints": "/tmp/h264-vs-fork-20261023/fixtures/widget1080.hints",
+      "width": 1920,
+      "height": 1080,
+      "qp": 20,
+      "frames": 480
+    }
+  ],
+  "hashes": {
+    "/tmp/h264-vs-fork-20261023/go.test": "89e55e000937476e5ef62e787943327b449efc09bf3e17c5d9e5dda2e7b14396",
+    "/tmp/h264-vs-fork-20261023/native_bench": "da9cc389cd716e88b0a012efafe3ea92d39ea02ccf0f737cc3842eaee3f5f9fa",
+    "/tmp/h264-vs-fork-20261023/fixtures/road1080.i420": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+    "/tmp/h264-vs-fork-20261023/fixtures/road720.i420": "1c65ba12ef3b2b21632f4a4d3a7c6d089ae7643ce5ada7a24aada4c64614eef5",
+    "/tmp/h264-vs-fork-20261023/fixtures/pdf1080.i420": "8a938d0eb90f03c63a7ec8b35247e53033bc6acc683146b74a299767a083ad6b",
+    "/tmp/h264-vs-fork-20261023/fixtures/widget1080.i420": "a4e1afbc3d4581fcd289d14907622ba984ffc4a5cd3aa438ea43f7a5a3533d47",
+    "/tmp/h264-vs-fork-20261023/fixtures/widget1080.hints": "6aa70dc148e397fd9fc8f7a17414857903b868b44f98ff82bf7f6ec17f06458a"
+  },
+  "warmup": 16,
+  "frame_rate": 60,
+  "affinity": {
+    "1": "2",
+    "4": "0-3"
+  },
+  "gomaxprocs": 4,
+  "order": "Alternating Go/native and native/Go each repetition; offset by case and slice",
+  "host_before": {
+    "time": 1792743989.4054904,
+    "load": [
+      2.89111328125,
+      3.1337890625,
+      3.37646484375
+    ],
+    "cpu_stat": [
+      "cpu  14277092 3149 3500515 65674445 239396 0 78978 0 1724995 0",
+      "cpu0 1573727 210 460418 8305343 28647 0 23258 0 170650 0",
+      "cpu1 1699395 313 433734 8302728 31806 0 5850 0 208166 0",
+      "cpu2 2787076 184 427657 7255302 27384 0 3996 0 205647 0",
+      "cpu3 1545425 249 444222 8393173 30295 0 21211 0 161510 0",
+      "cpu4 1687309 407 429945 8347585 31301 0 3287 0 253491 0",
+      "cpu5 1629476 209 433124 8402145 32365 0 3201 0 229574 0",
+      "cpu6 1635173 329 433218 8353837 30154 0 14621 0 237530 0",
+      "cpu7 1719507 1243 438194 8314327 27442 0 3552 0 258425 0"
+    ],
+    "temperature": {
+      "/sys/class/thermal/thermal_zone2/temp": "20000",
+      "/sys/class/thermal/thermal_zone0/temp": "25000",
+      "/sys/class/thermal/thermal_zone9/temp": "43050",
+      "/sys/class/thermal/thermal_zone7/temp": "33050",
+      "/sys/class/thermal/thermal_zone10/temp": "61000",
+      "/sys/class/thermal/thermal_zone5/temp": "46050",
+      "/sys/class/thermal/thermal_zone3/temp": "39050",
+      "/sys/class/thermal/thermal_zone1/temp": "53000",
+      "/sys/class/thermal/thermal_zone8/temp": "35050",
+      "/sys/class/thermal/thermal_zone6/temp": "43050",
+      "/sys/class/thermal/thermal_zone4/temp": "66050"
+    }
+  }
+}

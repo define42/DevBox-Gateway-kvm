@@ -45,7 +45,8 @@ func TestWorkerConfinement(t *testing.T) {
 	// #nosec G204 G702 -- Re-exec this test binary with private fixtures created above.
 	command := exec.Command(os.Args[0], "-test.run=^TestSandboxHelper$", "--", own, other, secret, control)
 	command.Env = append(os.Environ(),
-		"DEVBOX_SANDBOX_TEST=launch", "LDAP_PASSWORD=must-not-leak", "GORACE=atexit_sleep_ms=0")
+		"DEVBOX_SANDBOX_TEST=launch",
+		"LDAP_PASSWORD=must-not-leak", "GORACE=atexit_sleep_ms=0")
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("confined child: %v\n%s", err, output)
@@ -73,7 +74,8 @@ func TestSandboxHelper(t *testing.T) {
 		t.Fatal("missing paths")
 	}
 	if stage == "launch" {
-		env := append(Environment(os.Environ()), "DEVBOX_SANDBOX_TEST=confined", "GORACE=atexit_sleep_ms=0")
+		env := append(Environment(os.Environ()), "DEVBOX_SANDBOX_TEST=confined",
+			"GORACE=atexit_sleep_ms=0")
 		if err := Exec(os.Args[0], os.Args, env, Policy{ReadWrite: []string{paths[0]}}); err != nil {
 			t.Fatal(err)
 		}
@@ -146,6 +148,7 @@ func TestSandboxHelper(t *testing.T) {
 			defer wg.Done()
 			runtime.LockOSThread()
 			defer runtime.UnlockOSThread()
+			checkThreadNameAccess(t)
 			// #nosec G703 -- Deliberately attempt a parent fixture to verify denial.
 			if _, err := os.ReadFile(paths[1]); !errors.Is(err, os.ErrPermission) {
 				t.Errorf("thread escaped filesystem restrictions: %v", err)
@@ -160,4 +163,30 @@ func TestSandboxHelper(t *testing.T) {
 	}
 	wg.Wait()
 	fmt.Println("confinement verified")
+}
+
+// checkThreadNameAccess runs on a locked OS thread, including threads created
+// after re-exec. Process task files must remain inaccessible.
+func checkThreadNameAccess(t *testing.T) {
+	t.Helper()
+	path := fmt.Sprintf("/proc/self/task/%d/comm", unix.Gettid())
+	// #nosec G703 -- This path names only the current test thread.
+	err := os.WriteFile(path, []byte("sandbox-test"), 0o600)
+	if !errors.Is(err, os.ErrPermission) {
+		t.Errorf("write own thread name = %v, want permission denied", err)
+	}
+	// #nosec G703 -- Verify that process task files remain unreadable.
+	if _, err := os.ReadFile(path); !errors.Is(err, os.ErrPermission) {
+		t.Errorf("read own thread name = %v, want permission denied", err)
+	}
+	parent := os.Getppid()
+	path = fmt.Sprintf("/proc/%d/task/%d/comm", parent, parent)
+	// #nosec G703 -- Open without truncation so a regression cannot change the parent.
+	file, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err == nil {
+		file.Close()
+	}
+	if !errors.Is(err, os.ErrPermission) {
+		t.Errorf("write parent thread name = %v, want permission denied", err)
+	}
 }

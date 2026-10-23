@@ -7,21 +7,27 @@ Run the commands below from the repository root. New contributors can start with
 ## Build and contribute
 
 Development targets x86-64 Linux with Go 1.26.0 or newer, as declared in
-[`go.mod`](../go.mod). A normal build includes the software H.264 encoder and
-needs no C compiler or native codec libraries:
+[`go.mod`](../go.mod). Every build uses the bundled pure Go H.264 encoder.
+Build from the repository root without a C compiler or native codec SDK:
 
 ```bash
-CGO_ENABLED=0 go build -o devbox-kvm .
+make devbox-kvm
+# Or: CGO_ENABLED=0 go build -o devbox-kvm .
 ./devbox-kvm serve -help
 ./devbox-kvm boot -help
 ./devbox-kvm seed -help
 ```
 
+Application builds use `CGO_ENABLED=0` and produce a static executable. The
+runtime and bundled H.264 codec need no C compiler or native libraries. Guest
+graphics use the Go 2D virtio-gpu framebuffer. `H264_ENCODER=software` and the
+compatibility value `auto` select the same Go codec.
+
 Booting guests also requires hardware virtualization and read/write access to
-`/dev/kvm`. Nested hosts must expose KVM. The optional NVENC build and Go race
-detector require cgo and a C compiler; NVENC additionally needs `pkg-config`,
-`libavcodec`, and `libavutil` development files. See the
-[runtime guide](runtime.md) for encoder setup.
+`/dev/kvm`. Nested hosts must expose KVM. Go race tests require cgo and a C
+compiler for instrumentation; they do not add a native application backend.
+The UEFI smoke test also compiles a small C firmware fixture, separately from
+the Go application. See the [runtime guide](runtime.md) for guest requirements.
 
 Include a reproduction or focused regression test for behavior changes. Update
 the relevant guide and CLI help when changing flags, defaults, guest requirements,
@@ -35,7 +41,8 @@ pinned in the Makefile, using [`.golangci.yaml`](../.golangci.yaml).
 
 ## Code layout and API boundary
 
-The application entry point is at the repository root. `go build -o devbox-kvm .`
+The application entry point is at the repository root.
+`CGO_ENABLED=0 go build -o devbox-kvm .`
 builds the CLI; there is no separate
 `cmd/devbox-kvm` module.
 
@@ -43,7 +50,7 @@ builds the CLI; there is no separate
 | --- | --- |
 | [`main.go`](../main.go), [`gateway_command.go`](../gateway_command.go), [`seed_command.go`](../seed_command.go) | `boot`, `probe`, `serve`, and `seed` command entry points |
 | [`kvm`](../kvm) | Public Go wrappers for Linux KVM ioctls |
-| [`pkg/h264`](../pkg/h264), [`pkg/h264/api`](../pkg/h264/api) | Public bundled Go H.264 codec and its API |
+| [`pkg/h264`](../pkg/h264), [`pkg/h264/api`](../pkg/h264/api) | Public bundled Go H.264 codec used by all gateway builds and decoder tests |
 | [`internal/gateway`](../internal/gateway) | HTTPS UI, LDAP authentication, image catalog, VM lifecycle, and token-routed RDP |
 | [`internal/config`](../internal/config), [`internal/flag`](../internal/flag) | Environment-backed gateway settings and VM CLI options |
 | [`internal/vmm`](../internal/vmm) | VM configuration, boot orchestration, and shutdown |
@@ -90,7 +97,7 @@ skip when their external tool is unavailable. Production QCOW2 imports and
 normalization do not require either QEMU tool. These are image/codec checks, not
 QEMU guest runs.
 
-For concurrency changes, run the relevant race checks with cgo enabled:
+For concurrency changes, enable cgo for Go's race instrumentation:
 
 ```bash
 CGO_ENABLED=1 go test -race ./internal/gateway ./internal/audio ./internal/rdp/...
@@ -219,12 +226,11 @@ still needs the full suite's KVM/network prerequisites listed above.
 The [CI workflow](../.github/workflows/ci.yml) runs the default Go suite and the
 QCOW2/UEFI smoke test ten times, with lint, coverage, and `make test-audio` on the
 first run. `make test` enforces the threshold before CI uploads `c.out` to
-Coveralls. Separate jobs check the pure-Go and NVENC-tagged builds, selected race
-tests (including RDP audio), and the dashboard JavaScript.
-The [vulnerability workflow](../.github/workflows/govulncheck.yml) runs
-`govulncheck` against the module. Other integration-tagged tests and physical GPU
-checks below remain opt-in; the NVENC CI build does not prove that a host GPU can
-encode.
+Coveralls. Application builds and ordinary tests disable cgo. Separate jobs
+check the Go codec, selected race tests (including RDP audio), and dashboard
+JavaScript. Race tests enable cgo for instrumentation only. The
+[vulnerability workflow](../.github/workflows/govulncheck.yml) runs `govulncheck`
+against the module. Other integration-tagged tests below remain opt-in.
 
 ## Optional integration checks
 
@@ -254,28 +260,6 @@ The first target starts the bundled directory with Docker Compose and verifies
 authentication and role membership over LDAPS. It requires Docker Compose and
 OpenSSL. See the [LDAP guide](../testldap/README.md) for its public demo accounts,
 certificate setup, and `DEVBOX_KVM_TEST_LDAP_URL` / `DEVBOX_KVM_TEST_LDAP_CA` overrides.
-
-### Hardware H.264
-
-With the NVENC development dependencies installed, build and test the optional
-backend without requiring a GPU:
-
-```bash
-CGO_ENABLED=1 go build -tags nvenc ./...
-CGO_ENABLED=1 go test -short -tags nvenc ./internal/rdp/... \
-  ./internal/virtio ./internal/vmm ./internal/flag
-```
-
-With an NVIDIA H.264 NVENC-capable GPU, a working driver, and the `ffmpeg` decoder
-installed, opt into actual hardware encoding:
-
-```bash
-DEVBOX_KVM_TEST_NVENC=1 CGO_ENABLED=1 go test -tags 'nvenc integration' \
-  ./internal/rdp/avc -run '^TestNVENCHardware' -count=1 -timeout 2m -v
-```
-
-This covers independent decoding, forced IDR refreshes, unusual frame dimensions,
-color metadata, output ownership, and software fallback after a hardware error.
 
 ### Guest lifecycle and desktops
 

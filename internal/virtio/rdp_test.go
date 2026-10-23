@@ -92,7 +92,7 @@ func TestRDPDisplayInitializationFailurePreservesSuppliedListener(t *testing.T) 
 
 func TestRDPDisplayH264Configuration(t *testing.T) {
 	t.Parallel()
-	for _, backend := range []string{"", "software"} {
+	for _, backend := range []string{"", "software", "auto"} {
 		name := backend
 		if name == "" {
 			name = "default"
@@ -117,6 +117,7 @@ func TestRDPEncoderConfigValidation(t *testing.T) {
 		options RDPConfig
 	}{
 		{name: "unknown", options: RDPConfig{H264: true, H264Encoder: "invalid"}},
+		{name: "removed-nvenc", options: RDPConfig{H264: true, H264Encoder: "nvenc"}},
 		{name: "software-without-h264", options: RDPConfig{H264Encoder: "software"}},
 		{name: "nvenc-without-h264", options: RDPConfig{H264Encoder: "nvenc"}},
 		{name: "auto-without-h264", options: RDPConfig{H264Encoder: "auto"}},

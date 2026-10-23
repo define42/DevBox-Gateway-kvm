@@ -1,0 +1,60 @@
+{
+  "go_revision": "afd046db6dc6044ccd49080fcef8d52a96c02852",
+  "native_revision": "3aa03c1224e7ee31ded9a3294fc726da1a00235b",
+  "initial_worktree_status": " M .env.example\n M compose.yaml\n?? docs/benchmarks/software-h264-vs-fork-2026-10-23/\n",
+  "commands": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-p=2",
+        "-overlay=/tmp/h264-vs-fork-20261023/overlay.json",
+        "-c",
+        "-o",
+        "/tmp/h264-vs-fork-20261023/go.test",
+        "./internal/rdp/avc"
+      ],
+      "cwd": "/home/define42/git/DevBox-Gateway-kvm",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "g++",
+        "-O3",
+        "-std=c++17",
+        "-I",
+        "/tmp/h264-vs-fork-20261023/native-src/codec/api/wels",
+        "/home/define42/git/DevBox-Gateway-kvm/docs/benchmarks/software-h264-vs-fork-2026-10-23/native_bench.cpp",
+        "/tmp/h264-vs-fork-20261023/native-src/libopenh264.a",
+        "-pthread",
+        "-o",
+        "/tmp/h264-vs-fork-20261023/native_bench"
+      ],
+      "cwd": "/home/define42/git/DevBox-Gateway-kvm",
+      "returncode": 0
+    }
+  ],
+  "go_build_environment": {
+    "CGO_ENABLED": "0",
+    "GOTOOLCHAIN": "local",
+    "GOMAXPROCS": "4",
+    "GOAMD64": "v1"
+  },
+  "go_binary_info": "/tmp/h264-vs-fork-20261023/go.test: go1.27.3\n\tpath\tgithub.com/define42/DevBox-Gateway-kvm/internal/rdp/avc.test\n\tmod\tgithub.com/define42/DevBox-Gateway-kvm\t(devel)\t\n\tdep\tgolang.org/x/sys\tv0.48.0\th1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\tDefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n",
+  "native_dynamic_libraries": "\tlinux-vdso.so.1 (0x0000701739052000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x0000701738c00000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x0000701738b17000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x0000701738f25000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x0000701738800000)\n\t/lib64/ld-linux-x86-64.so.2 (0x0000701739054000)\n",
+  "host": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           39 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  8\nOn-line CPU(s) list:                     0-7\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz\nCPU family:                              6\nModel:                                   158\nThread(s) per core:                      2\nCore(s) per socket:                      4\nSocket(s):                               1\nStepping:                                9\nCPU(s) scaling MHz:                      84%\nCPU max MHz:                             3800.0000\nCPU min MHz:                             800.0000\nBogoMIPS:                                5599.85\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb pti ssbd ibrs ibpb stibp tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp vnmi md_clear flush_l1d arch_capabilities\nVirtualization:                          VT-x\nL1d cache:                               128 KiB (4 instances)\nL1i cache:                               128 KiB (4 instances)\nL2 cache:                                1 MiB (4 instances)\nL3 cache:                                6 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-7\nVulnerability Gather data sampling:      Vulnerable\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             KVM: Mitigation: Split huge pages\nVulnerability L1tf:                      Mitigation; PTE Inversion; VMX conditional cache flushes, SMT vulnerable\nVulnerability Mds:                       Mitigation; Clear CPU buffers; SMT vulnerable\nVulnerability Meltdown:                  Mitigation; PTI\nVulnerability Mmio stale data:           Mitigation; Clear CPU buffers; SMT vulnerable\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Mitigation; IBRS\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; IBRS; IBPB conditional; STIBP conditional; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Mitigation; Microcode\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+  "cpu_governors": {
+    "/sys/devices/system/cpu/cpu7/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu5/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu3/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu1/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu6/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu2/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "powersave"
+  },
+  "binary_sha256": {
+    "go.test": "89e55e000937476e5ef62e787943327b449efc09bf3e17c5d9e5dda2e7b14396",
+    "native_bench": "da9cc389cd716e88b0a012efafe3ea92d39ea02ccf0f737cc3842eaee3f5f9fa"
+  }
+}

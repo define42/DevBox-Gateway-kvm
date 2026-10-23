@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"image"
-	"image/draw"
 	"io"
 	"log"
 	"sync"
@@ -28,8 +27,8 @@ import (
 // pixels into the host resource) followed by RESOURCE_FLUSH (present it). On
 // flush we hand the resource's pixels to a Display sink.
 //
-// The default backend is 2D. An explicitly enabled virgl renderer adds the
-// legacy 3D protocol; EDID, blob resources and context-init are not offered.
+// The device implements only 2D graphics. 3D, EDID, blob resources, and
+// context-init are not offered.
 //
 // refs https://docs.oasis-open.org/virtio/virtio/v1.1/csprd01/virtio-v1.1-csprd01.html#x1-3130007
 
@@ -120,18 +119,13 @@ type gpuMemEntry struct {
 	length uint32
 }
 
-// gpuResource tracks either CPU pixels or a native renderer resource. data
-// holds transferred 2D pixels, or a small shadow preserving cursor alpha.
+// gpuResource owns transferred 2D pixels and their guest backing regions.
 type gpuResource struct {
 	width   uint32
 	height  uint32
 	format  uint32
 	data    []byte
 	backing []gpuMemEntry
-	// Native resources retain their allocation charge independently of CPU pixels.
-	handle uint32
-	charge uint64
-	args   gpu3DResourceArgs
 }
 
 type gpuCursor struct {
@@ -140,29 +134,20 @@ type gpuCursor struct {
 	hotX, hotY int
 }
 
-// GPU is a modern (virtio 1.0) display device with optional virgl rendering.
+// GPU is a pure Go modern (virtio 1.0) 2D display device.
 type GPU struct {
 	*ModernTransport
 	mu          sync.Mutex // Device state, worker, config accesses and external mode changes.
 	transportMu sync.Mutex // Serializes MMIO/reset with external configuration changes.
 
-	width            uint32
-	height           uint32
-	display          Display
-	telemetry        *telemetry.Collector // Borrowed process-lifetime counters; preserved by reset.
-	events           uint32
-	resourceBytes    uint64
-	closed           bool
-	closeErr         error
-	renderer         gpuRenderer
-	rendererErr      error
-	capsets          []gpuCapset
-	contexts         map[uint32]map[uint32]struct{}
-	fences           []gpuPendingFence
-	nextFence        uint32
-	resource3DBytes  uint64
-	backing3DBytes   uint64
-	backing3DEntries uint64
+	width         uint32
+	height        uint32
+	display       Display
+	telemetry     *telemetry.Collector // Borrowed process-lifetime counters; preserved by reset.
+	events        uint32
+	resourceBytes uint64
+	closed        bool
+	closeErr      error
 
 	resources   map[uint32]*gpuResource
 	scanout     [gpuNumScanouts]uint32
@@ -219,15 +204,9 @@ func (g *GPU) GetDeviceHeader() pci.DeviceHeader {
 
 // ModernDevice implementation.
 
-// DeviceFeatures offers virgl only after successful native initialization.
-// VIRTIO_F_VERSION_1 is added by the transport.
-func (g *GPU) DeviceFeatures() uint64 {
-	if g.renderer != nil {
-		return gpuFeatureVirgl
-	}
-
-	return 0
-}
+// DeviceFeatures advertises no optional GPU features. The transport adds
+// VIRTIO_F_VERSION_1 for the modern 2D device.
+func (g *GPU) DeviceFeatures() uint64 { return 0 }
 
 func (g *GPU) NumQueues() int { return gpuNumQueues }
 
@@ -273,7 +252,6 @@ func (g *GPU) ReadDeviceConfig(offset uint64, data []byte) {
 
 	binary.LittleEndian.PutUint32(cfg[:], g.events)
 	binary.LittleEndian.PutUint32(cfg[8:], gpuNumScanouts)
-	binary.LittleEndian.PutUint32(cfg[12:], uint32(len(g.capsets)))
 	zero(data)
 
 	if offset >= uint64(len(cfg)) {
@@ -341,18 +319,16 @@ func (g *GPU) IOThreadEntry() {
 			active = false
 		}
 		g.drain()
-		poll.reset(active || g.interruptPending() || g.fencesPending())
+		poll.reset(active || g.interruptPending())
 	}
 }
 
 func (g *GPU) drain() {
-	g.pollFences()
 	for g.ProcessControlQueue() == nil {
 	}
 
 	for g.ProcessCursorQueue() == nil {
 	}
-	g.pollFences()
 
 	g.mu.Lock()
 	if !g.closed {
@@ -397,37 +373,26 @@ func (g *GPU) process(sel int, control bool) error {
 	cursorChanged := false
 	completed := false
 	for processed := uint16(0); processed < queueSize && g.LastAvailIdx[sel] != LoadU16(&q.Avail.Idx); processed++ {
-		// Fenced requests keep their guest descriptors until native work completes.
-		if control && len(g.fences) >= int(queueSize) {
-			break
-		}
 		head := q.Avail.Ring[g.LastAvailIdx[sel]%queueSize]
 
 		var used uint32
-		deferred := false
 
 		if control {
 			req, wr := g.collectChain(q, head)
 			resp := g.handleControl(req)
-			deferred = g.deferFence(q, queueSize, head, req, wr, resp)
-			if !deferred {
-				used = g.writeResponse(wr, resp)
-			}
+			used = g.writeResponse(wr, resp)
 		} else {
 			req, _ := g.collectChain(q, head)
 			cursorChanged = g.handleCursor(req) || cursorChanged
 		}
 
-		if !deferred {
-			g.completeCommand(q, queueSize, head, used)
-			completed = true
-		}
+		g.completeCommand(q, queueSize, head, used)
+		completed = true
 		g.LastAvailIdx[sel]++
 	}
 	if cursorChanged {
 		g.present()
 	}
-
 	if completed {
 		return g.Interrupt()
 	}
@@ -463,11 +428,7 @@ func (g *GPU) handleCursor(req []byte) bool {
 
 			// Snapshot the transferred resource: later transfers or unrefs do
 			// not alter the cursor until another UPDATE command arrives.
-			img, err := g.cursorImage(res)
-			if err != nil {
-				return false
-			}
-			g.cursor.image = img
+			g.cursor.image = resourceImage(res, true)
 			g.cursor.hotX, g.cursor.hotY = int(hotX), int(hotY)
 		}
 	case gpuCmdMoveCursor:
@@ -486,45 +447,6 @@ func (g *GPU) handleCursor(req []byte) bool {
 type writableSeg struct {
 	addr   uint64
 	length uint32
-}
-
-func (g *GPU) cursorImage(res *gpuResource) (*image.RGBA, error) {
-	if res.handle == 0 {
-		return resourceImage(res, true), nil
-	}
-	img, err := g.renderer.ReadPixels(res.handle, 0, 0, res.width, res.height)
-	if err != nil {
-		return nil, err
-	}
-	alphaOffset, cursorAlpha := nativeCursorAlphaOffset(res.format)
-	if cursorAlpha && res.data != nil {
-		// XRGB readback is opaque, but Linux cursor uploads put alpha in X.
-		// Preserve that alpha without replacing colors changed by native draws.
-		for y := 0; y < int(res.height); y++ {
-			for x := 0; x < int(res.width); x++ {
-				a := res.data[(y*int(res.width)+x)*gpuBytesPerPixel+alphaOffset]
-				i := img.PixOffset(x, y)
-				// RGBA stores premultiplied colors, including zero RGB at alpha 0.
-				img.Pix[i], img.Pix[i+1], img.Pix[i+2] = min(img.Pix[i], a), min(img.Pix[i+1], a), min(img.Pix[i+2], a)
-				img.Pix[i+3] = a
-			}
-		}
-	}
-
-	return img, nil
-}
-
-// nativeCursorAlphaOffset identifies the unused byte in supported XRGB formats.
-// Other native formats must use the alpha produced by the renderer.
-func nativeCursorAlphaOffset(format uint32) (int, bool) {
-	switch format {
-	case gpuFormatB8G8R8X8, gpuFormatR8G8B8X8:
-		return 3, true
-	case gpuFormatX8R8G8B8, gpuFormatX8B8G8R8:
-		return 0, true
-	default:
-		return 0, false
-	}
 }
 
 // collectChain walks the descriptor chain from head, concatenating the
@@ -557,11 +479,7 @@ func (g *GPU) collectChain(q *SplitQueue, head uint16) ([]byte, []writableSeg) {
 		if desc.Flags&descFWrite != 0 {
 			wr = append(wr, writableSeg{addr: desc.Addr, length: desc.Len})
 		} else {
-			limit := gpuMaxRequest
-			if g.renderer != nil {
-				limit = gpuMax3DRequest
-			}
-			if len(wr) != 0 || uint64(desc.Len) > uint64(limit-len(req)) {
+			if len(wr) != 0 || uint64(desc.Len) > uint64(gpuMaxRequest-len(req)) {
 				return nil, nil
 			}
 			end := desc.Addr + uint64(desc.Len)
@@ -606,19 +524,12 @@ func (g *GPU) writeResponse(wr []writableSeg, resp []byte) uint32 {
 }
 
 // handleControl dispatches one control command and prepares its response.
-// The queue defers publication of successful native fenced commands until
-// the renderer signals completion; the response preserves the guest fence ID.
+// Commands complete synchronously and preserve the guest fence ID.
 func (g *GPU) handleControl(req []byte) []byte {
 	if len(req) < gpuCtrlHdrLen {
 		return g.respNoData(gpuRespErrUnspec)
 	}
 
-	if g.rendererErr != nil {
-		resp := g.respNoData(gpuRespErrUnspec)
-		g.echoFence(req, resp)
-
-		return resp
-	}
 	var resp []byte
 
 	switch binary.LittleEndian.Uint32(req[0:]) {
@@ -638,11 +549,6 @@ func (g *GPU) handleControl(req []byte) []byte {
 		resp = g.cmdResourceAttachBacking(req)
 	case gpuCmdResourceDetachBacking:
 		resp = g.cmdResourceDetachBacking(req)
-	case gpuCmdGetCapsetInfo, gpuCmdGetCapset,
-		gpuCmdContextCreate, gpuCmdContextDestroy, gpuCmdContextAttachResource,
-		gpuCmdContextDetachResource, gpuCmdResourceCreate3D, gpuCmdTransferToHost3D,
-		gpuCmdTransferFromHost3D, gpuCmdSubmit3D:
-		resp = g.handle3D(req)
 	default:
 		log.Printf("virtio-gpu: unhandled control command 0x%x",
 			binary.LittleEndian.Uint32(req[0:]))
@@ -720,9 +626,6 @@ func (g *GPU) cmdResourceCreate2D(req []byte) []byte {
 	default:
 		return g.respNoData(gpuRespErrInvalidParameter)
 	}
-	if g.renderer != nil {
-		return g.createNative2D(id, format, width, height)
-	}
 	bytes := pixels * gpuBytesPerPixel
 	if bytes > gpuResourceLimit-g.resourceBytes || len(g.resources) >= gpuMaxResources {
 		return g.respNoData(gpuRespErrOutOfMemory)
@@ -746,16 +649,6 @@ func (g *GPU) cmdResourceUnref(req []byte) []byte {
 
 	id := binary.LittleEndian.Uint32(req[gpuCtrlHdrLen:])
 	if res := g.resources[id]; res != nil {
-		if res.handle != 0 {
-			if err := g.renderer.UnrefResource(id); err != nil {
-				return g.respNoData(gpuRespErrUnspec)
-			}
-			g.resource3DBytes -= res.charge
-			g.releaseNativeBacking(res)
-			for _, resources := range g.contexts {
-				delete(resources, id)
-			}
-		}
 		g.resourceBytes -= uint64(len(res.data))
 		delete(g.resources, id)
 		if g.scanout[0] == id {
@@ -864,9 +757,6 @@ func (g *GPU) cmdTransferToHost2D(req []byte) []byte {
 		return g.respNoData(gpuRespErrInvalidResourceID)
 	}
 
-	if res.handle != 0 {
-		return g.transferNative2D(res, x, y, w, h, offset)
-	}
 	if x > res.width || y > res.height || w > res.width-x || h > res.height-y ||
 		offset > uint64(len(res.data)) {
 		return g.respNoData(gpuRespErrInvalidParameter)
@@ -975,11 +865,7 @@ func (g *GPU) cmdResourceAttachBacking(req []byte) []byte {
 	if res == nil {
 		return g.respNoData(gpuRespErrInvalidResourceID)
 	}
-	maxBacking := uint32(gpuMaxBacking)
-	if res.handle != 0 {
-		maxBacking = gpuMax3DBacking
-	}
-	if nr > maxBacking || uint64(nr)*16 > uint64(len(req)-(gpuCtrlHdrLen+8)) {
+	if nr > gpuMaxBacking || uint64(nr)*16 > uint64(len(req)-(gpuCtrlHdrLen+8)) {
 		return g.respNoData(gpuRespErrInvalidParameter)
 	}
 
@@ -999,11 +885,6 @@ func (g *GPU) cmdResourceAttachBacking(req []byte) []byte {
 		off += 16
 	}
 
-	if res.handle != 0 {
-		if err := g.attachNativeBacking(res, entries); err != nil {
-			return g.respNoData(gpuRespErrInvalidParameter)
-		}
-	}
 	res.backing = entries
 
 	return g.respNoData(gpuRespOKNoData)
@@ -1017,12 +898,6 @@ func (g *GPU) cmdResourceDetachBacking(req []byte) []byte {
 	}
 
 	if res := g.resources[binary.LittleEndian.Uint32(req[gpuCtrlHdrLen:])]; res != nil {
-		if res.handle != 0 {
-			if err := g.renderer.DetachBacking(res.handle); err != nil {
-				return g.respNoData(gpuRespErrUnspec)
-			}
-			g.releaseNativeBacking(res)
-		}
 		res.backing = nil
 	}
 
@@ -1053,7 +928,7 @@ func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) error {
 	bounds := image.Rect(0, 0, source.Dx(), source.Dy())
 	_, separateCursor := g.display.(CursorDisplay)
 	if direct, ok := g.display.(BGRXDisplay); ok && separateCursor &&
-		res.handle == 0 && res.format == gpuFormatB8G8R8X8 {
+		res.format == gpuFormatB8G8R8X8 {
 		return g.flushBGRX(direct, res, source, damage, started)
 	}
 	g.bgrxSource = image.Rectangle{}
@@ -1063,16 +938,7 @@ func (g *GPU) flushDamage(res *gpuResource, damage image.Rectangle) error {
 		frame = image.NewRGBA(bounds)
 		damage = source
 	}
-	if res.handle != 0 {
-		img, err := g.renderer.ReadPixels(
-			res.handle, uint32(damage.Min.X), uint32(damage.Min.Y), uint32(damage.Dx()), uint32(damage.Dy()))
-		if err != nil {
-			return err
-		}
-		draw.Draw(frame, damage.Sub(source.Min), img, img.Bounds().Min, draw.Src)
-	} else {
-		resourceImageRectInto(res, false, frame, damage, source.Min)
-	}
+	resourceImageRectInto(res, false, frame, damage, source.Min)
 	g.frame = frame
 	if _, separate := g.display.(CursorDisplay); separate {
 		var err error
@@ -1181,7 +1047,7 @@ func resourceImageRectInto(res *gpuResource, cursor bool, img *image.RGBA, rect 
 		}
 		src, dst := res.data[si:si+pixels], img.Pix[di:di+pixels]
 		// Linux scanouts normally use BGRX. Convert whole rows with the
-		// native channel-swap kernel when available, retaining alpha semantics.
+		// assembly channel-swap kernel when available, retaining alpha semantics.
 		if rOff == 2 && gOff == 1 && bOff == 0 {
 			alpha := uint32(0)
 			if !hasAlpha {
@@ -1243,12 +1109,6 @@ func (g *GPU) Reset() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	hadCursor := g.cursor.image != nil
-	if g.renderer != nil && !g.closed {
-		g.rendererErr = g.renderer.Reset()
-		if g.rendererErr != nil {
-			log.Printf("virtio-gpu: renderer reset: %v", g.rendererErr)
-		}
-	}
 	g.resetLocked()
 	if g.closed {
 		return
@@ -1268,11 +1128,6 @@ func (g *GPU) resetLocked() {
 	g.LastAvailIdx = [gpuNumQueues]uint16{}
 	g.resources = map[uint32]*gpuResource{}
 	g.resourceBytes = 0
-	g.resource3DBytes = 0
-	g.backing3DBytes = 0
-	g.backing3DEntries = 0
-	g.fences = nil
-	g.contexts = make(map[uint32]map[uint32]struct{})
 	g.scanout = [gpuNumScanouts]uint32{}
 	g.scanoutRect = image.Rectangle{}
 	g.telemetry.SourceSize(0, 0)
@@ -1286,16 +1141,13 @@ func (g *GPU) Close() error {
 	g.closeOnce.Do(func() {
 		g.mu.Lock()
 		g.closed = true
-		if g.renderer != nil {
-			g.closeErr = g.renderer.Close()
-		}
 		g.resetLocked()
 		close(g.done)
 		g.mu.Unlock()
 		// Display shutdown can wait for an RDP writer which is requesting a
 		// mode change. Never hold the GPU mutex while waiting for that writer.
 		if g.display != nil {
-			g.closeErr = errors.Join(g.closeErr, g.display.Close())
+			g.closeErr = g.display.Close()
 		}
 	})
 
@@ -1303,26 +1155,17 @@ func (g *GPU) Close() error {
 }
 
 func NewGPU(irq uint8, irqInjector IRQInjector, mem []byte, display Display) *GPU {
-	return newGPUWithRenderer(irq, irqInjector, mem, display, nil)
-}
-
-func newGPUWithRenderer(irq uint8, irqInjector IRQInjector, mem []byte, display Display, renderer gpuRenderer) *GPU {
 	g := &GPU{
 		width:       gpuDefaultWidth,
 		height:      gpuDefaultHeight,
 		display:     display,
 		resources:   map[uint32]*gpuResource{},
-		renderer:    renderer,
-		contexts:    make(map[uint32]map[uint32]struct{}),
 		kick:        make(chan int, QueueSize),
 		done:        make(chan struct{}),
 		irq:         irq,
 		IRQInjector: irqInjector,
 	}
 
-	if renderer != nil {
-		g.capsets = renderer.Capsets()
-	}
 	g.ModernTransport = NewModernTransport(g, mem, func() error {
 		if irqInjector == nil {
 			return nil
@@ -1332,4 +1175,11 @@ func newGPUWithRenderer(irq uint8, irqInjector IRQInjector, mem []byte, display 
 	})
 
 	return g
+}
+
+func (g *GPU) completeCommand(q *SplitQueue, size, head uint16, length uint32) {
+	index := LoadU16(&q.Used.Idx)
+	q.Used.Ring[index%size].ID = uint32(head)
+	q.Used.Ring[index%size].Len = length
+	StoreAddU16(&q.Used.Idx, 1)
 }

@@ -116,7 +116,7 @@ func performanceReportNotes() []string {
 		"CPU percent is host-process CPU including guest execution and encoding: 100% is one host CPU. " +
 			"Resident bytes is worker RSS, not guest application memory or guest free memory.",
 		"requestedEncoder is configuration; encoder is the actual active RDP backend. " +
-			"NVENC accelerates video encoding, not the browser inside the guest. Empty means no active encoder.",
+			"Software H.264 uses the bundled pure Go encoder. Empty means no active encoder.",
 		"FPS and payload bytes/second aggregate server sends across viewers, not displayed FPS or link capacity. " +
 			"Idle desktops legitimately send few frames. Payload bytes exclude transport overhead.",
 		"network reports RDP bytes at the VM endpoint, including negotiation, TLS and all channels, " +

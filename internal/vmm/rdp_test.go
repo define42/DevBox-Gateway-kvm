@@ -26,8 +26,8 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 			want:   errRDPH264EncoderConfig,
 		},
 		{
-			name:   "encoder-without-h264",
-			config: Config{RDPH264Encoder: "nvenc"},
+			name:   "removed-nvenc",
+			config: Config{RDPH264: true, RDPH264Encoder: "nvenc"},
 			want:   errRDPH264EncoderConfig,
 		},
 		{
@@ -53,7 +53,7 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 
 func TestRDPEncoderConfiguration(t *testing.T) {
 	t.Parallel()
-	for _, backend := range []string{"", "software", "nvenc", "auto"} {
+	for _, backend := range []string{"", "software", "auto"} {
 		name := backend
 		if name == "" {
 			name = "default"
@@ -63,6 +63,9 @@ func TestRDPEncoderConfiguration(t *testing.T) {
 			v := New(withGatewayRDP(t, Config{RDPH264: true, RDPH264Encoder: backend}))
 			if err := v.validateRDPPerformanceConfig(); err != nil {
 				t.Fatalf("valid encoder configuration rejected: %v", err)
+			}
+			if v.RDPH264Encoder != "software" {
+				t.Fatalf("encoder %q was not normalized to software", v.RDPH264Encoder)
 			}
 		})
 	}
