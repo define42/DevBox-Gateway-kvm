@@ -344,6 +344,9 @@ func PrefetchNextBuffer(pCtx *sWelsEncCtx) {
 
 func refExpandDecPic(pCtx *sWelsEncCtx) {
 	pDecPic := pCtx.pDecPic
+	if pCtx.unchanged.expandChangedBorder(pCtx, pDecPic) {
+		return
+	}
 	common.ExpandReferencingPicture(pDecPic.pData[:], pDecPic.iDataOff[:], pDecPic.iWidthInPixel, pDecPic.iHeightInPixel,
 		pDecPic.iLineSize[:],
 		pCtx.pFuncList.sExpandPicFunc.PfExpandLumaPicture, pCtx.pFuncList.sExpandPicFunc.PfExpandChromaPicture)

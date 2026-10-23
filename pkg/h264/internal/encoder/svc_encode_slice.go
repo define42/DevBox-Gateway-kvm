@@ -1596,7 +1596,20 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 		sDss.iCurrentPos = 0
 	}
 	pSlice.iMbSkipRun = 0
+	zeroSkipStamps := pEncCtx.unchanged.stampsFor(pCurLayer)
+	unchangedRuns := unchangedRunsEnabled(pEncCtx)
 	for {
+		if unchangedRuns {
+			// Skips write no bits, so a run needs no dynamic slicing stash.
+			run, next := encodeUnchangedRun(pEncCtx, pMd, pSlice, iNextMbIdx, kiTotalNumMb-iNumMbCoded)
+			if run > 0 {
+				iNumMbCoded += run
+				iNextMbIdx = next
+				if iNextMbIdx == -1 || iNextMbIdx >= kiTotalNumMb || iNumMbCoded >= kiTotalNumMb {
+					break
+				}
+			}
+		}
 		if pEncCtx.pSvcParam.IEntropyCodingModeFlag == 0 {
 			pEncCtx.pFuncList.pfStashMBStatus(sDss, pSlice, pSlice.iMbSkipRun)
 		}
@@ -1657,6 +1670,9 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 		// completed slice can read it while this slice is still encoding.
 		//step (7): reconstruct current MB
 		OutputPMbWithoutConstructCsRsNoCopy(pEncCtx, pCurLayer, pSlice, pCurMb)
+		if zeroSkipStamps != nil {
+			recordFinalSkipMotion(zeroSkipStamps, pEncCtx.unchanged.codingStamp, pCurMb)
+		}
 
 		//step (8): update status and other parameters
 		pEncCtx.pFuncList.pfRc.pfWelsRcMbInfoUpdate(pEncCtx, pCurMb, pMd.iCostLuma, pSlice)

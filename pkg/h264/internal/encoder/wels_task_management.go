@@ -202,7 +202,9 @@ func (p *CWelsTaskManageBase) canExecuteTasksInParallel(iTaskType ETaskType) boo
 			return false
 		}
 	}
-	return true
+	// Waking workers costs more than a picture made almost entirely of
+	// unchanged runs; ExecuteTaskList then codes its slices in order.
+	return !unchangedPreferCallerThread(p.m_pEncCtx)
 }
 
 // executeTaskListParallel assigns one private bitstream buffer to each worker.

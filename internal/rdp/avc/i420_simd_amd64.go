@@ -26,6 +26,26 @@ func rgb32ToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte, redIndex int) 
 		return false, false
 	}
 
+	// Spans narrower than one wide block, such as single-macroblock damage,
+	// keep the eight-pixel kernel below.
+	if width >= 32 {
+		blocks := width &^ 31
+		changed = rgb32ToI420AVX2Wide(
+			&dstY0[0], &dstY1[0], &dstU[0], &dstV[0],
+			&src0[0], &src1[0], blocks, redIndex,
+		)
+		// Finish with one overlapping block. Re-converting already written
+		// pixels stores identical bytes, so it cannot report a false change.
+		if tail := width - 32; blocks != width {
+			changed = rgb32ToI420AVX2Wide(
+				&dstY0[tail], &dstY1[tail], &dstU[tail/2], &dstV[tail/2],
+				&src0[tail*4], &src1[tail*4], 32, redIndex,
+			) || changed
+		}
+
+		return changed, true
+	}
+
 	vectorWidth := width &^ 7
 	if vectorWidth != 0 {
 		changed = rgb32ToI420AVX2Kernel(
@@ -70,3 +90,8 @@ func rgb32ToI420AVX2(dstY0, dstY1, dstU, dstV, src0, src1 []byte, redIndex int) 
 
 //go:noescape
 func rgb32ToI420AVX2Kernel(dstY0, dstY1, dstU, dstV, src0, src1 *byte, width, redIndex int) bool
+
+// rgb32ToI420AVX2Wide converts 32 pixels per iteration; width is a multiple of 32.
+//
+//go:noescape
+func rgb32ToI420AVX2Wide(dstY0, dstY1, dstU, dstV, src0, src1 *byte, width, redIndex int) bool

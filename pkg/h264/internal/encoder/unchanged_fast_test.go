@@ -90,7 +90,8 @@ func TestUnchangedReconstructionCopyElisionEngages(t *testing.T) {
 	copy(destination.pBuffer, ctx.pCurDqLayer.pRefPic.pBuffer)
 	version := pictureVersion(destination, 1)
 	ctx.unchanged.source, ctx.unchanged.pictures[0] = version, version
-	ctx.unchanged.finalZeroSkips = []bool{false, true, false, false}
+	ctx.unchanged.zeroSkipStamps = []uint32{0, 5, 0, 0}
+	ctx.unchanged.finalStamp, ctx.unchanged.finalZeroSkipCount = 5, 4
 	ctx.unchanged.begin(ctx, unchangedTestSource())
 	if ctx.unchanged.reuseDestination != destination {
 		t.Fatal("matching destination generation did not enable reuse")
@@ -116,11 +117,15 @@ func TestUnchangedNonzeroFinalSkipStillCopies(t *testing.T) {
 	// A refined P_SKIP can have a nonzero final MV and a zero integer-search
 	// winner in sMvList. That permits the existing hint, but not copy elision.
 	layer.iMbWidth, layer.iMbHeight = 2, 2
-	layer.sMbDataP = make([]SMB, 4)
-	layer.sMbDataP[mb.iMbXY] = SMB{uiMbType: common.MB_TYPE_SKIP, sMv: []SMVUnitXY{{iMvX: 1}}}
+	ctx.unchanged.zeroSkipStamps, ctx.unchanged.codingStamp = make([]uint32, 4), 3
+	zeroSkip := SMB{iMbXY: 0, uiMbType: common.MB_TYPE_SKIP, sMv: []SMVUnitXY{{}}}
+	movedSkip := SMB{iMbXY: mb.iMbXY, uiMbType: common.MB_TYPE_SKIP, sMv: []SMVUnitXY{{iMvX: 1}}}
+	recordFinalSkipMotion(ctx.unchanged.zeroSkipStamps, ctx.unchanged.codingStamp, &zeroSkip)
+	recordFinalSkipMotion(ctx.unchanged.zeroSkipStamps, ctx.unchanged.codingStamp, &movedSkip)
 	ctx.unchanged.captureFinalSkipMotion(layer, true)
 	ctx.unchanged.begin(ctx, unchangedTestSource())
-	if ctx.unchanged.reuseDestination == nil || ctx.unchanged.finalZeroSkips[mb.iMbXY] {
+	if ctx.unchanged.reuseDestination == nil || !ctx.unchanged.resident(layer.pDecPic, 0) ||
+		ctx.unchanged.resident(layer.pDecPic, int(mb.iMbXY)) {
 		t.Fatal("fixture did not distinguish picture provenance from final skip motion")
 	}
 	if !tryUnchangedMacroblock(ctx, &SWelsMD{}, slice, mb) {

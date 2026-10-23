@@ -83,26 +83,67 @@ func (s *unchangedFrameState) finishReconstruction(
 	s.captureFinalSkipMotion(ctx.pCurDqLayer, source.picture != nil)
 }
 
+// captureFinalSkipMotion publishes this frame's zero-skip stamps. It is called
+// only after a successful frame and after every slice worker joined. A
+// macroblock coded outside WelsMdInterMbLoop keeps an older stamp, which only
+// forgoes reuse.
 func (s *unchangedFrameState) captureFinalSkipMotion(layer *SDqLayer, validSource bool) {
 	count := int(layer.iMbWidth) * int(layer.iMbHeight)
-	if !validSource || count < 1 || count > len(layer.sMbDataP) {
-		s.finalZeroSkips = s.finalZeroSkips[:0]
+	if !validSource || s.codingStamp == 0 || count < 1 || count > len(s.zeroSkipStamps) {
+		s.finalZeroSkipCount = 0
 		return
 	}
-	// Called only after a successful frame and after every slice worker joined.
-	// Restrict the capture to this frame's complete macroblock grid.
-	blocks := layer.sMbDataP[:count]
-	if cap(s.finalZeroSkips) < len(blocks) {
-		s.finalZeroSkips = make([]bool, len(blocks))
+	s.finalStamp, s.finalZeroSkipCount = s.codingStamp, count
+}
+
+// recordFinalSkipMotion stamps a finished macroblock. sMvList is an
+// integer-search heuristic: a final refined 16x16 mode can become P_SKIP
+// without updating it, so only the final coded MV proves that a previous skip
+// reproduced the colocated source block.
+func recordFinalSkipMotion(stamps []uint32, stamp uint32, mb *SMB) {
+	if mb.uiMbType == common.MB_TYPE_SKIP && len(mb.sMv) != 0 && mb.sMv[0] == (SMVUnitXY{}) {
+		stamps[mb.iMbXY] = stamp
 	} else {
-		s.finalZeroSkips = s.finalZeroSkips[:len(blocks)]
+		stamps[mb.iMbXY] = 0
 	}
-	for i := range blocks {
-		mb := &blocks[i]
-		// sMvList is an integer-search heuristic. A final refined 16x16 mode
-		// can become P_SKIP without updating it, so only the final coded MV
-		// proves that a previous skip reproduced the colocated source block.
-		s.finalZeroSkips[i] = mb.uiMbType == common.MB_TYPE_SKIP &&
-			len(mb.sMv) != 0 && mb.sMv[0] == (SMVUnitXY{})
+}
+
+// expandChangedBorder pads only the border macroblocks this frame wrote. The
+// reused destination still holds the complete, already padded write that copy
+// elision relies on, and a resident block's edge samples are unchanged, so its
+// padding is current. The union of per-macroblock padding over the border is
+// the whole-picture expansion. It reports false when the caller must pad the
+// whole picture.
+func (s *unchangedFrameState) expandChangedBorder(ctx *sWelsEncCtx, picture *SPicture) bool {
+	layer := ctx.pCurDqLayer
+	if s.reuseDestination == nil || picture != s.reuseDestination || layer == nil || layer.pDecPic != picture ||
+		s.codingStamp == 0 {
+		return false
 	}
+	width, height := int32(layer.iMbWidth), int32(layer.iMbHeight)
+	if width < 2 || height < 2 || int(width)*int(height) > len(s.residentStamps) ||
+		picture.iWidthInPixel != width*16 || picture.iHeightInPixel != height*16 {
+		return false
+	}
+	pad := func(x, y int32) {
+		if s.residentStamps[y*width+x] == s.codingStamp {
+			return
+		}
+		common.PadMBLuma_c(picture.pData[0], picture.iDataOff[0], picture.iLineSize[0],
+			picture.iWidthInPixel, picture.iHeightInPixel, x, y, width, height)
+		for plane := 1; plane < 3; plane++ {
+			common.PadMBChroma_c(picture.pData[plane], picture.iDataOff[plane], picture.iLineSize[plane],
+				picture.iWidthInPixel/2, picture.iHeightInPixel/2, x, y, width, height)
+		}
+	}
+	for x := range width {
+		pad(x, 0)
+		pad(x, height-1)
+	}
+	for y := int32(1); y < height-1; y++ {
+		pad(0, y)
+		pad(width-1, y)
+	}
+
+	return true
 }

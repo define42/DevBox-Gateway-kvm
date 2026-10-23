@@ -5,9 +5,17 @@ package common
 // pDst/iDstOff points at the top-left sample of a picture plane; the slice
 // must be the whole plane allocation including the padding area.
 
-// memsetU8 is memset(p + off, v, n).
+import "encoding/binary"
+
+// memsetU8 is memset(p + off, v, n). Padding widths are multiples of eight,
+// and Go lowers only zero-valued byte loops to memclr, so store whole words.
 func memsetU8(p []uint8, off int, v uint8, n int) {
 	s := p[off : off+n]
+	word := uint64(v) * 0x0101010101010101
+	for len(s) >= 8 {
+		binary.LittleEndian.PutUint64(s, word)
+		s = s[8:]
+	}
 	for i := range s {
 		s[i] = v
 	}
