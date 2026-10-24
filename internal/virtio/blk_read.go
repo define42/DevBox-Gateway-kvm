@@ -28,11 +28,32 @@ func independentBlkReads(q *SplitQueue, pending []blkPendingRequest) int {
 	return len(pending)
 }
 
+// blkReadBuffersOverlap compares every buffer of two requests. The ring bounds
+// the total number of buffers in a batch, so the pairwise loops stay small.
 func blkReadBuffersOverlap(a, b *blkPendingRequest) bool {
-	return blkRangesOverlap(a.dataAddr, uint64(len(a.data)), b.dataAddr, uint64(len(b.data))) ||
-		blkRangesOverlap(a.dataAddr, uint64(len(a.data)), b.statusAddr, 1) ||
-		blkRangesOverlap(a.statusAddr, 1, b.dataAddr, uint64(len(b.data))) ||
-		a.statusAddr == b.statusAddr
+	if a.hi <= b.lo || b.hi <= a.lo {
+		return false
+	}
+	if a.statusAddr == b.statusAddr {
+		return true
+	}
+	for _, x := range a.segments {
+		if blkRangesOverlap(x.addr, uint64(len(x.data)), b.statusAddr, 1) {
+			return true
+		}
+		for _, y := range b.segments {
+			if blkRangesOverlap(x.addr, uint64(len(x.data)), y.addr, uint64(len(y.data))) {
+				return true
+			}
+		}
+	}
+	for _, y := range b.segments {
+		if blkRangesOverlap(a.statusAddr, 1, y.addr, uint64(len(y.data))) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Addresses and lengths have already passed guestmem.ValidRange, so their sums
@@ -41,13 +62,21 @@ func blkRangesOverlap(a, aLen, b, bLen uint64) bool {
 	return aLen != 0 && bLen != 0 && a < b+bLen && b < a+aLen
 }
 
+// readRequest fills the data buffers from consecutive disk offsets.
 func (v *Blk) readRequest(c *blkPendingRequest) error {
-	n, err := v.image.ReadAt(c.data, c.offset)
-	if err == nil && n != len(c.data) {
-		return io.ErrUnexpectedEOF
+	offset := c.offset
+	for _, segment := range c.segments {
+		n, err := v.image.ReadAt(segment.data, offset)
+		if err != nil {
+			return err
+		}
+		if n != len(segment.data) {
+			return io.ErrUnexpectedEOF
+		}
+		offset += int64(n)
 	}
 
-	return err
+	return nil
 }
 
 // readRequests runs only independent reads. queueMu remains held by IO until

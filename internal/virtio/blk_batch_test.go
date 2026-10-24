@@ -147,8 +147,8 @@ func TestBlkBatchDurability(t *testing.T) {
 					binary.LittleEndian.PutUint32(mem[addr:], 1)
 				}
 				binary.LittleEndian.PutUint64(mem[addr+8:], uint64(i))
-				q.Desc[head] = SplitDesc{Addr: addr, Len: 16, Next: head + 1}
-				q.Desc[head+1] = SplitDesc{Addr: addr + 16, Len: SectorSize, Next: head + 2}
+				q.Desc[head] = SplitDesc{Addr: addr, Len: 16, Flags: descFNext, Next: head + 1}
+				q.Desc[head+1] = SplitDesc{Addr: addr + 16, Len: SectorSize, Flags: descFNext, Next: head + 2}
 				q.Desc[head+2] = SplitDesc{Addr: addr + 16 + SectorSize, Len: 1}
 				mem[addr+16], mem[addr+16+SectorSize] = byte(i+1), 0xff
 				q.Avail.Ring[i] = head
@@ -206,8 +206,8 @@ func TestBlkBatchSnapshot(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		addr, head := uint64(i*1024), uint16(i*3)
 		binary.LittleEndian.PutUint32(mem[addr:], 1)
-		q.Desc[head] = SplitDesc{Addr: addr, Len: 16, Next: head + 1}
-		q.Desc[head+1] = SplitDesc{Addr: addr + 16, Len: SectorSize, Next: head + 2}
+		q.Desc[head] = SplitDesc{Addr: addr, Len: 16, Flags: descFNext, Next: head + 1}
+		q.Desc[head+1] = SplitDesc{Addr: addr + 16, Len: SectorSize, Flags: descFNext, Next: head + 2}
 		q.Desc[head+2] = SplitDesc{Addr: addr + 16 + SectorSize, Len: 1}
 		q.Avail.Ring[i] = head
 	}
@@ -262,8 +262,8 @@ func TestBlkBatchSnapshotsDescriptorsBeforeIO(t *testing.T) {
 		addr, head := uint64(i*1024), uint16(i*3)
 		binary.LittleEndian.PutUint32(mem[addr:], 1)
 		binary.LittleEndian.PutUint64(mem[addr+8:], uint64(i))
-		q.Desc[head] = SplitDesc{Addr: addr, Len: 16, Next: head + 1}
-		q.Desc[head+1] = SplitDesc{Addr: addr + 16, Len: SectorSize, Next: head + 2}
+		q.Desc[head] = SplitDesc{Addr: addr, Len: 16, Flags: descFNext, Next: head + 1}
+		q.Desc[head+1] = SplitDesc{Addr: addr + 16, Len: SectorSize, Flags: descFNext, Next: head + 2}
 		q.Desc[head+2] = SplitDesc{Addr: addr + 16 + SectorSize, Len: 1}
 		mem[addr+16], mem[addr+16+SectorSize] = byte(i+1), 0xff
 		q.Avail.Ring[i] = head

@@ -5,6 +5,14 @@ import (
 	"unsafe"
 )
 
+// setBlkData replaces a test request's data buffers.
+func setBlkData(c *blkPendingRequest, buffers ...[]byte) {
+	c.segments = nil
+	for _, data := range buffers {
+		c.segments = append(c.segments, blkSegment{data: data})
+	}
+}
+
 func TestBlkReadOverlapsQueue(t *testing.T) {
 	t.Parallel()
 
@@ -38,11 +46,13 @@ func TestBlkReadOverlapsQueue(t *testing.T) {
 			if tc.tail {
 				region = region[len(region)-1:]
 			}
-			c := blkPendingRequest{data: make([]byte, 8), status: new(byte)}
+			c := blkPendingRequest{status: new(byte)}
+			setBlkData(&c, make([]byte, 8))
 			if tc.status {
 				c.status = &region[0]
 			} else {
-				c.data = region
+				// Only a later segment aliases the queue.
+				setBlkData(&c, make([]byte, 8), region)
 			}
 			if !blkReadOverlapsQueue(q, &c) {
 				t.Fatal("read aliasing queue memory was eligible for parallel I/O")
@@ -55,11 +65,12 @@ func TestBlkReadSeparateQueueMemory(t *testing.T) {
 	t.Parallel()
 
 	q := &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)}
-	c := blkPendingRequest{data: make([]byte, 8), status: new(byte)}
+	c := blkPendingRequest{status: new(byte)}
+	setBlkData(&c, make([]byte, 8), make([]byte, 8))
 	if blkReadOverlapsQueue(q, &c) {
 		t.Fatal("separate read buffers unexpectedly overlap queue memory")
 	}
-	c.data = unsafe.Slice((*byte)(unsafe.Pointer(q.Used)), 0)
+	setBlkData(&c, unsafe.Slice((*byte)(unsafe.Pointer(q.Used)), 0))
 	if blkReadOverlapsQueue(q, &c) {
 		t.Fatal("empty read buffer overlaps queue memory")
 	}

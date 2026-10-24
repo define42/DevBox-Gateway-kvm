@@ -15,6 +15,9 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 )
 
+// descNext is VRING_DESC_F_NEXT; chains continue only through flagged descriptors.
+const descNext = 1
+
 // countingInjector counts InjectVirtioBlkIRQ calls.
 type countingInjector struct {
 	blkCount atomic.Int64
@@ -150,6 +153,7 @@ func TestReadOnlyBlkRejectsWrites(t *testing.T) {
 	q.Desc[0].Addr = 0x1000
 	q.Desc[0].Len = 16
 	q.Desc[0].Next = 1
+	q.Desc[0].Flags = descNext
 
 	blkReq := (*virtio.BlkReq)(unsafe.Pointer(&mem[0x1000]))
 	blkReq.Type = 1 // write
@@ -158,6 +162,7 @@ func TestReadOnlyBlkRejectsWrites(t *testing.T) {
 	q.Desc[1].Addr = 0x2000
 	q.Desc[1].Len = virtio.SectorSize
 	q.Desc[1].Next = 2
+	q.Desc[1].Flags = descNext
 
 	q.Desc[2].Addr = 0x3000
 	q.Desc[2].Len = 1
@@ -217,6 +222,7 @@ func TestIO(t *testing.T) {
 	q.Desc[0].Addr = 0
 	q.Desc[0].Len = 16
 	q.Desc[0].Next = 1
+	q.Desc[0].Flags = descNext
 
 	blkReq := (*virtio.BlkReq)(unsafe.Pointer(&mem[0]))
 	blkReq.Type = 0
@@ -226,6 +232,7 @@ func TestIO(t *testing.T) {
 	q.Desc[1].Addr = 0x400
 	q.Desc[1].Len = 0x200
 	q.Desc[1].Next = 2
+	q.Desc[1].Flags = descNext
 
 	// desc[2]: status byte
 	q.Desc[2].Addr = 0x700
@@ -281,6 +288,7 @@ func TestIOWithQCOW2(t *testing.T) {
 	q.Desc[0].Addr = 0
 	q.Desc[0].Len = 16
 	q.Desc[0].Next = 1
+	q.Desc[0].Flags = descNext
 
 	blkReq := (*virtio.BlkReq)(unsafe.Pointer(&mem[0]))
 	blkReq.Type = 0
@@ -290,6 +298,7 @@ func TestIOWithQCOW2(t *testing.T) {
 	q.Desc[1].Addr = 0x400
 	q.Desc[1].Len = 0x200
 	q.Desc[1].Next = 2
+	q.Desc[1].Flags = descNext
 
 	// desc[2]: status byte
 	q.Desc[2].Addr = 0x700
@@ -352,6 +361,7 @@ func TestBlkIOStatusByte(t *testing.T) {
 	q.Desc[0].Addr = 0x1000
 	q.Desc[0].Len = 16
 	q.Desc[0].Next = 1
+	q.Desc[0].Flags = descNext
 
 	blkReq := (*virtio.BlkReq)(unsafe.Pointer(&mem[0x1000]))
 	blkReq.Type = 0 // read
@@ -361,6 +371,7 @@ func TestBlkIOStatusByte(t *testing.T) {
 	q.Desc[1].Addr = 0x2000
 	q.Desc[1].Len = 512
 	q.Desc[1].Next = 2
+	q.Desc[1].Flags = descNext
 
 	// desc[2]: status byte
 	q.Desc[2].Addr = 0x3000
@@ -599,6 +610,7 @@ func TestBlkIOThreadReInjectsIRQ(t *testing.T) {
 	q.Desc[0].Addr = 0x1000
 	q.Desc[0].Len = 16
 	q.Desc[0].Next = 1
+	q.Desc[0].Flags = descNext
 
 	blkReq := (*virtio.BlkReq)(unsafe.Pointer(&mem[0x1000]))
 	blkReq.Type = 0
@@ -607,6 +619,7 @@ func TestBlkIOThreadReInjectsIRQ(t *testing.T) {
 	q.Desc[1].Addr = 0x2000
 	q.Desc[1].Len = 512
 	q.Desc[1].Next = 2
+	q.Desc[1].Flags = descNext
 
 	q.Desc[2].Addr = 0x3000
 	q.Desc[2].Len = 1

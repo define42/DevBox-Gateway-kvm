@@ -17,13 +17,15 @@ func blkReadOverlapsQueue(q *SplitQueue, c *blkPendingRequest) bool {
 		{ptr: unsafe.Pointer(q.Avail), size: unsafe.Sizeof(*q.Avail)},
 		{ptr: unsafe.Pointer(q.Used), size: unsafe.Sizeof(*q.Used)},
 	} {
-		if blkPointerRangesOverlap(
-			unsafe.Pointer(unsafe.SliceData(c.data)),
-			uintptr(len(c.data)),
-			region.ptr,
-			region.size,
-		) {
-			return true
+		for _, segment := range c.segments {
+			if blkPointerRangesOverlap(
+				unsafe.Pointer(unsafe.SliceData(segment.data)),
+				uintptr(len(segment.data)),
+				region.ptr,
+				region.size,
+			) {
+				return true
+			}
 		}
 		if blkPointerRangesOverlap(
 			unsafe.Pointer(c.status),
