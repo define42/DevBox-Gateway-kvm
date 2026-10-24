@@ -1,0 +1,347 @@
+{
+  "arguments": {
+    "root": "/tmp/devbox-pr3-port.4wQwx4",
+    "variants": [
+      "after"
+    ],
+    "name": "parity-avx2-off",
+    "mode": "parity",
+    "regex": "",
+    "repetitions": 6,
+    "frames": 64,
+    "benchtime": "200ms",
+    "cpu": "2",
+    "godebug": "cpu.avx2=off"
+  },
+  "started": "2026-10-24T23:20:12+0200",
+  "binaries": {
+    "after": "b0a7c0f1c707146565f5e5a2b74f12bc5423efb3752d4aa572924f595f2aaba0"
+  },
+  "fixtures": [
+    {
+      "name": "road1080",
+      "source": "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+      "width": 1920,
+      "height": 1080,
+      "frames": 54,
+      "sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/road1080.i420"
+      ]
+    },
+    {
+      "name": "road720",
+      "source": "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+      "width": 1280,
+      "height": 720,
+      "frames": 54,
+      "sha256": "1c65ba12ef3b2b21632f4a4d3a7c6d089ae7643ce5ada7a24aada4c64614eef5",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+        "-vf",
+        "scale=1280:720:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/road720.i420"
+      ]
+    },
+    {
+      "name": "pdf1080",
+      "source": "/home/define42/git/openh264/res/Adobe_PDF_sample_a_1024x768_50Frms.264",
+      "width": 1920,
+      "height": 1080,
+      "frames": 50,
+      "sha256": "8a938d0eb90f03c63a7ec8b35247e53033bc6acc683146b74a299767a083ad6b",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/Adobe_PDF_sample_a_1024x768_50Frms.264",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/pdf1080.i420"
+      ]
+    },
+    {
+      "name": "clip1080",
+      "source": "/home/define42/git/openh264/res/Cisco_Absolute_Power_1280x720_30fps.yuv",
+      "width": 1920,
+      "height": 1080,
+      "frames": 5,
+      "sha256": "afe5496792a74ce18322f10d91a2d1d6a3b6e93debbe1e5ce84f0203b90a0ef3",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "-pixel_format",
+        "yuv420p",
+        "-video_size",
+        "1280x720",
+        "-i",
+        "/home/define42/git/openh264/res/Cisco_Absolute_Power_1280x720_30fps.yuv",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/clip1080.i420"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "repetition": 0,
+      "case": "clip1080-qp20-s1",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 4.170200824737549,
+      "log": "00-clip1080-qp20-s1-after.log",
+      "sha256": "e66abe02cb0808d5766d6ed9f93f3e00e1ff46a71d56d790d4096a20ff4f9199",
+      "bytes": 5927332,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "clip1080-qp20-s4",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 1.770714521408081,
+      "log": "00-clip1080-qp20-s4-after.log",
+      "sha256": "9b5656a2020b7a13ac6c81414100c4abb0193b350141623d09923dfdffa93b79",
+      "bytes": 5951061,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "road1080-qp20-s1",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 4.743970155715942,
+      "log": "00-road1080-qp20-s1-after.log",
+      "sha256": "0c61d169b36dbec94b26b97325288446080fdb3292544b8c31215368b2b068e1",
+      "bytes": 9271946,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "road1080-qp20-s4",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 1.865950107574463,
+      "log": "00-road1080-qp20-s4-after.log",
+      "sha256": "6ef2e03ba735961c797d723f860d6bed1455c536ab5a9d5d63307e652c4d8c5e",
+      "bytes": 9357302,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "road1080-qp32-s1",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 3.0007975101470947,
+      "log": "00-road1080-qp32-s1-after.log",
+      "sha256": "d92ba8fa21fb1d62763b99a590dd2eeca254056493294b3eca3fba4a520c2e4b",
+      "bytes": 2510324,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "road1080-qp32-s4",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 1.495326280593872,
+      "log": "00-road1080-qp32-s4-after.log",
+      "sha256": "27c50962b467d90533645d616c0210824d33c2af42e93bf71dd5fa01b230316c",
+      "bytes": 2576870,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "pdf1080-qp20-s1",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 1.4210090637207031,
+      "log": "00-pdf1080-qp20-s1-after.log",
+      "sha256": "e2f18226909df89466459e2c5262a92968615a53b4a475af3340583b2f4f076f",
+      "bytes": 3097165,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "pdf1080-qp20-s4",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 0.6724720001220703,
+      "log": "00-pdf1080-qp20-s4-after.log",
+      "sha256": "84c6caad778514d26f956f5c2f284e2f2aa5d78782c1cf01e1adfa05cb117d4a",
+      "bytes": 3110223,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "road720-qp20-s1",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 2.088839054107666,
+      "log": "00-road720-qp20-s1-after.log",
+      "sha256": "fceaef3c4beb4d9b44f748d23f2518de92b34b1177aeb04bd91f8161f0cac8c2",
+      "bytes": 4534309,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    },
+    {
+      "repetition": 0,
+      "case": "road720-qp20-s4",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^TestOpenH264Comparison$",
+        "-test.count=1"
+      ],
+      "seconds": 1.4803287982940674,
+      "log": "00-road720-qp20-s4-after.log",
+      "sha256": "7673085f398262cc6257cc27b2b075c33a48667d0d25a3f007ff8b2a2ad34d91",
+      "bytes": 4592272,
+      "decode_exit": 0,
+      "decode_stderr": "",
+      "decoded_frames": 80
+    }
+  ],
+  "completed": "2026-10-24T23:20:47+0200"
+}

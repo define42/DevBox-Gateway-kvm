@@ -1,0 +1,56 @@
+                                            │ baseline.txt  │             after.txt              │
+                                            │    sec/op     │    sec/op     vs base              │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4    31.18m ± 26%   28.61m ± 20%       ~ (p=0.093 n=6)
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4   10.786m ± 16%   9.910m ± 38%       ~ (p=0.589 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4         33.53m ± 21%   31.12m ± 16%       ~ (p=0.132 n=6)
+OpenH264/Road/1920x1080/QP20/4Slices-4         12.17m ± 53%   11.16m ± 39%       ~ (p=0.093 n=6)
+OpenH264/Road/1920x1080/QP32/1Slices-4         24.90m ± 31%   24.75m ± 24%       ~ (p=0.485 n=6)
+OpenH264/Road/1920x1080/QP32/4Slices-4         9.352m ± 48%   9.256m ± 51%       ~ (p=0.699 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4          13.60m ± 15%   11.91m ±  9%       ~ (p=0.132 n=6)
+OpenH264/PDF/1920x1080/QP20/4Slices-4          4.850m ± 20%   4.637m ± 11%       ~ (p=0.093 n=6)
+OpenH264/Road/1280x720/QP20/1Slices-4          15.22m ±  9%   14.05m ±  7%       ~ (p=0.180 n=6)
+OpenH264/Road/1280x720/QP20/4Slices-4          5.748m ± 10%   5.514m ± 35%       ~ (p=0.818 n=6)
+geomean                                        13.38m         12.54m        -6.27%
+
+                                            │ baseline.txt │             after.txt              │
+                                            │ cpu_ns/frame │ cpu_ns/frame  vs base              │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4   31.08M ± 26%   28.52M ± 20%       ~ (p=0.093 n=6)
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4   31.51M ± 11%   28.59M ± 22%       ~ (p=0.132 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4        33.45M ± 21%   31.06M ± 16%       ~ (p=0.132 n=6)
+OpenH264/Road/1920x1080/QP20/4Slices-4        33.13M ± 30%   30.87M ± 24%  -6.83% (p=0.041 n=6)
+OpenH264/Road/1920x1080/QP32/1Slices-4        24.78M ± 32%   24.69M ± 25%       ~ (p=0.485 n=6)
+OpenH264/Road/1920x1080/QP32/4Slices-4        24.23M ± 33%   23.91M ± 28%       ~ (p=0.699 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4         13.52M ± 15%   11.87M ± 10%       ~ (p=0.132 n=6)
+OpenH264/PDF/1920x1080/QP20/4Slices-4         11.86M ± 19%   11.52M ±  7%       ~ (p=0.310 n=6)
+OpenH264/Road/1280x720/QP20/1Slices-4         15.19M ±  9%   14.02M ±  7%       ~ (p=0.180 n=6)
+OpenH264/Road/1280x720/QP20/4Slices-4         14.95M ±  6%   14.10M ± 21%       ~ (p=0.589 n=6)
+geomean                                       21.75M         20.40M        -6.23%
+
+                                            │ baseline.txt │              after.txt               │
+                                            │ bytes/frame  │ bytes/frame   vs base                │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4   71.29Ki ± 0%   71.29Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4   71.58Ki ± 0%   71.58Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP20/1Slices-4        116.1Ki ± 0%   116.1Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP20/4Slices-4        117.3Ki ± 0%   117.3Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP32/1Slices-4        31.95Ki ± 0%   31.95Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1920x1080/QP32/4Slices-4        32.84Ki ± 0%   32.84Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/PDF/1920x1080/QP20/1Slices-4         42.08Ki ± 0%   42.08Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/PDF/1920x1080/QP20/4Slices-4         42.25Ki ± 0%   42.25Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1280x720/QP20/1Slices-4         56.59Ki ± 0%   56.59Ki ± 0%       ~ (p=1.000 n=6) ¹
+OpenH264/Road/1280x720/QP20/4Slices-4         57.42Ki ± 0%   57.42Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                       57.87Ki        57.87Ki       +0.00%
+¹ all samples are equal
+
+                                            │ baseline.txt │              after.txt              │
+                                            │ p95_ns/frame │ p95_ns/frame  vs base               │
+OpenH264/ShortClip/1920x1080/QP20/1Slices-4   36.00M ± 52%   33.21M ± 41%        ~ (p=0.310 n=6)
+OpenH264/ShortClip/1920x1080/QP20/4Slices-4   14.89M ± 35%   13.75M ± 60%        ~ (p=0.699 n=6)
+OpenH264/Road/1920x1080/QP20/1Slices-4        45.84M ± 20%   37.02M ± 21%        ~ (p=0.065 n=6)
+OpenH264/Road/1920x1080/QP20/4Slices-4        17.47M ± 67%   14.75M ± 42%        ~ (p=0.093 n=6)
+OpenH264/Road/1920x1080/QP32/1Slices-4        34.27M ± 41%   34.56M ± 29%        ~ (p=0.937 n=6)
+OpenH264/Road/1920x1080/QP32/4Slices-4        12.72M ± 90%   12.82M ± 52%        ~ (p=1.000 n=6)
+OpenH264/PDF/1920x1080/QP20/1Slices-4         49.20M ± 19%   39.95M ± 11%  -18.80% (p=0.026 n=6)
+OpenH264/PDF/1920x1080/QP20/4Slices-4         15.35M ± 13%   14.29M ± 10%   -6.87% (p=0.041 n=6)
+OpenH264/Road/1280x720/QP20/1Slices-4         18.10M ± 20%   16.65M ± 15%        ~ (p=0.240 n=6)
+OpenH264/Road/1280x720/QP20/4Slices-4         7.992M ± 20%   8.211M ± 35%        ~ (p=0.589 n=6)
+geomean                                       21.43M         19.66M         -8.27%

@@ -1,0 +1,1352 @@
+--- /dev/null
++++ b/pkg/h264/internal/common/mc_refine_ptr_amd64.go
+@@ -0,0 +1,27 @@
++//go:build amd64
++
++package common
++
++import "unsafe"
++
++// The RefineHalfpel* entries run the AVX2 kernels that McHorVer02_avx2,
++// McHorVer20_avx2 and McHorVer22_avx2 select for motion-refinement shapes. The
++// caller must have validated the complete source spans, including the six-tap
++// halo, and the destination spans, and must ensure they do not overlap.
++
++// RefineHalfpelVer is McHorVer02 for width 4, 8 or 16 with positive strides
++// and dstStride >= width. src points at the first output position.
++func RefineHalfpelVer(dst *byte, dstStride int, src *byte, srcStride, width, height int) {
++	mcVerReuseAVX2(dst, dstStride, src, srcStride, width, height)
++}
++
++// RefineHalfpelHor is McHorVer20 for width 5, 9 or 17.
++func RefineHalfpelHor(dst *byte, dstStride int, src *byte, srcStride, width, height int) {
++	mcHorRefineAVX2(dst, dstStride, src, srcStride, width, height)
++}
++
++// RefineHalfpelCen is McHorVer22 for width 5, 9 or 17 and height at most 17.
++func RefineHalfpelCen(dst *byte, dstStride int, src *byte, srcStride, width, height int) {
++	// Use main's combined center-filter leaf, with its private assembly scratch.
++	mcCenterRefineAVX2(dst, dstStride, (*byte)(unsafe.Add(unsafe.Pointer(src), -2)), srcStride, width, height)
++}
+--- /dev/null
++++ b/pkg/h264/internal/common/sad_ptr_amd64.go
+@@ -0,0 +1,42 @@
++//go:build amd64
++
++package common
++
++// SadPtrSupported reports whether SadPtr and SadFourPtr run the SSE2 kernels.
++const SadPtrSupported = true
++
++// SadPtr returns the SAD of a width×height block (a pfSampleSad block size).
++// The caller must have validated both spans; no bounds are checked here.
++func SadPtr(width, height int, src *byte, srcStride int, ref *byte, refStride int) int32 {
++	switch width<<8 | height {
++	case 16<<8 | 16:
++		return int32(sad16x16(src, srcStride, ref, refStride))
++	case 16<<8 | 8:
++		return int32(sad16x8(src, srcStride, ref, refStride))
++	case 8<<8 | 16:
++		return int32(sad8x16(src, srcStride, ref, refStride))
++	case 8<<8 | 8:
++		return int32(sad8x8(src, srcStride, ref, refStride))
++	case 8<<8 | 4:
++		return int32(sad8x4(src, srcStride, ref, refStride))
++	case 4<<8 | 8:
++		return int32(sad4x8(src, srcStride, ref, refStride))
++	default:
++		return int32(sad4x4(src, srcStride, ref, refStride))
++	}
++}
++
++// SadFourPtr stores the SADs of the candidates one row above, one row below,
++// one pixel left and one pixel right of ref, like WelsSampleSadFour*_sse2. The
++// caller must have validated the source span and the reference span including
++// a one-pixel border on every side; no bounds are checked here.
++func SadFourPtr(width, height int, src *byte, srcStride int, ref *byte, refStride int, sad *[4]int32) {
++	switch width {
++	case 16:
++		sadFour16SSE2(src, srcStride, ref, refStride, height, sad)
++	case 8:
++		sadFour8SSE2(src, srcStride, ref, refStride, height, sad)
++	default:
++		sadFour4SSE2(src, srcStride, ref, refStride, height, sad)
++	}
++}
+--- a/pkg/h264/internal/encoder/encoder_ext.go
++++ b/pkg/h264/internal/encoder/encoder_ext.go
+@@ -2342,6 +2342,7 @@
+ 	//const bool kbBaseAvail      = pCurLayer->bBaseLayerAvailableFlag;
+ 	bFastMode := (pCtx.pSvcParam.IComplexityMode == api.LOW_COMPLEXITY)
+ 	pFuncList := pCtx.pFuncList
++	pFuncList.bWholeIntegerSearch = false
+ 	pLogCtx := &pCtx.sLogCtx
+ 	/* function pointers conditional assignment under sWelsEncCtx, layer_mb_enc_rec (in stack) is exclusive */
+ 	if (pCtx.pSvcParam.IUsageType == api.CAMERA_VIDEO_REAL_TIME && bFastMode) ||
+@@ -2363,6 +2364,7 @@
+ 		pFuncList.pfSearchMethod[BLOCK_4x4] = WelsDiamondSearch
+ 		pFuncList.pfSearchMethod[BLOCK_8x4] = WelsDiamondSearch
+ 		pFuncList.pfSearchMethod[BLOCK_4x8] = WelsDiamondSearch
++		pFuncList.bWholeIntegerSearch = pCtx.pSvcParam.IUsageType == api.CAMERA_VIDEO_REAL_TIME
+ 		pFuncList.pfFirstIntraMode = WelsMdFirstIntraMode
+ 		pFuncList.sSampleDealingFuncs.pfMeCost = &pCtx.pFuncList.sSampleDealingFuncs.pfSampleSatd
+ 		pFuncList.pfSetScrollingMv = SetScrollingMvToMdNull
+--- a/pkg/h264/internal/encoder/md.go
++++ b/pkg/h264/internal/encoder/md.go
+@@ -392,6 +392,7 @@
+ 
+ 	pMeRefine.pQuarPixBest = pMbCache.pBufferInterPredMe[1280+s:]
+ 	pMeRefine.pQuarPixTmp = pMbCache.pBufferInterPredMe[1920+s:]
++	pMeRefine.arena, pMeRefine.arenaOff = pMbCache.pBufferInterPredMe, s
+ }
+ 
+ // SQuarRefineParams is the file-local TagQuarParams. Pixel pointers are
+@@ -476,6 +477,10 @@
+ }
+ 
+ func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME, pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) {
++	if meRefineFracPixelFast(pEncCtx, pMemPredInterMb, iMemPredInterMbOff, pMe, pMeRefine, iWidth, iHeight) {
++		return
++	}
++
+ 	pFunc := pEncCtx.pFuncList
+ 	iMvx := pMe.sMv.iMvX
+ 	iMvy := pMe.sMv.iMvY
+--- a/pkg/h264/internal/encoder/md_h.go
++++ b/pkg/h264/internal/encoder/md_h.go
+@@ -74,9 +74,15 @@
+ 	sMe SWelsMDMe
+ }
+ 
++const refineRegion = 640
++
+ // SMeRefinePointer holds the fractional ME refinement buffers. All pointers
+ // are sub-slices of SMbCache.pBufferInterPredMe (only indexed non-negatively).
+ type SMeRefinePointer struct {
++	// Record the allocation, with tracked pointers, to prove scratch regions
++	// disjoint without comparing every input/output pair at each candidate.
++	arena        []byte
++	arenaOff     int
+ 	pHalfPixH    []uint8
+ 	pHalfPixV    []uint8
+ 	pHalfPixHV   []uint8
+--- /dev/null
++++ b/pkg/h264/internal/encoder/md_refine_fast_amd64.go
+@@ -0,0 +1,245 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"reflect"
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Filter callbacks lack an existing batching capability. Comparing their
++// entry points preserves custom callbacks without imposing a new contract.
++var refineFilterEntries = [3]uintptr{
++	reflect.ValueOf(common.McHorVer20_avx2).Pointer(),
++	reflect.ValueOf(common.McHorVer02_avx2).Pointer(),
++	reflect.ValueOf(common.McHorVer22_avx2).Pointer(),
++}
++
++// meRefineFracPixelFast performs MeRefineFracPixel with one validation of
++// every span it reads or writes, then runs the AVX2 half-pixel filters and the
++// SATD kernels on pointers. It requires the configuration that the checked
++// path would dispatch to the same kernels: the AVX2 half-pixel functions and
++// SATD, pfMeCost bound to pfSampleSatd, the averaged-SATD kernel, a block at
++// least eight pixels wide, and the InitMeRefinePointer scratch layout.
++//
++// Main's paired half-pixel and four-candidate quarter-pixel kernels are retained.
++// Quarter-pixel candidates are scored like meRefineQuarPixelFused, without
++// materializing each average. That is exact because the scratch layout and the
++// validated reference and source spans prove that no output overlaps an input.
++//
++// It reports false, having changed nothing, when any condition does not hold.
++func meRefineFracPixelFast(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME,
++	pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) bool {
++	pFunc := pEncCtx.pFuncList
++	samples := &pFunc.sSampleDealingFuncs
++	if pMe.uiBlockSize > BLOCK_8x8 || !samples.bWholeFractionalRefine || !samples.bSampleHalfSatdPair || !samples.bSampleAvgSatdFour ||
++		samples.pfSampleAvgSatd == nil || samples.pfSampleAvgSatdValidated == nil || samples.pfMeCost != &samples.pfSampleSatd {
++		return false
++	}
++	if reflect.ValueOf(pFunc.sMcFuncs.PfLumaHalfpelHor).Pointer() != refineFilterEntries[0] ||
++		reflect.ValueOf(pFunc.sMcFuncs.PfLumaHalfpelVer).Pointer() != refineFilterEntries[1] ||
++		reflect.ValueOf(pFunc.sMcFuncs.PfLumaHalfpelCen).Pointer() != refineFilterEntries[2] ||
++		reflect.ValueOf(pFunc.sMcFuncs.PfSampleAveraging).Pointer() != reflect.ValueOf(common.PixelAvg_sse2).Pointer() {
++		return false
++	}
++	w, h := meBlockDims[pMe.uiBlockSize][0], meBlockDims[pMe.uiBlockSize][1]
++	if int(iWidth) != w || int(iHeight) != h {
++		return false
++	}
++
++	// Scratch layout: H, V, best and tmp at offset s of four disjoint regions.
++	arena, s := pMeRefine.arena, pMeRefine.arenaOff
++	if len(arena) != 4*refineRegion || s < 0 || s > refineRegion-(h+1)*ME_REFINE_BUF_STRIDE ||
++		len(pMeRefine.pHalfPixH) < h*ME_REFINE_BUF_STRIDE+w+1 ||
++		len(pMeRefine.pHalfPixV) < h*ME_REFINE_BUF_STRIDE+w+1 ||
++		len(pMeRefine.pQuarPixBest) < (h-1)*ME_REFINE_BUF_STRIDE+w ||
++		len(pMeRefine.pQuarPixTmp) < (h-1)*ME_REFINE_BUF_STRIDE+w {
++		return false
++	}
++	arenaBase := unsafe.Pointer(unsafe.SliceData(arena))
++	region := func(i int) unsafe.Pointer { return unsafe.Add(arenaBase, i*refineRegion+s) }
++	ptrOf := func(b []byte) unsafe.Pointer { return unsafe.Pointer(unsafe.SliceData(b)) }
++	best, tmp := ptrOf(pMeRefine.pQuarPixBest), ptrOf(pMeRefine.pQuarPixTmp)
++	if ptrOf(pMeRefine.pHalfPixH) != region(0) || ptrOf(pMeRefine.pHalfPixV) != region(1) ||
++		!(best == region(2) && tmp == region(3) || best == region(3) && tmp == region(2)) {
++		return false
++	}
++
++	// Source block and reference window: the six-tap filters read rows
++	// [-3, h+2] and columns [-3, w+2] around the integer-pixel block.
++	encStride := int(pEncCtx.pCurDqLayer.iEncStride[0])
++	refStrideI32 := pEncCtx.pCurDqLayer.pRefPic.iLineSize[0]
++	refStride := int(refStrideI32)
++	encOff, refOff := pMe.iEncMbOff, pMe.iRefMbOff
++	if encStride < w || refStride < w+6 || encOff < 0 || encOff > len(pMe.pEncMb)-(h-1)*encStride-w {
++		return false
++	}
++	if refOff < 3*refStride+3 || refOff > len(pMe.pRefMb)-(h+2)*refStride-w-3 {
++		return false
++	}
++	lo, hi := refOff-3*refStride-3, refOff+(h+2)*refStride+w+3
++	if lo < 0 || hi > len(pMe.pRefMb) {
++		return false
++	}
++	outside := func(p unsafe.Pointer, n int) bool {
++		return uintptr(p)+uintptr(n) <= uintptr(arenaBase) || uintptr(p) >= uintptr(arenaBase)+4*refineRegion
++	}
++	encBase := unsafe.Add(ptrOf(pMe.pEncMb), encOff)
++	refBase := unsafe.Add(ptrOf(pMe.pRefMb), lo)
++	if !outside(encBase, (h-1)*encStride+w) || !outside(refBase, hi-lo) {
++		return false
++	}
++
++	// MVD costs: half- and quarter-pixel steps stay within ±3 of the
++	// integer-pixel vector.
++	iMvx, iMvy := int32(pMe.sMv.iMvX), int32(pMe.sMv.iMvY)
++	// Legacy half-pixel updates use int16. Avoid crossing their wrap boundary.
++	if iMvx < -32765 || iMvx > 32764 || iMvy < -32765 || iMvy > 32764 {
++		return false
++	}
++	iMvpX, iMvpY := int32(pMe.sMvp.iMvX), int32(pMe.sMvp.iMvY)
++	costOff := pMe.iMvdCostOff
++	if costOff < 0 || costOff >= len(pMe.pMvdCost) {
++		return false
++	}
++	dLo := min(iMvx-3-iMvpX, iMvy-3-iMvpY)
++	dHi := max(iMvx+3-iMvpX, iMvy+3-iMvpY)
++	if costOff < -int(dLo) || costOff > len(pMe.pMvdCost)-1-int(dHi) {
++		return false
++	}
++	costBase := unsafe.Add(unsafe.Pointer(unsafe.SliceData(pMe.pMvdCost)), 2*costOff)
++	cost := func(dx, dy int32) int32 {
++		return int32(*(*uint16)(unsafe.Add(costBase, 2*int(dx)))) + int32(*(*uint16)(unsafe.Add(costBase, 2*int(dy))))
++	}
++
++	enc := (*byte)(encBase)
++	ref := unsafe.Add(ptrOf(pMe.pRefMb), refOff)
++	refAt := func(dx, dy int) *byte { return (*byte)(unsafe.Add(ref, dy*refStride+dx)) }
++	halfH, halfV := region(0), region(1)
++	at := func(p unsafe.Pointer, off int) *byte { return (*byte)(unsafe.Add(p, off)) }
++	satd := func(p *byte, stride int) int32 {
++		return int32(satdBlockAVX2(enc, encStride, p, stride, w, h))
++	}
++
++	var iBestCost int32
++	if pEncCtx.pCurDqLayer.bSatdInMdFlag {
++		iBestCost = int32(pMe.uSadPredISatd + uint32(cost(iMvx-iMvpX, iMvy-iMvpY)))
++	} else {
++		iBestCost = satd(refAt(0, 0), refStride) + cost(iMvx-iMvpX, iMvy-iMvpY)
++	}
++	iBestHalfPix := int32(REFINE_ME_NO_BEST_HALF_PIXEL)
++	pBestPredInter, iBestPredInterOff := pMe.pRefMb, refOff
++	iInterBlk4Stride := int32(ME_REFINE_BUF_STRIDE)
++
++	// Vertical half-pixel rows -1..h-1 into V; (0,-2) and (0,2).
++	common.RefineHalfpelVer((*byte)(halfV), ME_REFINE_BUF_STRIDE, refAt(0, -1), refStride, w, h+1)
++	first, second := satdTwoAVX2(enc, encStride, at(halfV, 0), at(halfV, ME_REFINE_BUF_STRIDE), ME_REFINE_BUF_STRIDE, w, h)
++	if c := first + cost(iMvx-iMvpX, iMvy-2-iMvpY); c < iBestCost {
++		iBestCost, iBestHalfPix = c, REFINE_ME_HALF_PIXEL_TOP
++		pBestPredInter, iBestPredInterOff = pMeRefine.pHalfPixV, 0
++	}
++	if c := second + cost(iMvx-iMvpX, iMvy+2-iMvpY); c < iBestCost {
++		iBestCost, iBestHalfPix = c, REFINE_ME_HALF_PIXEL_BOTTOM
++		pBestPredInter, iBestPredInterOff = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++	}
++	// Horizontal half-pixel columns -1..w-1 into H; (-2,0) and (2,0).
++	common.RefineHalfpelHor((*byte)(halfH), ME_REFINE_BUF_STRIDE, refAt(-1, 0), refStride, w+1, h)
++	first, second = satdTwoAVX2(enc, encStride, at(halfH, 0), at(halfH, 1), ME_REFINE_BUF_STRIDE, w, h)
++	if c := first + cost(iMvx-2-iMvpX, iMvy-iMvpY); c < iBestCost {
++		iBestCost, iBestHalfPix = c, REFINE_ME_HALF_PIXEL_LEFT
++		pBestPredInter, iBestPredInterOff = pMeRefine.pHalfPixH, 0
++	}
++	if c := second + cost(iMvx+2-iMvpX, iMvy-iMvpY); c < iBestCost {
++		iBestCost, iBestHalfPix = c, REFINE_ME_HALF_PIXEL_RIGHT
++		pBestPredInter, iBestPredInterOff = pMeRefine.pHalfPixH, 1
++	}
++
++	// Quarter-pixel candidates: the average of a (stride 32 scratch) and b.
++	iHalfMvx, iHalfMvy := iMvx, iMvy
++	var a [4]*byte
++	var b [4]*byte
++	var strideB [4]int
++	cen := func(p unsafe.Pointer) {
++		common.RefineHalfpelCen((*byte)(p), ME_REFINE_BUF_STRIDE, refAt(-1, -1), refStride, w+1, h+1)
++	}
++	switch iBestHalfPix {
++	case REFINE_ME_NO_BEST_HALF_PIXEL:
++		a = [4]*byte{at(halfV, 0), at(halfV, ME_REFINE_BUF_STRIDE), at(halfH, 0), at(halfH, 1)}
++		b = [4]*byte{refAt(0, 0), refAt(0, 0), refAt(0, 0), refAt(0, 0)}
++		strideB = [4]int{refStride, refStride, refStride, refStride}
++	case REFINE_ME_HALF_PIXEL_LEFT, REFINE_ME_HALF_PIXEL_RIGHT:
++		pMeRefine.pHalfPixHV = pMeRefine.pHalfPixV // reuse the V buffer, only H and HV are needed
++		cen(halfV)
++		x := 0
++		if iBestHalfPix == REFINE_ME_HALF_PIXEL_LEFT {
++			iHalfMvx -= 2
++		} else {
++			iHalfMvx += 2
++			x = 1
++		}
++		a = [4]*byte{at(halfH, x), at(halfH, x), at(halfH, x), at(halfH, x)}
++		b = [4]*byte{at(halfV, x), at(halfV, x+ME_REFINE_BUF_STRIDE), refAt(x-1, 0), refAt(x, 0)}
++		strideB = [4]int{ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE, refStride, refStride}
++	default: // REFINE_ME_HALF_PIXEL_TOP or REFINE_ME_HALF_PIXEL_BOTTOM
++		pMeRefine.pHalfPixHV = pMeRefine.pHalfPixH // reuse the H buffer, only V and HV are needed
++		cen(halfH)
++		y := 0
++		if iBestHalfPix == REFINE_ME_HALF_PIXEL_TOP {
++			iHalfMvy -= 2
++		} else {
++			iHalfMvy += 2
++			y = ME_REFINE_BUF_STRIDE
++		}
++		dy := y / ME_REFINE_BUF_STRIDE
++		a = [4]*byte{at(halfV, y), at(halfV, y), at(halfV, y), at(halfV, y)}
++		b = [4]*byte{refAt(0, dy-1), refAt(0, dy), at(halfH, y), at(halfH, y+1)}
++		strideB = [4]int{refStride, refStride, ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE}
++	}
++	lms := [4]int32{
++		cost(iHalfMvx-iMvpX, iHalfMvy-1-iMvpY),
++		cost(iHalfMvx-iMvpX, iHalfMvy+1-iMvpY),
++		cost(iHalfMvx-1-iMvpX, iHalfMvy-iMvpY),
++		cost(iHalfMvx+1-iMvpX, iHalfMvy-iMvpY),
++	}
++	modes := [4]int32{ME_QUAR_PIXEL_TOP, ME_QUAR_PIXEL_BOTTOM, ME_QUAR_PIXEL_LEFT, ME_QUAR_PIXEL_RIGHT}
++	iBestQuarPix := int32(ME_NO_BEST_QUAR_PIXEL)
++	quarCost, winner := iBestCost, -1
++	var candidates [4]sampleAvgSatdCandidate
++	for i := range candidates {
++		candidates[i] = sampleAvgSatdCandidate{a[i], b[i], ME_REFINE_BUF_STRIDE, strideB[i]}
++	}
++	var costs [4]int32
++	satdAvgFourAVX2(enc, encStride, &candidates, w, h, &costs)
++	for i := 0; i < 4; i++ {
++		c := costs[i] + lms[i]
++		if c < quarCost {
++			quarCost, iBestQuarPix, winner = c, modes[i], i
++			pMeRefine.pQuarPixBest, pMeRefine.pQuarPixTmp = pMeRefine.pQuarPixTmp, pMeRefine.pQuarPixBest
++		}
++	}
++	if winner >= 0 {
++		// Materialize only the winning average, like meRefineQuarPixelFused.
++		dst := ptrOf(pMeRefine.pQuarPixBest)
++		// Eligibility proves the built-in averaging callback is installed.
++		// Materialize only the winner, after scoring all candidates.
++		pFunc.sMcFuncs.PfSampleAveraging(unsafe.Slice((*byte)(dst), (h-1)*ME_REFINE_BUF_STRIDE+w), 0, ME_REFINE_BUF_STRIDE,
++			unsafe.Slice(a[winner], (h-1)*ME_REFINE_BUF_STRIDE+w), 0, ME_REFINE_BUF_STRIDE,
++			unsafe.Slice(b[winner], (h-1)*strideB[winner]+w), 0, int32(strideB[winner]), iWidth, iHeight)
++		pBestPredInter, iBestPredInterOff = pMeRefine.pQuarPixBest, 0
++		iBestCost = quarCost
++	}
++
++	iMvQuarAddX := [10]int32{0, 0, -1, 1, 0, 0, 0, -1, 1, 0}
++	pMe.sMv.iMvX = int16(iHalfMvx + iMvQuarAddX[iBestQuarPix])
++	pMe.sMv.iMvY = int16(iHalfMvy + iMvQuarAddX[iBestQuarPix+3])
++	pMe.uiSatdCost = uint32(iBestCost)
++	if iBestHalfPix+iBestQuarPix == NO_BEST_FRAC_PIX {
++		pBestPredInter, iBestPredInterOff = pMe.pRefMb, refOff
++		iInterBlk4Stride = refStrideI32
++	}
++	pMeRefine.pfCopyBlockByMode(pMemPredInterMb, iMemPredInterMbOff, common.MB_WIDTH_LUMA, pBestPredInter, iBestPredInterOff,
++		iInterBlk4Stride)
++	return true
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/md_refine_fast_amd64_test.go
+@@ -0,0 +1,175 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"bytes"
++	"math/rand/v2"
++	"reflect"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// meRefineFracPixelFast must reproduce the checked refinement exactly: motion
++// vector, costs, scratch buffers and the copied prediction.
++func TestMeRefineFracPixelFastParity(t *testing.T) {
++	var processors int32
++	flags := common.WelsCPUFeatureDetect(&processors)
++	if flags&common.WELS_CPU_AVX2 == 0 {
++		t.Skip("AVX2 unavailable")
++	}
++	const encStride, refStride = 48, 96
++	newCtx := func() *sWelsEncCtx {
++		pFunc := &SWelsFuncPtrList{}
++		common.InitMcFunc(&pFunc.sMcFuncs, flags)
++		WelsInitSampleSadFunc(pFunc, flags)
++		pFunc.sSampleDealingFuncs.pfMeCost = &pFunc.sSampleDealingFuncs.pfSampleSatd
++		return &sWelsEncCtx{
++			pFuncList: pFunc,
++			pCurDqLayer: &SDqLayer{
++				iEncStride: [3]int32{encStride, encStride / 2, encStride / 2},
++				pRefPic:    &SPicture{iLineSize: [3]int32{refStride, refStride / 2, refStride / 2}},
++			},
++		}
++	}
++	fastCtx, slowCtx := newCtx(), newCtx()
++	if !fastCtx.pFuncList.sSampleDealingFuncs.bSampleHalfSatdPair {
++		t.Skip("AVX2 refinement functions are not installed for this CPU configuration")
++	}
++
++	const mvdSize = 648*2 + 1
++	costs := make([]uint16, 52*mvdSize)
++	MvdCostInit(costs, mvdSize)
++	copies := map[uint8]PCopyFunc{
++		BLOCK_16x16: common.WelsCopy16x16_c, BLOCK_16x8: common.WelsCopy16x8_c,
++		BLOCK_8x16: common.WelsCopy8x16_c, BLOCK_8x8: common.WelsCopy8x8_c,
++	}
++	rng := rand.New(rand.NewPCG(5, 9))
++	var accepted int
++	for test := 0; test < 2500; test++ {
++		ref := make([]byte, refStride*64)
++		for i := range ref {
++			ref[i] = byte(rng.Uint32())
++		}
++		block := uint8(rng.IntN(4))
++		w, h := meBlockDims[block][0], meBlockDims[block][1]
++		refOff := 20*refStride + 24
++		enc := make([]byte, encStride*16)
++		// Derive the source from a shifted, filtered or noisy reference so
++		// every half- and quarter-pixel winner occurs.
++		for y := 0; y < h; y++ {
++			for x := 0; x < w; x++ {
++				v := int(ref[refOff+y*refStride+x])
++				switch test % 4 {
++				case 1:
++					v = (v + int(ref[refOff+y*refStride+x+1]) + 1) / 2
++				case 2:
++					v = (v + int(ref[refOff+(y+1)*refStride+x]) + 1) / 2
++				case 3:
++					v += rng.IntN(5) - 2
++				}
++				enc[y*encStride+x] = byte(min(max(v, 0), 255))
++			}
++		}
++		qp := rng.IntN(52)
++		me := SWelsME{
++			pMvdCost: costs, iMvdCostOff: qp*mvdSize + mvdSize/2, uiBlockSize: block,
++			pEncMb: enc, pRefMb: ref, iRefMbOff: refOff,
++			sMv:           SMVUnitXY{int16(4 * (rng.IntN(9) - 4)), int16(4 * (rng.IntN(9) - 4))},
++			sMvp:          SMVUnitXY{int16(rng.IntN(33) - 16), int16(rng.IntN(33) - 16)},
++			uSadPredISatd: uint32(rng.IntN(3000)),
++		}
++		satdInMd := rng.IntN(2) == 0
++		fastCtx.pCurDqLayer.bSatdInMdFlag, slowCtx.pCurDqLayer.bSatdInMdFlag = satdInMd, satdInMd
++		// Scratch offsets used for each partition's position in the macroblock.
++		offsets := map[uint8][]int32{
++			BLOCK_16x16: {0},
++			BLOCK_16x8:  {0, ME_REFINE_BUF_STRIDE_BLK8},
++			BLOCK_8x16:  {0, ME_REFINE_BUF_WIDTH_BLK8},
++			BLOCK_8x8:   g_kiPixStrideIdx8x8[:],
++		}[block]
++		offset := offsets[rng.IntN(len(offsets))]
++		run := func(ctx *sWelsEncCtx, direct bool) (SWelsME, SMeRefinePointer, []byte, []byte) {
++			var cache SMbCache
++			cache.pBufferInterPredMe = bytes.Repeat([]byte{0x5c}, 4*640)
++			var refine SMeRefinePointer
++			InitMeRefinePointer(&refine, &cache, offset)
++			refine.pfCopyBlockByMode = copies[block]
++			pred := bytes.Repeat([]byte{0xc5}, 256)
++			m := me
++			if direct {
++				if !meRefineFracPixelFast(ctx, pred, 0, &m, &refine, int32(w), int32(h)) {
++					t.Fatalf("test %d: fast refinement declined a valid block", test)
++				}
++			} else {
++				meRefineFracPixelChecked(ctx, pred, 0, &m, &refine, int32(w), int32(h))
++			}
++			return m, refine, pred, cache.pBufferInterPredMe
++		}
++		gotMe, gotRefine, gotPred, gotArena := run(fastCtx, true)
++		wantMe, wantRefine, wantPred, wantArena := run(slowCtx, false)
++		accepted++
++		if !reflect.DeepEqual(gotMe, wantMe) || !bytes.Equal(gotPred, wantPred) || !bytes.Equal(gotArena, wantArena) ||
++			!reflect.DeepEqual(gotRefine.pQuarPixBest, wantRefine.pQuarPixBest) ||
++			!reflect.DeepEqual(gotRefine.pHalfPixHV, wantRefine.pHalfPixHV) {
++			t.Fatalf("test %d block %d: mv %v cost %d, want mv %v cost %d", test, block, gotMe.sMv, gotMe.uiSatdCost, wantMe.sMv, wantMe.uiSatdCost)
++		}
++	}
++	if accepted == 0 {
++		t.Fatal("no refinement ran")
++	}
++}
++
++func TestMeRefineFracPixelFastDeclinesWithoutMutation(t *testing.T) {
++	requireSampleAVX2(t)
++	tests := []struct {
++		name   string
++		change func(*fractionalCallerFixture)
++	}{
++		{"negativeCostBase", func(f *fractionalCallerFixture) { f.me.iMvdCostOff = -1; f.me.sMvp = SMVUnitXY{-32, -32} }},
++		{"oversizedCostBase", func(f *fractionalCallerFixture) { f.me.iMvdCostOff = len(f.me.pMvdCost); f.me.sMvp = SMVUnitXY{32, 32} }},
++		{"shortEncoded", func(f *fractionalCallerFixture) { f.me.pEncMb = f.me.pEncMb[:1] }},
++		{"shortReference", func(f *fractionalCallerFixture) { f.me.pRefMb = f.me.pRefMb[:f.me.iRefMbOff] }},
++		{"shortCost", func(f *fractionalCallerFixture) { f.me.pMvdCost = f.me.pMvdCost[:1] }},
++		{"shortHalf", func(f *fractionalCallerFixture) { f.refine.pHalfPixH = f.refine.pHalfPixH[:1] }},
++		{"shortQuarter", func(f *fractionalCallerFixture) { f.refine.pQuarPixTmp = f.refine.pQuarPixTmp[:1] }},
++		{"unknownArena", func(f *fractionalCallerFixture) { f.refine.arena = nil }},
++		{"aliasedHalves", func(f *fractionalCallerFixture) { f.refine.pHalfPixH = f.refine.pHalfPixV }},
++		{"aliasedSource", func(f *fractionalCallerFixture) { f.me.pEncMb = f.refine.arena; f.me.iEncMbOff = 0 }},
++		{"overflowRefOffset", func(f *fractionalCallerFixture) { f.me.iRefMbOff = int(^uint(0) >> 1) }},
++		{"overflowScratchOffset", func(f *fractionalCallerFixture) { f.refine.arenaOff = int(^uint(0) >> 1) }},
++		{"motionWrap", func(f *fractionalCallerFixture) { f.me.sMv.iMvX = 32767 }},
++		{"averageDisabled", func(f *fractionalCallerFixture) { f.funcs.sSampleDealingFuncs.pfSampleAvgSatd = nil }},
++		{"quarterDisabled", func(f *fractionalCallerFixture) { f.funcs.sSampleDealingFuncs.bSampleAvgSatdFour = false }},
++		{"pairDisabled", func(f *fractionalCallerFixture) { f.funcs.sSampleDealingFuncs.bSampleHalfSatdPair = false }},
++		{"customFilter", func(f *fractionalCallerFixture) {
++			original := f.funcs.sMcFuncs.PfLumaHalfpelHor
++			f.funcs.sMcFuncs.PfLumaHalfpelHor = func(a []byte, ao int, as int32, b []byte, bo int, bs, w, h int32) {
++				original(a, ao, as, b, bo, bs, w, h)
++			}
++		}},
++		{"customAverage", func(f *fractionalCallerFixture) {
++			original := f.funcs.sMcFuncs.PfSampleAveraging
++			f.funcs.sMcFuncs.PfSampleAveraging = func(a []byte, ao int, as int32, b []byte, bo int, bs int32, c []byte, co int, cs, w, h int32) {
++				original(a, ao, as, b, bo, bs, c, co, cs, w, h)
++			}
++		}},
++	}
++	for _, test := range tests {
++		t.Run(test.name, func(t *testing.T) {
++			f := newFractionalCallerFixture(16, 16, BLOCK_16x16, 32, true)
++			InitMeRefinePointer(&f.refine, &f.cache, 0)
++			test.change(f)
++			want := f.me
++			arena := bytes.Clone(f.cache.pBufferInterPredMe)
++			pred := bytes.Clone(f.pred)
++			if meRefineFracPixelFast(&f.ctx, f.pred, 0, &f.me, &f.refine, 16, 16) {
++				t.Fatal("unexpected fast path")
++			}
++			if !reflect.DeepEqual(want, f.me) || !bytes.Equal(arena, f.cache.pBufferInterPredMe) || !bytes.Equal(pred, f.pred) {
++				t.Fatal("declined fast path changed state")
++			}
++		})
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/md_refine_fast_bench_amd64_test.go
+@@ -0,0 +1,49 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Uses only baseline APIs and flags. Measure together with the existing full
++// BenchmarkMeRefineFracPixelCaller matrix, including its narrow/no-motion cases.
++func BenchmarkWholeFractionalControls(b *testing.B) {
++	if common.WelsCPUFeatureDetect(nil)&common.WELS_CPU_AVX2 == 0 {
++		b.Skip("AVX2 required")
++	}
++	for _, block := range []uint8{BLOCK_16x16, BLOCK_8x8} {
++		for _, scenario := range []string{"pairOff", "quarterOff", "scalar", "customFilter"} {
++			b.Run(fmt.Sprintf("block%d/%s", block, scenario), func(b *testing.B) {
++				w := int32(16)
++				if block == BLOCK_8x8 {
++					w = 8
++				}
++				f := newFractionalCallerFixture(w, w, block, 32, true)
++				switch scenario {
++				case "pairOff":
++					f.funcs.sSampleDealingFuncs.bSampleHalfSatdPair = false
++				case "quarterOff":
++					f.funcs.sSampleDealingFuncs.bSampleAvgSatdFour = false
++				case "scalar":
++					WelsInitSampleSadFunc(&f.funcs, 0)
++					f.funcs.sSampleDealingFuncs.pfMeCost = &f.funcs.sSampleDealingFuncs.pfSampleSatd
++					common.InitMcFunc(&f.funcs.sMcFuncs, 0)
++				case "customFilter":
++					original := f.funcs.sMcFuncs.PfLumaHalfpelHor
++					f.funcs.sMcFuncs.PfLumaHalfpelHor = func(a []byte, ao int, as int32, b []byte, bo int, bs, w, h int32) {
++						original(a, ao, as, b, bo, bs, w, h)
++					}
++				}
++				b.ReportAllocs()
++				for b.Loop() {
++					f.run()
++				}
++				sampleSatdBenchmarkSink = int32(f.me.uiSatdCost)
++			})
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/md_refine_fast_generic.go
+@@ -0,0 +1,7 @@
++//go:build !amd64
++
++package encoder
++
++func meRefineFracPixelFast(*sWelsEncCtx, []uint8, int, *SWelsME, *SMeRefinePointer, int32, int32) bool {
++	return false
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/md_refine_fast_reference_test.go
+@@ -0,0 +1,245 @@
++package encoder
++
++import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++
++func meRefineFracPixelChecked(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME, pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) {
++	pFunc := pEncCtx.pFuncList
++	iMvx := pMe.sMv.iMvX
++	iMvy := pMe.sMv.iMvY
++
++	iHalfMvx := iMvx
++	iHalfMvy := iMvy
++	kiStrideEnc := pEncCtx.pCurDqLayer.iEncStride[0]
++	kiStrideRef := pEncCtx.pCurDqLayer.pRefPic.iLineSize[0]
++	kiStrideRefI := int(kiStrideRef)
++
++	pEncData := pMe.pEncMb
++	iEncDataOff := pMe.iEncMbOff
++	pRef := pMe.pRefMb //091010
++	iRefOff := pMe.iRefMbOff
++
++	var iBestQuarPix int32 = ME_NO_BEST_QUAR_PIXEL
++
++	var sParams SQuarRefineParams
++	iMvQuarAddX := [10]int32{0, 0, -1, 1, 0, 0, 0, -1, 1, 0}
++	// pMvQuarAddY = iMvQuarAddX + 3
++	pBestPredInter := pRef
++	iBestPredInterOff := iRefOff
++	var iInterBlk4Stride int32 = ME_REFINE_BUF_STRIDE
++
++	var iBestCost int32
++	var iCurCost int32
++	var iBestHalfPix int32
++
++	pMvdCost := pMe.pMvdCost
++	iMvdCostOff := pMe.iMvdCostOff
++	iMvpX := int32(pMe.sMvp.iMvX)
++	iMvpY := int32(pMe.sMvp.iMvY)
++	pfMeCost := pFunc.sSampleDealingFuncs.pfMeCost[pMe.uiBlockSize]
++
++	if pEncCtx.pCurDqLayer.bSatdInMdFlag {
++		iBestCost = int32(pMe.uSadPredISatd + uint32(COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)))
++	} else {
++		iBestCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pRef, iRefOff, kiStrideRef) +
++			COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)
++	}
++
++	// Keep each pair between its filter and the next filter: the horizontal
++	// callback may change pixels read by the earlier vertical pair.
++	// The four supported block IDs are contiguous. Keep narrow blocks out of
++	// the capability/shape helper before inspecting the function tables.
++	useHalfPair := pMe.uiBlockSize <= BLOCK_8x8 &&
++		sampleHalfSatdPairEnabled(&pFunc.sSampleDealingFuncs, pMe.uiBlockSize, iWidth, iHeight)
++	var firstHalfCost, secondHalfCost int32
++	halfPairOK := false
++
++	iBestHalfPix = REFINE_ME_NO_BEST_HALF_PIXEL
++
++	pFunc.sMcFuncs.PfLumaHalfpelVer(pRef, iRefOff-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE, iWidth,
++		iHeight+1)
++
++	//step 1: get [iWidth][iHeight+1] half pixel from vertical filter
++	if useHalfPair {
++		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
++			pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, iWidth, iHeight)
++	}
++	//===========================(0, -2)==============================//
++	if !halfPairOK {
++		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE)
++	}
++	iCurCost = firstHalfCost +
++		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-2-iMvpY)
++	if iCurCost < iBestCost {
++		iBestCost = iCurCost
++		iBestHalfPix = REFINE_ME_HALF_PIXEL_TOP
++		pBestPredInter = pMeRefine.pHalfPixV
++		iBestPredInterOff = 0
++	}
++	//===========================(0, 2)==============================//
++	if !halfPairOK {
++		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE)
++	}
++	iCurCost = secondHalfCost +
++		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)+2-iMvpY)
++	if iCurCost < iBestCost {
++		iBestCost = iCurCost
++		iBestHalfPix = REFINE_ME_HALF_PIXEL_BOTTOM
++		pBestPredInter = pMeRefine.pHalfPixV
++		iBestPredInterOff = ME_REFINE_BUF_STRIDE
++	}
++	pFunc.sMcFuncs.PfLumaHalfpelHor(pRef, iRefOff-1, kiStrideRef, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE, iWidth+1,
++		iHeight)
++	//step 2: get [iWidth][iHeight+1] half pixel from horizon filter
++	halfPairOK = false
++	if useHalfPair {
++		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
++			pMeRefine.pHalfPixH, 1, iWidth, iHeight)
++	}
++
++	//===========================(-2, 0)==============================//
++	if !halfPairOK {
++		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE)
++	}
++	iCurCost = firstHalfCost +
++		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-2-iMvpX, int32(iMvy)-iMvpY)
++	if iCurCost < iBestCost {
++		iBestCost = iCurCost
++		iBestHalfPix = REFINE_ME_HALF_PIXEL_LEFT
++		pBestPredInter = pMeRefine.pHalfPixH
++		iBestPredInterOff = 0
++	}
++	//===========================(2, 0)===============================//
++	if !halfPairOK {
++		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 1, ME_REFINE_BUF_STRIDE)
++	}
++	iCurCost = secondHalfCost +
++		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)+2-iMvpX, int32(iMvy)-iMvpY)
++	if iCurCost < iBestCost {
++		iBestCost = iCurCost
++		iBestHalfPix = REFINE_ME_HALF_PIXEL_RIGHT
++		pBestPredInter = pMeRefine.pHalfPixH
++		iBestPredInterOff = 1
++	}
++
++	sParams.iBestCost = iBestCost
++	sParams.iBestHalfPix = iBestHalfPix
++	sParams.pRef = pRef
++	sParams.iRefOff = iRefOff
++	sParams.iBestQuarPix = ME_NO_BEST_QUAR_PIXEL
++
++	//step 5: if no best half-pixel prediction, try quarter pixel prediction
++	//        if yes, must get [X+1][X+1] half-pixel from (2, 2) horizontal and vertical filter
++	if REFINE_ME_NO_BEST_HALF_PIXEL == iBestHalfPix {
++		sParams.iStrideA = kiStrideRef
++		sParams.iStrideB = kiStrideRef
++		sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
++		sParams.pSrcA[1], sParams.iSrcAOff[1] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++		sParams.pSrcA[2], sParams.iSrcAOff[2] = pMeRefine.pHalfPixH, 0
++		sParams.pSrcA[3], sParams.iSrcAOff[3] = pMeRefine.pHalfPixH, 1
++
++		for k := 0; k < 4; k++ {
++			sParams.pSrcB[k], sParams.iSrcBOff[k] = pRef, iRefOff
++		}
++
++		sParams.iLms[0] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)-1-iMvpY)
++		sParams.iLms[1] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)+1-iMvpY)
++		sParams.iLms[2] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-1-iMvpX, int32(iHalfMvy)-iMvpY)
++		sParams.iLms[3] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)+1-iMvpX, int32(iHalfMvy)-iMvpY)
++	} else { //must get [X+1][X+1] half-pixel from (2, 2) horizontal and vertical filter
++		switch iBestHalfPix {
++		case REFINE_ME_HALF_PIXEL_LEFT:
++			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixV //reuse pBuffer, here only h&hv
++			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
++				iWidth+1, iHeight+1)
++
++			iHalfMvx -= 2
++			sParams.iStrideA = ME_REFINE_BUF_STRIDE
++			sParams.iStrideB = kiStrideRef
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 0
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 0
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff-1
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff
++
++		case REFINE_ME_HALF_PIXEL_RIGHT:
++			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixV //reuse pBuffer, here only h&hv
++			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
++				iWidth+1, iHeight+1)
++			iHalfMvx += 2
++			sParams.iStrideA = ME_REFINE_BUF_STRIDE
++			sParams.iStrideB = kiStrideRef
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 1
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 1
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, 1+ME_REFINE_BUF_STRIDE
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff+1
++
++		case REFINE_ME_HALF_PIXEL_TOP:
++			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixH //reuse pBuffer, here only v&hv
++			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
++				iWidth+1, iHeight+1)
++
++			iHalfMvy -= 2
++			sParams.iStrideA = kiStrideRef
++			sParams.iStrideB = ME_REFINE_BUF_STRIDE
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff-kiStrideRefI
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, 0
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, 1
++
++		case REFINE_ME_HALF_PIXEL_BOTTOM:
++			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixH //reuse pBuffer, here only v&hv
++			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
++				iWidth+1, iHeight+1)
++			iHalfMvy += 2
++			sParams.iStrideA = kiStrideRef
++			sParams.iStrideB = ME_REFINE_BUF_STRIDE
++			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
++			for k := 1; k < 4; k++ {
++				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
++			}
++			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff
++			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff+kiStrideRefI
++			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
++			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE+1
++
++		default:
++		}
++		sParams.iLms[0] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)-1-iMvpY)
++		sParams.iLms[1] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)+1-iMvpY)
++		sParams.iLms[2] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-1-iMvpX, int32(iHalfMvy)-iMvpY)
++		sParams.iLms[3] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)+1-iMvpX, int32(iHalfMvy)-iMvpY)
++	}
++	MeRefineQuarPixel(pFunc, pMe, pMeRefine, iWidth, iHeight, &sParams, kiStrideEnc)
++
++	if iBestCost > sParams.iBestCost {
++		pBestPredInter = pMeRefine.pQuarPixBest
++		iBestPredInterOff = 0
++		iBestCost = sParams.iBestCost
++	}
++	iBestQuarPix = sParams.iBestQuarPix
++
++	//update final best MV
++	pMe.sMv.iMvX = int16(int32(iHalfMvx) + iMvQuarAddX[iBestQuarPix])
++	pMe.sMv.iMvY = int16(int32(iHalfMvy) + iMvQuarAddX[iBestQuarPix+3])
++	pMe.uiSatdCost = uint32(iBestCost)
++
++	//No half or quarter pixel best, so do MC with integer pixel MV
++	if iBestHalfPix+iBestQuarPix == NO_BEST_FRAC_PIX {
++		pBestPredInter = pRef
++		iBestPredInterOff = iRefOff
++		iInterBlk4Stride = kiStrideRef
++	}
++	pMeRefine.pfCopyBlockByMode(pMemPredInterMb, iMemPredInterMbOff, common.MB_WIDTH_LUMA, pBestPredInter, iBestPredInterOff,
++		iInterBlk4Stride)
++}
+--- a/pkg/h264/internal/encoder/sample_simd_amd64.go
++++ b/pkg/h264/internal/encoder/sample_simd_amd64.go
+@@ -98,9 +98,11 @@
+ 	s.pfSampleAvgSatd = nil
+ 	s.pfSampleAvgSatdValidated = nil
+ 	s.bSampleAvgSatdFour = false
++	s.bWholeFractionalRefine = false
+ 	if flags&common.WELS_CPU_AVX2 != 0 {
+ 		s.pfSampleAvgSatd = sampleAvgSatdAVX2
+ 		s.pfSampleAvgSatdValidated = satdAvgBlockAVX2
+ 		s.bSampleAvgSatdFour = true
++		s.bWholeFractionalRefine = true
+ 	}
+ }
+--- a/pkg/h264/internal/encoder/sample_simd_generic.go
++++ b/pkg/h264/internal/encoder/sample_simd_generic.go
+@@ -30,4 +30,5 @@
+ 	s.pfSampleAvgSatd = nil
+ 	s.pfSampleAvgSatdValidated = nil
+ 	s.bSampleAvgSatdFour = false
++	s.bWholeFractionalRefine = false
+ }
+--- a/pkg/h264/internal/encoder/svc_motion_estimate.go
++++ b/pkg/h264/internal/encoder/svc_motion_estimate.go
+@@ -40,6 +40,7 @@
+ 
+ // (QStepx16ByQp is defined in this file.)
+ func WelsInitMeFunc(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32, bScreenContent bool) {
++	pFuncList.bWholeIntegerSearch = false
+ 	pFuncList.pfUpdateFMESwitch = UpdateFMESwitchNull
+ 
+ 	if !bScreenContent {
+@@ -74,7 +75,8 @@
+ 	kiStrideRef := pCurDqLayer.pRefPic.iLineSize[0]
+ 
+ 	//  Step 1: Initial point prediction
+-	if !WelsMotionEstimateInitialPoint(pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef) {
++	if !welsMotionEstimateIntegerFast(pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef) &&
++		!WelsMotionEstimateInitialPoint(pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef) {
+ 		pFuncList.pfSearchMethod[pMe.uiBlockSize](pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef)
+ 		MeEndIntepelSearch(pMe)
+ 	}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/svc_motion_estimate_fast_amd64.go
+@@ -0,0 +1,171 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// meBlockDims holds the width and height of each motion-estimation block size.
++var meBlockDims = [MAX_BLOCK_TYPE][2]int{{16, 16}, {16, 8}, {8, 16}, {8, 8}, {4, 4}, {8, 4}, {4, 8}}
++
++// welsMotionEstimateIntegerFast performs WelsMotionEstimateInitialPoint and,
++// unless that stops early, WelsDiamondSearch and MeEndIntepelSearch. It
++// validates once every span the search can read: integer motion vectors stay
++// within [sMvStartMin-1, sMvStartMax] in each dimension (initial candidates are
++// clipped to the closed range, diamond centers to the half-open range, and the
++// four-candidate SAD reads one pixel around each center). The SAD kernels and
++// MVD cost table are then read without further checks, and every cost,
++// comparison and state update matches the checked functions.
++//
++// It reports false, having changed nothing, unless built-in SSE2 SAD,
++// camera-content directional handling and diamond search are installed and
++// the geometry validates. The capability is cleared for custom callbacks.
++func welsMotionEstimateIntegerFast(pFuncList *SWelsFuncPtrList, pMe *SWelsME, pSlice *SSlice, iStrideEnc, iStrideRef int32) bool {
++	if !pFuncList.bWholeIntegerSearch || !pFuncList.sSampleDealingFuncs.bSampleSadTwo || int(pMe.uiBlockSize) >= MAX_BLOCK_TYPE ||
++		int(pSlice.uiMvcNum) > len(pSlice.sMvc) {
++		return false
++	}
++	w, h := meBlockDims[pMe.uiBlockSize][0], meBlockDims[pMe.uiBlockSize][1]
++	encStride, refStride := int(iStrideEnc), int(iStrideRef)
++	mvMin, mvMax := pSlice.sMvStartMin, pSlice.sMvStartMax
++	if encStride < w || refStride < w || mvMin.iMvX > mvMax.iMvX || mvMin.iMvY > mvMax.iMvY {
++		return false
++	}
++	encOff, refOff := pMe.iEncMbOff, pMe.iRefMbOff
++	if encOff < 0 || encOff > len(pMe.pEncMb)-(h-1)*encStride-w {
++		return false
++	}
++	// The original path calculates row offsets in int32. Decline windows
++	// where those operations could wrap before conversion to int.
++	lowDelta := (int64(mvMin.iMvY)-1)*int64(refStride) + int64(mvMin.iMvX) - 1
++	highDelta := int64(mvMax.iMvY)*int64(refStride) + int64(mvMax.iMvX)
++	if lowDelta < -1<<31 || highDelta > 1<<31-1 || refOff < 0 || refOff > len(pMe.pRefMb) {
++		return false
++	}
++	lo := int64(refOff) + lowDelta
++	hi := int64(refOff) + highDelta + int64(h-1)*int64(refStride) + int64(w)
++	if lo < 0 || hi > int64(len(pMe.pRefMb)) {
++		return false
++	}
++	mvp := pMe.sMvp
++	costOff := pMe.iMvdCostOff
++	if costOff < 0 || costOff >= len(pMe.pMvdCost) {
++		return false
++	}
++	dLo := min((int(mvMin.iMvX)-1)*4-int(mvp.iMvX), (int(mvMin.iMvY)-1)*4-int(mvp.iMvY))
++	dHi := max(int(mvMax.iMvX)*4-int(mvp.iMvX), int(mvMax.iMvY)*4-int(mvp.iMvY))
++	if costOff < -dLo || costOff > len(pMe.pMvdCost)-1-dHi {
++		return false
++	}
++
++	enc := (*byte)(unsafe.Add(unsafe.Pointer(unsafe.SliceData(pMe.pEncMb)), encOff))
++	refBase := unsafe.Pointer(unsafe.SliceData(pMe.pRefMb))
++	costBase := unsafe.Add(unsafe.Pointer(unsafe.SliceData(pMe.pMvdCost)), 2*costOff)
++	cost := func(dx, dy int32) int32 {
++		return int32(*(*uint16)(unsafe.Add(costBase, 2*int(dx)))) + int32(*(*uint16)(unsafe.Add(costBase, 2*int(dy))))
++	}
++	sad := func(off int) int32 {
++		return common.SadPtr(w, h, enc, encStride, (*byte)(unsafe.Add(refBase, off)), refStride)
++	}
++
++	// Step 1: initial point prediction (WelsMotionEstimateInitialPoint).
++	mvpX, mvpY := int32(mvp.iMvX), int32(mvp.iMvY)
++	var sMv SMVUnitXY
++	sMv.iMvX = int16(common.WELS_CLIP3((2+mvpX)>>2, int32(mvMin.iMvX), int32(mvMax.iMvX)))
++	sMv.iMvY = int16(common.WELS_CLIP3((2+mvpY)>>2, int32(mvMin.iMvY), int32(mvMax.iMvY)))
++	pRefMb := pMe.pRefMb
++	iRefMbOff := refOff + int(sMv.iMvY)*refStride + int(sMv.iMvX)
++	var iBestSadCost int32
++	mvc := &pSlice.sMvc
++	count := int(pSlice.uiMvcNum)
++	// Preserve main's shared-load two-candidate kernel. The whole search
++	// window has already been validated, so this entry needs no extra checks.
++	if count == 1 && (pMe.uiBlockSize <= BLOCK_8x8 || pMe.uiBlockSize == BLOCK_8x4) {
++		candidate := SMVUnitXY{
++			iMvX: int16(common.WELS_CLIP3((2+int32(mvc[0].iMvX))>>2, int32(mvMin.iMvX), int32(mvMax.iMvX))),
++			iMvY: int16(common.WELS_CLIP3((2+int32(mvc[0].iMvY))>>2, int32(mvMin.iMvY), int32(mvMax.iMvY))),
++		}
++		if candidate != sMv {
++			off := refOff + int(candidate.iMvY)*refStride + int(candidate.iMvX)
++			first, second := sadTwoSSE2(enc, encStride, (*byte)(unsafe.Add(refBase, iRefMbOff)),
++				(*byte)(unsafe.Add(refBase, off)), refStride, w, h)
++			iBestSadCost = first + cost(int32(sMv.iMvX)*4-mvpX, int32(sMv.iMvY)*4-mvpY)
++			second += cost(int32(candidate.iMvX)*4-mvpX, int32(candidate.iMvY)*4-mvpY)
++			if second < iBestSadCost {
++				sMv, iRefMbOff, iBestSadCost = candidate, off, second
++			}
++		} else {
++			iBestSadCost = sad(iRefMbOff) + cost(int32(sMv.iMvX)*4-mvpX, int32(sMv.iMvY)*4-mvpY)
++		}
++		count = 0
++	} else {
++		iBestSadCost = sad(iRefMbOff) + cost(int32(sMv.iMvX)*4-mvpX, int32(sMv.iMvY)*4-mvpY)
++	}
++	for i := 0; i < count; i++ {
++		iMvc0 := int16(common.WELS_CLIP3((2+int32(mvc[i].iMvX))>>2, int32(mvMin.iMvX), int32(mvMax.iMvX)))
++		iMvc1 := int16(common.WELS_CLIP3((2+int32(mvc[i].iMvY))>>2, int32(mvMin.iMvY), int32(mvMax.iMvY)))
++		if iMvc0 != sMv.iMvX || iMvc1 != sMv.iMvY {
++			off := refOff + int(iMvc1)*refStride + int(iMvc0)
++			if c := sad(off) + cost(int32(iMvc0)*4-mvpX, int32(iMvc1)*4-mvpY); c < iBestSadCost {
++				sMv.iMvX, sMv.iMvY = iMvc0, iMvc1
++				iRefMbOff = off
++				iBestSadCost = c
++			}
++		}
++	}
++
++	// bWholeIntegerSearch is installed only with CheckDirectionalMvFalse.
++	// Screen-content and instrumented callbacks keep the checked path.
++	UpdateMeResults(sMv, uint32(iBestSadCost), pRefMb, iRefMbOff, pMe)
++	if iBestSadCost < int32(pMe.uSadPredISatd) {
++		MeEndIntepelSearch(pMe)
++		return true
++	}
++
++	// Step 2: diamond search (WelsDiamondSearch) around the initial point.
++	iMvDx := int32(pMe.sMv.iMvX)*4 - mvpX
++	iMvDy := int32(pMe.sMv.iMvY)*4 - mvpY
++	iBestCost := int32(pMe.uiSadCost)
++	sads := &pSlice.sMbCacheInfo.iDiamondSad
++	for iTimeThreshold := int32(ITERATIVE_TIMES); iTimeThreshold != 0; {
++		iTimeThreshold--
++		pMe.sMv.iMvX = int16((iMvDx + mvpX) >> 2)
++		pMe.sMv.iMvY = int16((iMvDy + mvpY) >> 2)
++		if !CheckMvInRange(pMe.sMv, mvMin, mvMax) {
++			continue
++		}
++		common.SadFourPtr(w, h, enc, encStride, (*byte)(unsafe.Add(refBase, iRefMbOff)), refStride, sads)
++
++		input := iBestCost
++		var iX, iY int32
++		if c := sads[0] + cost(iMvDx, iMvDy-4); c < iBestCost {
++			iBestCost, iX, iY = c, 0, 1
++		}
++		if c := sads[1] + cost(iMvDx, iMvDy+4); c < iBestCost {
++			iBestCost, iX, iY = c, 0, -1
++		}
++		if c := sads[2] + cost(iMvDx-4, iMvDy); c < iBestCost {
++			iBestCost, iX, iY = c, 1, 0
++		}
++		if c := sads[3] + cost(iMvDx+4, iMvDy); c < iBestCost {
++			iBestCost, iX, iY = c, -1, 0
++		}
++		if iBestCost == input {
++			break
++		}
++		iMvDx -= iX * 4
++		iMvDy -= iY * 4
++		iRefMbOff -= int(iX + iY*iStrideRef)
++	}
++	pMe.sMv.iMvX = int16((iMvDx + mvpX) >> 2)
++	pMe.sMv.iMvY = int16((iMvDy + mvpY) >> 2)
++	pMe.uiSadCost = uint32(iBestCost)
++	pMe.uiSatdCost = pMe.uiSadCost
++	pMe.pRefMb = pRefMb
++	pMe.iRefMbOff = iRefMbOff
++	MeEndIntepelSearch(pMe)
++	return true
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/svc_motion_estimate_fast_amd64_test.go
+@@ -0,0 +1,164 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"math/rand/v2"
++	"reflect"
++	"testing"
++	"unsafe"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// The fused integer search must leave exactly the motion-estimation state of
++// WelsMotionEstimateInitialPoint followed by WelsDiamondSearch.
++func TestWelsMotionEstimateIntegerFastParity(t *testing.T) {
++	if !common.SadPtrSupported {
++		t.Skip("pointer SAD kernels unavailable")
++	}
++	var funcs SWelsFuncPtrList
++	WelsInitSampleSadFunc(&funcs, common.WELS_CPU_SSE2)
++	for i := range funcs.pfSearchMethod {
++		funcs.pfSearchMethod[i] = WelsDiamondSearch
++	}
++	funcs.bWholeIntegerSearch = true
++	rng := rand.New(rand.NewPCG(4, 4))
++	const stride, rows = 96, 96
++	costs := make([]uint16, 2048)
++	for i := range costs {
++		costs[i] = uint16(rng.IntN(64))
++	}
++	var fast, slow int
++	for test := 0; test < 2500; test++ {
++		enc := make([]byte, stride*rows)
++		ref := make([]byte, stride*rows)
++		for i := range enc {
++			enc[i] = byte(rng.Uint32())
++			ref[i] = enc[i] + byte(rng.IntN(9)) // correlated so the search moves
++		}
++		if test%3 == 0 { // shift the reference so the best match is off center
++			copy(ref[3*stride+2:], enc)
++		}
++		funcs.pfCheckDirectionalMv = CheckDirectionalMvFalse
++		var slice SSlice
++		span := int16(1 + rng.IntN(12))
++		slice.sMvStartMin = SMVUnitXY{-span, -span}
++		slice.sMvStartMax = SMVUnitXY{span, span}
++		slice.uiMvcNum = uint8(rng.IntN(len(slice.sMvc) + 1))
++		for i := range slice.sMvc {
++			slice.sMvc[i] = SMVUnitXY{int16(rng.IntN(129) - 64), int16(rng.IntN(129) - 64)}
++		}
++		me := SWelsME{
++			uiBlockSize:   uint8(rng.IntN(MAX_BLOCK_TYPE)),
++			pMvdCost:      costs,
++			iMvdCostOff:   1024,
++			pEncMb:        enc,
++			iEncMbOff:     40*stride + 40,
++			pRefMb:        ref,
++			iRefMbOff:     40*stride + 40,
++			sMvp:          SMVUnitXY{int16(rng.IntN(65) - 32), int16(rng.IntN(65) - 32)},
++			uSadPredISatd: uint32(rng.IntN(4000)),
++		}
++		if test%7 == 0 { // reference window out of range: must decline
++			me.iRefMbOff = 2*stride + 2
++		}
++		want, got := me, me
++		wantSlice, gotSlice := slice, slice
++		if !welsMotionEstimateIntegerFast(&funcs, &got, &gotSlice, stride, stride) {
++			slow++
++			if !reflect.DeepEqual(got, me) || gotSlice.sMbCacheInfo.iDiamondSad != slice.sMbCacheInfo.iDiamondSad {
++				t.Fatalf("test %d: declined search changed state", test)
++			}
++			continue
++		}
++		fast++
++		if !WelsMotionEstimateInitialPoint(&funcs, &want, &wantSlice, stride, stride) {
++			WelsDiamondSearch(&funcs, &want, &wantSlice, stride, stride)
++			MeEndIntepelSearch(&want)
++		}
++		if !reflect.DeepEqual(got, want) || unsafe.SliceData(got.pRefMb) != unsafe.SliceData(want.pRefMb) ||
++			gotSlice.sMbCacheInfo.iDiamondSad != wantSlice.sMbCacheInfo.iDiamondSad {
++			t.Fatalf("test %d block %d: mv %v cost %d/%d off %d, want mv %v cost %d/%d off %d", test, me.uiBlockSize,
++				got.sMv, got.uiSadCost, got.uiSatdCost, got.iRefMbOff, want.sMv, want.uiSadCost, want.uiSatdCost, want.iRefMbOff)
++		}
++	}
++	if fast == 0 || slow == 0 {
++		t.Fatalf("fast %d, declined %d: both paths must be exercised", fast, slow)
++	}
++}
++
++func TestWelsMotionEstimateIntegerFastFallback(t *testing.T) {
++	tests := []struct {
++		name   string
++		change func(*diamondSadFourCallerFixture)
++	}{
++		{"negativeCostBase", func(f *diamondSadFourCallerFixture) {
++			f.initial.iMvdCostOff = -1
++			f.initial.sMvp = SMVUnitXY{-128, -128}
++		}},
++		{"oversizedCostBase", func(f *diamondSadFourCallerFixture) {
++			f.initial.iMvdCostOff = len(f.initial.pMvdCost)
++			f.initial.sMvp = SMVUnitXY{128, 128}
++		}},
++		{"disabled", func(f *diamondSadFourCallerFixture) { f.funcs.bWholeIntegerSearch = false }},
++		{"scalar", func(f *diamondSadFourCallerFixture) { WelsInitSampleSadFunc(&f.funcs, 0) }},
++		{"shortSource", func(f *diamondSadFourCallerFixture) { f.initial.pEncMb = f.initial.pEncMb[:1] }},
++		{"shortReference", func(f *diamondSadFourCallerFixture) { f.initial.pRefMb = f.initial.pRefMb[:f.initial.iRefMbOff] }},
++		{"shortCosts", func(f *diamondSadFourCallerFixture) { f.initial.pMvdCost = f.initial.pMvdCost[:1] }},
++		{"negativeOffset", func(f *diamondSadFourCallerFixture) { f.initial.iEncMbOff = -1 }},
++		{"overflowOffset", func(f *diamondSadFourCallerFixture) { f.initial.iRefMbOff = int(^uint(0) >> 1) }},
++		{"reversedWindow", func(f *diamondSadFourCallerFixture) { f.slice.sMvStartMin = SMVUnitXY{20, 20} }},
++		{"invalidCount", func(f *diamondSadFourCallerFixture) { f.slice.uiMvcNum = 6 }},
++	}
++	for _, test := range tests {
++		t.Run(test.name, func(t *testing.T) {
++			f, _ := newWholeSearchFixture(BLOCK_16x16, 16, 16, 32, 1, "many")
++			test.change(f)
++			got := f.initial
++			saved := f.slice.sMbCacheInfo.iDiamondSad
++			if welsMotionEstimateIntegerFast(&f.funcs, &got, &f.slice, f.stride, f.stride) {
++				t.Fatal("unexpected fast-path eligibility")
++			}
++			if !reflect.DeepEqual(got, f.initial) || f.slice.sMbCacheInfo.iDiamondSad != saved {
++				t.Fatal("declined path changed state")
++			}
++		})
++	}
++}
++
++func TestWelsMotionEstimateIntegerFastCallbacks(t *testing.T) {
++	for _, kind := range []string{"directional", "search", "sad"} {
++		t.Run(kind, func(t *testing.T) {
++			f, layer := newWholeSearchFixture(BLOCK_16x16, 16, 16, 32, 1, "many")
++			calls := 0
++			switch kind {
++			case "directional":
++				f.funcs.bWholeIntegerSearch = false
++				f.funcs.pfCheckDirectionalMv = func(_ PSampleSadSatdCostFunc, me *SWelsME, _, _ SMVUnitXY, _, _ int32, cost *int32) bool {
++					calls++
++					*cost = 123
++					return false
++				}
++			case "search":
++				f.funcs.bWholeIntegerSearch = false
++				f.funcs.pfSearchMethod[BLOCK_16x16] = func(fs *SWelsFuncPtrList, me *SWelsME, s *SSlice, a, b int32) {
++					calls++
++					WelsDiamondSearch(fs, me, s, a, b)
++				}
++			case "sad":
++				f.funcs.sSampleDealingFuncs.bSampleSadTwo = false
++				original := f.funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16]
++				f.funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16] = func(a []byte, ao int, as int32, b []byte, bo int, bs int32) int32 {
++					calls++
++					return original(a, ao, as, b, bo, bs)
++				}
++			}
++			got := f.initial
++			WelsMotionEstimateSearch(&f.funcs, layer, &got, &f.slice)
++			if calls == 0 {
++				t.Fatal("custom callback was bypassed")
++			}
++		})
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/svc_motion_estimate_fast_bench_amd64_test.go
+@@ -0,0 +1,66 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/api"
++	"github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
++)
++
++// Uses baseline APIs only; copy unchanged for paired complete-search timings.
++func newWholeSearchFixture(block uint8, width, height, stride, motion int, scenario string) (*diamondSadFourCallerFixture, *SDqLayer) {
++	f := newDiamondSadFourCallerFixture(block, width, height, stride, motion, common.WELS_CPU_SSE2)
++	WelsInitMeFunc(&f.funcs, common.WELS_CPU_SSE2, false)
++	layer := &SDqLayer{pRefPic: &SPicture{}}
++	layer.iEncStride[0], layer.pRefPic.iLineSize[0] = int32(stride), int32(stride)
++	params := &SWelsSvcCodingParam{}
++	params.IUsageType, params.IComplexityMode = api.CAMERA_VIDEO_REAL_TIME, api.LOW_COMPLEXITY
++	ctx := sWelsEncCtx{pFuncList: &f.funcs, pCurDqLayer: layer, pSvcParam: params, eSliceType: common.P_SLICE}
++	PreprocessSliceCoding(&ctx)
++	switch scenario {
++	case "early":
++		f.initial.uSadPredISatd = 1
++	case "two":
++		f.slice.uiMvcNum = 1
++		f.slice.sMvc[0] = SMVUnitXY{4, 0}
++	case "many":
++		f.slice.uiMvcNum = 5
++		f.slice.sMvc = [5]SMVUnitXY{{4, 0}, {-4, 0}, {0, 4}, {0, -4}, {8, 0}}
++	}
++	return f, layer
++}
++
++func BenchmarkWholeIntegerSearchCaller(b *testing.B) {
++	shapes := []struct {
++		name  string
++		block uint8
++		w, h  int
++	}{
++		{"16x16", BLOCK_16x16, 16, 16}, {"8x8", BLOCK_8x8, 8, 8}, {"8x4", BLOCK_8x4, 8, 4}, {"4x4", BLOCK_4x4, 4, 4},
++	}
++	for _, shape := range shapes {
++		for _, stride := range []int{32, 2048} {
++			for _, scenario := range []string{"early", "stationary", "moving", "two", "many"} {
++				b.Run(fmt.Sprintf("%s/stride%d/%s", shape.name, stride, scenario), func(b *testing.B) {
++					motion := 0
++					if scenario == "moving" || scenario == "two" || scenario == "many" {
++						motion = 1
++					}
++					f, layer := newWholeSearchFixture(shape.block, shape.w, shape.h, stride, motion, scenario)
++					me := f.initial
++					b.ReportAllocs()
++					for b.Loop() {
++						me = f.initial
++						WelsMotionEstimateSearch(&f.funcs, layer, &me, &f.slice)
++					}
++					diamondSadFourCallerSink.mv = me.sMv
++					diamondSadFourCallerSink.cost = me.uiSadCost
++					diamondSadFourCallerSink.refOff = me.iRefMbOff
++				})
++			}
++		}
++	}
++}
+--- /dev/null
++++ b/pkg/h264/internal/encoder/svc_motion_estimate_fast_generic.go
+@@ -0,0 +1,7 @@
++//go:build !amd64
++
++package encoder
++
++func welsMotionEstimateIntegerFast(*SWelsFuncPtrList, *SWelsME, *SSlice, int32, int32) bool {
++	return false
++}
+--- a/pkg/h264/internal/encoder/wels_func_ptr_def_h.go
++++ b/pkg/h264/internal/encoder/wels_func_ptr_def_h.go
+@@ -156,6 +156,8 @@
+ 	bSampleAvgSatdFour bool
+ 	// Disable when replacing half-refinement SATD callbacks for instrumentation.
+ 	bSampleHalfSatdPair bool
++	// Separately disable whole-refinement validation while retaining pair/four kernels.
++	bWholeFractionalRefine bool
+ 	// Disable when replacing SAD callbacks to retain per-candidate instrumentation.
+ 	bSampleSadTwo bool
+ 
+@@ -201,6 +203,10 @@
+ 
+ // SWelsFuncPtrList is the encoder function table (struct TagWelsFuncPointerList).
+ type SWelsFuncPtrList struct {
++	// Installed by camera P-slice preprocessing. Disable when replacing the
++	// search method or directional callback. SAD overrides also disable
++	// bSampleSadTwo, matching its existing instrumentation contract.
++	bWholeIntegerSearch       bool
+ 	sExpandPicFunc            common.SExpandPicFunc
+ 	pfFillInterNeighborCache  PFillInterNeighborCacheFunc
+ 	pfGetVarianceFromIntraVaa PGetVarianceFromIntraVaaFunc

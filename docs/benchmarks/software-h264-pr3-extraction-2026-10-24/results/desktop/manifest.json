@@ -1,0 +1,365 @@
+{
+  "arguments": {
+    "root": "/tmp/devbox-pr3-port.4wQwx4",
+    "variants": [
+      "baseline",
+      "after"
+    ],
+    "name": "desktop",
+    "mode": "desktop",
+    "regex": "",
+    "repetitions": 6,
+    "frames": 64,
+    "benchtime": "600ms",
+    "cpu": "0-3",
+    "godebug": ""
+  },
+  "started": "2026-10-24T23:18:56+0200",
+  "binaries": {
+    "baseline": "90f5dae2968536849688d37ec4a9d8195b31d759387c124c8fc2fcadb9b70134",
+    "after": "b0a7c0f1c707146565f5e5a2b74f12bc5423efb3752d4aa572924f595f2aaba0"
+  },
+  "fixtures": [
+    {
+      "name": "road1080",
+      "source": "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+      "width": 1920,
+      "height": 1080,
+      "frames": 54,
+      "sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/road1080.i420"
+      ]
+    },
+    {
+      "name": "road720",
+      "source": "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+      "width": 1280,
+      "height": 720,
+      "frames": 54,
+      "sha256": "1c65ba12ef3b2b21632f4a4d3a7c6d089ae7643ce5ada7a24aada4c64614eef5",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+        "-vf",
+        "scale=1280:720:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/road720.i420"
+      ]
+    },
+    {
+      "name": "pdf1080",
+      "source": "/home/define42/git/openh264/res/Adobe_PDF_sample_a_1024x768_50Frms.264",
+      "width": 1920,
+      "height": 1080,
+      "frames": 50,
+      "sha256": "8a938d0eb90f03c63a7ec8b35247e53033bc6acc683146b74a299767a083ad6b",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/Adobe_PDF_sample_a_1024x768_50Frms.264",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/pdf1080.i420"
+      ]
+    },
+    {
+      "name": "clip1080",
+      "source": "/home/define42/git/openh264/res/Cisco_Absolute_Power_1280x720_30fps.yuv",
+      "width": 1920,
+      "height": 1080,
+      "frames": 5,
+      "sha256": "afe5496792a74ce18322f10d91a2d1d6a3b6e93debbe1e5ce84f0203b90a0ef3",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "-pixel_format",
+        "yuv420p",
+        "-video_size",
+        "1280x720",
+        "-i",
+        "/home/define42/git/openh264/res/Cisco_Absolute_Power_1280x720_30fps.yuv",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/clip1080.i420"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "repetition": 0,
+      "case": "desktop",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.0233449935913086,
+      "log": "00-desktop-baseline.log"
+    },
+    {
+      "repetition": 0,
+      "case": "desktop",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.3106508255004883,
+      "log": "00-desktop-after.log"
+    },
+    {
+      "repetition": 1,
+      "case": "desktop",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.075054407119751,
+      "log": "01-desktop-after.log"
+    },
+    {
+      "repetition": 1,
+      "case": "desktop",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.1967616081237793,
+      "log": "01-desktop-baseline.log"
+    },
+    {
+      "repetition": 2,
+      "case": "desktop",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.10280442237854,
+      "log": "02-desktop-baseline.log"
+    },
+    {
+      "repetition": 2,
+      "case": "desktop",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.039588451385498,
+      "log": "02-desktop-after.log"
+    },
+    {
+      "repetition": 3,
+      "case": "desktop",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.19100022315979,
+      "log": "03-desktop-after.log"
+    },
+    {
+      "repetition": 3,
+      "case": "desktop",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.3447983264923096,
+      "log": "03-desktop-baseline.log"
+    },
+    {
+      "repetition": 4,
+      "case": "desktop",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.15720796585083,
+      "log": "04-desktop-baseline.log"
+    },
+    {
+      "repetition": 4,
+      "case": "desktop",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.069410800933838,
+      "log": "04-desktop-after.log"
+    },
+    {
+      "repetition": 5,
+      "case": "desktop",
+      "variant": "after",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/after-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.9466397762298584,
+      "log": "05-desktop-after.log"
+    },
+    {
+      "repetition": 5,
+      "case": "desktop",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "0-3",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-avc.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkSlicedDesktop$/1080p/(Scroll|Widget)/(1|4)Slices$",
+        "-test.benchtime=600ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 3.083824872970581,
+      "log": "05-desktop-baseline.log"
+    }
+  ],
+  "completed": "2026-10-24T23:19:34+0200"
+}

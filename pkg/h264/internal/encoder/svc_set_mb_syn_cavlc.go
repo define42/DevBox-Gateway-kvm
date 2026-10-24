@@ -263,7 +263,7 @@ func cavlcBoolToInt32(b bool) int32 {
 	return 0
 }
 
-func WelsWriteMbResidual(pFuncList *SWelsFuncPtrList, sMbCacheInfo *SMbCache, pCurMb *SMB, pBs *common.SBitStringAux) int32 {
+func welsWriteMbResidualBlockwise(pFuncList *SWelsFuncPtrList, sMbCacheInfo *SMbCache, pCurMb *SMB, pBs *common.SBitStringAux) int32 {
 	uiMbType := pCurMb.uiMbType
 	kiCbpChroma := int32(pCurMb.uiCbp >> 4)
 	kiCbpLuma := int32(pCurMb.uiCbp & 0x0F)

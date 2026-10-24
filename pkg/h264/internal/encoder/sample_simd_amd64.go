@@ -98,9 +98,11 @@ func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
 	s.pfSampleAvgSatd = nil
 	s.pfSampleAvgSatdValidated = nil
 	s.bSampleAvgSatdFour = false
+	s.bWholeFractionalRefine = false
 	if flags&common.WELS_CPU_AVX2 != 0 {
 		s.pfSampleAvgSatd = sampleAvgSatdAVX2
 		s.pfSampleAvgSatdValidated = satdAvgBlockAVX2
 		s.bSampleAvgSatdFour = true
+		s.bWholeFractionalRefine = true
 	}
 }

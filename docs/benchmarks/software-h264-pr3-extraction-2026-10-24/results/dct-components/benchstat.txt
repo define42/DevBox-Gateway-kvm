@@ -1,0 +1,42 @@
+                               │ /tmp/devbox-pr3-port.4wQwx4/results/dct-components/baseline.txt │ /tmp/devbox-pr3-port.4wQwx4/results/dct-components/dct.txt │
+                               │                             sec/op                              │               sec/op                 vs base               │
+WelsDctMb/stride16/default-4                                                        91.33n ± 32%                          58.53n ±  8%  -35.90% (p=0.002 n=6)
+WelsDctMb/stride16/scalar-4                                                         699.1n ± 39%                          712.5n ±  6%        ~ (p=0.818 n=6)
+WelsDctMb/stride16/wrapped-4                                                        102.1n ± 45%                          113.4n ±  9%        ~ (p=0.132 n=6)
+WelsDctMb/stride64/default-4                                                        97.32n ± 33%                          57.53n ± 10%  -40.89% (p=0.002 n=6)
+WelsDctMb/stride64/scalar-4                                                         736.6n ± 15%                          718.1n ± 36%        ~ (p=0.818 n=6)
+WelsDctMb/stride64/wrapped-4                                                        108.1n ± 14%                          117.5n ± 49%        ~ (p=0.394 n=6)
+WelsDctMb/stride2048/default-4                                                      96.30n ± 11%                          60.56n ± 10%  -37.11% (p=0.002 n=6)
+WelsDctMb/stride2048/scalar-4                                                       730.2n ±  8%                          731.8n ±  5%        ~ (p=0.818 n=6)
+WelsDctMb/stride2048/wrapped-4                                                      102.5n ± 19%                          116.1n ± 10%        ~ (p=0.093 n=6)
+geomean                                                                             192.6n                                169.9n        -11.77%
+
+                               │ /tmp/devbox-pr3-port.4wQwx4/results/dct-components/baseline.txt │ /tmp/devbox-pr3-port.4wQwx4/results/dct-components/dct.txt │
+                               │                              B/op                               │                B/op                 vs base                │
+WelsDctMb/stride16/default-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride16/scalar-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride16/wrapped-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride64/default-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride64/scalar-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride64/wrapped-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride2048/default-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride2048/scalar-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride2048/wrapped-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                        ²                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                               │ /tmp/devbox-pr3-port.4wQwx4/results/dct-components/baseline.txt │ /tmp/devbox-pr3-port.4wQwx4/results/dct-components/dct.txt │
+                               │                            allocs/op                            │             allocs/op               vs base                │
+WelsDctMb/stride16/default-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride16/scalar-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride16/wrapped-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride64/default-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride64/scalar-4                                                         0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride64/wrapped-4                                                        0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride2048/default-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride2048/scalar-4                                                       0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+WelsDctMb/stride2048/wrapped-4                                                      0.000 ± 0%                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                        ²                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

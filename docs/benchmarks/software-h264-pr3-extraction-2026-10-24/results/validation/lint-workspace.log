@@ -1,0 +1,1861 @@
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/conformance_test.go:232:3: The copy of the 'for' variable "p" can be deleted (Go 1.22+) (copyloopvar)
+		p := p
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/dct_simd_test.go:47:3: The copy of the 'for' variable "tc" can be deleted (Go 1.22+) (copyloopvar)
+		tc := tc
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:331:2: declaration has 3 blank identifiers (dogsled)
+	iRet, _, _, _ := dsInterPredict(pCtx, pCurDqLayer)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mb_cache_h.go:13:1: Duplicate words (T) found (dupword)
+/*
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_data_tables.go:31:1: Duplicate words (I16_PRED_DC,) found (dupword)
+// {I16_PRED_V, I16_PRED_H, I16_PRED_DC, I16_PRED_P, I16_PRED_DC, I16_PRED_DC, I16_PRED_DC};
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_data_tables.go:34:3: Duplicate words (I16_PRED_DC,) found (dupword)
+} //{I16_PRED_V, I16_PRED_H, I16_PRED_DC, I16_PRED_P, I16_PRED_DC, I16_PRED_DC, I16_PRED_DC}
+  ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/mb_cache_h.go:7:1: Duplicate words (T) found (dupword)
+/*
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:770:1: Duplicate words (long) found (dupword)
+// long long -> int64.
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/rc_h.go:193:24: Duplicate words (long) found (dupword)
+	uiLastTimeStamp int64 // long long
+	                      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ref_list_mgr_svc.go:91:4: Duplicate words (the) found (dupword)
+			//this is our strategy to Unref all non-sceneLTR when the the current frame is sceneLTR
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_enc_frame_h.go:16:53: Duplicate words (the) found (dupword)
+	pRefBlockFeature       *SScreenBlockFeatureStorage // point the the ref frame storage
+	                                                   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:31:15: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: WelsCreateDecoder failed (%d)\", rv)" (err113)
+		return nil, fmt.Errorf("openh264: WelsCreateDecoder failed (%d)", rv)
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:43:15: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: WelsCreateSVCEncoder failed (%d)\", rv)" (err113)
+		return nil, fmt.Errorf("openh264: WelsCreateSVCEncoder failed (%d)", rv)
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:55:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: WelsGetDecoderCapability failed (%d)\", rv)" (err113)
+		return c, fmt.Errorf("openh264: WelsGetDecoderCapability failed (%d)", rv)
+		          ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:118:15: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: decoder Initialize failed (%d)\", rv)" (err113)
+		return nil, fmt.Errorf("openh264: decoder Initialize failed (%d)", rv)
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:221:15: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: GetDefaultParams failed (%d)\", rv)" (err113)
+		return nil, fmt.Errorf("openh264: GetDefaultParams failed (%d)", rv)
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:238:15: do not define dynamic errors, use wrapped static errors instead: "errors.New(\"openh264: nil encoder parameters\")" (err113)
+		return nil, errors.New("openh264: nil encoder parameters")
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:246:15: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: encoder InitializeExt failed (%d)\", rv)" (err113)
+		return nil, fmt.Errorf("openh264: encoder InitializeExt failed (%d)", rv)
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:261:42: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: frame is %dx%d, encoder expects %dx%d\", f.Width, f.Height, e.width, e.height)" (err113)
+		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: frame is %dx%d, encoder expects %dx%d", f.Width, f.Height, e.width, e.height)
+		                                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:279:42: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: EncodeFrame failed (%d)\", rv)" (err113)
+		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: EncodeFrame failed (%d)", rv)
+		                                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/openh264.go:287:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"openh264: ForceIntraFrame failed (%d)\", rv)" (err113)
+		return fmt.Errorf("openh264: ForceIntraFrame failed (%d)", rv)
+		       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/bench_test.go:18:15: Error return value of `dec.Decode` is not checked (errcheck)
+				dec.Decode(data[start:j])
+				          ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/bench_test.go:22:13: Error return value of `dec.Decode` is not checked (errcheck)
+		dec.Decode(data[start:])
+		          ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:182:12: Error return value of `pFp.Write` is not checked (errcheck)
+		pFp.Write(pData[0][pPtr : pPtr+int(iWidth)])
+		         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:190:12: Error return value of `pFp.Write` is not checked (errcheck)
+		pFp.Write(pData[1][pPtr : pPtr+int(iWidth)])
+		         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:196:12: Error return value of `pFp.Write` is not checked (errcheck)
+		pFp.Write(pData[2][pPtr : pPtr+int(iWidth)])
+		         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:233:15: Error return value of `pFile.w.Write` is not checked (errcheck)
+	pFile.w.Write(b[:])
+	             ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264enc/main.go:634:20: Error return value of `(*bufio.Writer).Write` is not checked (errcheck)
+					pFpBs[0].Write(bs) // write pure bit stream into file
+					              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264enc/main.go:640:23: Error return value of `(*bufio.Writer).Write` is not checked (errcheck)
+								pFpBs[i].Write(bs)
+								              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264enc/main.go:643:22: Error return value of `(*bufio.Writer).Write` is not checked (errcheck)
+							pFpBs[0].Write(bs)
+							              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/fuzz_test.go:54:14: Error return value of `dec.Decode` is not checked (errcheck)
+			dec.Decode(nal)
+			          ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder.go:390:9: Error return value of `f.Seek` is not checked (errcheck)
+		f.Seek(0, io.SeekEnd)
+		      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_conformance_test.go:242:12: Error return value of `ctx.Write` is not checked (errcheck)
+		ctx.Write(layerInfo.PBsBuf[:layerSize])
+		         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/robustness_test.go:89:18: Error return value of `os.WriteFile` is not checked (errcheck)
+					os.WriteFile(fn, m, 0o644)
+					            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/robustness_test.go:99:17: Error return value of `os.WriteFile` is not checked (errcheck)
+				os.WriteFile(fn, m, 0o644)
+				            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main_test.go:238:2: missing cases in switch of type api.DECODER_OPTION: api.DECODER_OPTION_END_OF_STREAM, api.DECODER_OPTION_VCL_NAL, api.DECODER_OPTION_TEMPORAL_ID, api.DECODER_OPTION_FRAME_NUM, api.DECODER_OPTION_IDR_PIC_ID, api.DECODER_OPTION_LTR_MARKING_FLAG, api.DECODER_OPTION_LTR_MARKED_FRAME_NUM, api.DECODER_OPTION_ERROR_CON_IDC, api.DECODER_OPTION_TRACE_LEVEL, api.DECODER_OPTION_TRACE_CALLBACK, api.DECODER_OPTION_TRACE_CALLBACK_CONTEXT, api.DECODER_OPTION_GET_STATISTICS, api.DECODER_OPTION_GET_SAR_INFO, api.DECODER_OPTION_PROFILE, api.DECODER_OPTION_LEVEL, api.DECODER_OPTION_STATISTICS_LOG_INTERVAL, api.DECODER_OPTION_IS_REF_PIC (exhaustive)
+	switch option {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/common/utils.go:20:2: missing cases in switch of type reflect.Kind: reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Interface, reflect.String, reflect.Struct (exhaustive)
+	switch v.Kind() {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:33:2: missing cases in switch of type reflect.Kind: reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.String, reflect.Struct, reflect.UnsafePointer (exhaustive)
+	switch v.Kind() {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/welsEncoderExt.go:1269:2: missing cases in switch of type reflect.Kind: reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.String, reflect.Struct, reflect.UnsafePointer (exhaustive)
+	switch rv.Kind() {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:10:5: g_kMvdBinPos2Ctx is a global variable (gochecknoglobals)
+var g_kMvdBinPos2Ctx = [8]int16{0, 1, 2, 3, 3, 3, 3, 3}
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder_h.go:7:5: g_kRenormTable256 is a global variable (gochecknoglobals)
+var g_kRenormTable256 = [256]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:24:5: g_kuiAlphaTable is a global variable (gochecknoglobals)
+var g_kuiAlphaTable = [52 + 24]uint8{ //this table refers to Table 8-16 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:35:5: g_kiBetaTable is a global variable (gochecknoglobals)
+var g_kiBetaTable = [52 + 24]int8{ //this table refers to Table 8-16 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:46:5: g_kiTc0Table is a global variable (gochecknoglobals)
+var g_kiTc0Table = [52 + 24][4]int8{ //this table refers Table 8-17 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:62:5: g_kuiTableBIdx is a global variable (gochecknoglobals)
+var g_kuiTableBIdx = [2][8]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:74:5: g_kuiTableB8x8Idx is a global variable (gochecknoglobals)
+var g_kuiTableB8x8Idx = [2][16]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h.go:81:5: g_kuiPrefix8BitsTable is a global variable (gochecknoglobals)
+var g_kuiPrefix8BitsTable = [16]uint32{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:930:5: idctFourResAddPred_c is a global variable (gochecknoglobals)
+var idctFourResAddPred_c = IdctFourResAddPred_(IdctResAddPred_c)
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:7:5: g_kuiScan4 is a global variable (gochecknoglobals)
+var g_kuiScan4 = [16]uint8{ //for mb cache in sMb (only current element, without neighbor)
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:32:5: g_kCacheNzcScanIdx is a global variable (gochecknoglobals)
+var g_kCacheNzcScanIdx = [4*4 + 4 + 4 + 3]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:71:5: g_kuiScan8 is a global variable (gochecknoglobals)
+var g_kuiScan8 = [24]uint8{ // [16 + 2*4]
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:82:5: g_kuiLumaDcZigzagScan is a global variable (gochecknoglobals)
+var g_kuiLumaDcZigzagScan = [16]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:89:5: g_kuiChromaDcScan is a global variable (gochecknoglobals)
+var g_kuiChromaDcScan = [4]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:95:5: g_kuiIntra4x4CbpTable is a global variable (gochecknoglobals)
+var g_kuiIntra4x4CbpTable = [48]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:101:5: g_kuiIntra4x4CbpTable400 is a global variable (gochecknoglobals)
+var g_kuiIntra4x4CbpTable400 = [16]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:105:5: g_kuiInterCbpTable is a global variable (gochecknoglobals)
+var g_kuiInterCbpTable = [48]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:111:5: g_kuiInterCbpTable400 is a global variable (gochecknoglobals)
+var g_kuiInterCbpTable400 = [16]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:115:5: g_kuiLeadingZeroTable is a global variable (gochecknoglobals)
+var g_kuiLeadingZeroTable = [256]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:138:5: g_kuiVlcChromaTable is a global variable (gochecknoglobals)
+var g_kuiVlcChromaTable = [256][2]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:157:5: g_kuiVlcTable_0 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_0 = [256][2]uint8{ //[0] means the index of vlc table, [1] means the length of vlc code  [256] value means the value of 8bits
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:176:5: g_kuiVlcTable_0_0 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_0_0 = [256][2]uint8{ // read 8 bits  // for g_kuiVlcTable_0[0] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:195:5: g_kuiVlcTable_0_1 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_0_1 = [4][2]uint8{ // read 2 bits // for g_kuiVlcTable_0[1] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:199:5: g_kuiVlcTable_0_2 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_0_2 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_0[2] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:203:5: g_kuiVlcTable_0_3 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_0_3 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_0[3] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:207:5: g_kuiVlcTable_1 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_1 = [256][2]uint8{ //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:227:5: g_kuiVlcTable_1_0 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_1_0 = [64][2]uint8{ // read 6 bits  // for g_kuiVlcTable_1[0] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:234:5: g_kuiVlcTable_1_1 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_1_1 = [8][2]uint8{ // read 3 bits // for g_kuiVlcTable_1[1] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:238:5: g_kuiVlcTable_1_2 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_1_2 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_1[2] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:242:5: g_kuiVlcTable_1_3 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_1_3 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_1[3] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:246:5: g_kuiVlcTable_2 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2 = [256][2]uint8{ //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:265:5: g_kuiVlcTable_2_0 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_0 = [4][2]uint8{ // read 2 bits // for g_kuiVlcTable_2[0] //checked
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:269:5: g_kuiVlcTable_2_1 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_1 = [4][2]uint8{ // read 2 bits // for g_kuiVlcTable_2[1] //checked
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:273:5: g_kuiVlcTable_2_2 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_2 = [4][2]uint8{ // read 2 bits // for g_kuiVlcTable_2[2] //checked
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:277:5: g_kuiVlcTable_2_3 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_3 = [4][2]uint8{ // read 2 bits // for g_kuiVlcTable_2[3] //checked
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:281:5: g_kuiVlcTable_2_4 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_4 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_2[4] //checked
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:285:5: g_kuiVlcTable_2_5 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_5 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_2[5] //checked
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:289:5: g_kuiVlcTable_2_6 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_6 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_2[6] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:293:5: g_kuiVlcTable_2_7 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_2_7 = [2][2]uint8{ // read 1 bit // for g_kuiVlcTable_2[7] //checked no error--
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:297:5: g_kuiVlcTable_3 is a global variable (gochecknoglobals)
+var g_kuiVlcTable_3 = [64][2]uint8{ // read 6 bits //corrected
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:304:5: g_kuiVlcTableNeedMoreBitsThread is a global variable (gochecknoglobals)
+var g_kuiVlcTableNeedMoreBitsThread = [3]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:308:5: g_kuiVlcTableMoreBitsCount0 is a global variable (gochecknoglobals)
+var g_kuiVlcTableMoreBitsCount0 = [4]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:312:5: g_kuiVlcTableMoreBitsCount1 is a global variable (gochecknoglobals)
+var g_kuiVlcTableMoreBitsCount1 = [4]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:316:5: g_kuiVlcTableMoreBitsCount2 is a global variable (gochecknoglobals)
+var g_kuiVlcTableMoreBitsCount2 = [8]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:320:5: g_kuiNcMapTable is a global variable (gochecknoglobals)
+var g_kuiNcMapTable = [17]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:324:5: g_kuiVlcTrailingOneTotalCoeffTable is a global variable (gochecknoglobals)
+var g_kuiVlcTrailingOneTotalCoeffTable = [62][2]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:344:5: g_kuiTotalZerosTable0 is a global variable (gochecknoglobals)
+var g_kuiTotalZerosTable0 = [512][2]uint8{ //read 9 bits, generated by tzVlcIndex=1 in Table 9-7 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:379:5: g_kuiTotalZerosTable1 is a global variable (gochecknoglobals)
+var g_kuiTotalZerosTable1 = [64][2]uint8{ //read 6 bits, generated by tzVlcIndex=2 in Table 9-7 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:386:5: g_kuiTotalZerosTable2 is a global variable (gochecknoglobals)
+var g_kuiTotalZerosTable2 = [64][2]uint8{ //read 6 bits, generated by tzVlcIndex=3 in Table 9-7 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:393:5: g_kuiTotalZerosTable3 is a global variable (gochecknoglobals)
+var g_kuiTotalZerosTable3 = [32][2]uint8{ //read 5 bits, generated by tzVlcIndex=4 in Table 9-7 in H.264/AVC standard
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/cavlc_writer.go:36:1: don't use `init` function (gochecknoinits)
+func init() {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:73:57: commentFormatting: put a space between `//` and comment text (gocritic)
+	pNalUnitHeader.ENalUnitType = common.NAL_UNIT_UNSPEC_0 //SHOULD init it. because pCtx->sCurNalHead is common variable.
+	                                                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:75:2: commentFormatting: put a space between `//` and comment text (gocritic)
+	//remove the consecutive ZERO at the end of current NAL in the reverse order.--2011.6.1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:92:58: commentFormatting: put a space between `//` and comment text (gocritic)
+	if pNalUnitHeader.UiForbiddenZeroBit != 0 {             //2010.4.14
+	                                                        ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1348:2: ifElseChain: rewrite if-else to switch statement (gocritic)
+	if CheckSpsActive(pCtx, pTmpSps, kbUseSubsetFlag) {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1352:5: ifElseChain: rewrite if-else to switch statement (gocritic)
+				if pCtx.pAccessUnitList.uiAvailUnitsNum > 0 {
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1366:5: ifElseChain: rewrite if-else to switch statement (gocritic)
+				if pCtx.pAccessUnitList.uiAvailUnitsNum > 0 {
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:844:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+		} else {
+		       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:879:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+		} else {
+		       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1781:4: valSwap: can re-write as `pCurAu.pNalUnitsList[kuiActualNum+iIdx], pCurAu.pNalUnitsList[iIdx] = pCurAu.pNalUnitsList[iIdx], pCurAu.pNalUnitsList[kuiActualNum+iIdx]` (gocritic)
+			t := pCurAu.pNalUnitsList[kuiActualNum+iIdx]
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1804:3: valSwap: can re-write as `pAu.pNalUnitsList[uiSucAuIdx], pAu.pNalUnitsList[uiCurAuIdx] = pAu.pNalUnitsList[uiCurAuIdx], pAu.pNalUnitsList[uiSucAuIdx]` (gocritic)
+		t := pAu.pNalUnitsList[uiSucAuIdx]
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:2859:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+		} else {
+		       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment.go:373:4: assignOp: replace `pCtx.iECMVs[i][0] = pCtx.iECMVs[i][0] / iInterMbCorrectNum[i]` with `pCtx.iECMVs[i][0] /= iInterMbCorrectNum[i]` (gocritic)
+			pCtx.iECMVs[i][0] = pCtx.iECMVs[i][0] / iInterMbCorrectNum[i]
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment.go:374:4: assignOp: replace `pCtx.iECMVs[i][1] = pCtx.iECMVs[i][1] / iInterMbCorrectNum[i]` with `pCtx.iECMVs[i][1] /= iInterMbCorrectNum[i]` (gocritic)
+			pCtx.iECMVs[i][1] = pCtx.iECMVs[i][1] / iInterMbCorrectNum[i]
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:25:2: singleCaseSwitch: should rewrite switch statement to if statement (gocritic)
+	switch {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:42:2: singleCaseSwitch: should rewrite switch statement to if statement (gocritic)
+	switch {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:253:5: badCond: `REF_NOT_AVAIL == iTopRef && REF_NOT_AVAIL == iDiagonalRef` condition is suspicious (gocritic)
+	if REF_NOT_AVAIL == iTopRef && REF_NOT_AVAIL == iDiagonalRef && iLeftRef >= REF_NOT_IN_LIST {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:719:5: badCond: `REF_NOT_AVAIL == kiTopRef && REF_NOT_AVAIL == iDiagonalRef` condition is suspicious (gocritic)
+	if REF_NOT_AVAIL == kiTopRef && REF_NOT_AVAIL == iDiagonalRef && kiLeftRef >= REF_NOT_IN_LIST {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:58:5: badCond: `(REF_NOT_AVAIL == kiTopRef) && (REF_NOT_AVAIL == iDiagonalRef)` condition is suspicious (gocritic)
+	if (REF_NOT_AVAIL == kiTopRef) && (REF_NOT_AVAIL == iDiagonalRef) && (kiLeftRef >= REF_NOT_IN_LIST) {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:352:5: badCond: `REF_NOT_AVAIL == iTopRef && REF_NOT_AVAIL == iDiagonalRef` condition is suspicious (gocritic)
+	if REF_NOT_AVAIL == iTopRef && REF_NOT_AVAIL == iDiagonalRef && iLeftRef >= REF_NOT_IN_LIST {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac_test.go:148:7: captLocal: `S' should not be capitalized (gocritic)
+func (S *pmsState) randomize() {
+      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac_test.go:229:7: captLocal: `S' should not be capitalized (gocritic)
+func (S *pmsState) hashNeigh(n *SWelsNeighAvail) {
+      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac_test.go:243:7: captLocal: `S' should not be capitalized (gocritic)
+func (S *pmsState) hashCaches() {
+      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cavlc.go:951:2: dupBranchBody: both branches in if statement have same body (gocritic)
+	if bChroma {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cavlc.go:1070:2: dupBranchBody: both branches in if statement have same body (gocritic)
+	if bChroma {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:267:2: assignOp: replace `iBlkWidth = iBlkWidth >> 1` with `iBlkWidth >>= 1` (gocritic)
+	iBlkWidth = iBlkWidth >> 1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:268:2: assignOp: replace `iBlkHeight = iBlkHeight >> 1` with `iBlkHeight >>= 1` (gocritic)
+	iBlkHeight = iBlkHeight >> 1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:324:2: assignOp: replace `iBlkWidth = iBlkWidth >> 1` with `iBlkWidth >>= 1` (gocritic)
+	iBlkWidth = iBlkWidth >> 1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:325:2: assignOp: replace `iBlkHeight = iBlkHeight >> 1` with `iBlkHeight >>= 1` (gocritic)
+	iBlkHeight = iBlkHeight >> 1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:371:2: assignOp: replace `iBlkWidth = iBlkWidth >> 1` with `iBlkWidth >>= 1` (gocritic)
+	iBlkWidth = iBlkWidth >> 1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:372:2: assignOp: replace `iBlkHeight = iBlkHeight >> 1` with `iBlkHeight >>= 1` (gocritic)
+	iBlkHeight = iBlkHeight >> 1
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:816:5: assignOp: replace `pStat.UiAvgEcRatio = pStat.UiAvgEcRatio * pStat.UiEcFrameNum` with `pStat.UiAvgEcRatio *= pStat.UiEcFrameNum` (gocritic)
+				pStat.UiAvgEcRatio = pStat.UiAvgEcRatio * pStat.UiEcFrameNum
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:822:5: assignOp: replace `pStat.UiAvgEcPropRatio = pStat.UiAvgEcPropRatio * pStat.UiEcFrameNum` with `pStat.UiAvgEcPropRatio *= pStat.UiEcFrameNum` (gocritic)
+				pStat.UiAvgEcPropRatio = pStat.UiAvgEcPropRatio * pStat.UiEcFrameNum
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:833:5: assignOp: replace `pStat.UiAvgEcRatio = pStat.UiAvgEcRatio / pStat.UiEcFrameNum` with `pStat.UiAvgEcRatio /= pStat.UiEcFrameNum` (gocritic)
+				pStat.UiAvgEcRatio = pStat.UiAvgEcRatio / pStat.UiEcFrameNum
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:838:5: assignOp: replace `pStat.UiAvgEcPropRatio = pStat.UiAvgEcPropRatio / pStat.UiEcFrameNum` with `pStat.UiAvgEcPropRatio /= pStat.UiEcFrameNum` (gocritic)
+				pStat.UiAvgEcPropRatio = pStat.UiAvgEcPropRatio / pStat.UiEcFrameNum
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/au_set.go:302:9: dupBranchBody: both branches in if statement have same body (gocritic)
+	} else if pSps.uiPocType == 1 {
+	       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/deblocking.go:100:28: captLocal: `QP' should not be capitalized (gocritic)
+func dbkGetAlphaBetaFromQp(QP int32, iAlphaOffset int32, iBetaOffset int32) (iIdexA int32, iAlpha int32, iBeta int32) {
+                           ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3977:5: badCond: `(api.SPS_PPS_LISTING == iOldSpsPpsIdStrategy) &&
+	(api.SPS_PPS_LISTING == pNewParam.ESpsPpsIdStrategy)` condition is suspicious (gocritic)
+			((api.SPS_PPS_LISTING == iOldSpsPpsIdStrategy) &&
+			 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/md.go:297:2: assignOp: replace `iAverageSad = iAverageSad >> 2` with `iAverageSad >>= 2` (gocritic)
+	iAverageSad = iAverageSad >> 2
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/md.go:439:3: valSwap: can re-write as `pMeRefine.pQuarPixBest, pMeRefine.pQuarPixTmp = pMeRefine.pQuarPixTmp, pMeRefine.pQuarPixBest` (gocritic)
+		pTmp := pMeRefine.pQuarPixBest
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/mv_pred.go:36:5: badCond: `(common.REF_NOT_AVAIL == iTopRef) && (common.REF_NOT_AVAIL == iDiagonalRef)` condition is suspicious (gocritic)
+	if (common.REF_NOT_AVAIL == iTopRef) && (common.REF_NOT_AVAIL == iDiagonalRef) && iLeftRef != common.REF_NOT_AVAIL {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:367:3: assignOp: replace `fDen = fDen * float32(pDLayerParam.IVideoHeight)` with `fDen *= float32(pDLayerParam.IVideoHeight)` (gocritic)
+		fDen = fDen * float32(pDLayerParam.IVideoHeight)
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:909:2: assignOp: replace `pWelsSvcRc.iBufferFullnessSkip = pWelsSvcRc.iBufferFullnessSkip - int64(kiOutputBits)` with `pWelsSvcRc.iBufferFullnessSkip -= int64(kiOutputBits)` (gocritic)
+	pWelsSvcRc.iBufferFullnessSkip = pWelsSvcRc.iBufferFullnessSkip - int64(kiOutputBits)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/set_mb_syn_cabac.go:142:3: assignOp: replace `pCbCtx.m_uiRange = pCbCtx.m_uiRange << uint(kiRenormAmount)` with `pCbCtx.m_uiRange <<= uint(kiRenormAmount)` (gocritic)
+		pCbCtx.m_uiRange = pCbCtx.m_uiRange << uint(kiRenormAmount)
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/set_mb_syn_cabac.go:154:4: assignOp: replace `iSufS = iSufS - (1 << uint(k))` with `iSufS -= (1 << uint(k))` (gocritic)
+			iSufS = iSufS - (1 << uint(k))
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:373:5: assignOp: replace `iIdx = iIdx ^ 0x01` with `iIdx ^= 0x01` (gocritic)
+				iIdx = iIdx ^ 0x01
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:784:5: assignOp: replace `iChmaIdx = iChmaIdx ^ 0x01` with `iChmaIdx ^= 0x01` (gocritic)
+				iChmaIdx = iChmaIdx ^ 0x01
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_enc_slice_segment.go:186:4: assignOp: replace `iSliceNum = iSliceNum - (iSliceNum & 0x01)` with `iSliceNum -= (iSliceNum & 0x01)` (gocritic)
+			iSliceNum = iSliceNum - (iSliceNum & 0x01) // verfiy even num for multiple slices case
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:1113:3: assignOp: replace `iIncreaseSlicNum = iIncreaseSlicNum / INT_MULTIPLY` with `iIncreaseSlicNum /= INT_MULTIPLY` (gocritic)
+		iIncreaseSlicNum = iIncreaseSlicNum / INT_MULTIPLY
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:1123:88: captLocal: `KiSlcBuffIdx' should not be capitalized (gocritic)
+func ReallocateSliceInThread(pCtx *sWelsEncCtx, pDqLayer *SDqLayer, kiDlayerIdx int32, KiSlcBuffIdx int32) int32 {
+                                                                                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:1002:22: badCond: `0 == iCurTid && 0 == uiRefTid` condition is suspicious (gocritic)
+		if bRefRealLtr || (0 == iCurTid && 0 == uiRefTid) || (uiRefTid < iCurTid) {
+		                   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:63:1: cyclomatic complexity 79 of func `ParseNalHeader` is high (> 30) (gocyclo)
+func ParseNalHeader(pCtx *SWelsDecoderContext, pNalUnitHeader *common.SNalUnitHeader, pSrcRbsp []uint8, iSrcRbspOff int, iSrcRbspLen int32, pSrcNal []uint8, iSrcNalLen int32, pConsumedBytes *int32) ([]uint8, int) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:946:1: cyclomatic complexity 113 of func `ParseSps` is high (> 30) (gocyclo)
+func ParseSps(pCtx *SWelsDecoderContext, pBsAux *common.SBitStringAux, pPicWidth *int32, pPicHeight *int32, pSrcNal []uint8, kSrcNalLen int32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1399:1: cyclomatic complexity 50 of func `ParsePps` is high (> 30) (gocyclo)
+func ParsePps(pCtx *SWelsDecoderContext, pPpsList []SPps, pBsAux *common.SBitStringAux, pSrcNal []uint8, kSrcNalLen int32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1616:1: cyclomatic complexity 47 of func `ParseVui` is high (> 30) (gocyclo)
+func ParseVui(pCtx *SWelsDecoderContext, pSps *SSps, pBsAux *common.SBitStringAux) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:683:1: cyclomatic complexity 35 of func `dsParseResidualCabac` is high (> 30) (gocyclo)
+func dsParseResidualCabac(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, pNonZeroCount []uint8,
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1689:1: cyclomatic complexity 34 of func `dsParseResidualCavlc` is high (> 30) (gocyclo)
+func dsParseResidualCavlc(pCtx *SWelsDecoderContext, pNonZeroCount []uint8, uiCbpL uint32, uiCbpC uint32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2020:1: cyclomatic complexity 50 of func `dsActualDecodeMbCavlcPB` is high (> 30) (gocyclo)
+func dsActualDecodeMbCavlcPB(pCtx *SWelsDecoderContext, bBSlice bool) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2208:1: cyclomatic complexity 32 of func `dsDecodeMbCavlcPB` is high (> 30) (gocyclo)
+func dsDecodeMbCavlcPB(pCtx *SWelsDecoderContext, pNalCur *SNalUnit, uiEosFlag *uint32, bBSlice bool) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:659:1: cyclomatic complexity 43 of func `WelsDecodeBs` is high (> 30) (gocyclo)
+func WelsDecodeBs(pCtx *SWelsDecoderContext, kpBsBuf []uint8, kiBsLen int32, ppDst *[3][]uint8, pDstBufInfo *api.SBufferInfo, pDstBsInfo *api.SParserBsInfo) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:27:1: cyclomatic complexity 42 of func `DecodeFrameConstruction` is high (> 30) (gocyclo)
+func DecodeFrameConstruction(pCtx *SWelsDecoderContext, ppDst *[3][]uint8, pDstInfo *api.SBufferInfo) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:929:1: cyclomatic complexity 155 of func `ParseSliceHeaderSyntaxs` is high (> 30) (gocyclo)
+func ParseSliceHeaderSyntaxs(pCtx *SWelsDecoderContext, pBs *common.SBitStringAux, kbExtensionFlag bool) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:2491:1: cyclomatic complexity 65 of func `DecodeCurrentAccessUnit` is high (> 30) (gocyclo)
+func DecodeCurrentAccessUnit(pCtx *SWelsDecoderContext, ppDst *[3][]uint8, pDstInfo *api.SBufferInfo) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:450:1: cyclomatic complexity 35 of func `ref8x8` is high (> 30) (gocyclo)
+func ref8x8(mode string) intraPred8x8Func {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/manage_dec_ref.go:264:1: cyclomatic complexity 32 of func `WelsInitBSliceRefList` is high (> 30) (gocyclo)
+func WelsInitBSliceRefList(pCtx *SWelsDecoderContext, iPoc int32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:115:1: cyclomatic complexity 40 of func `PredPSkipMvFromNeighbor` is high (> 30) (gocyclo)
+func PredPSkipMvFromNeighbor(pCurDqLayer *SDqLayer, iMvp *[2]int16) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:370:1: cyclomatic complexity 57 of func `PredMvBDirectSpatial` is high (> 30) (gocyclo)
+func PredMvBDirectSpatial(pCtx *SWelsDecoderContext, iMvp *[common.LIST_A][2]int16, ref *[common.LIST_A]int8, subMbType *SubMbType) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:948:1: cyclomatic complexity 31 of func `FillSpatialDirect8x8Mv` is high (> 30) (gocyclo)
+func FillSpatialDirect8x8Mv(pCurDqLayer *SDqLayer, iIdx8 int16, iPartCount int8, iPartW int8, subMbType SubMbType, bIsLongRef bool, pMvDirect *[common.LIST_A][2]int16, iRef *[common.LIST_A]int8, pMotionVector *[common.LIST_A][30][common.MV_A]int16, pMvdCache *[common.LIST_A][30][common.MV_A]int16) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:222:1: cyclomatic complexity 42 of func `AnchorPredPSkipMvFromNeighbor` is high (> 30) (gocyclo)
+func AnchorPredPSkipMvFromNeighbor(pCurLayer *SDqLayer, iMvp *[2]int16) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac.go:681:1: cyclomatic complexity 35 of func `ParseInterPMotionInfoCabac` is high (> 30) (gocyclo)
+func ParseInterPMotionInfoCabac(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, pNonZeroCount []uint8, pMotionVector *[common.LIST_A][30][common.MV_A]int16, pMvdCache *[common.LIST_A][30][common.MV_A]int16, pRefIndex *[common.LIST_A][30]int8) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac.go:888:1: cyclomatic complexity 72 of func `ParseInterBMotionInfoCabac` is high (> 30) (gocyclo)
+func ParseInterBMotionInfoCabac(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, pNonZeroCount []uint8, pMotionVector *[common.LIST_A][30][common.MV_A]int16, pMvdCache *[common.LIST_A][30][common.MV_A]int16, pRefIndex *[common.LIST_A][30]int8, pDirect *[30]int8) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac.go:1252:1: cyclomatic complexity 38 of func `ParseRefIdxCabac` is high (> 30) (gocyclo)
+func ParseRefIdxCabac(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, nzc []uint8, ref_idx *[common.LIST_A][30]int8, direct *[30]int8, iListIdx int32, iZOrderIdx int32, iActiveRefNum int32, b8mode int32, iRefIdxVal *int8) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac_test.go:385:1: cyclomatic complexity 32 of func `(*pmsState).runCabac` is high (> 30) (gocyclo)
+func (S *pmsState) runCabac(seed uint32, nCases int) uint64 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cavlc.go:1161:1: cyclomatic complexity 52 of func `ParseInterInfo` is high (> 30) (gocyclo)
+func ParseInterInfo(pCtx *SWelsDecoderContext, iMvArray *[common.LIST_A][30][common.MV_A]int16, iRefIdxArray *[common.LIST_A][30]int8, pBs *common.SBitStringAux) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cavlc.go:1430:1: cyclomatic complexity 98 of func `ParseInterBInfo` is high (> 30) (gocyclo)
+func ParseInterBInfo(pCtx *SWelsDecoderContext, iMvArray *[common.LIST_A][30][common.MV_A]int16, iRefIdxArray *[common.LIST_A][30]int8, pBs *common.SBitStringAux) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:588:1: cyclomatic complexity 61 of func `GetInterBPred` is high (> 30) (gocyclo)
+func GetInterBPred(pPredYCbCr [3][]uint8, iPredYCbCrOff [3]int, pTempPredYCbCr [3][]uint8, iTempPredYCbCrOff [3]int, pCtx *SWelsDecoderContext) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:407:1: cyclomatic complexity 42 of func `(*CWelsDecoder).SetOption` is high (> 30) (gocyclo)
+func (d *CWelsDecoder) SetOption(eOptID api.DECODER_OPTION, pOption any) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:547:1: cyclomatic complexity 31 of func `(*CWelsDecoder).GetOption` is high (> 30) (gocyclo)
+func (d *CWelsDecoder) GetOption(eOptID api.DECODER_OPTION, pOption any) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:693:1: cyclomatic complexity 40 of func `(*CWelsDecoder).DecodeFrame2WithCtx` is high (> 30) (gocyclo)
+func (d *CWelsDecoder) DecodeFrame2WithCtx(pDecContext *SWelsDecoderContext, kpSrc []byte, kiSrcLen int32, ppDst *[3][]byte, pDstInfo *api.SBufferInfo) api.DECODING_STATE {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder.go:259:1: cyclomatic complexity 34 of func `DecideFrameType` is high (> 30) (gocyclo)
+func DecideFrameType(pEncCtx *sWelsEncCtx, kiSpatialNum int8, kiDidx int32, bSkipFrameFlag bool) api.EVideoFrameType {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:221:1: cyclomatic complexity 41 of func `ParamValidation` is high (> 30) (gocyclo)
+func ParamValidation(pLogCtx *common.SLogContext, pCfg *SWelsSvcCodingParam) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:362:1: cyclomatic complexity 72 of func `ParamValidationExt` is high (> 30) (gocyclo)
+func ParamValidationExt(pLogCtx *common.SLogContext, pCodingParam *SWelsSvcCodingParam) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:969:1: cyclomatic complexity 31 of func `InitDqLayers` is high (> 30) (gocyclo)
+func InitDqLayers(ppCtx **sWelsEncCtx, pExistingParasetList *SExistingParasetList) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3137:1: cyclomatic complexity 113 of func `WelsEncoderEncodeExt` is high (> 30) (gocyclo)
+func WelsEncoderEncodeExt(pCtx *sWelsEncCtx, pFbi *api.SFrameBSInfo, pSrcPic *api.SSourcePicture) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3767:1: cyclomatic complexity 61 of func `WelsEncoderParamAdjust` is high (> 30) (gocyclo)
+func WelsEncoderParamAdjust(ppCtx **sWelsEncCtx, pNewParam *SWelsSvcCodingParam) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/get_intra_predictor_test.go:42:1: cyclomatic complexity 35 of func `ref4x4` is high (> 30) (gocyclo)
+func ref4x4(n ipNeighbours, mode int) [16]uint8 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/md_refine_fast_amd64.go:33:1: cyclomatic complexity 60 of func `meRefineFracPixelFast` is high (> 30) (gocyclo)
+func meRefineFracPixelFast(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME,
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/param_svc_h.go:265:1: cyclomatic complexity 31 of func `(*SWelsSvcCodingParam).ParamTranscode` is high (> 30) (gocyclo)
+func (p *SWelsSvcCodingParam) ParamTranscode(pCodingParam *api.SEncParamExt) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/quant_scan_intra_caller_test.go:45:1: cyclomatic complexity 40 of func `TestIntraACCustomCallbacksAndAliases` is high (> 30) (gocyclo)
+func TestIntraACCustomCallbacksAndAliases(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/sample_half_pair_amd64_test.go:125:1: cyclomatic complexity 54 of func `runHalfPairFixture` is high (> 30) (gocyclo)
+func runHalfPairFixture(shape [3]int32, enabled bool, scenario string) (out halfPairOutcome) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/sample_quarter_four_amd64_test.go:111:1: cyclomatic complexity 43 of func `TestQuarterRefineFourMatchesExistingPaths` is high (> 30) (gocyclo)
+func TestQuarterRefineFourMatchesExistingPaths(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/skip_lazy_test.go:12:1: cyclomatic complexity 33 of func `TestLazySkipMatchesOriginal` is high (> 30) (gocyclo)
+func TestLazySkipMatchesOriginal(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate_fast_amd64.go:26:1: cyclomatic complexity 38 of func `welsMotionEstimateIntegerFast` is high (> 30) (gocyclo)
+func welsMotionEstimateIntegerFast(pFuncList *SWelsFuncPtrList, pMe *SWelsME, pSlice *SSlice, iStrideEnc, iStrideRef int32) bool {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/welsEncoderExt.go:561:1: cyclomatic complexity 121 of func `(*CWelsH264SVCEncoder).SetOption` is high (> 30) (gocyclo)
+func (p *CWelsH264SVCEncoder) SetOption(eOptionId api.ENCODER_OPTION, pOption any) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/welsEncoderExt.go:1093:1: cyclomatic complexity 37 of func `(*CWelsH264SVCEncoder).GetOption` is high (> 30) (gocyclo)
+func (p *CWelsH264SVCEncoder) GetOption(eOptionId api.ENCODER_OPTION, pOption any) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:1421:1: cyclomatic complexity 35 of func `(*CWelsPreProcess).WelsMoveMemoryWrapper` is high (> 30) (gocyclo)
+func (p *CWelsPreProcess) WelsMoveMemoryWrapper(pSvcParam *SWelsSvcCodingParam, pDstPic *SPicture, kpSrc *api.SSourcePicture, kiTargetWidth int32, kiTargetHeight int32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess_source.go:63:1: cyclomatic complexity 63 of func `(*CWelsPreProcess).tryCopySource` is high (> 30) (gocyclo)
+func (p *CWelsPreProcess) tryCopySource(param *SWelsSvcCodingParam, dst *SPicture, src *api.SSourcePicture, width, height int32) bool {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess_unchanged_test.go:153:1: cyclomatic complexity 32 of func `TestVAAUnchangedMatchesFullAcrossSourceReuse` is high (> 30) (gocyclo)
+func TestVAAUnchangedMatchesFullAcrossSourceReuse(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/processing/WelsFrameWork.go:190:1: cyclomatic complexity 41 of func `(*CVpFrameWork).CheckValid` is high (> 30) (gocyclo)
+func (f *CVpFrameWork) CheckValid(eMethod EMethods, pSrcPixMap *SPixMap, pDstPixMap *SPixMap) bool {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/processing/WelsFrameWork_test.go:87:1: cyclomatic complexity 39 of func `TestVpFrameworkAllMethods` is high (> 30) (gocyclo)
+func TestVpFrameworkAllMethods(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/processing/vaa_avx2_amd64_test.go:157:1: cyclomatic complexity 36 of func `TestVAAAVX2PartialFailureAndAliases` is high (> 30) (gocyclo)
+func TestVAAAVX2PartialFailureAndAliases(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:569:1: Comment should end in a period (godot)
+// return 0 - successed, 1 - failed
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1964:1: Comment should end in a period (godot)
+// return count number of fmo context units are reset
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:29:1: Comment should end in a period (godot)
+// void WelsCabacGlobalInit (PWelsDecoderContext pCtx)
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:757:6: Line contains TODO/BUG/FIXME: "FIXME: Incoherent with JVT X201 standard..." (godox)
+		0 // FIXME: Incoherent with JVT X201 standard (= 1), but conformance to JSVM (= 0) implementation.
+		   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h.go:217:3: Line contains TODO/BUG/FIXME: "TODO" (godox)
+	// TODO
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:393:34: Line contains TODO/BUG/FIXME: "TODO: SUPPORT LIST_A" (godox)
+		if !(iList < common.LIST_A) { //TODO: SUPPORT LIST_A
+		                               ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/au_set.go:89:3: Line contains TODO/BUG/FIXME: "TODO: here is a fix needed here, the mos..." (godox)
+	//TODO: here is a fix needed here, the most reasonable value should be:
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/au_set.go:303:4: Line contains TODO/BUG/FIXME: "TODO: implement" (godox)
+		// TODO: implement
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/au_set.go:444:4: Line contains TODO/BUG/FIXME: "TODO: get frame_crop_left_offset, frame_..." (godox)
+		// TODO: get frame_crop_left_offset, frame_crop_right_offset, frame_crop_top_offset, frame_crop_bottom_offset
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:652:5: Line contains TODO/BUG/FIXME: "TODO:{Sijia} from design, there is no se..." (godox)
+			//TODO:{Sijia} from design, there is no sense to have temporal layer when under 6fps even with such setting?
+			 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2350:18: Line contains TODO/BUG/FIXME: "TODO: here is for sync with the origin c..." (godox)
+			bFastMode) { //TODO: here is for sync with the origin code, consider the design again with more tests
+			              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2900:3: Line contains TODO/BUG/FIXME: "TODO: under new strategy, will PPS be co..." (godox)
+	//TODO: under new strategy, will PPS be correctly updated?
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2996:3: Line contains TODO/BUG/FIXME: "TODO: under new strategy, will PPS be co..." (godox)
+	//TODO: under new strategy, will PPS be correctly updated?
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3120:5: Line contains TODO/BUG/FIXME: "TODO: use function pointer instead" (godox)
+			// TODO: use function pointer instead
+			 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3455:6: Line contains TODO/BUG/FIXME: "TODO: use a function to remove duplicate..." (godox)
+				//TODO: use a function to remove duplicate code here and ln3994
+				 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/nal_encap.go:94:4: Line contains TODO/BUG/FIXME: "TODO: call the realloc&copy instead" (godox)
+		//TODO: call the realloc&copy instead
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/paraset_strategy_test.go:16:3: Line contains TODO/BUG/FIXME: "TODO: consider randomize it" (godox)
+	//TODO: consider randomize it
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:986:3: Line contains TODO/BUG/FIXME: "TODO: put in the decision of rate-contro..." (godox)
+	//TODO: put in the decision of rate-control
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:991:3: Line contains TODO/BUG/FIXME: "TODO: do something to update buffers aft..." (godox)
+	//TODO: do something to update buffers after post-skipping is done
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ref_list_mgr_svc.go:653:4: Line contains TODO/BUG/FIXME: "TODO: we need to re-factor the source pi..." (godox)
+		//TODO: we need to re-factor the source picture storage first,
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ref_list_mgr_svc.go:888:33: Line contains TODO/BUG/FIXME: "TODO: use the original judge first, may ..." (godox)
+	return kiFrameNum < (1 << 30) // TODO: use the original judge first, may be improved
+	                               ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/slice_h.go:144:29: Line contains TODO/BUG/FIXME: "TODO: for FME switch under MT, to opt af..." (godox)
+	uiSliceFMECostDown uint32 // TODO: for FME switch under MT, to opt after ME final?
+	                           ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:226:4: Line contains TODO/BUG/FIXME: "TODO: implement." (godox)
+		// TODO: implement.
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:294:4: Line contains TODO/BUG/FIXME: "TODO: implement." (godox)
+		// TODO: implement.
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:1544:4: Line contains TODO/BUG/FIXME: "TODO: pSliceCtx->iSliceNumInFrame should..." (godox)
+		//TODO: pSliceCtx->iSliceNumInFrame should match max slice num limitation in given profile based on standard
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_mode_decision.go:165:3: Line contains TODO/BUG/FIXME: "TODO:" (godox)
+	//TODO:
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_mode_decision.go:206:4: Line contains TODO/BUG/FIXME: "TODO: consider reusing this result of Ch..." (godox)
+		//TODO: consider reusing this result of ChromaCheck when SCDSkip needs this as well
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_mode_decision.go:542:3: Line contains TODO/BUG/FIXME: "TODO: did not consider the MVD cost here..." (godox)
+	//TODO: did not consider the MVD cost here, may consider later
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_mode_decision.go:550:4: Line contains TODO/BUG/FIXME: "TODO: agjusted order, consider re-test l..." (godox)
+		//TODO: agjusted order, consider re-test later
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate.go:64:4: Line contains TODO/BUG/FIXME: "TODO: it is possible to differentiate wi..." (godox)
+		//TODO: it is possible to differentiate width that is times of 8, so as to accelerate the speed when width is times of 8?
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate.go:547:3: Line contains TODO/BUG/FIXME: "TODO: this is similar to SumOf8x8BlockOf..." (godox)
+	//TODO: this is similar to SumOf8x8BlockOfFrame_c expect the calling of single block func, refactor-able?
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate.go:767:43: Line contains TODO/BUG/FIXME: "TODO: this can be refactored and removed" (godox)
+	var sFeatureSearchOut SFeatureSearchOut //TODO: this can be refactored and removed
+	                                         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate.go:773:32: Line contains TODO/BUG/FIXME: "TODO: change it according to computation..." (godox)
+	var iFeatureDifference int32 //TODO: change it according to computational-complexity setting when needed
+	                              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate.go:775:56: Line contains TODO/BUG/FIXME: "TODO: this may be refactored and removed" (godox)
+	if sFeatureSearchOut.uiBestSadCost < pMe.uiSadCost { //TODO: this may be refactored and removed
+	                                                      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate.go:848:46: Line contains TODO/BUG/FIXME: "TODO: change it according to computation..." (godox)
+		uiMaxSearchPoint := uint32(math.MaxInt32) //TODO: change it according to computational-complexity setting
+		                                           ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_motion_estimate_h.go:148:3: Line contains TODO/BUG/FIXME: "TODO: add the logic of iHighFreMbPrecent..." (godox)
+	// TODO: add the logic of iHighFreMbPrecentage
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_set_mb_syn_cavlc.go:203:4: Line contains TODO/BUG/FIXME: "TODO: call the realloc&copy instead" (godox)
+		//TODO: call the realloc&copy instead
+		 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/welsEncoderExt.go:545:6: Line contains TODO/BUG/FIXME: "TODO: the following statistics will be c..." (godox)
+				//TODO: the following statistics will be calculated and added later
+				 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_const_h.go:29:41: Line contains TODO/BUG/FIXME: "TODO, for allocate enough memory for tra..." (godox)
+	MAX_VERTICAL_MV_RANGE          = 1024 // TODO, for allocate enough memory for transpose
+	                                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:992:3: Line contains TODO/BUG/FIXME: "TODO: use a frame_idx to find the closer..." (godox)
+	//TODO: use a frame_idx to find the closer ref in time distance, and correctly sort the ref list
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:1041:3: Line contains TODO/BUG/FIXME: "TODO: use a frame_idx to find the closer..." (godox)
+	//TODO: use a frame_idx to find the closer ref in time distance, and correctly sort the ref list
+	 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:1380:2: Line contains TODO/BUG/FIXME: "TODO: may opti later" (godox)
+//TODO: may opti later
+ ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:1381:2: Line contains TODO/BUG/FIXME: "TODO: not use this func?" (godox)
+//TODO: not use this func?
+ ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:756:1: File is not properly formatted (gofumpt)
+	pExt.uiChromaPhaseXPlus1Flag =
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:146:1: File is not properly formatted (gofumpt)
+	iMbXy, iMbBn int32, iIndex, iNeighIndex uint8) uint8 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:684:1: File is not properly formatted (gofumpt)
+	uiCbpLuma uint32, uiCbpChroma uint32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:208:21: G703: Path traversal via taint analysis (gosec)
+	f, err := os.Create(name)
+	                   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:314:27: G703: Path traversal via taint analysis (gosec)
+	pH264File, err := os.Open(kpH264FileName)
+	                         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:355:25: G703: Path traversal via taint analysis (gosec)
+		fpTrack, err = os.Open(pLengthFileName)
+		                      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/bit_stream.go:29:29: G602: slice index out of range (gosec)
+			uiValue |= uint32(pDstNal[i])
+			                         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/conformance_test.go:8:2: G505: Blocklisted import crypto/sha1: weak cryptographic primitive (gosec)
+	"crypto/sha1"
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/conformance_test.go:239:11: G401: Use of weak cryptographic primitive (gosec)
+			ctx := sha1.New()
+			       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:72:24: G404: Use of weak random number generator (math/rand or math/rand/v2 instead of crypto/rand) (gosec)
+		iSliceIdc[0] = int32(rand.Intn(10))
+		                     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:140:19: G404: Use of weak random number generator (math/rand or math/rand/v2 instead of crypto/rand) (gosec)
+		buf1[k] = uint8(rand.Intn(256))
+		                ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:189:40: G404: Use of weak random number generator (math/rand or math/rand/v2 instead of crypto/rand) (gosec)
+	pSlice.iTotalMbInCurSlice = 1 + int32(rand.Intn(256)) // at least one MB
+	                                      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encode_mb_aux.go:177:8: G602: slice index out of range (gosec)
+		pData[kiI3] = int16(int32(pPixel1[iPixel1Off+3]) - int32(pPixel2[iPixel2Off+3]))
+		     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encode_mb_aux.go:185:15: G602: slice index out of range (gosec)
+		s[1] = pData[kiI1] + pData[kiI2]
+		            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_conformance_test.go:10:2: G505: Blocklisted import crypto/sha1: weak cryptographic primitive (gosec)
+	"crypto/sha1"
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_conformance_test.go:402:11: G401: Use of weak cryptographic primitive (gosec)
+			ctx := sha1.New()
+			       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/common/crt_util_safe_x.go:263:52: usage of time.Local (gosmopolitan)
+	s := strftimeGo(kpFormat, time.Unix(kpTp.Time, 0).Local())
+	                                                  ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:69:6: ineffectual assignment to iErr (ineffassign)
+	var iErr int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:572:6: ineffectual assignment to eNalType (ineffassign)
+	var eNalType common.EWelsNalUnitType = common.NAL_UNIT_UNSPEC_0 // make initial value as unspecified
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:957:6: ineffectual assignment to iRet (ineffassign)
+	var iRet int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:146:6: ineffectual assignment to iErrorInfo (ineffassign)
+	var iErrorInfo int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:193:6: ineffectual assignment to iErrorInfo (ineffassign)
+	var iErrorInfo int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:117:6: ineffectual assignment to iPrevPicIdx (ineffassign)
+	var iPrevPicIdx int32 = -1
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:385:6: ineffectual assignment to iErr (ineffassign)
+	var iErr int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:513:6: ineffectual assignment to iRet (ineffassign)
+	var iRet int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:765:7: ineffectual assignment to iRet (ineffassign)
+						iRet = 0
+						^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:871:6: ineffectual assignment to iErr (ineffassign)
+	var iErr int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:763:2: ineffectual assignment to iNewLen (ineffassign)
+	iNewLen := kiCurrLen
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/manage_dec_ref.go:444:7: ineffectual assignment to iAbsDiffPicNum (ineffassign)
+		var iAbsDiffPicNum int32 = -1
+		    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/manage_dec_ref.go:549:7: ineffectual assignment to iAbsDiffPicNum (ineffassign)
+		var iAbsDiffPicNum int32 = -1
+		    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:141:3: ineffectual assignment to bLeftTopAvail (ineffassign)
+		bLeftTopAvail = false
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:371:6: ineffectual assignment to ret (ineffassign)
+	var ret int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:406:3: ineffectual assignment to bLeftTopAvail (ineffassign)
+		bLeftTopAvail = false
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:597:6: ineffectual assignment to ret (ineffassign)
+	var ret int32 = ERR_NONE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:243:3: ineffectual assignment to bLeftTopAvail (ineffassign)
+		bLeftTopAvail = false
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac_test.go:538:5: ineffectual assignment to ret (ineffassign)
+				ret = int32(DecodeUEGLevelCabac(ctx.pCabacDecEngine, &ctx.pCabacCtx[ctxIdx], &v))
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cavlc.go:748:5: ineffectual assignment to uiValue (ineffassign)
+				uiValue = pBitsCache.uiCache32Bit >> (32 - uiCount)
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:419:5: ineffectual assignment to threadCount (ineffassign)
+				threadCount = 3
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:1265:2: ineffectual assignment to eDecState (ineffassign)
+	eDecState := api.DsErrorFree
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:1388:2: ineffectual assignment to state (ineffassign)
+	state := int32(api.DsErrorFree)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/cavlc_writer.go:224:2: ineffectual assignment to ok (ineffassign)
+	ok := true
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder.go:262:2: ineffectual assignment to iFrameType (ineffassign)
+	iFrameType := api.VideoFrameTypeInvalid
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:461:3: ineffectual assignment to iMaxSliceNum (ineffassign)
+		iMaxSliceNum := uint32(MAX_SLICES_NUM)
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:1471:2: ineffectual assignment to fCompressRatioThr (ineffassign)
+	fCompressRatioThr := float32(.5)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2554:2: ineffectual assignment to iReturn (ineffassign)
+	iReturn := int32(ENC_RETURN_SUCCESS)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2639:2: ineffectual assignment to iReturn (ineffassign)
+	iReturn := int32(ENC_RETURN_SUCCESS)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2825:2: ineffectual assignment to iReturn (ineffassign)
+	iReturn := int32(ENC_RETURN_SUCCESS)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3160:2: ineffectual assignment to eNalRefIdc (ineffassign)
+	eNalRefIdc := common.EWelsNalRefIdc(common.NRI_PRI_LOWEST)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:3277:3: ineffectual assignment to iSliceCount (ineffassign)
+		iSliceCount := int32(1)
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:4079:2: ineffectual assignment to iNumRefFrame (ineffassign)
+	iNumRefFrame := int32(1)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/md.go:499:6: ineffectual assignment to iBestQuarPix (ineffassign)
+	var iBestQuarPix int32 = ME_NO_BEST_QUAR_PIXEL
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/md.go:839:6: ineffectual assignment to iCount (ineffassign)
+	var iCount int32 = 0
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:85:2: ineffectual assignment to iGomRowMode0 (ineffassign)
+	iGomRowMode0, iGomRowMode1 := int32(1), int32(1)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/slice_multi_threading.go:354:2: ineffectual assignment to iNeedAdj (ineffassign)
+	iNeedAdj := int32(1)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/slice_multi_threading.go:370:2: ineffectual assignment to iNeedAdj (ineffassign)
+	iNeedAdj := int32(1)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:726:6: ineffectual assignment to iAvailCount (ineffassign)
+	var iAvailCount int32 = 0
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1114:6: ineffectual assignment to iCost (ineffassign)
+	var iCost int32 = 0
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1132:4: ineffectual assignment to iCost (ineffassign)
+			iCost = iCostPart
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1312:2: ineffectual assignment to iEncStride (ineffassign)
+	iEncStride := pCurLayer.iEncStride[0]
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1313:2: ineffectual assignment to pEncMb (ineffassign)
+	pEncMb, iEncMbOff := pMbCache.SPicData.pEncMb[0], pMbCache.SPicData.iEncMbOff[0]
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1318:6: ineffectual assignment to iSadCostChroma (ineffassign)
+	var iSadCostChroma int32 = 0
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1731:2: ineffectual assignment to bRet (ineffassign)
+	bRet := true
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_enc_slice_segment.go:145:3: ineffectual assignment to iCountMb (ineffassign)
+		iCountMb = kiMbNumInFrame
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_enc_slice_segment.go:286:2: ineffectual assignment to uiSliceMode (ineffassign)
+	uiSliceMode := api.SM_SINGLE_SLICE
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:1583:2: ineffectual assignment to iCurMbIdx (ineffassign)
+	iCurMbIdx := int32(-1)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice.go:1708:2: ineffectual assignment to iCurMbIdx (ineffassign)
+	iCurMbIdx := int32(-1)
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_preprocess.go:1114:6: ineffectual assignment to iVaaFrameSceneChangeIdc (ineffassign)
+	var iVaaFrameSceneChangeIdc processing.ESceneChangeIdc = processing.LARGE_CHANGED_SCENE
+	    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/paraset_strategy_h.go:23:32: the interface has more than 10 methods: 21 (interfacebloat)
+type IWelsParametersetStrategy interface {
+                               ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:406:1: The line is 187 characters long, which exceeds the maximum of 120 characters. (lll)
+func CheckAccessUnitBoundaryExt(pLastNalHdrExt *common.SNalUnitHeaderExt, pCurNalHeaderExt *common.SNalUnitHeaderExt, pLastSliceHeader *SSliceHeader, pCurSliceHeader *SSliceHeader) bool {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:443:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+	if (pLastNalHdrExt.SNalUnitHeader.UiNalRefIdc != common.NRI_PRI_LOWEST) != (pCurNalHeaderExt.SNalUnitHeader.UiNalRefIdc !=
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:517:1: The line is 128 characters long, which exceeds the maximum of 120 characters. (lll)
+	if (kpLastNalHeaderExt.SNalUnitHeader.UiNalRefIdc != common.NRI_PRI_LOWEST) != (kpCurNalHeaderExt.SNalUnitHeader.UiNalRefIdc !=
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:570:1: The line is 134 characters long, which exceeds the maximum of 120 characters. (lll)
+func ParseNonVclNal(pCtx *SWelsDecoderContext, pRbsp []uint8, iRbspOff int, kiSrcLen int32, pSrcNal []uint8, kSrcNalLen int32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:581:1: The line is 133 characters long, which exceeds the maximum of 120 characters. (lll)
+	pBs = &pCtx.sBs                                                                  // SBitStringAux instance for non VCL NALs decoding
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1031:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+			common.WelsLog(&(pCtx.sLogCtx), api.WELS_LOG_WARNING, "ParseSps(): bit_depth_luma (%d) Only 8 bit supported.", 8+uiCode)
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1040:1: The line is 126 characters long, which exceeds the maximum of 120 characters. (lll)
+			common.WelsLog(&(pCtx.sLogCtx), api.WELS_LOG_WARNING, "ParseSps(): bit_depth_chroma (%d). Only 8 bit supported.", 8+uiCode)
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1078:1: The line is 126 characters long, which exceeds the maximum of 120 characters. (lll)
+		if WELS_CHECK_SE_UPPER_ERROR(pCtx, uiCode, SPS_LOG2_MAX_PIC_ORDER_CNT_LSB_MINUS4_MAX, "log2_max_pic_order_cnt_lsb_minus4") {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1203:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+			common.WelsLog(&(pCtx.sLogCtx), api.WELS_LOG_ERROR, "frame_crop_left_offset + frame_crop_right_offset exceeds limits!")
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1215:1: The line is 121 characters long, which exceeds the maximum of 120 characters. (lll)
+			common.WelsLog(&(pCtx.sLogCtx), api.WELS_LOG_ERROR, "frame_crop_top_offset + frame_crop_right_offset exceeds limits!")
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1244:1: The line is 127 characters long, which exceeds the maximum of 120 characters. (lll)
+			common.WelsLog(&(pCtx.sLogCtx), api.WELS_LOG_WARNING, "sps payload size (%d) too large for parse only (%d), not supported!",
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1498:1: The line is 129 characters long, which exceeds the maximum of 120 characters. (lll)
+	if WELS_CHECK_SE_BOTH_ERROR(pCtx, pPps.iPicInitQp, PPS_PIC_INIT_QP_QS_MIN, PPS_PIC_INIT_QP_QS_MAX, "pic_init_qp_minus26 + 26") {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1505:1: The line is 129 characters long, which exceeds the maximum of 120 characters. (lll)
+	if WELS_CHECK_SE_BOTH_ERROR(pCtx, pPps.iPicInitQs, PPS_PIC_INIT_QP_QS_MIN, PPS_PIC_INIT_QP_QS_MAX, "pic_init_qs_minus26 + 26") {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1512:1: The line is 128 characters long, which exceeds the maximum of 120 characters. (lll)
+	if WELS_CHECK_SE_BOTH_ERROR(pCtx, pPps.iChromaQpIndexOffset[0], PPS_CHROMA_QP_INDEX_OFFSET_MIN, PPS_CHROMA_QP_INDEX_OFFSET_MAX,
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1579:1: The line is 127 characters long, which exceeds the maximum of 120 characters. (lll)
+			common.WelsLog(&(pCtx.sLogCtx), api.WELS_LOG_WARNING, "pps payload size (%d) too large for parse only (%d), not supported!",
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1834:1: The line is 143 characters long, which exceeds the maximum of 120 characters. (lll)
+func SetScalingListValue(pScalingList []uint8, iScalingListNum int32, bUseDefaultScalingMatrixFlag *bool, pBsAux *common.SBitStringAux) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1876:1: The line is 198 characters long, which exceeds the maximum of 120 characters. (lll)
+func ParseScalingList(pSps *SSps, pBs *common.SBitStringAux, bPPS bool, kbTrans8x8ModeFlag bool, pScalingListPresentFlag []bool, iScalingList4x4 *[6][16]uint8, iScalingList8x8 *[6][64]uint8) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1929:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+				if iRet := SetScalingListValue(iScalingList8x8[i-6][:], 64, &bUseDefaultScalingMatrixFlag8x8, pBs); iRet != ERR_NONE {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:83:1: The line is 128 characters long, which exceeds the maximum of 120 characters. (lll)
+	pDecEngine.uiOffset = uint64((cabacByteAt(pBuf, pCurr) << 16) | (cabacByteAt(pBuf, pCurr+1) << 8) | cabacByteAt(pBuf, pCurr+2))
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:261:1: The line is 126 characters long, which exceeds the maximum of 120 characters. (lll)
+func DecodeUnaryBinCabac(pDecEngine *SWelsCabacDecEngine, pBinCtx []SWelsCabacCtx, iCtxOffset int32, uiSymVal *uint32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:186:1: The line is 121 characters long, which exceeds the maximum of 120 characters. (lll)
+func dbkSmbEdgeMv(pRefPics *[common.MB_BLOCK4x4_NUM]*SPicture, iMotionVector *[common.MB_BLOCK4x4_NUM][common.MV_A]int16,
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:226:1: The line is 124 characters long, which exceeds the maximum of 120 characters. (lll)
+// DeblockingBSInsideMBAvsbase ports void inline DeblockingBSInsideMBAvsbase (int8_t* pNnzTab, uint8_t nBS[2][4][4], int32_t
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:269:1: The line is 130 characters long, which exceeds the maximum of 120 characters. (lll)
+// DeblockingBSInsideMBAvsbase8x8 ports void inline DeblockingBSInsideMBAvsbase8x8 (int8_t* pNnzTab, uint8_t nBS[2][4][4], int32_t
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:436:1: The line is 135 characters long, which exceeds the maximum of 120 characters. (lll)
+// DeblockingBsMarginalMBAvcbase ports uint32_t DeblockingBsMarginalMBAvcbase (PDeblockingFilter pFilter, PDqLayer pCurDqLayer, int32_t
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:440:1: The line is 136 characters long, which exceeds the maximum of 120 characters. (lll)
+func DeblockingBsMarginalMBAvcbase(pFilter *SDeblockingFilter, pCurDqLayer *SDqLayer, iEdge int32, iNeighMb int32, iMbXy int32) uint32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:532:1: The line is 139 characters long, which exceeds the maximum of 120 characters. (lll)
+// DeblockingBSliceBsMarginalMBAvcbase ports uint32_t DeblockingBSliceBsMarginalMBAvcbase (PDeblockingFilter pFilter, PDqLayer pCurDqLayer,
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:536:1: The line is 142 characters long, which exceeds the maximum of 120 characters. (lll)
+func DeblockingBSliceBsMarginalMBAvcbase(pFilter *SDeblockingFilter, pCurDqLayer *SDqLayer, iEdge int32, iNeighMb int32, iMbXy int32) uint32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:635:1: The line is 124 characters long, which exceeds the maximum of 120 characters. (lll)
+// DeblockingAvailableNoInterlayer ports int32_t DeblockingAvailableNoInterlayer (PDqLayer pCurDqLayer, int32_t iFilterIdc).
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:653:1: The line is 127 characters long, which exceeds the maximum of 120 characters. (lll)
+// FilteringEdgeLumaH ports void FilteringEdgeLumaH (SDeblockingFilter* pFilter, uint8_t* pPix, int32_t iStride, uint8_t* pBS).
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:681:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+// FilteringEdgeLumaIntraH ports void FilteringEdgeLumaIntraH (SDeblockingFilter* pFilter, uint8_t* pPix, int32_t iStride, uint8_t*
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:693:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+// FilteringEdgeLumaIntraV ports void FilteringEdgeLumaIntraV (SDeblockingFilter* pFilter, uint8_t* pPix, int32_t iStride, uint8_t*
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:709:1: The line is 145 characters long, which exceeds the maximum of 120 characters. (lll)
+func FilteringEdgeChromaH(pFilter *SDeblockingFilter, pPixCb []uint8, iPixCbOff int, pPixCr []uint8, iPixCrOff int, iStride int32, pBS []uint8) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:738:1: The line is 145 characters long, which exceeds the maximum of 120 characters. (lll)
+func FilteringEdgeChromaV(pFilter *SDeblockingFilter, pPixCb []uint8, iPixCbOff int, pPixCr []uint8, iPixCrOff int, iStride int32, pBS []uint8) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:767:1: The line is 150 characters long, which exceeds the maximum of 120 characters. (lll)
+func FilteringEdgeChromaIntraH(pFilter *SDeblockingFilter, pPixCb []uint8, iPixCbOff int, pPixCr []uint8, iPixCrOff int, iStride int32, pBS []uint8) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:776:1: The line is 121 characters long, which exceeds the maximum of 120 characters. (lll)
+			_, iAlpha, iBeta := dbkGetAlphaBetaFromQp(pFilter.iChromaQP[i], pFilter.iSliceAlphaC0Offset, pFilter.iSliceBetaOffset)
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:793:1: The line is 150 characters long, which exceeds the maximum of 120 characters. (lll)
+func FilteringEdgeChromaIntraV(pFilter *SDeblockingFilter, pPixCb []uint8, iPixCbOff int, pPixCr []uint8, iPixCrOff int, iStride int32, pBS []uint8) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:965:1: The line is 130 characters long, which exceeds the maximum of 120 characters. (lll)
+// FilteringEdgeChromaHV ports void FilteringEdgeChromaHV (PDqLayer pCurDqLayer, PDeblockingFilter pFilter, int32_t iBoundryFlag).
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:1156:1: The line is 129 characters long, which exceeds the maximum of 120 characters. (lll)
+// WelsDeblockingFilterSlice ports void WelsDeblockingFilterSlice (PWelsDecoderContext pCtx, PDeblockingFilterMbFunc pDeblockMb).
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:1225:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+// WelsDeblockingFilterMB ports void WelsDeblockingFilterMB (PDqLayer pCurDqLayer, SDeblockingFilter& pFilter, int32_t& iFilterIdc,
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:1229:1: The line is 135 characters long, which exceeds the maximum of 120 characters. (lll)
+func WelsDeblockingFilterMB(pCurDqLayer *SDqLayer, pFilter *SDeblockingFilter, iFilterIdc *int32, pDeblockMb PDeblockingFilterMbFunc) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h.go:256:1: The line is 134 characters long, which exceeds the maximum of 120 characters. (lll)
+func WELS_CHECK_SE_BOTH_ERROR[T common.Integer](pCtx *SWelsDecoderContext, val, lower_bound, upper_bound T, syntax_name string) bool {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h.go:264:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+func WELS_CHECK_SE_LOWER_ERROR[T common.Integer](pCtx *SWelsDecoderContext, val, lower_bound T, syntax_name string) bool {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:143:1: The line is 134 characters long, which exceeds the maximum of 120 characters. (lll)
+	if (pCurSlice.eSliceType != common.I_SLICE) && (pCurSlice.eSliceType != common.P_SLICE) && (pCurSlice.eSliceType != common.B_SLICE) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:166:1: The line is 211 characters long, which exceeds the maximum of 120 characters. (lll)
+func WelsMbInterSampleConstruction(pCtx *SWelsDecoderContext, pCurDqLayer *SDqLayer, pDstY []uint8, iDstYOff int, pDstU []uint8, iDstUOff int, pDstV []uint8, iDstVOff int, iStrideL int32, iStrideC int32) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:215:1: The line is 135 characters long, which exceeds the maximum of 120 characters. (lll)
+		if uiRetTmp := uint32(GetInterPred(pDec.pData[0], iDstY, pDec.pData[1], iDstCb, pDec.pData[2], iDstCr, pCtx)); uiRetTmp != ERR_NONE {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:460:1: The line is 136 characters long, which exceeds the maximum of 120 characters. (lll)
+func dsParseIntraChromaPredMode(pCtx *SWelsDecoderContext, uiNeighAvail uint8, pBs *common.SBitStringAux, pCurDqLayer *SDqLayer) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:493:1: The line is 160 characters long, which exceeds the maximum of 120 characters. (lll)
+func ParseIntra4x4Mode(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, pIntraPredMode []int8, pBs *common.SBitStringAux, pCurDqLayer *SDqLayer) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:563:1: The line is 160 characters long, which exceeds the maximum of 120 characters. (lll)
+func ParseIntra8x8Mode(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, pIntraPredMode []int8, pBs *common.SBitStringAux, pCurDqLayer *SDqLayer) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:637:1: The line is 139 characters long, which exceeds the maximum of 120 characters. (lll)
+func ParseIntra16x16Mode(pCtx *SWelsDecoderContext, pNeighAvail *SWelsNeighAvail, pBs *common.SBitStringAux, pCurDqLayer *SDqLayer) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:891:1: The line is 148 characters long, which exceeds the maximum of 120 characters. (lll)
+			if uiRetTmp := uint32(ParseTransformSize8x8FlagCabac(pCtx, &sNeighAvail, &pCtx.pCurDqLayer.pTransformSize8x8Flag[iMbXy])); uiRetTmp != ERR_NONE {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:1460:1: Function name: RequestMemorySvc, Cyclomatic Complexity: 27, Halstead Volume: 9193.72, Maintainability Index: 17 (maintidx)
+func RequestMemorySvc(ppCtx **sWelsEncCtx, pExistingParasetList *SExistingParasetList) int32 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:1436:1: Function name: WelsMdInterMbRefinement, Cyclomatic Complexity: 16, Halstead Volume: 11445.02, Maintainability Index: 18 (maintidx)
+func WelsMdInterMbRefinement(pEncCtx *sWelsEncCtx, pWelsMd *SWelsMD, pCurMb *SMB, pMbCache *SMbCache) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main.go:599:27: `lenght` is a misspelling of `length` (misspell)
+						stdout.WriteString("lenght file not specified.\n")
+						                    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main_test.go:382:64: `lenght` is a misspelling of `length` (misspell)
+		{[]string{"h264dec", "input.264", "output.yuv", "-length"}, "lenght file not specified"},
+		                                                             ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264enc/main.go:482:90: `settting` is a misspelling of `setting` (misspell)
+			fmt.Fprintf(os.Stderr, "Specified file: %s not exist, maybe invalid path or parameter settting.\n",
+			                                                                                      ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:16:83: `boundry` is a misspelling of `boundary` (misspell)
+func UT_DeblockingFuncInterface(pCurDqLayer *SDqLayer, filter *SDeblockingFilter, boundry_flag int32) {
+                                                                                  ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_mb_aux.go:57:58: `funciton` is a misspelling of `function` (misspell)
+	// To make the ASM code easy to write, should using one funciton to apply hor and ver together, such as we did on HEVC
+	                                                        ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_context_h.go:159:85: `boundry` is a misspelling of `boundary` (misspell)
+type PDeblockingFilterMbFunc func(pCurDqLayer *SDqLayer, filter *SDeblockingFilter, boundry_flag int32)
+                                                                                    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1764:60: `prefered` is a misspelling of `preferred` (misspell)
+		// a more simpler method to do nal units list management prefered here
+		                                                         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:110:49: `efficency` is a misspelling of `efficiency` (misspell)
+	/*********************got from other layer for efficency if possible*********************/
+	                                               ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_context_h.go:42:69: `recieved` is a misspelling of `received` (misspell)
+	bReceivedT0LostFlag bool // indicate whether a t0 lost feedback is recieved, for LTR recovery
+	                                                                   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:165:83: `settting` is a misspelling of `setting` (misspell)
+	// iCountMbNum constraint by MIN_NUM_MB_PER_SLICE condition of multi-pSlice mode settting
+	                                                                                 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/picture_h.go:77:31: `RECIEVE` is a misspelling of `RECEIVE` (misspell)
+	p.uiRecieveConfirmed = uint8(RECIEVE_FAILED)
+	                             ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ref_list_mgr_svc.go:195:48: `RECIEVE` is a misspelling of `RECEIVE` (misspell)
+				pLongRefList[i].uiRecieveConfirmed = uint8(RECIEVE_SUCCESS)
+				                                           ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ref_list_mgr_svc.go:234:68: `recieve` is a misspelling of `receive` (misspell)
+			pParamInternal.bEncCurFrmAsIdrFlag = true // no LTR , means IDR recieve failed, force next frame IDR
+			                                                                ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ref_list_mgr_svc.go:261:47: `RECIEVE` is a misspelling of `RECEIVE` (misspell)
+		pShortRefList[i].uiRecieveConfirmed = uint8(RECIEVE_SUCCESS)
+		                                            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_enc_slice_segment.go:77:5: `extention` is a misspelling of `extension` (misspell)
+	// extention for other multiple slice type in the future
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:447:2: naked return in func `ref8x8Filtered` with 31 lines of code (nakedret)
+	return
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:236:1: `if pNalUnitHeader.ENalUnitType == common.NAL_UNIT_CODED_SLICE_EXT` has complex nested blocks (complexity: 37) (nestif)
+		if pNalUnitHeader.ENalUnitType == common.NAL_UNIT_CODED_SLICE_EXT {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:455:1: `if kpSps.uiPocType == 0` has complex nested blocks (complexity: 5) (nestif)
+	if kpSps.uiPocType == 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:529:1: `if kpSps.uiPocType == 0` has complex nested blocks (complexity: 5) (nestif)
+	if kpSps.uiPocType == 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:655:1: `if kbAdaptiveMarkingModeFlag` has complex nested blocks (complexity: 9) (nestif)
+	if kbAdaptiveMarkingModeFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:695:1: `if pCurNal.sNalHeaderExt.SNalUnitHeader.UiNalRefIdc != 0` has complex nested blocks (complexity: 8) (nestif)
+	if pCurNal.sNalHeaderExt.SNalUnitHeader.UiNalRefIdc != 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:773:1: `if pExt.uiExtendedSpatialScalability == 1` has complex nested blocks (complexity: 6) (nestif)
+	if pExt.uiExtendedSpatialScalability == 1 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:884:1: `if bUseSubsetFlag` has complex nested blocks (complexity: 25) (nestif)
+	if bUseSubsetFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1011:1: `if api.PRO_SCALABLE_BASELINE == eProfile || api.PRO_SCALABLE_HIGH == eProfile ||
+api.PRO_HIGH == eProfile || api.PRO_HIGH10 == eProfile ||
+api.PRO_HIGH422 == eProfile || api.PRO_HIGH444 == eProfile ||
+api.PRO_CAVLC444 == eProfile || 44 == uiProfileIdc` has complex nested blocks (complexity: 11) (nestif)
+	if api.PRO_SCALABLE_BASELINE == eProfile || api.PRO_SCALABLE_HIGH == eProfile ||
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1073:1: `if 0 == pSps.uiPocType` has complex nested blocks (complexity: 9) (nestif)
+	if 0 == pSps.uiPocType {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1193:1: `if pSps.bFrameCroppingFlag` has complex nested blocks (complexity: 7) (nestif)
+	if pSps.bFrameCroppingFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1228:1: `if pSps.bVuiParamPresentFlag` has complex nested blocks (complexity: 6) (nestif)
+	if pSps.bVuiParamPresentFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1242:1: `if pCtx.pParam.BParseOnly` has complex nested blocks (complexity: 12) (nestif)
+	if pCtx.pParam.BParseOnly {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1530:1: `if CheckMoreRBSPData(pBsAux)` has complex nested blocks (complexity: 11) (nestif)
+	if CheckMoreRBSPData(pBsAux) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1623:1: `if pSps.sVui.bAspectRatioInfoPresentFlag` has complex nested blocks (complexity: 7) (nestif)
+	if pSps.sVui.bAspectRatioInfoPresentFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1656:1: `if pVui.bVideoSignalTypePresentFlag` has complex nested blocks (complexity: 10) (nestif)
+	if pVui.bVideoSignalTypePresentFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1706:1: `if pVui.bTimingInfoPresentFlag` has complex nested blocks (complexity: 5) (nestif)
+	if pVui.bTimingInfoPresentFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1758:1: `if pVui.bBitstreamRestrictionFlag` has complex nested blocks (complexity: 7) (nestif)
+	if pVui.bBitstreamRestrictionFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1918:1: `if uiCode != 0` has complex nested blocks (complexity: 19) (nestif)
+		if uiCode != 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:228:1: `if uiOffset >= cabacShl64(uiRange, pDecEngine.iBitsLeft)` has complex nested blocks (complexity: 7) (nestif)
+	if uiOffset >= cabacShl64(uiRange, pDecEngine.iBitsLeft) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:327:1: `if *uiCode == 0` has complex nested blocks (complexity: 6) (nestif)
+	if *uiCode == 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/cabac_decoder.go:362:1: `if *uiCode == 0` has complex nested blocks (complexity: 6) (nestif)
+	if *uiCode == 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:711:1: `if pFilter.iChromaQP[0] == pFilter.iChromaQP[1]` has complex nested blocks (complexity: 5) (nestif)
+	if pFilter.iChromaQP[0] == pFilter.iChromaQP[1] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:740:1: `if pFilter.iChromaQP[0] == pFilter.iChromaQP[1]` has complex nested blocks (complexity: 5) (nestif)
+	if pFilter.iChromaQP[0] == pFilter.iChromaQP[1] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:768:1: `if pFilter.iChromaQP[0] == pFilter.iChromaQP[1]` has complex nested blocks (complexity: 5) (nestif)
+	if pFilter.iChromaQP[0] == pFilter.iChromaQP[1] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:1107:1: `if common.IS_SKIP(iCurMbType)` has complex nested blocks (complexity: 9) (nestif)
+		if common.IS_SKIP(iCurMbType) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:464:1: `if pCurDqLayer.sLayerInfo.pPps.bEntropyCodingModeFlag` has complex nested blocks (complexity: 5) (nestif)
+	if pCurDqLayer.sLayerInfo.pPps.bEntropyCodingModeFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:519:1: `if pCurDqLayer.sLayerInfo.pPps.bEntropyCodingModeFlag` has complex nested blocks (complexity: 7) (nestif)
+		if pCurDqLayer.sLayerInfo.pPps.bEntropyCodingModeFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:594:1: `if pCurDqLayer.sLayerInfo.pPps.bEntropyCodingModeFlag` has complex nested blocks (complexity: 7) (nestif)
+		if pCurDqLayer.sLayerInfo.pPps.bEntropyCodingModeFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:713:1: `if common.MB_TYPE_INTRA16x16 == pCurDqLayer.pDec.pMbType[iMbXy]` has complex nested blocks (complexity: 26) (nestif)
+	if common.MB_TYPE_INTRA16x16 == pCurDqLayer.pDec.pMbType[iMbXy] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:784:1: `if 1 == uiCbpChroma || 2 == uiCbpChroma` has complex nested blocks (complexity: 9) (nestif)
+	if 1 == uiCbpChroma || 2 == uiCbpChroma {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:807:1: `if 2 == uiCbpChroma` has complex nested blocks (complexity: 10) (nestif)
+	if 2 == uiCbpChroma {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1065:1: `if pCurDqLayer.pCbp[iMbXy] != 0 || common.MB_TYPE_INTRA16x16 == pCurDqLayer.pDec.pMbType[iMbXy]` has complex nested blocks (complexity: 11) (nestif)
+	if pCurDqLayer.pCbp[iMbXy] != 0 || common.MB_TYPE_INTRA16x16 == pCurDqLayer.pDec.pMbType[iMbXy] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1263:1: `if uiCode != 0` has complex nested blocks (complexity: 8) (nestif)
+	if uiCode != 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1321:1: `if pCtx.pSps.bSeqScalingMatrixPresentFlag || pCtx.pPps.bPicScalingMatrixPresentFlag` has complex nested blocks (complexity: 8) (nestif)
+	if pCtx.pSps.bSeqScalingMatrixPresentFlag || pCtx.pPps.bPicScalingMatrixPresentFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1373:1: `if pCtx.pPps.bEntropyCodingModeFlag` has complex nested blocks (complexity: 8) (nestif)
+	if pCtx.pPps.bEntropyCodingModeFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1725:1: `if common.MB_TYPE_INTRA16x16 == pCurDqLayer.pDec.pMbType[iMbXy]` has complex nested blocks (complexity: 25) (nestif)
+	if common.MB_TYPE_INTRA16x16 == pCurDqLayer.pDec.pMbType[iMbXy] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1795:1: `if 1 == uiCbpC || 2 == uiCbpC` has complex nested blocks (complexity: 9) (nestif)
+	if 1 == uiCbpC || 2 == uiCbpC {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1818:1: `if 2 == uiCbpC` has complex nested blocks (complexity: 9) (nestif)
+	if 2 == uiCbpC {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2136:1: `if common.MB_TYPE_INTRA16x16 != pCurDqLayer.pDec.pMbType[iMbXy]` has complex nested blocks (complexity: 14) (nestif)
+	if common.MB_TYPE_INTRA16x16 != pCurDqLayer.pDec.pMbType[iMbXy] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2224:1: `if -1 == pSlice.iMbSkipRun` has complex nested blocks (complexity: 5) (nestif)
+	if -1 == pSlice.iMbSkipRun {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2240:1: `if bSkip` has complex nested blocks (complexity: 23) (nestif)
+	if bSkip {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2384:1: `if pSliceHeader.iDirectSpatialMvPredFlag == 0` has complex nested blocks (complexity: 11) (nestif)
+	if pSliceHeader.iDirectSpatialMvPredFlag == 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:414:1: `if pCtx.bHaveGotMemory && (kiPicWidth == pCtx.iImgWidthInPixel && kiPicHeight == pCtx.iImgHeightInPixel) &&
+pCtx.pPicBuff != nil && pCtx.pPicBuff.iCapacity != iPicQueueSize` has complex nested blocks (complexity: 8) (nestif)
+	if pCtx.bHaveGotMemory && (kiPicWidth == pCtx.iImgWidthInPixel && kiPicHeight == pCtx.iImgHeightInPixel) &&
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:660:1: `if !pCtx.bEndOfStreamFlag` has complex nested blocks (complexity: 78) (nestif)
+	if !pCtx.bEndOfStreamFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:336:1: `if uiCode != 0` has complex nested blocks (complexity: 5) (nestif)
+			if uiCode != 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:364:1: `if uiCode != 0` has complex nested blocks (complexity: 5) (nestif)
+			if uiCode != 0 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:405:1: `if pCurDqLayer.bUseWeightedBiPredIdc && pSliceHeader.pPps.uiWeightedBipredIdc == 2` has complex nested blocks (complexity: 18) (nestif)
+	if pCurDqLayer.bUseWeightedBiPredIdc && pSliceHeader.pPps.uiWeightedBipredIdc == 2 {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:468:1: `if pRefPicListReordering.bRefPicListReorderingFlag[iList]` has complex nested blocks (complexity: 12) (nestif)
+		if pRefPicListReordering.bRefPicListReorderingFlag[iList] {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:526:1: `if kbIdrFlag` has complex nested blocks (complexity: 49) (nestif)
+	if kbIdrFlag {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:847:1: `if pCtx.pParam.BParseOnly` has complex nested blocks (complexity: 5) (nestif)
+	if pCtx.pParam.BParseOnly {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:21:2: return with no blank line before (nlreturn)
+	return 0
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:46:4: return with no blank line before (nlreturn)
+			return kpBuf[pBits:]
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:116:3: return with no blank line before (nlreturn)
+		return nil, 0
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:341:5: break with no blank line before (nlreturn)
+				break
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder.go:794:5: continue with no blank line before (nlreturn)
+				continue
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1927:5: continue with no blank line before (nlreturn)
+				continue
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:2004:5: break with no blank line before (nlreturn)
+				break
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:2018:6: break with no blank line before (nlreturn)
+					break
+					^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/manage_dec_ref.go:1020:5: continue with no blank line before (nlreturn)
+				continue
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser_test.go:11:1: Function TestDetectStartCodePrefix missing the call to method parallel (paralleltest)
+func TestDetectStartCodePrefix(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser_test.go:27:1: Function TestGetLevelLimits missing the call to method parallel (paralleltest)
+func TestGetLevelLimits(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser_test.go:111:1: Function TestParseScalingListFromBitstream missing the call to method parallel (paralleltest)
+func TestParseScalingListFromBitstream(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser_test.go:166:1: Function TestParseParamSetsParseOnly missing the call to method parallel (paralleltest)
+func TestParseParamSetsParseOnly(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/bit_stream_test.go:12:1: Function TestDecInitBitsHandlesShortSeedBytesSafely missing the call to method parallel (paralleltest)
+func TestDecInitBitsHandlesShortSeedBytesSafely(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/bit_stream_test.go:32:1: Function TestBsGetBitsStopsOnTwoByteOverread missing the call to method parallel (paralleltest)
+func TestBsGetBitsStopsOnTwoByteOverread(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/bit_stream_test.go:50:1: Function TestDecInitBitsOffsetAndNil missing the call to method parallel (paralleltest)
+func TestDecInitBitsOffsetAndNil(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/bit_stream_test.go:74:1: Function TestRBSP2EBSP missing the call to method parallel (paralleltest)
+func TestRBSP2EBSP(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/conformance_test.go:230:1: Function TestDecoderConformance missing the call to method parallel (paralleltest)
+func TestDecoderConformance(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/conformance_test.go:231:2: Range statement for test TestDecoderConformance missing the call to method parallel in test Run (paralleltest)
+	for _, p := range confFileParamArray {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/conformance_test.go:250:1: Function TestDecoderInitJustInit missing the call to method parallel (paralleltest)
+func TestDecoderInitJustInit(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:47:1: Function TestDecoderDeblocking_DeblockingAvailableNoInterlayer missing the call to method parallel (paralleltest)
+func TestDecoderDeblocking_DeblockingAvailableNoInterlayer(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:121:1: Function TestDecoderDeblocking_DeblockingInit missing the call to method parallel (paralleltest)
+func TestDecoderDeblocking_DeblockingInit(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:152:1: Function TestDecoderDeblocking_WelsDeblockingFilterSlice missing the call to method parallel (paralleltest)
+func TestDecoderDeblocking_WelsDeblockingFilterSlice(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:232:1: Function TestDecoderDeblocking_FilteringEdgeChromaHV missing the call to method parallel (paralleltest)
+func TestDecoderDeblocking_FilteringEdgeChromaHV(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:290:1: Function TestDecoderDeblocking_FilteringEdgeLumaHV missing the call to method parallel (paralleltest)
+func TestDecoderDeblocking_FilteringEdgeLumaHV(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:350:1: Function TestDecoderDeblocking_DeblockingBsMarginalMBAvcbase missing the call to method parallel (paralleltest)
+func TestDecoderDeblocking_DeblockingBsMarginalMBAvcbase(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking_test.go:466:1: Function TestDeblocking_WelsDeblockingMb missing the call to method parallel (paralleltest)
+func TestDeblocking_WelsDeblockingMb(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h_test.go:30:1: Function TestGolombRoundTrip missing the call to method parallel (paralleltest)
+func TestGolombRoundTrip(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h_test.go:73:1: Function TestGetPrefixBits missing the call to method parallel (paralleltest)
+func TestGetPrefixBits(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h_test.go:81:1: Function TestInitVlcTable missing the call to method parallel (paralleltest)
+func TestInitVlcTable(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_mb_aux_test.go:104:1: Function TestDecoderDecodeMbAux_IdctResAddPred_c missing the call to method parallel (paralleltest)
+func TestDecoderDecodeMbAux_IdctResAddPred_c(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_mb_aux_test.go:141:1: Function TestDecoderDecodeMbAux_IdctResAddPred8x8_c missing the call to method parallel (paralleltest)
+func TestDecoderDecodeMbAux_IdctResAddPred8x8_c(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_mb_aux_test.go:175:1: Function TestDecoderDecodeMbAux_GetI4LumaIChromaAddrTable missing the call to method parallel (paralleltest)
+func TestDecoderDecodeMbAux_GetI4LumaIChromaAddrTable(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice_test.go:12:1: Function TestWelsChromaDcIdct missing the call to method parallel (paralleltest)
+func TestWelsChromaDcIdct(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice_test.go:24:1: Function TestWelsLumaDcDequantIdct missing the call to method parallel (paralleltest)
+func TestWelsLumaDcDequantIdct(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice_test.go:60:1: Function TestWelsBlockZero missing the call to method parallel (paralleltest)
+func TestWelsBlockZero(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice_test.go:77:1: Function TestWelsMap16x16NeighToSample missing the call to method parallel (paralleltest)
+func TestWelsMap16x16NeighToSample(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice_test.go:97:1: Function TestComputeColocatedTemporalScaling missing the call to method parallel (paralleltest)
+func TestComputeColocatedTemporalScaling(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:27:1: Function TestExpandBsBufferRetargetsParseOnlyNalPos missing the call to method parallel (paralleltest)
+func TestExpandBsBufferRetargetsParseOnlyNalPos(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:80:1: Function TestExpandBsBufferRetargetsQueuedNalUnitsOnly missing the call to method parallel (paralleltest)
+func TestExpandBsBufferRetargetsQueuedNalUnitsOnly(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:122:1: Function TestCheckBsBuffer missing the call to method parallel (paralleltest)
+func TestCheckBsBuffer(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:139:1: Function TestDecodeNalHeaderExt missing the call to method parallel (paralleltest)
+func TestDecodeNalHeaderExt(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:151:1: Function TestForceResetCurrentAccessUnit missing the call to method parallel (paralleltest)
+func TestForceResetCurrentAccessUnit(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:169:1: Function TestResetCurrentAccessUnit missing the call to method parallel (paralleltest)
+func TestResetCurrentAccessUnit(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:232:1: Function TestParseSliceHeaderSyntaxsIdr missing the call to method parallel (paralleltest)
+func TestParseSliceHeaderSyntaxsIdr(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:309:1: Function TestParseRefPicListReordering missing the call to method parallel (paralleltest)
+func TestParseRefPicListReordering(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core_test.go:349:1: Function TestInitialDqLayersContext missing the call to method parallel (paralleltest)
+func TestInitialDqLayersContext(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment_test.go:162:1: Function TestErrorConTest_DoErrorConFrameCopy missing the call to method parallel (paralleltest)
+func TestErrorConTest_DoErrorConFrameCopy(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment_test.go:204:1: Function TestErrorConTest_DoErrorConSliceCopy missing the call to method parallel (paralleltest)
+func TestErrorConTest_DoErrorConSliceCopy(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment_test.go:237:1: Function TestErrorConTest_DoErrorConFrameCopyResolutionMismatchFallsBackToFill missing the call to method parallel (paralleltest)
+func TestErrorConTest_DoErrorConFrameCopyResolutionMismatchFallsBackToFill(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment_test.go:260:1: Function TestErrorConTest_DoErrorConSliceCopyResolutionMismatchFallsBackToFill missing the call to method parallel (paralleltest)
+func TestErrorConTest_DoErrorConSliceCopyResolutionMismatchFallsBackToFill(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/fmo_test.go:7:1: Function TestFmoRejectsOversizedRunLengthBeforeIndexWrap missing the call to method parallel (paralleltest)
+func TestFmoRejectsOversizedRunLengthBeforeIndexWrap(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/fmo_test.go:25:1: Function TestFmoType0Type1AndNextMb missing the call to method parallel (paralleltest)
+func TestFmoType0Type1AndNextMb(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:349:1: Function TestDecoderIntraPrediction4x4 missing the call to method parallel (paralleltest)
+func TestDecoderIntraPrediction4x4(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:369:2: Range statement for test TestDecoderIntraPrediction4x4 missing the call to method parallel in test Run (paralleltest)
+	for _, c := range cases {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:374:1: Function TestDecoderIntraPredictionChroma missing the call to method parallel (paralleltest)
+func TestDecoderIntraPredictionChroma(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:387:2: Range statement for test TestDecoderIntraPredictionChroma missing the call to method parallel in test Run (paralleltest)
+	for _, c := range cases {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:392:1: Function TestDecoderIntraPrediction16x16 missing the call to method parallel (paralleltest)
+func TestDecoderIntraPrediction16x16(t *testing.T) {
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:405:2: Range statement for test TestDecoderIntraPrediction16x16 missing the call to method parallel in test Run (paralleltest)
+	for _, c := range cases {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:105:5: QF1001: could apply De Morgan's law (staticcheck)
+	if !(common.IS_SEI_NAL(eNalUnitType) || common.IS_SPS_NAL(eNalUnitType) ||
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:119:5: QF1001: could apply De Morgan's law (staticcheck)
+	if !(common.IS_SEI_NAL(eNalUnitType) || common.IS_PARAM_SETS_NALS(eNalUnitType) ||
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:133:50: QF1001: could apply De Morgan's law (staticcheck)
+	if (common.IS_VCL_NAL_AVC_BASE(eNalUnitType) && !(pCtx.sSpsPpsCtx.bSpsExistAheadFlag ||
+	                                                ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:669:4: QF1003: could use tagged switch on kuiMmco (staticcheck)
+			if kuiMmco == common.MMCO_SHORT2UNUSED {
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1014:35: ST1017: don't use Yoda conditions (staticcheck)
+		api.PRO_CAVLC444 == eProfile || 44 == uiProfileIdc {
+		                                ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1083:12: ST1017: don't use Yoda conditions (staticcheck)
+	} else if 1 == pSps.uiPocType {
+	          ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1288:4: QF1003: could use tagged switch on pSps.uiPocType (staticcheck)
+			if pSps.uiPocType == 0 {
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1332:3: SA9003: empty branch (staticcheck)
+		if pSubsetSps.bSvcVuiParamPresentFlag {
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/bit_stream.go:15:2: S1021: should merge variable declaration with assignment on next line (staticcheck)
+	var uiValue uint32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:643:5: ST1017: don't use Yoda conditions (staticcheck)
+	if 2 == iFilterIdc {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_golomb_h.go:239:2: S1008: should use 'return (int(pBsAux.IBits) - ((pBsAux.PCurBuf - pBsAux.PStartBuf - 2) << 3) - int(pBsAux.ILeftBits)) > 1' instead of 'if (int(pBsAux.IBits) - ((pBsAux.PCurBuf - pBsAux.PStartBuf - 2) << 3) - int(pBsAux.ILeftBits)) > 1 { return true }; return false' (staticcheck)
+	if (int(pBsAux.IBits) - ((pBsAux.PCurBuf - pBsAux.PStartBuf - 2) << 3) - int(pBsAux.ILeftBits)) > 1 {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:96:3: QF1006: could lift into loop condition (staticcheck)
+		if iCountNumMb >= iTotalNumMb {
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1971:2: S1021: should merge variable declaration with assignment on next line (staticcheck)
+	var iUsedBits int64
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2397:18: ST1023: should omit type int32 from declaration; it will be inferred from the right-hand side (staticcheck)
+						var iAbsTd int32 = td
+						           ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:489:5: QF1003: could use tagged switch on kuiIdc (staticcheck)
+				if kuiIdc == 0 || kuiIdc == 1 {
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:554:5: QF1003: could use tagged switch on kuiMmco (staticcheck)
+				if kuiMmco == common.MMCO_SHORT2UNUSED || kuiMmco == common.MMCO_SHORT2LONG {
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1015:5: S1002: should omit comparison to bool constant, can be simplified to !pCtx.sSpsPpsCtx.bPpsAvailFlags[iPpsId] (staticcheck)
+	if pCtx.sSpsPpsCtx.bPpsAvailFlags[iPpsId] == false {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1041:6: S1002: should omit comparison to bool constant, can be simplified to !pCtx.sSpsPpsCtx.bSubspsAvailFlags[pPps.iSpsId] (staticcheck)
+		if pCtx.sSpsPpsCtx.bSubspsAvailFlags[pPps.iSpsId] == false {
+		   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1056:6: S1002: should omit comparison to bool constant, can be simplified to !pCtx.sSpsPpsCtx.bSpsAvailFlags[pPps.iSpsId] (staticcheck)
+		if pCtx.sSpsPpsCtx.bSpsAvailFlags[pPps.iSpsId] == false {
+		   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1578:4: QF1006: could lift into loop condition (staticcheck)
+			if pRefBasePicMarking.mmco_base[iIdx].uiMmcoType == common.MMCO_END {
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1998:3: S1021: should merge variable declaration with assignment on next line (staticcheck)
+		var iIdxDependId int32
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/error_concealment.go:189:5: S1002: should omit comparison to bool constant, can be simplified to pDec.bIdrFlag (staticcheck)
+	if pDec.bIdrFlag == true || pCtx.pECRefPic[0] == nil {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/manage_dec_ref.go:839:63: SA4008: variable in loop condition never changes (staticcheck)
+		for i := int32(pRefPic.uiShortRefCount[common.LIST_0]) - 1; i >= 0; i-- {
+		                                                            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:293:19: ST1023: should omit type MbType from declaration; it will be inferred from the right-hand side (staticcheck)
+	var coloc_mbType MbType = colocPic.pMbType[iMbXy]
+	                 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:700:4: QF1003: could use tagged switch on listCount (staticcheck)
+			if listCount == 2 {
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/rec_mb.go:750:4: QF1003: could use tagged switch on listCount (staticcheck)
+			if listCount == 2 {
+			^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:740:11: SA5011: possible nil pointer dereference (staticcheck)
+	pDstInfo.UiInBsTimeStamp = uiInBsTimeStamp
+	         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:753:5: SA5011(related information): this check suggests that the pointer can be nil (staticcheck)
+	if pDstInfo != nil {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:1222:11: SA5011: possible nil pointer dereference (staticcheck)
+	pDstInfo.INalNum = 0
+	         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:1223:11: SA5011: possible nil pointer dereference (staticcheck)
+	pDstInfo.ISpsWidthInPixel = 0
+	         ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/welsDecoderExt.go:1225:5: SA5011(related information): this check suggests that the pointer can be nil (staticcheck)
+	if pDstInfo != nil {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/au_set.go:305:9: SA9003: empty branch (staticcheck)
+	} else {
+	       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/cavlc_packed_test.go:70:3: QF1003: could use tagged switch on end (staticcheck)
+		if end == 3 {
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/diamond_sad_four_caller_amd64_test.go:43:5: QF1003: could use tagged switch on motion (staticcheck)
+				if motion == 1 {
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder.go:254:9: SA9003: empty branch (staticcheck)
+	} else { // B pictures are not supported now, any else?
+	       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:247:6: S1002: should omit comparison to bool constant, can be simplified to !pCfg.BEnableSceneChangeDetect (staticcheck)
+		if pCfg.BEnableSceneChangeDetect == false {
+		   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext.go:2225:5: SA5011(related information): this check suggests that the pointer can be nil (staticcheck)
+	if nil == pCurDq || nil == pBaseSlice {
+	   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/paraset_strategy.go:448:3: SA4009(related information): assignment to kuiSpsId (staticcheck)
+		kuiSpsId = uint32(kiFoundSpsId)
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/paraset_strategy.go:606:3: SA4009(related information): assignment to kuiPpsId (staticcheck)
+		kuiPpsId = uint32(kiFoundPpsId)
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:540:5: S1002: should omit comparison to bool constant, can be simplified to !pEncCtx.pSvcParam.BEnableFrameSkip (staticcheck)
+			(pEncCtx.pSvcParam.BEnableFrameSkip == false)) {
+			 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:848:6: S1002: should omit comparison to bool constant, can be simplified to pEncCtx.pWelsSvcRc[iDidIdx].bSkipFlag (staticcheck)
+		if true == pEncCtx.pWelsSvcRc[iDidIdx].bSkipFlag {
+		   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:855:8: S1002: should omit comparison to bool constant, can be simplified to pEncCtx.pWelsSvcRc[iDidIdx].bSkipFlag (staticcheck)
+				if true == pEncCtx.pWelsSvcRc[iDidIdx].bSkipFlag {
+				   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:875:7: S1002: should omit comparison to bool constant, can be simplified to pEncCtx.pWelsSvcRc[iDidIdx].bSkipFlag (staticcheck)
+			if true == pEncCtx.pWelsSvcRc[iDidIdx].bSkipFlag {
+			   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/ratectl.go:1282:2: QF1003: could use tagged switch on pVaa.eSceneChangeIdc (staticcheck)
+	if pVaa.eSceneChangeIdc == processing.LARGE_CHANGED_SCENE {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_base_layer_md.go:609:5: QF1003: could use tagged switch on iAvailCount (staticcheck)
+				if iAvailCount == 9 {
+				^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_enc_slice_segment.go:258:2: S1008: should use 'return iNumMbLeft >= iMinimalMbNum' instead of 'if iNumMbLeft < iMinimalMbNum { return false }; return true' (staticcheck)
+	if iNumMbLeft < iMinimalMbNum {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/unchanged.go:175:2: S1008: should use 'return previousSkip' instead of 'if !previousSkip { return false }; return true' (staticcheck)
+	if !previousSkip {
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/welsEncoderExt.go:566:32: S1002: should omit comparison to bool constant, can be simplified to !p.m_bInitialFlag (staticcheck)
+	if (nil == p.m_pEncContext || false == p.m_bInitialFlag) && eOptionId != api.ENCODER_OPTION_TRACE_LEVEL &&
+	                              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/welsEncoderExt.go:1097:31: S1002: should omit comparison to bool constant, can be simplified to !p.m_bInitialFlag (staticcheck)
+	if nil == p.m_pEncContext || false == p.m_bInitialFlag {
+	                             ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_task_encoder.go:50:6: S1002: should omit comparison to bool constant, can be simplified to !pThreadBsBufferUsage[k] (staticcheck)
+		if pThreadBsBufferUsage[k] == false {
+		   ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/common/sad_simd_amd64_test.go:77:6: test helper function should start from b.Helper() (thelper)
+func benchmarkSampleSad(b *testing.B, scalar, simd func([]uint8, int, int32, []uint8, int, int32) int32) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser_test.go:36:6: test helper function should start from t.Helper() (thelper)
+func newParamSetTestCtx(t *testing.T) *SWelsDecoderContext {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser_test.go:50:6: test helper function should start from t.Helper() (thelper)
+func parseParamSets(t *testing.T, pCtx *SWelsDecoderContext, sFileName string) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/get_intra_predictor_test.go:301:6: test helper function should start from t.Helper() (thelper)
+func run4x4UT(t *testing.T, name string, pred, ref intraPredFunc) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/cmd/h264dec/main_test.go:131:6: TestWriteCroppedI420's subtests should call t.Parallel (tparallel)
+func TestWriteCroppedI420(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/dct_avx2_amd64_test.go:43:6: TestDCTFourAVX2RetainsSSE2Aliases's subtests should call t.Parallel (tparallel)
+func TestDCTFourAVX2RetainsSSE2Aliases(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/dct_mb_amd64_test.go:66:6: TestWelsDctMbAliasesPreserveAccessOrder's subtests should call t.Parallel (tparallel)
+func TestWelsDctMbAliasesPreserveAccessOrder(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/dct_simd_test.go:33:6: TestWelsDctT4SSE2ExtremePixels's subtests should call t.Parallel (tparallel)
+func TestWelsDctT4SSE2ExtremePixels(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext_validation_test.go:319:6: TestEncoderInitializationRejectsInvalidInternalParameters's subtests should call t.Parallel (tparallel)
+func TestEncoderInitializationRejectsInvalidInternalParameters(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext_validation_test.go:362:6: TestEncoderOptionsRejectWrongTypes's subtests should call t.Parallel (tparallel)
+func TestEncoderOptionsRejectWrongTypes(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_ext_validation_test.go:464:6: TestEncoderRuntimeOptionsUpdateState's subtests should call t.Parallel (tparallel)
+func TestEncoderRuntimeOptionsUpdateState(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/quant_scan_luma_test.go:79:6: TestQuantScanLumaAliasedGroups's subtests should call t.Parallel (tparallel)
+func TestQuantScanLumaAliasedGroups(t *testing.T) {
+     ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cabac.go:905:18: unnecessary conversion (unconvert)
+	mbType := MbType(pCurDqLayer.pDec.pMbType[iMbXy])
+	                ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parse_mb_syn_cavlc.go:1466:18: unnecessary conversion (unconvert)
+	mbType := MbType(pCurDqLayer.pDec.pMbType[iMbXy])
+	                ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/svc_encode_slice_test.go:42:61: unnecessary conversion (unconvert)
+func (f *sliceBufferReallocTest) rand() int32 { return int32(f.rnd.Int31()) }
+                                                            ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/common/sad_common_test.go:8:24: refSad - aOff always receives aOff (83) (unparam)
+func refSad(a []uint8, aOff, aStride int, b []uint8, bOff, bStride int, w, h int) int32 {
+                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/deblocking.go:167:40: dbkOnMbBs - ref_q1 is unused (unparam)
+func dbkOnMbBs(ref_p0, ref_q0, ref_p1, ref_q1 *SPicture, mv0, mv1 [][common.MB_BLOCK4x4_NUM][common.MV_A]int16,
+                                       ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/manage_dec_ref.go:167:43: memsetPlane - v always receives 128 (unparam)
+func memsetPlane(pData []uint8, iOff int, v uint8, n int) {
+                                          ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:24:63: setRectBlockInt8 - stride always receives 4 (unparam)
+func setRectBlockInt8(p *[16]int8, off int, w int32, h int32, stride int32, val int8) {
+                                                              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred.go:40:47: setRectBlockMv - w always receives 2 (unparam)
+func setRectBlockMv(p *[16][2]int16, off int, w int32, h int32, stride int32, val [2]int16) {
+                                              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/get_intra_predictor_test.go:35:25: (ipNeighbours).p - x always receives -1 (unparam)
+func (n ipNeighbours) p(x, y int) int32 {
+                        ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_common_basis_h.go:15:50: (*SMVUnitXY).sDeltaMv - result 0 (*github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.SMVUnitXY) is never used (unparam)
+func (p *SMVUnitXY) sDeltaMv(_v0, _v1 SMVUnitXY) *SMVUnitXY {
+                                                 ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/wels_common_basis_h.go:22:46: (*SMVUnitXY).sAssignMv - result 0 (*github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/encoder.SMVUnitXY) is never used (unparam)
+func (p *SMVUnitXY) sAssignMv(_v0 SMVUnitXY) *SMVUnitXY {
+                                             ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/processing/SceneChangeDetection_h.go:47:95: (*CSceneChangeDetectorVideo).initCSceneChangeDetectorVideo - iCpuFlag is unused (unparam)
+func (v *CSceneChangeDetectorVideo) initCSceneChangeDetectorVideo(sParam *SSceneChangeResult, iCpuFlag int32) {
+                                                                                              ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:30:2: field pFmo is unused (unused)
+	pFmo                            *SFmo                 // Current fmo context pointer used
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:71:2: field uiSpsId is unused (unused)
+	uiSpsId                                uint32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:84:2: field pRef is unused (unused)
+	pRef *SPicture // reference picture pointer
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:107:2: field sLayerInfo is unused (unused)
+	sLayerInfo    SLayerInfo
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:108:2: field pBitStringAux is unused (unused)
+	pBitStringAux *common.SBitStringAux // pointer to SBitStringAux
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:110:2: field pMbType is unused (unused)
+	pMbType        []uint32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:111:2: field pSliceIdc is unused (unused)
+	pSliceIdc      []int32 // using int32_t for slice_idc
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:112:2: field pLumaQp is unused (unused)
+	pLumaQp        []int8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:113:2: field pCbp is unused (unused)
+	pCbp           []int8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:114:2: field pNzc is unused (unused)
+	pNzc           [][24]int8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:115:2: field pIntraPredMode is unused (unused)
+	pIntraPredMode [][8]int8 //0~3 top4x4 ; 4~6 left 4x4; 7 intra16x16
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:116:2: field iMbX is unused (unused)
+	iMbX           int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:117:2: field iMbY is unused (unused)
+	iMbY           int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:118:2: field iMbXyIndex is unused (unused)
+	iMbXyIndex     int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:119:2: field iMbWidth is unused (unused)
+	iMbWidth       int32 // MB width of this picture, equal to sSps.iMbWidth
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/dec_frame_h.go:120:2: field iMbHeight is unused (unused)
+	iMbHeight      int32 // MB height of this picture, equal to sSps.iMbHeight;
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_context_h.go:220:2: field sFrameCrop is unused (unused)
+	sFrameCrop SPosOffset
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_context_h.go:314:2: field pMotionPredFlag is unused (unused)
+	pMotionPredFlag                 [LAYER_NUM_EXCHANGEABLE][common.LIST_A][][common.MB_PARTITION_SIZE]uint8 // 8x8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_context_h.go:426:2: field iNalNum is unused (unused)
+	iNalNum          int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_context_h.go:471:2: field pTraceHandle is unused (unused)
+	pTraceHandle any
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_context_h.go:538:2: field iPicBuffIdx is unused (unused)
+	iPicBuffIdx        int32 //picBuff Index
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:20:5: var g_kMbNonZeroCountIdx is unused (unused)
+var g_kMbNonZeroCountIdx = [24]uint8{
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:51:5: var g_kCache26ScanIdx is unused (unused)
+var g_kCache26ScanIdx = [16]uint8{ //intra4*4_pred_mode and pNonZeroCount cache scan index, 4*4 block as basic unit
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:59:5: var g_kCache30ScanIdx is unused (unused)
+var g_kCache30ScanIdx = [16]uint8{ //mv or pRefIndex cache scan index, 4*4 block as basic unit
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_data_tables.go:66:5: var g_kNonZeroScanIdxC is unused (unused)
+var g_kNonZeroScanIdxC = [4]uint8{ //pNonZeroCount cache for chroma, 4*4 block as basic unit
+    ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/fmo_h.go:17:2: field uiReserved is unused (unused)
+	uiReserved       [3]uint8 // reserved padding bytes
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mb_cache_h.go:41:2: field iDummy is unused (unused)
+	iDummy   [2]int8 //for align
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:28:2: field iPartIdx is unused (unused)
+	iPartIdx     int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:29:2: field iPartWidth is unused (unused)
+	iPartWidth   int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/mv_pred_test.go:30:2: field iRef is unused (unused)
+	iRef         int32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:88:2: field bSeparateColorPlaneFlag is unused (unused)
+	bSeparateColorPlaneFlag       bool
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:123:2: field bAdditionalExtension2Flag is unused (unused)
+	bAdditionalExtension2Flag     bool
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:124:2: field bAdditionalExtension2DataFlag is unused (unused)
+	bAdditionalExtension2DataFlag bool
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:139:2: field uiTopLeft is unused (unused)
+	uiTopLeft     [MAX_SLICEGROUP_IDS]uint32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:140:2: field uiBottomRight is unused (unused)
+	uiBottomRight [MAX_SLICEGROUP_IDS]uint32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:145:2: field uiSliceGroupId is unused (unused)
+	uiSliceGroupId      [MAX_SLICEGROUP_IDS]uint32
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:157:2: field bSliceGroupChangeDirectionFlag is unused (unused)
+	bSliceGroupChangeDirectionFlag      bool
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/parameter_sets_h.go:172:2: field iSecondChromaQPIndexOffset is unused (unused)
+	iSecondChromaQPIndexOffset int32 //second_chroma_qp_index_offset
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/picture_h.go:62:2: field bIsUngroupedMultiSlice is unused (unused)
+	bIsUngroupedMultiSlice bool //multi-slice picture with each each slice group contains one slice.
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:31:2: field bLumaWeightFlag is unused (unused)
+	bLumaWeightFlag   bool
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:32:2: field bChromaWeightFlag is unused (unused)
+	bChromaWeightFlag bool
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:98:2: field iSliceQsDelta is unused (unused)
+	iSliceQsDelta                int32 // For SP/SI slices
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:123:2: field uiPadding1Byte is unused (unused)
+	uiPadding1Byte               uint8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:124:2: field bSpForSwitchFlag is unused (unused)
+	bSpForSwitchFlag             bool // For SP/SI slices
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:125:2: field iPadding2Bytes is unused (unused)
+	iPadding2Bytes               int16
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/slice_h.go:186:2: field uiPadding is unused (unused)
+	uiPadding    [2]uint8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/deblocking_h.go:19:2: field uiReserved is unused (unused)
+	uiReserved          uint8
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_context_h.go:139:2: field pSubsetSps is unused (unused)
+	pSubsetSps    *SSubsetSps  // points into pSubsetArray
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_context_h.go:166:2: field sPSOVector is unused (unused)
+	sPSOVector SParaSetOffset
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/encoder/encoder_context_h.go:167:2: field pPSOVector is unused (unused)
+	pPSOVector *SParaSetOffset
+	^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1025:3: unnecessary trailing newline (whitespace)
+		} // To support 4:0:0; 4:2:0
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1939:3: unnecessary trailing newline (whitespace)
+		} else {
+		^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/au_parser.go:1959:1: unnecessary trailing newline (whitespace)
+}
+^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:1282:50: unnecessary leading newline (whitespace)
+		if pSliceHeader.iDirectSpatialMvPredFlag != 0 {
+		                                               ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decode_slice.go:2271:51: unnecessary leading newline (whitespace)
+			if pSliceHeader.iDirectSpatialMvPredFlag != 0 {
+			                                               ^
+../../../../tmp/devbox-pr3-port.4wQwx4/after/pkg/h264/internal/decoder/decoder_core.go:1618:113: unnecessary leading newline (whitespace)
+			pCurAu.uiActualUnitsNum { // no found IDR nal within incoming AU, need exit to avoid mosaic issue, 11/19/2009
+			                                                                                                             ^
+608 issues:
+* copyloopvar: 2
+* dogsled: 1
+* dupword: 8
+* err113: 10
+* errcheck: 14
+* exhaustive: 4
+* gochecknoglobals: 50
+* gochecknoinits: 1
+* gocritic: 50
+* gocyclo: 50
+* godot: 3
+* godox: 40
+* gofumpt: 3
+* gosec: 13
+* gosmopolitan: 1
+* ineffassign: 50
+* interfacebloat: 1
+* lll: 50
+* maintidx: 2
+* misspell: 15
+* nakedret: 1
+* nestif: 50
+* nlreturn: 9
+* paralleltest: 50
+* staticcheck: 50
+* thelper: 4
+* tparallel: 8
+* unconvert: 3
+* unparam: 9
+* unused: 50
+* whitespace: 6

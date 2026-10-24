@@ -1,0 +1,580 @@
+diff --git a/pkg/h264/internal/encoder/svc_encode_mb.go b/pkg/h264/internal/encoder/svc_encode_mb.go
+--- a/pkg/h264/internal/encoder/svc_encode_mb.go
++++ b/pkg/h264/internal/encoder/svc_encode_mb.go
+@@ -9,6 +9,9 @@
+ )
+ 
+ func WelsDctMb(pRes []int16, pEncMb []uint8, iEncMbOff int, iEncStride int32, pBestPred []uint8, iBestPredOff int, pfDctFourT4 PDctFunc) {
++	if dctLumaMbFast(pRes, pEncMb, iEncMbOff, iEncStride, pBestPred, iBestPredOff, pfDctFourT4) {
++		return
++	}
+ 	pfDctFourT4(pRes, pEncMb, iEncMbOff, iEncStride, pBestPred, iBestPredOff, 16)
+ 	pfDctFourT4(pRes[64:], pEncMb, iEncMbOff+8, iEncStride, pBestPred, iBestPredOff+8, 16)
+ 	pfDctFourT4(pRes[128:], pEncMb, iEncMbOff+8*int(iEncStride), iEncStride, pBestPred, iBestPredOff+128, 16)
+diff --git a/pkg/h264/internal/encoder/dct_mb_amd64.go b/pkg/h264/internal/encoder/dct_mb_amd64.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_amd64.go
+@@ -0,0 +1,41 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"reflect"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++// Checking the current callback preserves scalar selection and instrumentation
++// installed after initialization, including wrappers around the builtin.
++var dctLumaMbBuiltinPC = reflect.ValueOf(WelsDctFourT4_sse2).Pointer()
++
++//go:noescape
++func welsDctLumaMbAVX2(dct *[256]int16, enc *byte, encStride int, pred *[256]byte)
++
++// dctLumaMbFast batches the builtin transform after one complete preflight.
++// Rejected inputs retain the original per-quadrant validation, write order,
++// alias semantics and callback behavior; this function never writes on false.
++func dctLumaMbFast(coeff []int16, source []byte, sourceOffset int, stride int32,
++	prediction []byte, predictionOffset int, transform PDctFunc) bool {
++	if !cpu.X86.HasAVX2 || reflect.ValueOf(transform).Pointer() != dctLumaMbBuiltinPC {
++		return false
++	}
++	if len(coeff) < 256 || stride < 0 || sourceOffset < 0 || sourceOffset > len(source) ||
++		len(source)-sourceOffset < 16 || int64(stride)*15 > int64(len(source)-sourceOffset-16) ||
++		predictionOffset < 0 || predictionOffset > len(prediction) || len(prediction)-predictionOffset < 256 {
++		return false
++	}
++	dct := (*[256]int16)(coeff)
++	enc := &source[sourceOffset]
++	pred := (*[256]byte)(prediction[predictionOffset:])
++	if quantScanRangesOverlap(unsafe.Pointer(dct), 512, unsafe.Pointer(enc), uintptr(stride)*15+16) ||
++		quantScanRangesOverlap(unsafe.Pointer(dct), 512, unsafe.Pointer(pred), 256) {
++		return false
++	}
++	welsDctLumaMbAVX2(dct, enc, int(stride), pred)
++	return true
++}
+diff --git a/pkg/h264/internal/encoder/dct_mb_amd64.s b/pkg/h264/internal/encoder/dct_mb_amd64.s
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_amd64.s
+@@ -0,0 +1,161 @@
++// This forward transform follows OpenH264 2.6.0's AVX2 implementation in
++// codec/common/x86/dct.asm.
++// Copyright (c) 2009-2013, Cisco Systems.
++// All rights reserved.
++// BSD-2-Clause; see LICENSE-OpenH264 in the repository root.
++
++#include "textflag.h"
++
++DATA dctMbShufflePixels<>+0(SB)/8, $0x8002800180038000
++DATA dctMbShufflePixels<>+8(SB)/8, $0x8006800580078004
++GLOBL dctMbShufflePixels<>(SB), RODATA|NOPTR, $16
++
++DATA dctMbShufflePairs<>+0(SB)/8, $0x0504070601000302
++DATA dctMbShufflePairs<>+8(SB)/8, $0x0d0c0f0e09080b0a
++GLOBL dctMbShufflePairs<>(SB), RODATA|NOPTR, $16
++
++DATA dctMbHorizontalSigns<>+0(SB)/8, $0xffff0001ffff0001
++DATA dctMbHorizontalSigns<>+8(SB)/8, $0xffff0001ffff0001
++DATA dctMbHorizontalSigns<>+16(SB)/8, $0xffff0001ffff0001
++DATA dctMbHorizontalSigns<>+24(SB)/8, $0xffff0001ffff0001
++GLOBL dctMbHorizontalSigns<>(SB), RODATA|NOPTR, $32
++
++DATA dctMbHorizontalFactors<>+0(SB)/8, $0xfffeffff00020001
++DATA dctMbHorizontalFactors<>+8(SB)/8, $0xfffeffff00020001
++DATA dctMbHorizontalFactors<>+16(SB)/8, $0xfffeffff00020001
++DATA dctMbHorizontalFactors<>+24(SB)/8, $0xfffeffff00020001
++GLOBL dctMbHorizontalFactors<>(SB), RODATA|NOPTR, $32
++
++// DCT_FOUR_T4 transforms four 4x4 blocks: AX = 64-coefficient output,
++// BX/CX = first pixel block and stride, DX/SI = second pixel block and stride.
++// Each 128-bit lane holds one horizontal pair; the upper lanes hold the bottom
++// pair. The byte shuffle loads each row as [x0,x3,x1,x2] so each horizontal
++// transform uses signs, a word multiply and two shuffles. Coefficients are
++// stored row-major in TL, TR, BL, BR block order with unaligned stores.
++// R10-R13 hold the shuffle, sign and factor tables (DCT_TABLES).
++// Clobbers BX, DX and Y0-Y6.
++#define DCT_TABLES \
++	LEAQ dctMbShufflePixels<>(SB), R10; \
++	LEAQ dctMbShufflePairs<>(SB), R11; \
++	LEAQ dctMbHorizontalSigns<>(SB), R12; \
++	LEAQ dctMbHorizontalFactors<>(SB), R13
++
++#define DCT_FOUR_T4 \
++	VBROADCASTI128 (R10), Y6; \
++	VMOVQ (BX), X0; \
++	VPBROADCASTQ (BX)(CX*4), Y4; \
++	VPBLENDD $0xf0, Y4, Y0, Y0; \
++	VPSHUFB Y6, Y0, Y0; \
++	VMOVQ (DX), X4; \
++	VPBROADCASTQ (DX)(SI*4), Y5; \
++	VPBLENDD $0xf0, Y5, Y4, Y4; \
++	VPSHUFB Y6, Y4, Y4; \
++	VPSUBW Y4, Y0, Y0; \
++	ADDQ CX, BX; \
++	ADDQ SI, DX; \
++	VMOVQ (BX), X1; \
++	VPBROADCASTQ (BX)(CX*4), Y4; \
++	VPBLENDD $0xf0, Y4, Y1, Y1; \
++	VPSHUFB Y6, Y1, Y1; \
++	VMOVQ (DX), X4; \
++	VPBROADCASTQ (DX)(SI*4), Y5; \
++	VPBLENDD $0xf0, Y5, Y4, Y4; \
++	VPSHUFB Y6, Y4, Y4; \
++	VPSUBW Y4, Y1, Y1; \
++	ADDQ CX, BX; \
++	ADDQ SI, DX; \
++	VMOVQ (BX), X2; \
++	VPBROADCASTQ (BX)(CX*4), Y4; \
++	VPBLENDD $0xf0, Y4, Y2, Y2; \
++	VPSHUFB Y6, Y2, Y2; \
++	VMOVQ (DX), X4; \
++	VPBROADCASTQ (DX)(SI*4), Y5; \
++	VPBLENDD $0xf0, Y5, Y4, Y4; \
++	VPSHUFB Y6, Y4, Y4; \
++	VPSUBW Y4, Y2, Y2; \
++	ADDQ CX, BX; \
++	ADDQ SI, DX; \
++	VMOVQ (BX), X3; \
++	VPBROADCASTQ (BX)(CX*4), Y4; \
++	VPBLENDD $0xf0, Y4, Y3, Y3; \
++	VPSHUFB Y6, Y3, Y3; \
++	VMOVQ (DX), X4; \
++	VPBROADCASTQ (DX)(SI*4), Y5; \
++	VPBLENDD $0xf0, Y5, Y4, Y4; \
++	VPSHUFB Y6, Y4, Y4; \
++	VPSUBW Y4, Y3, Y3; \
++	VPSUBW Y3, Y0, Y5; \
++	VPADDW Y3, Y0, Y0; \
++	VPSUBW Y2, Y1, Y3; \
++	VPADDW Y2, Y1, Y1; \
++	VPSUBW Y1, Y0, Y2; \
++	VPADDW Y1, Y0, Y0; \
++	VPSLLW $1, Y5, Y1; \
++	VPADDW Y3, Y1, Y1; \
++	VPSLLW $1, Y3, Y3; \
++	VPSUBW Y3, Y5, Y3; \
++	VBROADCASTI128 (R11), Y6; \
++	VPSIGNW (R12), Y0, Y5; \
++	VPSHUFB Y6, Y0, Y0; \
++	VPADDW Y5, Y0, Y0; \
++	VPMULLW (R13), Y0, Y5; \
++	VPSHUFD $0xb1, Y0, Y0; \
++	VPADDW Y5, Y0, Y0; \
++	VPSIGNW (R12), Y1, Y5; \
++	VPSHUFB Y6, Y1, Y1; \
++	VPADDW Y5, Y1, Y1; \
++	VPMULLW (R13), Y1, Y5; \
++	VPSHUFD $0xb1, Y1, Y1; \
++	VPADDW Y5, Y1, Y1; \
++	VPSIGNW (R12), Y2, Y5; \
++	VPSHUFB Y6, Y2, Y2; \
++	VPADDW Y5, Y2, Y2; \
++	VPMULLW (R13), Y2, Y5; \
++	VPSHUFD $0xb1, Y2, Y2; \
++	VPADDW Y5, Y2, Y2; \
++	VPSIGNW (R12), Y3, Y5; \
++	VPSHUFB Y6, Y3, Y3; \
++	VPADDW Y5, Y3, Y3; \
++	VPMULLW (R13), Y3, Y5; \
++	VPSHUFD $0xb1, Y3, Y3; \
++	VPADDW Y5, Y3, Y3; \
++	VPUNPCKLQDQ Y1, Y0, Y5; \
++	VMOVDQU X5, 0(AX); \
++	VEXTRACTI128 $1, Y5, 64(AX); \
++	VPUNPCKHQDQ Y1, Y0, Y5; \
++	VMOVDQU X5, 32(AX); \
++	VEXTRACTI128 $1, Y5, 96(AX); \
++	VPUNPCKLQDQ Y3, Y2, Y5; \
++	VMOVDQU X5, 16(AX); \
++	VEXTRACTI128 $1, Y5, 80(AX); \
++	VPUNPCKHQDQ Y3, Y2, Y5; \
++	VMOVDQU X5, 48(AX); \
++	VEXTRACTI128 $1, Y5, 112(AX)
++
++// func welsDctLumaMbAVX2(dct *[256]int16, enc *byte, encStride int, pred *[256]byte)
++// Transforms the four 8x8 quadrants of a 16x16 macroblock residual in
++// WelsDctMb order; pred has stride 16.
++TEXT ·welsDctLumaMbAVX2(SB), NOSPLIT, $0-32
++	MOVQ dct+0(FP), AX
++	MOVQ enc+8(FP), R8
++	MOVQ encStride+16(FP), CX
++	MOVQ pred+24(FP), R9
++	MOVQ $16, SI
++	DCT_TABLES
++	MOVQ R8, BX
++	MOVQ R9, DX
++	DCT_FOUR_T4
++	ADDQ $128, AX
++	LEAQ 8(R8), BX
++	LEAQ 8(R9), DX
++	DCT_FOUR_T4
++	ADDQ $128, AX
++	LEAQ (R8)(CX*8), BX
++	LEAQ 128(R9), DX
++	DCT_FOUR_T4
++	ADDQ $128, AX
++	LEAQ 8(R8)(CX*8), BX
++	LEAQ 136(R9), DX
++	DCT_FOUR_T4
++	VZEROUPPER
++	RET
+diff --git a/pkg/h264/internal/encoder/dct_mb_amd64_test.go b/pkg/h264/internal/encoder/dct_mb_amd64_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_amd64_test.go
+@@ -0,0 +1,100 @@
++//go:build amd64
++
++package encoder
++
++import (
++	"fmt"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestDctLumaMbFastEligibility(t *testing.T) {
++	var coefficients [256]int16
++	pixels := make([]byte, 256)
++	if handled := dctLumaMbFast(coefficients[:], pixels, 0, 16, pixels, 0, WelsDctFourT4_sse2); handled != cpu.X86.HasAVX2 {
++		t.Fatalf("builtin handled=%t, AVX2=%t", handled, cpu.X86.HasAVX2)
++	}
++	for _, transform := range []PDctFunc{nil, WelsDctFourT4_c,
++		func(d []int16, a []byte, ao int, as int32, b []byte, bo int, bs int32) {
++			WelsDctFourT4_sse2(d, a, ao, as, b, bo, bs)
++		}} {
++		if dctLumaMbFast(coefficients[:], pixels, 0, 16, pixels, 0, transform) {
++			t.Fatal("non-builtin callback accepted")
++		}
++	}
++}
++
++func TestDctLumaMbFastRejectedSpansDoNotWrite(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, tc := range []struct {
++		name                               string
++		coeffLen, sourceLen, predictionLen int
++		sourceOffset, predictionOffset     int
++		stride                             int32
++	}{
++		{"short-output", 255, 256, 256, 0, 0, 16},
++		{"short-source", 256, 255, 256, 0, 0, 16},
++		{"short-prediction", 256, 256, 255, 0, 0, 16},
++		{"negative-stride", 256, 256, 256, 240, 0, -16},
++		{"negative-source-offset", 256, 256, 256, -1, 0, 16},
++		{"negative-prediction-offset", 256, 256, 256, 0, -1, 16},
++		{"source-offset-overflow", 256, 256, 256, int(^uint(0) >> 1), 0, 16},
++		{"prediction-offset-overflow", 256, 256, 256, 0, int(^uint(0) >> 1), 16},
++		{"large-stride", 256, 256, 256, 0, 0, 1<<31 - 1},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			var got, want [256]int16
++			for i := range got {
++				got[i], want[i] = -12345, -12345
++			}
++			pixels := make([]byte, 256)
++			if dctLumaMbFast(got[:tc.coeffLen], pixels[:tc.sourceLen], tc.sourceOffset, tc.stride,
++				pixels[:tc.predictionLen], tc.predictionOffset, WelsDctFourT4_sse2) {
++				t.Fatal("invalid span accepted")
++			}
++			if got != want {
++				t.Fatal("rejected transform modified output")
++			}
++		})
++	}
++}
++
++func TestWelsDctMbAliasesPreserveAccessOrder(t *testing.T) {
++	t.Parallel()
++	for _, stride := range []int{0, 1, 16, 31, -31} {
++		for _, outputOffset := range []int{0, 16, 128, 300} {
++			for _, input := range []int{1, 2, 3} {
++				t.Run(fmt.Sprintf("stride%d/output%d/input%d", stride, outputOffset, input), func(t *testing.T) {
++					var got, want [1024]int16
++					gotBytes := unsafe.Slice((*byte)(unsafe.Pointer(&got[0])), len(got)*2)
++					wantBytes := unsafe.Slice((*byte)(unsafe.Pointer(&want[0])), len(want)*2)
++					external := make([]byte, len(gotBytes))
++					for i := range gotBytes {
++						gotBytes[i], external[i] = byte(i*71+29), byte(i*43+17)
++					}
++					copy(wantBytes, gotBytes)
++					gotSource, gotPred, wantSource, wantPred := external, external, external, external
++					if input&1 != 0 {
++						gotSource, wantSource = gotBytes, wantBytes
++					}
++					if input&2 != 0 {
++						gotPred, wantPred = gotBytes, wantBytes
++					}
++					offset := 32
++					if stride < 0 {
++						offset -= 15 * stride
++					}
++					referenceDctLumaMb(want[outputOffset:], wantSource, offset, int32(stride), wantPred, 32, WelsDctFourT4_sse2)
++					WelsDctMb(got[outputOffset:], gotSource, offset, int32(stride), gotPred, 32, WelsDctFourT4_sse2)
++					if got != want {
++						t.Fatal("output alias changed the original per-quadrant access order")
++					}
++				})
++			}
++		}
++	}
++}
+diff --git a/pkg/h264/internal/encoder/dct_mb_bench_test.go b/pkg/h264/internal/encoder/dct_mb_bench_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_bench_test.go
+@@ -0,0 +1,38 @@
++package encoder
++
++import (
++	"fmt"
++	"testing"
++)
++
++// This benchmark uses only pre-existing interfaces so the identical fixture
++// can be copied into an unchanged checkout for before/after measurements.
++// The scalar and wrapped controls verify batching does not bypass callbacks.
++func BenchmarkWelsDctMb(b *testing.B) {
++	for _, stride := range []int{16, 64, 2048} {
++		b.Run(fmt.Sprintf("stride%d", stride), func(b *testing.B) {
++			source, prediction := make([]byte, 3+15*stride+16), make([]byte, 5+256)
++			for i := range source {
++				source[i] = byte(i*37 + 13)
++			}
++			for i := range prediction {
++				prediction[i] = byte(i*17 + 53)
++			}
++			wrapped := func(d []int16, src []byte, srcOff int, srcStride int32, pred []byte, predOff int, predStride int32) {
++				WelsDctFourT4_sse2(d, src, srcOff, srcStride, pred, predOff, predStride)
++			}
++			for _, mode := range []struct {
++				name      string
++				transform PDctFunc
++			}{{"default", WelsDctFourT4_sse2}, {"scalar", WelsDctFourT4_c}, {"wrapped", wrapped}} {
++				b.Run(mode.name, func(b *testing.B) {
++					var output [256]int16
++					b.ReportAllocs()
++					for b.Loop() {
++						WelsDctMb(output[:], source, 3, int32(stride), prediction, 5, mode.transform)
++					}
++				})
++			}
++		})
++	}
++}
+diff --git a/pkg/h264/internal/encoder/dct_mb_generic.go b/pkg/h264/internal/encoder/dct_mb_generic.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_generic.go
+@@ -0,0 +1,8 @@
++//go:build !amd64
++
++package encoder
++
++func dctLumaMbFast(coeff []int16, source []byte, sourceOffset int, stride int32,
++	prediction []byte, predictionOffset int, transform PDctFunc) bool {
++	return false
++}
+diff --git a/pkg/h264/internal/encoder/dct_mb_guard_linux_amd64_test.go b/pkg/h264/internal/encoder/dct_mb_guard_linux_amd64_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_guard_linux_amd64_test.go
+@@ -0,0 +1,45 @@
++//go:build linux && amd64
++
++package encoder
++
++import (
++	"fmt"
++	"runtime/debug"
++	"testing"
++	"unsafe"
++
++	"golang.org/x/sys/cpu"
++)
++
++func TestDctLumaMbExactBufferGuards(t *testing.T) {
++	if !cpu.X86.HasAVX2 {
++		t.Skip("AVX2 unavailable")
++	}
++	for _, stride := range []int{0, 1, 16, 19, 127} {
++		t.Run(fmt.Sprintf("stride%d", stride), func(t *testing.T) {
++			old := debug.SetPanicOnFault(true)
++			defer debug.SetPanicOnFault(old)
++			defer func() {
++				if r := recover(); r != nil {
++					t.Errorf("macroblock DCT faulted with exact buffers: %v", r)
++				}
++			}()
++			source := idctGuardedBuffer(t, 15*stride+16)
++			prediction := idctGuardedBuffer(t, 256)
++			output := idctGuardedBuffer(t, 512)
++			got := (*[256]int16)(unsafe.Pointer(&output[0]))
++			for i := range source {
++				source[i] = byte(i*29 + 17)
++			}
++			for i := range prediction {
++				prediction[i] = byte(i*13 + 71)
++			}
++			var want [256]int16
++			referenceDctLumaMb(want[:], source, 0, int32(stride), prediction, 0, WelsDctFourT4_c)
++			WelsDctMb(got[:], source, 0, int32(stride), prediction, 0, WelsDctFourT4_sse2)
++			if *got != want {
++				t.Fatal("guarded macroblock DCT coefficient mismatch")
++			}
++		})
++	}
++}
+diff --git a/pkg/h264/internal/encoder/dct_mb_test.go b/pkg/h264/internal/encoder/dct_mb_test.go
+new file mode 100644
+--- /dev/null
++++ b/pkg/h264/internal/encoder/dct_mb_test.go
+@@ -0,0 +1,139 @@
++package encoder
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"slices"
++	"testing"
++)
++
++// Keep the original complete caller as an independent order/partial-write
++// oracle. Testing only the new assembly would miss callback dispatch failures.
++func referenceDctLumaMb(coeff []int16, source []byte, sourceOffset int, stride int32,
++	prediction []byte, predictionOffset int, transform PDctFunc) {
++	transform(coeff, source, sourceOffset, stride, prediction, predictionOffset, 16)
++	transform(coeff[64:], source, sourceOffset+8, stride, prediction, predictionOffset+8, 16)
++	transform(coeff[128:], source, sourceOffset+8*int(stride), stride, prediction, predictionOffset+128, 16)
++	transform(coeff[192:], source, sourceOffset+8*int(stride)+8, stride, prediction, predictionOffset+136, 16)
++}
++
++func TestWelsDctMbParity(t *testing.T) {
++	t.Parallel()
++	rng := rand.New(rand.NewSource(0x16dc7))
++	for iteration := 0; iteration < 5000; iteration++ {
++		stride := rng.Intn(97)
++		if iteration%5 == 0 {
++			stride = -stride
++		}
++		sourceOffset, predictionOffset := rng.Intn(32), rng.Intn(32)
++		span := 15 * stride
++		if span < 0 {
++			sourceOffset -= span
++			span = 0
++		}
++		source := make([]byte, sourceOffset+span+16)
++		prediction := make([]byte, predictionOffset+256)
++		_, _ = rng.Read(source)
++		_, _ = rng.Read(prediction)
++		originalSource, originalPrediction := bytes.Clone(source), bytes.Clone(prediction)
++		var want [256]int16
++		var backing [260]int16
++		for i := range backing {
++			backing[i] = -12345
++		}
++		got := backing[2:258:258]
++		referenceDctLumaMb(want[:], source, sourceOffset, int32(stride), prediction, predictionOffset, WelsDctFourT4_c)
++		WelsDctMb(got, source, sourceOffset, int32(stride), prediction, predictionOffset, WelsDctFourT4_sse2)
++		if !slices.Equal(got, want[:]) {
++			t.Fatalf("iteration %d stride %d: coefficients differ", iteration, stride)
++		}
++		if backing[0] != -12345 || backing[1] != -12345 || backing[258] != -12345 || backing[259] != -12345 {
++			t.Fatal("macroblock transform wrote outside coefficient output")
++		}
++		if !bytes.Equal(source, originalSource) || !bytes.Equal(prediction, originalPrediction) {
++			t.Fatal("macroblock transform modified source pixels")
++		}
++	}
++}
++
++func TestWelsDctMbPreservesCallbacks(t *testing.T) {
++	for _, scalar := range []bool{false, true} {
++		t.Run(fmt.Sprintf("scalar=%t", scalar), func(t *testing.T) {
++			transform := PDctFunc(WelsDctFourT4_sse2)
++			if scalar {
++				transform = WelsDctFourT4_c
++			}
++			var got, want [256]int16
++			source, prediction := make([]byte, 5+15*31+16), make([]byte, 3+256)
++			for i := range source {
++				source[i] = byte(i*37 + 13)
++			}
++			referenceDctLumaMb(want[:], source, 5, 31, prediction, 3, transform)
++			calls := 0
++			wrapper := func(d []int16, src []byte, srcOff int, srcStride int32, pred []byte, predOff int, predStride int32) {
++				x, y := (calls&1)*8, (calls>>1)*8
++				if len(d) != 256-calls*64 || srcOff != 5+y*31+x || predOff != 3+y*16+x ||
++					srcStride != 31 || predStride != 16 || &src[0] != &source[0] || &pred[0] != &prediction[0] {
++					t.Fatal("callback arguments or order changed")
++				}
++				calls++
++				transform(d, src, srcOff, srcStride, pred, predOff, predStride)
++			}
++			WelsDctMb(got[:], source, 5, 31, prediction, 3, wrapper)
++			if calls != 4 || got != want {
++				t.Fatalf("callback count %d or coefficient output changed", calls)
++			}
++		})
++	}
++	// Custom transforms are allowed to interpret inputs themselves, including
++	// accepting slices that the builtin kernel would reject.
++	var got [256]int16
++	calls := 0
++	WelsDctMb(got[:], nil, -7, -31, nil, -13,
++		func(d []int16, _ []byte, _ int, _ int32, _ []byte, _ int, _ int32) {
++			calls++
++			d[0] = int16(calls)
++		})
++	if calls != 4 || got[0] != 1 || got[64] != 2 || got[128] != 3 || got[192] != 4 {
++		t.Fatal("custom transform was bypassed or its inputs were rejected")
++	}
++}
++
++func TestWelsDctMbBoundsPreservePartialWrites(t *testing.T) {
++	for _, tc := range []struct {
++		name                           string
++		coeffLen, sourceLen, predLen   int
++		sourceOffset, predictionOffset int
++		stride                         int32
++	}{
++		{"short-output", 255, 256, 256, 0, 0, 16},
++		{"short-source", 256, 255, 256, 0, 0, 16},
++		{"short-prediction", 256, 256, 255, 0, 0, 16},
++		{"source-negative-offset", 256, 256, 256, -1, 0, 16},
++		{"prediction-negative-offset", 256, 256, 256, 0, -1, 16},
++		{"source-overflow-offset", 256, 256, 256, int(^uint(0) >> 1), 0, 16},
++		{"prediction-overflow-offset", 256, 256, 256, 0, int(^uint(0) >> 1), 16},
++		{"large-stride", 256, 256, 256, 0, 0, 1<<31 - 1},
++		{"empty-output", 0, 256, 256, 0, 0, 16},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			var got, want [256]int16
++			source, prediction := make([]byte, 256), make([]byte, 256)
++			for i := range source {
++				source[i], prediction[i] = byte(i*17+23), byte(i*37+61)
++			}
++			call := func(fn func([]int16, []byte, int, int32, []byte, int, PDctFunc), coeff []int16) (panicked bool) {
++				defer func() { panicked = recover() != nil }()
++				fn(coeff[:tc.coeffLen], source[:tc.sourceLen], tc.sourceOffset, tc.stride,
++					prediction[:tc.predLen], tc.predictionOffset, WelsDctFourT4_sse2)
++				return false
++			}
++			wantPanic := call(referenceDctLumaMb, want[:])
++			gotPanic := call(WelsDctMb, got[:])
++			if !gotPanic || gotPanic != wantPanic || got != want {
++				t.Fatalf("panic or writes changed: actual panic=%t reference panic=%t", gotPanic, wantPanic)
++			}
++		})
++	}
++}

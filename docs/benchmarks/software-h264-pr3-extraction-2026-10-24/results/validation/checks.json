@@ -1,0 +1,172 @@
+[
+  {
+    "name": "packages",
+    "command": [
+      "go",
+      "test",
+      "-count=1",
+      "./pkg/h264/...",
+      "./internal/rdp/..."
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "seconds": 42.413744517999476
+  },
+  {
+    "name": "conformance",
+    "command": [
+      "go",
+      "test",
+      "-count=1",
+      "-v",
+      "./pkg/h264/internal/encoder",
+      "-run",
+      "^TestEncoderOutputCompareOutput$"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "seconds": 2.3227421320007124
+  },
+  {
+    "name": "avx2-off",
+    "command": [
+      "go",
+      "test",
+      "-count=1",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.avx2=off"
+    },
+    "exit_code": 0,
+    "seconds": 50.01948795200042
+  },
+  {
+    "name": "cpu-off",
+    "command": [
+      "go",
+      "test",
+      "-count=1",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GODEBUG": "cpu.all=off"
+    },
+    "exit_code": 0,
+    "seconds": 24.617818402999546
+  },
+  {
+    "name": "race",
+    "command": [
+      "go",
+      "test",
+      "-race",
+      "-count=1",
+      "./pkg/h264/internal/common",
+      "./pkg/h264/internal/encoder",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "CGO_ENABLED": "1"
+    },
+    "exit_code": 0,
+    "seconds": 236.10927177699978
+  },
+  {
+    "name": "checkptr",
+    "command": [
+      "go",
+      "test",
+      "-gcflags=all=-d=checkptr=2",
+      "-count=1",
+      "./pkg/h264/internal/encoder",
+      "-run",
+      "TestWelsDctMb|TestDctLumaMb|TestCavlc|TestWelsMotionEstimateIntegerFast|TestMeRefineFracPixelFast"
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "seconds": 6.319770604000041
+  },
+  {
+    "name": "vet",
+    "command": [
+      "go",
+      "vet",
+      "./pkg/h264/...",
+      "./internal/rdp/..."
+    ],
+    "environment": {},
+    "exit_code": 0,
+    "seconds": 3.111747601999923
+  },
+  {
+    "name": "386",
+    "command": [
+      "go",
+      "build",
+      "./pkg/h264/...",
+      "./internal/rdp/..."
+    ],
+    "environment": {
+      "GOARCH": "386",
+      "GOOS": "linux"
+    },
+    "exit_code": 0,
+    "seconds": 9.72754663700016
+  },
+  {
+    "name": "arm64-common",
+    "command": [
+      "go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/devbox-pr3-port.4wQwx4/final-common-arm64.test",
+      "./pkg/h264/internal/common"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "GOOS": "linux"
+    },
+    "exit_code": 0,
+    "seconds": 0.9631164580005134
+  },
+  {
+    "name": "arm64-encoder",
+    "command": [
+      "go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/devbox-pr3-port.4wQwx4/final-encoder-arm64.test",
+      "./pkg/h264/internal/encoder"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "GOOS": "linux"
+    },
+    "exit_code": 0,
+    "seconds": 4.034999079999579
+  },
+  {
+    "name": "arm64-avc",
+    "command": [
+      "go",
+      "test",
+      "-c",
+      "-o",
+      "/tmp/devbox-pr3-port.4wQwx4/final-avc-arm64.test",
+      "./internal/rdp/avc"
+    ],
+    "environment": {
+      "GOARCH": "arm64",
+      "GOOS": "linux"
+    },
+    "exit_code": 0,
+    "seconds": 2.236619416999929
+  }
+]

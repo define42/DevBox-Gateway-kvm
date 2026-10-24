@@ -2342,6 +2342,7 @@ func PreprocessSliceCoding(pCtx *sWelsEncCtx) {
 	//const bool kbBaseAvail      = pCurLayer->bBaseLayerAvailableFlag;
 	bFastMode := (pCtx.pSvcParam.IComplexityMode == api.LOW_COMPLEXITY)
 	pFuncList := pCtx.pFuncList
+	pFuncList.bWholeIntegerSearch = false
 	pLogCtx := &pCtx.sLogCtx
 	/* function pointers conditional assignment under sWelsEncCtx, layer_mb_enc_rec (in stack) is exclusive */
 	if (pCtx.pSvcParam.IUsageType == api.CAMERA_VIDEO_REAL_TIME && bFastMode) ||
@@ -2363,6 +2364,7 @@ func PreprocessSliceCoding(pCtx *sWelsEncCtx) {
 		pFuncList.pfSearchMethod[BLOCK_4x4] = WelsDiamondSearch
 		pFuncList.pfSearchMethod[BLOCK_8x4] = WelsDiamondSearch
 		pFuncList.pfSearchMethod[BLOCK_4x8] = WelsDiamondSearch
+		pFuncList.bWholeIntegerSearch = pCtx.pSvcParam.IUsageType == api.CAMERA_VIDEO_REAL_TIME
 		pFuncList.pfFirstIntraMode = WelsMdFirstIntraMode
 		pFuncList.sSampleDealingFuncs.pfMeCost = &pCtx.pFuncList.sSampleDealingFuncs.pfSampleSatd
 		pFuncList.pfSetScrollingMv = SetScrollingMvToMdNull

@@ -1,0 +1,181 @@
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:133:15: do not compare errors directly "ne.Err == strconv.ErrRange", use "errors.Is(ne.Err, strconv.ErrRange)" instead (err113)
+	return ok && ne.Err == strconv.ErrRange
+	             ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:132:12: type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors (errorlint)
+	ne, ok := err.(*strconv.NumError)
+	          ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_def.go:197:5: KiKeyNumMultiple is a global variable (gochecknoglobals)
+var KiKeyNumMultiple = [...]int8{
+    ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_ver.go:6:5: G_stCodecVersion is a global variable (gochecknoglobals)
+var G_stCodecVersion = OpenH264Version{2, 6, 0, 2502}
+    ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:197:29: commentFormatting: put a space between `//` and comment text (gocritic)
+	ILayerId             int32 //specify the layer for recovery request
+	                           ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:205:24: commentFormatting: put a space between `//` and comment text (gocritic)
+	ILayerId       int32  //specify the layer for LTR marking feedback
+	                      ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:221:42: commentFormatting: put a space between `//` and comment text (gocritic)
+	RC_TIMESTAMP_MODE         RC_MODES = 3  //rate control based timestamp
+	                                        ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:61:1: cyclomatic complexity 34 of func `Atof` is high (> 30) (gocyclo)
+func Atof(s string) float64 {
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:5:1: Comment should end in a period (godot)
+// Constants
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:39:1: Comment should end in a period (godot)
+	// Errors derived from bitstream parsing
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:49:1: Comment should end in a period (godot)
+	// Errors derived from logic level
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc_test.go:48:1: File is not properly formatted (gofumpt)
+		{"", 0}, {"word", 0}, {"+.", 0}, {" \t\n\v\f\r-12.5tail", -12.5},
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/api_test.go:42:1: The line is 134 characters long, which exceeds the maximum of 120 characters. (lll)
+	if v.UMajor != OPENH264_MAJOR || v.UMinor != OPENH264_MINOR || v.URevision != OPENH264_REVISION || v.UReserved != OPENH264_RESERVED {
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:17:1: The line is 140 characters long, which exceeds the maximum of 120 characters. (lll)
+	SAVED_NALUNIT_NUM_TMP = ((MAX_SPATIAL_LAYER_NUM * MAX_QUALITY_LAYER_NUM) + 1 + MAX_SPATIAL_LAYER_NUM) ///< SPS/PPS + SEI/SSEI + PADDING_NAL
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:54:1: The line is 136 characters long, which exceeds the maximum of 120 characters. (lll)
+	DsDstBufNeedExpan DECODING_STATE = 0x8000 ///< actual picture size exceeds size of dst pBuffer feed in decoder, so need expand its size
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:62:1: The line is 208 characters long, which exceeds the maximum of 120 characters. (lll)
+	ENCODER_OPTION_IDR_INTERVAL                                ///< IDR period,0/-1 means no Intra period (only the first frame); lager than 0 means the desired IDR period, must be multiple of (2^temporal_layer)
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:65:1: The line is 154 characters long, which exceeds the maximum of 120 characters. (lll)
+	ENCODER_OPTION_FRAME_RATE                                  ///< maximal input frame rate, current supported range: MAX_FRAME_RATE = 30,MIN_FRAME_RATE = 1
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:86:1: The line is 146 characters long, which exceeds the maximum of 120 characters. (lll)
+	ENCODER_OPTION_SPS_PPS_ID_STRATEGY      ///< different stategy in adjust ID in SPS/PPS: 0- constant ID, 1-additional ID, 6-mapping and additional
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:107:1: The line is 140 characters long, which exceeds the maximum of 120 characters. (lll)
+	DECODER_OPTION_VCL_NAL                                        ///< feedback whether or not have VCL NAL in current AU for application layer
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:124:1: The line is 160 characters long, which exceeds the maximum of 120 characters. (lll)
+	DECODER_OPTION_NUM_OF_FRAMES_REMAINING_IN_BUFFER ///< number of frames remaining in decoder buffer when pictures are required to re-ordered into display-order.
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:125:1: The line is 165 characters long, which exceeds the maximum of 120 characters. (lll)
+	DECODER_OPTION_NUM_OF_THREADS                    ///< number of decoding threads. The maximum thread count is equal or less than lesser of (cpu core counts and 16).
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:287:1: The line is 297 characters long, which exceeds the maximum of 120 characters. (lll)
+	SM_RASTER_SLICE      SliceModeEnum = 2 ///< | according to SlicesAssign    | need input of MB numbers each slice. In addition, if other constraint in SSliceArgument is presented, need to follow the constraints. Typically if MB num and slice size are both constrained, re-encoding may be involved.
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:288:1: The line is 192 characters long, which exceeds the maximum of 120 characters. (lll)
+	SM_SIZELIMITED_SLICE SliceModeEnum = 3 ///< | according to SliceSize       | slicing according to size, the slicing will be dynamic(have no idea about slice_nums until encoding current frame)
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:295:1: The line is 144 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiSliceNum            uint32                     ///< only used when uiSliceMode=1, when uiSliceNum=0 means auto design it with cpu core number
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:296:1: The line is 125 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiSliceMbNum          [MAX_SLICES_NUM_TMP]uint32 ///< only used when uiSliceMode=2; when =0 means setting one MB row a slice
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:411:1: The line is 155 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiColorPrimaries          uint8 // EColorPrimaries; 8 bits in header; 0 - 9 => ???, bt709, undef, ???, bt470m, bt470bg, smpte170m, smpte240m, film, bt2020
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:412:1: The line is 234 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiTransferCharacteristics uint8 // ETransferCharacteristics; 8 bits in header; 0 - 15 => ???, bt709, undef, ???, bt470m, bt470bg, smpte170m, smpte240m, linear, log100, log316, iec61966-2-4, bt1361e, iec61966-2-1, bt2020-10, bt2020-12
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:413:1: The line is 199 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiColorMatrix             uint8 // EColorMatrix; 8 bits in header (corresponds to FFmpeg "colorspace"); 0 - 10 => GBR, bt709, undef, ???, fcc, bt470bg, smpte170m, smpte240m, YCgCo, bt2020nc, bt2020c
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:456:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)
+	IPicWidth      int32    ///< width of picture in luminance samples (the maximum of all layers if multiple spatial layers presents)
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:457:1: The line is 132 characters long, which exceeds the maximum of 120 characters. (lll)
+	IPicHeight     int32    ///< height of picture in luminance samples((the maximum of all layers if multiple spatial layers presents)
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:477:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+	ISpatialLayerNum  int32 ///< spatial layer number,1<= iSpatialLayerNum <= MAX_SPATIAL_LAYER_NUM, MAX_SPATIAL_LAYER_NUM = 4
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:483:1: The line is 151 characters long, which exceeds the maximum of 120 characters. (lll)
+	ESpsPpsIdStrategy      EParameterSetStrategy ///< different stategy in adjust ID in SPS/PPS: 0- constant ID, 1-additional ID, 6-mapping and additional
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:485:1: The line is 135 characters long, which exceeds the maximum of 120 characters. (lll)
+	BEnableSSEI            bool                  ///< false:not use SSEI; true: use SSEI -- TODO: planning to remove the interface of SSEI
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:486:1: The line is 157 characters long, which exceeds the maximum of 120 characters. (lll)
+	BSimulcastAVC          bool                  ///< (when encoding more than 1 spatial layer) false: use SVC syntax for higher layers; true: use Simulcast AVC
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:491:1: The line is 143 characters long, which exceeds the maximum of 120 characters. (lll)
+	BEnableFrameSkip bool   ///< False: don't skip frame even if VBV buffer overflow.True: allow skipping frames to keep the bitrate within limits
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:502:1: The line is 149 characters long, which exceeds the maximum of 120 characters. (lll)
+	IMultipleThreadIdc uint16 ///< 1 # 0: auto(dynamic imp. internal encoder); 1: multiple threads imp. disabled; lager than 1: count number of threads;
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:503:1: The line is 188 characters long, which exceeds the maximum of 120 characters. (lll)
+	BUseLoadBalancing  bool   ///< only used when uiSliceMode=1 or 3, will change slicing of a picture during the run-time of multi-thread encoding, so the result of each run may be different
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:532:1: The line is 133 characters long, which exceeds the maximum of 120 characters. (lll)
+	PFileNameRestructed string ///< file name of reconstructed frame used for PSNR calculation based debug (char* -> string; "" == NULL)
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:538:1: The line is 183 characters long, which exceeds the maximum of 120 characters. (lll)
+	BParseOnly   bool          ///< decoder for parse only, no reconstruction. When it is true, SPS/PPS size should not exceed SPS_PPS_BS_SIZE (128). Otherwise, it will return error info
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:679:1: The line is 142 characters long, which exceeds the maximum of 120 characters. (lll)
+	FAverageFrameRate float32 ///< the average frame rate in, calculate since encoding starts, supposed that the input timestamp is in unit of ms
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:680:1: The line is 177 characters long, which exceeds the maximum of 120 characters. (lll)
+	FLatestFrameRate  float32 ///< the frame rate in, in the last second, supposed that the input timestamp is in unit of ms (? useful for checking BR, but is it easy to calculate?
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:710:1: The line is 132 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiAvgEcRatio          uint32 ///< when EC is on, the average ratio of total EC areas, can be an indicator of reconstruction quality
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_app_def.go:711:1: The line is 142 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiAvgEcPropRatio      uint32 ///< when EC is on, the rough average ratio of propogate EC areas, can be an indicator of reconstruction quality
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_def.go:141:1: The line is 123 characters long, which exceeds the maximum of 120 characters. (lll)
+	PBufferOfSlices      []uint8  ///< base buffer of coded slice(s) (unsigned char* -> slice starting at the pointed-to byte)
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_def.go:150:1: The line is 126 characters long, which exceeds the maximum of 120 characters. (lll)
+	UiContainingFinalNal uint8    ///< whether final NAL is involved in buffer of coded slices, flag used in Pause feature in T27
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/read_config_test.go:62:1: The line is 132 characters long, which exceeds the maximum of 120 characters. (lll)
+	for _, tt := range []struct{ name, path string }{{"empty path", ""}, {"missing file", filepath.Join(t.TempDir(), "missing.cfg")}} {
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/read_config_test.go:88:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)
+	if got := reader.ReadLine(values, len(values)); got != 3 || !reflect.DeepEqual(values, []string{"one", "two", "three"}) {
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_def.go:134:58: `redundency` is a misspelling of `redundancy` (misspell)
+	ET_FEC_HALF = 0x20 ///< Forward Error Correction in 50% redundency mode
+	                                                        ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/codec_def.go:135:59: `redundency` is a misspelling of `redundancy` (misspell)
+	ET_FEC_FULL = 0x40 ///< Forward Error Correction in 100% redundency mode
+	                                                         ^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/read_config.go:97:1: `if !bCommentFlag` has complex nested blocks (complexity: 6) (nestif)
+		if !bCommentFlag {
+^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:32:4: continue with no blank line before (nlreturn)
+			continue
+			^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:40:3: return with no blank line before (nlreturn)
+		return -int64(v)
+		^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:45:2: return with no blank line before (nlreturn)
+	return int64(v)
+	^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/libc.go:119:2: return with no blank line before (nlreturn)
+	return v
+	^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/internal/console/read_config.go:92:4: break with no blank line before (nlreturn)
+			break
+			^
+../../../home/define42/git/DevBox-Gateway-kvm/pkg/h264/api/api_test.go:5:1: Function TestConstants missing the call to method parallel (paralleltest)
+func TestConstants(t *testing.T) {
+^
+56 issues:
+* err113: 1
+* errorlint: 1
+* gochecknoglobals: 2
+* gocritic: 3
+* gocyclo: 1
+* godot: 3
+* gofumpt: 1
+* lll: 35
+* misspell: 2
+* nestif: 1
+* nlreturn: 5
+* paralleltest: 1

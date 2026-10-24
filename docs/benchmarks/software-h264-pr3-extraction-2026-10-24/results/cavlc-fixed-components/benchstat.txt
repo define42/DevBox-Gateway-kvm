@@ -1,0 +1,39 @@
+                                 │ /tmp/devbox-pr3-port.4wQwx4/results/cavlc-fixed-components/baseline.txt │ /tmp/devbox-pr3-port.4wQwx4/results/cavlc-fixed-components/cavlc-fixed.txt │
+                                 │                                 sec/op                                  │                       sec/op                         vs base               │
+CavlcMacroblock/inter/dense-4                                                                 3.249µ ± 16%                                          2.752µ ± 47%        ~ (p=0.065 n=6)
+CavlcMacroblock/inter/mixed-4                                                                 3.155µ ± 41%                                          3.221µ ± 25%        ~ (p=0.485 n=6)
+CavlcMacroblock/inter/sparse-4                                                                985.4n ± 28%                                          858.2n ± 18%  -12.90% (p=0.015 n=6)
+CavlcMacroblock/inter/zero-4                                                                  351.4n ± 65%                                          314.9n ± 15%        ~ (p=0.589 n=6)
+CavlcMacroblock/intra16/dense-4                                                               3.314µ ± 23%                                          2.599µ ± 17%  -21.59% (p=0.002 n=6)
+CavlcMacroblock/intra16/mixed-4                                                               3.242µ ± 27%                                          2.805µ ±  7%  -13.48% (p=0.002 n=6)
+CavlcMacroblock/intra16/sparse-4                                                             1002.6n ± 35%                                          754.7n ± 13%  -24.73% (p=0.002 n=6)
+CavlcMacroblock/intra16/zero-4                                                                323.8n ± 44%                                          312.4n ± 28%        ~ (p=0.937 n=6)
+geomean                                                                                       1.370µ                                                1.193µ        -12.86%
+
+                                 │ /tmp/devbox-pr3-port.4wQwx4/results/cavlc-fixed-components/baseline.txt │ /tmp/devbox-pr3-port.4wQwx4/results/cavlc-fixed-components/cavlc-fixed.txt │
+                                 │                                  B/op                                   │                        B/op                         vs base                │
+CavlcMacroblock/inter/dense-4                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/inter/mixed-4                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/inter/sparse-4                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/inter/zero-4                                                                  0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/dense-4                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/mixed-4                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/sparse-4                                                              0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/zero-4                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                 │ /tmp/devbox-pr3-port.4wQwx4/results/cavlc-fixed-components/baseline.txt │ /tmp/devbox-pr3-port.4wQwx4/results/cavlc-fixed-components/cavlc-fixed.txt │
+                                 │                                allocs/op                                │                     allocs/op                       vs base                │
+CavlcMacroblock/inter/dense-4                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/inter/mixed-4                                                                 0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/inter/sparse-4                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/inter/zero-4                                                                  0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/dense-4                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/mixed-4                                                               0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/sparse-4                                                              0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+CavlcMacroblock/intra16/zero-4                                                                0.000 ± 0%                                             0.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                                                                  ²                                                       +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

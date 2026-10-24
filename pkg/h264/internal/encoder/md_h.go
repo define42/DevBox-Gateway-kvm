@@ -74,9 +74,15 @@ type SWelsMD struct {
 	sMe SWelsMDMe
 }
 
+const refineRegion = 640
+
 // SMeRefinePointer holds the fractional ME refinement buffers. All pointers
 // are sub-slices of SMbCache.pBufferInterPredMe (only indexed non-negatively).
 type SMeRefinePointer struct {
+	// Record the allocation, with tracked pointers, to prove scratch regions
+	// disjoint without comparing every input/output pair at each candidate.
+	arena        []byte
+	arenaOff     int
 	pHalfPixH    []uint8
 	pHalfPixV    []uint8
 	pHalfPixHV   []uint8

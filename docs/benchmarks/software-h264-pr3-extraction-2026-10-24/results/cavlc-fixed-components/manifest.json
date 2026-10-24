@@ -1,0 +1,365 @@
+{
+  "arguments": {
+    "root": "/tmp/devbox-pr3-port.4wQwx4",
+    "variants": [
+      "baseline",
+      "cavlc-fixed"
+    ],
+    "name": "cavlc-fixed-components",
+    "mode": "component",
+    "regex": "^BenchmarkCavlcMacroblock$",
+    "repetitions": 6,
+    "frames": 64,
+    "benchtime": "200ms",
+    "cpu": "2",
+    "godebug": ""
+  },
+  "started": "2026-10-24T23:09:47+0200",
+  "binaries": {
+    "baseline": "703ef7c69c092293f0b43353b178df11c93bd682377b8e92e41ca6ca8e7009b0",
+    "cavlc-fixed": "e0cd0577c8092875121c8f6e64f5f567e5e6bb7bbdedf39287da0f9a5d738b8e"
+  },
+  "fixtures": [
+    {
+      "name": "road1080",
+      "source": "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+      "width": 1920,
+      "height": 1080,
+      "frames": 54,
+      "sha256": "eca34e7c10664b10662bdbd3a89def3ee8093b02463cc2e99499975f46b2a7e6",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/road1080.i420"
+      ]
+    },
+    {
+      "name": "road720",
+      "source": "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+      "width": 1280,
+      "height": 720,
+      "frames": 54,
+      "sha256": "1c65ba12ef3b2b21632f4a4d3a7c6d089ae7643ce5ada7a24aada4c64614eef5",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/VID_1920x1080_cabac_temporal_direct.264",
+        "-vf",
+        "scale=1280:720:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/road720.i420"
+      ]
+    },
+    {
+      "name": "pdf1080",
+      "source": "/home/define42/git/openh264/res/Adobe_PDF_sample_a_1024x768_50Frms.264",
+      "width": 1920,
+      "height": 1080,
+      "frames": 50,
+      "sha256": "8a938d0eb90f03c63a7ec8b35247e53033bc6acc683146b74a299767a083ad6b",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "/home/define42/git/openh264/res/Adobe_PDF_sample_a_1024x768_50Frms.264",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/pdf1080.i420"
+      ]
+    },
+    {
+      "name": "clip1080",
+      "source": "/home/define42/git/openh264/res/Cisco_Absolute_Power_1280x720_30fps.yuv",
+      "width": 1920,
+      "height": 1080,
+      "frames": 5,
+      "sha256": "afe5496792a74ce18322f10d91a2d1d6a3b6e93debbe1e5ce84f0203b90a0ef3",
+      "command": [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "-pixel_format",
+        "yuv420p",
+        "-video_size",
+        "1280x720",
+        "-i",
+        "/home/define42/git/openh264/res/Cisco_Absolute_Power_1280x720_30fps.yuv",
+        "-vf",
+        "scale=1920:1080:flags=bilinear",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "/tmp/devbox-pr3-port.4wQwx4/fixtures/clip1080.i420"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "repetition": 0,
+      "case": "component",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.1702444553375244,
+      "log": "00-component-baseline.log"
+    },
+    {
+      "repetition": 0,
+      "case": "component",
+      "variant": "cavlc-fixed",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/cavlc-fixed-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.1769840717315674,
+      "log": "00-component-cavlc-fixed.log"
+    },
+    {
+      "repetition": 1,
+      "case": "component",
+      "variant": "cavlc-fixed",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/cavlc-fixed-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.093322515487671,
+      "log": "01-component-cavlc-fixed.log"
+    },
+    {
+      "repetition": 1,
+      "case": "component",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.180058717727661,
+      "log": "01-component-baseline.log"
+    },
+    {
+      "repetition": 2,
+      "case": "component",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.110384941101074,
+      "log": "02-component-baseline.log"
+    },
+    {
+      "repetition": 2,
+      "case": "component",
+      "variant": "cavlc-fixed",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/cavlc-fixed-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.204052686691284,
+      "log": "02-component-cavlc-fixed.log"
+    },
+    {
+      "repetition": 3,
+      "case": "component",
+      "variant": "cavlc-fixed",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/cavlc-fixed-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.0980584621429443,
+      "log": "03-component-cavlc-fixed.log"
+    },
+    {
+      "repetition": 3,
+      "case": "component",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.1589441299438477,
+      "log": "03-component-baseline.log"
+    },
+    {
+      "repetition": 4,
+      "case": "component",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.112168073654175,
+      "log": "04-component-baseline.log"
+    },
+    {
+      "repetition": 4,
+      "case": "component",
+      "variant": "cavlc-fixed",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/cavlc-fixed-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.2147719860076904,
+      "log": "04-component-cavlc-fixed.log"
+    },
+    {
+      "repetition": 5,
+      "case": "component",
+      "variant": "cavlc-fixed",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/cavlc-fixed-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.071974277496338,
+      "log": "05-component-cavlc-fixed.log"
+    },
+    {
+      "repetition": 5,
+      "case": "component",
+      "variant": "baseline",
+      "command": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/devbox-pr3-port.4wQwx4/bin/baseline-encoder.test",
+        "-test.run=^$",
+        "-test.bench=^BenchmarkCavlcMacroblock$",
+        "-test.benchtime=200ms",
+        "-test.count=1",
+        "-test.cpu=4"
+      ],
+      "seconds": 2.0946152210235596,
+      "log": "05-component-baseline.log"
+    }
+  ],
+  "completed": "2026-10-24T23:10:13+0200"
+}

@@ -30,4 +30,5 @@ func initSampleAvgSatdSIMD(s *SSampleDealingFunc, flags uint32) {
 	s.pfSampleAvgSatd = nil
 	s.pfSampleAvgSatdValidated = nil
 	s.bSampleAvgSatdFour = false
+	s.bWholeFractionalRefine = false
 }

@@ -40,6 +40,7 @@ func MeEndIntepelSearch(pMe *SWelsME) {
 
 // (QStepx16ByQp is defined in this file.)
 func WelsInitMeFunc(pFuncList *SWelsFuncPtrList, uiCpuFlag uint32, bScreenContent bool) {
+	pFuncList.bWholeIntegerSearch = false
 	pFuncList.pfUpdateFMESwitch = UpdateFMESwitchNull
 
 	if !bScreenContent {
@@ -74,7 +75,8 @@ func WelsMotionEstimateSearch(pFuncList *SWelsFuncPtrList, pCurDqLayer *SDqLayer
 	kiStrideRef := pCurDqLayer.pRefPic.iLineSize[0]
 
 	//  Step 1: Initial point prediction
-	if !WelsMotionEstimateInitialPoint(pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef) {
+	if !welsMotionEstimateIntegerFast(pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef) &&
+		!WelsMotionEstimateInitialPoint(pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef) {
 		pFuncList.pfSearchMethod[pMe.uiBlockSize](pFuncList, pMe, pSlice, kiStrideEnc, kiStrideRef)
 		MeEndIntepelSearch(pMe)
 	}

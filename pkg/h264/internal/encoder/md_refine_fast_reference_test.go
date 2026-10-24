@@ -1,0 +1,245 @@
+package encoder
+
+import "github.com/define42/DevBox-Gateway-kvm/pkg/h264/internal/common"
+
+func meRefineFracPixelChecked(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME, pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) {
+	pFunc := pEncCtx.pFuncList
+	iMvx := pMe.sMv.iMvX
+	iMvy := pMe.sMv.iMvY
+
+	iHalfMvx := iMvx
+	iHalfMvy := iMvy
+	kiStrideEnc := pEncCtx.pCurDqLayer.iEncStride[0]
+	kiStrideRef := pEncCtx.pCurDqLayer.pRefPic.iLineSize[0]
+	kiStrideRefI := int(kiStrideRef)
+
+	pEncData := pMe.pEncMb
+	iEncDataOff := pMe.iEncMbOff
+	pRef := pMe.pRefMb //091010
+	iRefOff := pMe.iRefMbOff
+
+	var iBestQuarPix int32 = ME_NO_BEST_QUAR_PIXEL
+
+	var sParams SQuarRefineParams
+	iMvQuarAddX := [10]int32{0, 0, -1, 1, 0, 0, 0, -1, 1, 0}
+	// pMvQuarAddY = iMvQuarAddX + 3
+	pBestPredInter := pRef
+	iBestPredInterOff := iRefOff
+	var iInterBlk4Stride int32 = ME_REFINE_BUF_STRIDE
+
+	var iBestCost int32
+	var iCurCost int32
+	var iBestHalfPix int32
+
+	pMvdCost := pMe.pMvdCost
+	iMvdCostOff := pMe.iMvdCostOff
+	iMvpX := int32(pMe.sMvp.iMvX)
+	iMvpY := int32(pMe.sMvp.iMvY)
+	pfMeCost := pFunc.sSampleDealingFuncs.pfMeCost[pMe.uiBlockSize]
+
+	if pEncCtx.pCurDqLayer.bSatdInMdFlag {
+		iBestCost = int32(pMe.uSadPredISatd + uint32(COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)))
+	} else {
+		iBestCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pRef, iRefOff, kiStrideRef) +
+			COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-iMvpY)
+	}
+
+	// Keep each pair between its filter and the next filter: the horizontal
+	// callback may change pixels read by the earlier vertical pair.
+	// The four supported block IDs are contiguous. Keep narrow blocks out of
+	// the capability/shape helper before inspecting the function tables.
+	useHalfPair := pMe.uiBlockSize <= BLOCK_8x8 &&
+		sampleHalfSatdPairEnabled(&pFunc.sSampleDealingFuncs, pMe.uiBlockSize, iWidth, iHeight)
+	var firstHalfCost, secondHalfCost int32
+	halfPairOK := false
+
+	iBestHalfPix = REFINE_ME_NO_BEST_HALF_PIXEL
+
+	pFunc.sMcFuncs.PfLumaHalfpelVer(pRef, iRefOff-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE, iWidth,
+		iHeight+1)
+
+	//step 1: get [iWidth][iHeight+1] half pixel from vertical filter
+	if useHalfPair {
+		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
+			pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, iWidth, iHeight)
+	}
+	//===========================(0, -2)==============================//
+	if !halfPairOK {
+		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, 0, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = firstHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)-2-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_TOP
+		pBestPredInter = pMeRefine.pHalfPixV
+		iBestPredInterOff = 0
+	}
+	//===========================(0, 2)==============================//
+	if !halfPairOK {
+		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = secondHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-iMvpX, int32(iMvy)+2-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_BOTTOM
+		pBestPredInter = pMeRefine.pHalfPixV
+		iBestPredInterOff = ME_REFINE_BUF_STRIDE
+	}
+	pFunc.sMcFuncs.PfLumaHalfpelHor(pRef, iRefOff-1, kiStrideRef, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE, iWidth+1,
+		iHeight)
+	//step 2: get [iWidth][iHeight+1] half pixel from horizon filter
+	halfPairOK = false
+	if useHalfPair {
+		firstHalfCost, secondHalfCost, halfPairOK = sampleHalfSatdPair(pEncData, iEncDataOff, kiStrideEnc,
+			pMeRefine.pHalfPixH, 1, iWidth, iHeight)
+	}
+
+	//===========================(-2, 0)==============================//
+	if !halfPairOK {
+		firstHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 0, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = firstHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)-2-iMvpX, int32(iMvy)-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_LEFT
+		pBestPredInter = pMeRefine.pHalfPixH
+		iBestPredInterOff = 0
+	}
+	//===========================(2, 0)===============================//
+	if !halfPairOK {
+		secondHalfCost = pfMeCost(pEncData, iEncDataOff, kiStrideEnc, pMeRefine.pHalfPixH, 1, ME_REFINE_BUF_STRIDE)
+	}
+	iCurCost = secondHalfCost +
+		COST_MVD(pMvdCost, iMvdCostOff, int32(iMvx)+2-iMvpX, int32(iMvy)-iMvpY)
+	if iCurCost < iBestCost {
+		iBestCost = iCurCost
+		iBestHalfPix = REFINE_ME_HALF_PIXEL_RIGHT
+		pBestPredInter = pMeRefine.pHalfPixH
+		iBestPredInterOff = 1
+	}
+
+	sParams.iBestCost = iBestCost
+	sParams.iBestHalfPix = iBestHalfPix
+	sParams.pRef = pRef
+	sParams.iRefOff = iRefOff
+	sParams.iBestQuarPix = ME_NO_BEST_QUAR_PIXEL
+
+	//step 5: if no best half-pixel prediction, try quarter pixel prediction
+	//        if yes, must get [X+1][X+1] half-pixel from (2, 2) horizontal and vertical filter
+	if REFINE_ME_NO_BEST_HALF_PIXEL == iBestHalfPix {
+		sParams.iStrideA = kiStrideRef
+		sParams.iStrideB = kiStrideRef
+		sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
+		sParams.pSrcA[1], sParams.iSrcAOff[1] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
+		sParams.pSrcA[2], sParams.iSrcAOff[2] = pMeRefine.pHalfPixH, 0
+		sParams.pSrcA[3], sParams.iSrcAOff[3] = pMeRefine.pHalfPixH, 1
+
+		for k := 0; k < 4; k++ {
+			sParams.pSrcB[k], sParams.iSrcBOff[k] = pRef, iRefOff
+		}
+
+		sParams.iLms[0] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)-1-iMvpY)
+		sParams.iLms[1] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)+1-iMvpY)
+		sParams.iLms[2] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-1-iMvpX, int32(iHalfMvy)-iMvpY)
+		sParams.iLms[3] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)+1-iMvpX, int32(iHalfMvy)-iMvpY)
+	} else { //must get [X+1][X+1] half-pixel from (2, 2) horizontal and vertical filter
+		switch iBestHalfPix {
+		case REFINE_ME_HALF_PIXEL_LEFT:
+			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixV //reuse pBuffer, here only h&hv
+			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
+				iWidth+1, iHeight+1)
+
+			iHalfMvx -= 2
+			sParams.iStrideA = ME_REFINE_BUF_STRIDE
+			sParams.iStrideB = kiStrideRef
+			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 0
+			for k := 1; k < 4; k++ {
+				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+			}
+			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 0
+			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
+			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff-1
+			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff
+
+		case REFINE_ME_HALF_PIXEL_RIGHT:
+			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixV //reuse pBuffer, here only h&hv
+			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
+				iWidth+1, iHeight+1)
+			iHalfMvx += 2
+			sParams.iStrideA = ME_REFINE_BUF_STRIDE
+			sParams.iStrideB = kiStrideRef
+			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixH, 1
+			for k := 1; k < 4; k++ {
+				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+			}
+			sParams.pSrcB[0], sParams.iSrcBOff[0] = pMeRefine.pHalfPixHV, 1
+			sParams.pSrcB[1], sParams.iSrcBOff[1] = pMeRefine.pHalfPixHV, 1+ME_REFINE_BUF_STRIDE
+			sParams.pSrcB[2], sParams.iSrcBOff[2] = pRef, iRefOff
+			sParams.pSrcB[3], sParams.iSrcBOff[3] = pRef, iRefOff+1
+
+		case REFINE_ME_HALF_PIXEL_TOP:
+			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixH //reuse pBuffer, here only v&hv
+			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
+				iWidth+1, iHeight+1)
+
+			iHalfMvy -= 2
+			sParams.iStrideA = kiStrideRef
+			sParams.iStrideB = ME_REFINE_BUF_STRIDE
+			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, 0
+			for k := 1; k < 4; k++ {
+				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+			}
+			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff-kiStrideRefI
+			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff
+			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, 0
+			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, 1
+
+		case REFINE_ME_HALF_PIXEL_BOTTOM:
+			pMeRefine.pHalfPixHV = pMeRefine.pHalfPixH //reuse pBuffer, here only v&hv
+			pFunc.sMcFuncs.PfLumaHalfpelCen(pRef, iRefOff-1-kiStrideRefI, kiStrideRef, pMeRefine.pHalfPixHV, 0, ME_REFINE_BUF_STRIDE,
+				iWidth+1, iHeight+1)
+			iHalfMvy += 2
+			sParams.iStrideA = kiStrideRef
+			sParams.iStrideB = ME_REFINE_BUF_STRIDE
+			sParams.pSrcA[0], sParams.iSrcAOff[0] = pMeRefine.pHalfPixV, ME_REFINE_BUF_STRIDE
+			for k := 1; k < 4; k++ {
+				sParams.pSrcA[k], sParams.iSrcAOff[k] = sParams.pSrcA[0], sParams.iSrcAOff[0]
+			}
+			sParams.pSrcB[0], sParams.iSrcBOff[0] = pRef, iRefOff
+			sParams.pSrcB[1], sParams.iSrcBOff[1] = pRef, iRefOff+kiStrideRefI
+			sParams.pSrcB[2], sParams.iSrcBOff[2] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE
+			sParams.pSrcB[3], sParams.iSrcBOff[3] = pMeRefine.pHalfPixHV, ME_REFINE_BUF_STRIDE+1
+
+		default:
+		}
+		sParams.iLms[0] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)-1-iMvpY)
+		sParams.iLms[1] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-iMvpX, int32(iHalfMvy)+1-iMvpY)
+		sParams.iLms[2] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)-1-iMvpX, int32(iHalfMvy)-iMvpY)
+		sParams.iLms[3] = COST_MVD(pMvdCost, iMvdCostOff, int32(iHalfMvx)+1-iMvpX, int32(iHalfMvy)-iMvpY)
+	}
+	MeRefineQuarPixel(pFunc, pMe, pMeRefine, iWidth, iHeight, &sParams, kiStrideEnc)
+
+	if iBestCost > sParams.iBestCost {
+		pBestPredInter = pMeRefine.pQuarPixBest
+		iBestPredInterOff = 0
+		iBestCost = sParams.iBestCost
+	}
+	iBestQuarPix = sParams.iBestQuarPix
+
+	//update final best MV
+	pMe.sMv.iMvX = int16(int32(iHalfMvx) + iMvQuarAddX[iBestQuarPix])
+	pMe.sMv.iMvY = int16(int32(iHalfMvy) + iMvQuarAddX[iBestQuarPix+3])
+	pMe.uiSatdCost = uint32(iBestCost)
+
+	//No half or quarter pixel best, so do MC with integer pixel MV
+	if iBestHalfPix+iBestQuarPix == NO_BEST_FRAC_PIX {
+		pBestPredInter = pRef
+		iBestPredInterOff = iRefOff
+		iInterBlk4Stride = kiStrideRef
+	}
+	pMeRefine.pfCopyBlockByMode(pMemPredInterMb, iMemPredInterMbOff, common.MB_WIDTH_LUMA, pBestPredInter, iBestPredInterOff,
+		iInterBlk4Stride)
+}

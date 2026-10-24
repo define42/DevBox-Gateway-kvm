@@ -392,6 +392,7 @@ func InitMeRefinePointer(pMeRefine *SMeRefinePointer, pMbCache *SMbCache, iStrid
 
 	pMeRefine.pQuarPixBest = pMbCache.pBufferInterPredMe[1280+s:]
 	pMeRefine.pQuarPixTmp = pMbCache.pBufferInterPredMe[1920+s:]
+	pMeRefine.arena, pMeRefine.arenaOff = pMbCache.pBufferInterPredMe, s
 }
 
 // SQuarRefineParams is the file-local TagQuarParams. Pixel pointers are
@@ -476,6 +477,10 @@ func meRefineQuarPixelUnfused(pFunc *SWelsFuncPtrList, pMe *SWelsME, pMeRefine *
 }
 
 func MeRefineFracPixel(pEncCtx *sWelsEncCtx, pMemPredInterMb []uint8, iMemPredInterMbOff int, pMe *SWelsME, pMeRefine *SMeRefinePointer, iWidth int32, iHeight int32) {
+	if meRefineFracPixelFast(pEncCtx, pMemPredInterMb, iMemPredInterMbOff, pMe, pMeRefine, iWidth, iHeight) {
+		return
+	}
+
 	pFunc := pEncCtx.pFuncList
 	iMvx := pMe.sMv.iMvX
 	iMvy := pMe.sMv.iMvY

@@ -156,6 +156,8 @@ type SSampleDealingFunc struct {
 	bSampleAvgSatdFour bool
 	// Disable when replacing half-refinement SATD callbacks for instrumentation.
 	bSampleHalfSatdPair bool
+	// Separately disable whole-refinement validation while retaining pair/four kernels.
+	bWholeFractionalRefine bool
 	// Disable when replacing SAD callbacks to retain per-candidate instrumentation.
 	bSampleSadTwo bool
 
@@ -201,6 +203,10 @@ type PGetBsPosition func(pSlice *SSlice) int32
 
 // SWelsFuncPtrList is the encoder function table (struct TagWelsFuncPointerList).
 type SWelsFuncPtrList struct {
+	// Installed by camera P-slice preprocessing. Disable when replacing the
+	// search method or directional callback. SAD overrides also disable
+	// bSampleSadTwo, matching its existing instrumentation contract.
+	bWholeIntegerSearch       bool
 	sExpandPicFunc            common.SExpandPicFunc
 	pfFillInterNeighborCache  PFillInterNeighborCacheFunc
 	pfGetVarianceFromIntraVaa PGetVarianceFromIntraVaaFunc
