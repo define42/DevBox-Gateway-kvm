@@ -133,7 +133,7 @@ func TestDeviceWorkersRecoverPendingInterrupt(t *testing.T) {
 					return nil
 				})
 				// A pre-worker interrupt (early boot) must leave a buffered wake.
-				if err := d.transport.Interrupt(); err != nil {
+				if err := d.transport.Interrupt(0); err != nil {
 					t.Fatal(err)
 				}
 				// Leave that wake queued across reset and another interrupt.
@@ -173,7 +173,7 @@ func TestDeviceWorkersRecoverPendingInterrupt(t *testing.T) {
 				// a coalesced or stale wake must still recover the new ISR state.
 				writeCfg(d.transport, 20, 0, 1)
 				before = asserted.Load()
-				if err := d.transport.Interrupt(); err != nil {
+				if err := d.transport.Interrupt(0); err != nil {
 					t.Fatal(err)
 				}
 				time.Sleep(d.interval)
@@ -249,7 +249,7 @@ func TestDeviceWorkersCoalesceInterruptBurst(t *testing.T) {
 					return nil
 				})
 				startPollTestDevice(t, d)
-				if err := d.transport.Interrupt(); err != nil {
+				if err := d.transport.Interrupt(0); err != nil {
 					t.Fatal(err)
 				}
 				synctest.Wait()
@@ -260,7 +260,7 @@ func TestDeviceWorkersCoalesceInterruptBurst(t *testing.T) {
 				const burst = 64
 				for range burst {
 					_ = d.transport.clearInterrupt()
-					if err := d.transport.Interrupt(); err != nil {
+					if err := d.transport.Interrupt(0); err != nil {
 						t.Fatal(err)
 					}
 				}

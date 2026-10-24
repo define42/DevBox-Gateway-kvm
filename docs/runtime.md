@@ -629,6 +629,14 @@ These trace variables are intended for direct developer boots. Gateway-managed
 workers discard standard output and standard error; use the gateway performance
 view and diagnostics download for managed desktops.
 
+Virtio queue kicks complete inside KVM (ioeventfd), so they no longer appear as
+MMIO exits. Guests that enable MSI-X receive one interrupt vector per queue
+through KVM irqfds; in a Linux guest, `grep virtio /proc/interrupts` then lists
+`PCI-MSIX` entries such as `virtio1-req.0`. Booting the guest with `pci=nomsi`
+selects the shared INTx line instead, which is useful when comparing behavior.
+If the host kernel lacks irqfd or ioeventfd support, devbox-kvm logs it and uses
+the userspace paths.
+
 The following checks are opt-in and start test guests or exercise hardware.
 
 For firmware boot, persistent VARS across a guest reset, and shutdown:

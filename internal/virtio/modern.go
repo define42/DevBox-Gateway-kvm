@@ -16,9 +16,10 @@ import (
 // a memory BAR and describes their location through PCI capabilities:
 //
 //	common cfg : device/driver feature negotiation, per-queue setup
-//	notify     : queue kick doorbell
+//	notify     : queue kick doorbells, one per queue
 //	isr        : interrupt status (read-to-clear, for legacy INTx)
 //	device cfg : device-specific configuration (e.g. the net MAC)
+//	MSI-X      : vector table and pending bits, when MSI-X is offered
 //
 // The driver also programs the three parts of each split virtqueue
 // (descriptor table, available ring, used ring) at independent guest-physical
@@ -40,7 +41,15 @@ const (
 	deviceCfgOffset = 0x2000
 	notifyCfgOffset = 0x3000
 	notifyCfgLen    = 0x0100
-	modernBARSize   = 0x4000
+	// Queue n's doorbell is at notifyCfgOffset + n*notifyOffMultiplier, so
+	// the VMM can bind a separate KVM ioeventfd to the address of each queue.
+	notifyOffMultiplier = 4
+	// The MSI-X table and PBA share a page apart from the virtio registers,
+	// as PCI requires; the table has room for 128 vectors.
+	msixTableOffset = 0x4000
+	msixPBAOffset   = 0x4800
+	msixPBALen      = 0x0800
+	modernBARSize   = 0x8000
 
 	// PCI capability cfg_type values (virtio_pci_cap.cfg_type).
 	capVendor     = 0x09 // PCI_CAP_ID_VNDR
@@ -54,6 +63,7 @@ const (
 	capNotifyAt = 0x50
 	capISRAt    = 0x64
 	capDeviceAt = 0x74
+	capMSIXAt   = 0x84
 
 	// Split virtqueue descriptor flags.
 	descFNext  = 0x1
@@ -143,11 +153,20 @@ type ModernTransport struct {
 	writeMu  sync.Mutex
 	commonMu sync.RWMutex
 
-	// irqMu keeps ISR read-to-clear and INTx level changes ordered across CPUs.
+	// irqMu keeps ISR read-to-clear, INTx level changes and MSI-X state
+	// ordered across CPUs.
 	irqMu       sync.Mutex
 	setIRQLevel func(bool) error
 	irqError    error
 	irqWake     chan struct{} // Wakes recovery when an interrupt becomes pending.
+
+	// EnableMSIX sizes msixVectors before the device is registered; the slice
+	// length is fixed afterward. Vector contents and msixControl use irqMu.
+	msixRouter  MSIXRouter
+	msixVectors []msixVector
+	msixControl uint16      // Enable and Function Mask bits of Message Control.
+	msixActive  atomic.Bool // Mirrors the Enable bit for lock-free readers.
+	msixRetry   atomic.Bool // A delivery failed; its vector stays pending until resent.
 
 	dev       ModernDevice
 	Mem       []byte
@@ -180,15 +199,22 @@ func NewModernTransport(dev ModernDevice, mem []byte, inject func() error) *Mode
 		configLen: dev.DeviceConfigLen(),
 		queues:    make([]queueState, dev.NumQueues()),
 		irqWake:   make(chan struct{}, 1),
+		// Events start unmapped from MSI-X vectors.
+		msixConfig: msixNoVector,
 	}
 
 	// Advertise the maximum queue size to the driver up front; it reads
 	// this before programming a queue.
 	for i := range t.queues {
-		t.queues[i].size = QueueSize
+		t.queues[i] = resetQueueState()
 	}
 
 	return t
+}
+
+// resetQueueState is a queue's register state after construction or reset.
+func resetQueueState() queueState {
+	return queueState{size: QueueSize, msixVector: msixNoVector}
 }
 
 // negotiatedFeatures returns only offered features accepted by the driver.
@@ -218,22 +244,35 @@ func (t *ModernTransport) SetIRQLine(setLevel func(bool) error) {
 	t.setIRQLevel = setLevel
 }
 
-// Interrupt raises the device's interrupt: it sets the queue-interrupt bit in
-// ISR and asserts the (level) INTx line.
-func (t *ModernTransport) Interrupt() error {
+// Interrupt notifies the driver of used buffers in queue. With MSI-X enabled
+// it sends the vector the driver mapped to that queue; otherwise it sets the
+// queue-interrupt bit in ISR and asserts the (level) INTx line.
+func (t *ModernTransport) Interrupt(queue int) error {
+	vector := t.queueVector(queue)
 	t.irqMu.Lock()
 	defer t.irqMu.Unlock()
+	if t.msixEnabledLocked() {
+		return t.msixNotifyLocked(vector)
+	}
 	t.setPendingInterrupt(0x1)
 
 	return t.raiseIRQ()
 }
 
-// ConfigChanged publishes a device configuration update and raises its INTx
+// ConfigChanged publishes a device configuration update and raises its
 // configuration interrupt without discarding an outstanding queue interrupt.
 func (t *ModernTransport) ConfigChanged() error {
+	vector := t.configVector()
 	t.irqMu.Lock()
 	defer t.irqMu.Unlock()
 	atomic.AddUint32(&t.configGen, 1)
+	if t.msixEnabledLocked() {
+		// ISR still reports the change, but a driver using MSI-X never reads
+		// it, so the bit must not drive INTx recovery (see interruptPending).
+		atomic.OrUint32(&t.isr, 0x2)
+
+		return t.msixNotifyLocked(vector)
+	}
 	t.setPendingInterrupt(0x2)
 
 	return t.raiseIRQ()
@@ -250,17 +289,31 @@ func (t *ModernTransport) setPendingInterrupt(bits uint32) {
 	}
 }
 
+// interruptPending reports an INTx interrupt the driver has not acknowledged,
+// or under MSI-X a message whose delivery failed. Delivered messages need no
+// acknowledgement.
 func (t *ModernTransport) interruptPending() bool {
+	if t.msixActive.Load() {
+		return t.msixRetry.Load()
+	}
+
 	return atomic.LoadUint32(&t.isr) != 0
 }
 
 // ReinjectIfPending re-asserts the interrupt when ISR is still set, i.e. the
 // driver has not yet read (and thereby acknowledged) it. Device IO threads
 // call this periodically so a missed interrupt does not stall the queue.
+// Under MSI-X it only resends messages whose delivery failed: re-sending a
+// delivered one would reach the driver as an unhandled interrupt rather than
+// a harmless ISR read.
 func (t *ModernTransport) ReinjectIfPending() error {
 	t.irqMu.Lock()
 	defer t.irqMu.Unlock()
-	if atomic.LoadUint32(&t.isr) != 0 {
+	if t.msixEnabledLocked() {
+		if t.msixRetry.Load() {
+			return t.msixDeliverPendingLocked()
+		}
+	} else if atomic.LoadUint32(&t.isr) != 0 {
 		return t.raiseIRQ()
 	}
 
@@ -309,17 +362,41 @@ func virtioCap(capLen, cfgType, next uint8, offset, length uint32) []byte {
 }
 
 // Capabilities returns the PCI capability list bytes, starting at config
-// offset 0x40, chaining common -> notify -> isr -> device.
+// offset 0x40, chaining common -> notify -> isr -> device, then MSI-X when
+// EnableMSIX has been called.
 func (t *ModernTransport) Capabilities() []byte {
-	caps := make([]byte, 0, 68)
+	caps := make([]byte, 0, capMSIXAt+msixCapLen-capCommonAt)
 	caps = append(caps, virtioCap(16, cfgTypeCommon, capNotifyAt, commonCfgOffset, commonCfgLen)...)
-	// notify cap is 20 bytes: the extra dword (notify_off_multiplier) is 0,
-	// so all queues share the single notify doorbell.
-	caps = append(caps, virtioCap(20, cfgTypeNotify, capISRAt, notifyCfgOffset, notifyCfgLen)...)
+	// The notify cap's extra dword is notify_off_multiplier.
+	notify := virtioCap(20, cfgTypeNotify, capISRAt, notifyCfgOffset, notifyCfgLen)
+	binary.LittleEndian.PutUint32(notify[16:], notifyOffMultiplier)
+	caps = append(caps, notify...)
 	caps = append(caps, virtioCap(16, cfgTypeISR, capDeviceAt, isrCfgOffset, isrCfgLen)...)
-	caps = append(caps, virtioCap(16, cfgTypeDevice, 0x00, deviceCfgOffset, uint32(t.configLen))...)
+	if len(t.msixVectors) == 0 {
+		return append(caps, virtioCap(16, cfgTypeDevice, 0x00, deviceCfgOffset, uint32(t.configLen))...)
+	}
+	caps = append(caps, virtioCap(16, cfgTypeDevice, capMSIXAt, deviceCfgOffset, uint32(t.configLen))...)
 
-	return caps
+	return append(caps, t.msixCapability()...)
+}
+
+// QueueDoorbells returns the BAR-relative doorbell address of every queue.
+// A guest write to one of them is equivalent to NotifyQueue.
+func (t *ModernTransport) QueueDoorbells() []uint64 {
+	doorbells := make([]uint64, len(t.queues))
+	for i := range doorbells {
+		doorbells[i] = notifyCfgOffset + uint64(i)*notifyOffMultiplier
+	}
+
+	return doorbells
+}
+
+// NotifyQueue delivers a driver kick of queue idx to the device. The VMM calls
+// it for kicks that KVM absorbed through an ioeventfd on the queue doorbell.
+func (t *ModernTransport) NotifyQueue(idx int) {
+	if idx >= 0 && idx < len(t.queues) {
+		t.dev.Notify(idx)
+	}
 }
 
 // MMIO dispatches a guest access within the BAR to the right structure.
@@ -345,7 +422,15 @@ func (t *ModernTransport) MMIO(offset uint64, data []byte, isWrite bool) {
 		}
 	case offset >= notifyCfgOffset && offset < notifyCfgOffset+notifyCfgLen:
 		if isWrite {
-			t.dev.Notify(int(binary.LittleEndian.Uint16(pad2(data))))
+			// Like an ioeventfd, decode the queue from the doorbell address;
+			// without VIRTIO_F_NOTIFICATION_DATA the value is just its index.
+			t.NotifyQueue(int((offset - notifyCfgOffset) / notifyOffMultiplier))
+		}
+	case offset >= msixTableOffset && offset < msixPBAOffset:
+		t.msixTableAccess(offset-msixTableOffset, data, isWrite)
+	case offset >= msixPBAOffset && offset < msixPBAOffset+msixPBALen:
+		if !isWrite {
+			t.msixPBARead(offset-msixPBAOffset, data)
 		}
 	}
 }
@@ -394,7 +479,7 @@ func (t *ModernTransport) commonImage() [commonCfgLen]byte {
 		le.PutUint16(b[24:], q.size)
 		le.PutUint16(b[26:], q.msixVector)
 		le.PutUint16(b[28:], q.enable)
-		le.PutUint16(b[30:], 0) // queue_notify_off (multiplier 0 => always 0)
+		le.PutUint16(b[30:], t.queueSel) // queue_notify_off: each queue has its own doorbell.
 		le.PutUint64(b[32:], q.desc)
 		le.PutUint64(b[40:], q.driver)
 		le.PutUint64(b[48:], q.device)
@@ -456,6 +541,7 @@ func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 			dev.Reset()
 		}
 		t.clearInterrupt()
+		t.clearMSIXPending()
 	}
 
 	le := binary.LittleEndian
@@ -470,16 +556,17 @@ func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 	case 12:
 		t.driverFeature[t.driverFeatureSel&0x1] = le.Uint32(data)
 	case 16:
-		t.msixConfig = le.Uint16(data)
+		t.msixConfig = t.mapVector(le.Uint16(data))
 	case 20:
 		if data[0] == 0 {
+			// Reset also unmaps every event from its MSI-X vector.
 			t.deviceFeatureSel = 0
 			t.driverFeatureSel = 0
 			t.driverFeature = [2]uint32{}
 			t.queueSel = 0
-			t.msixConfig = 0
+			t.msixConfig = msixNoVector
 			for i := range t.queues {
-				t.queues[i] = queueState{size: QueueSize}
+				t.queues[i] = resetQueueState()
 			}
 		}
 		t.deviceStatus = data[0]
@@ -491,7 +578,7 @@ func (t *ModernTransport) mmioCommonCfg(off uint64, data []byte, isWrite bool) {
 		}
 	case 26:
 		if q := t.curQueue(); q != nil {
-			q.msixVector = le.Uint16(data)
+			q.msixVector = t.mapVector(le.Uint16(data))
 		}
 	case 28:
 		if q := t.curQueue(); q != nil {
@@ -579,13 +666,4 @@ func zero(b []byte) {
 	for i := range b {
 		b[i] = 0
 	}
-}
-
-// pad2 returns a little-endian 2-byte view of data, tolerating 1-byte writes.
-func pad2(data []byte) []byte {
-	if len(data) >= 2 {
-		return data
-	}
-
-	return []byte{data[0], 0}
 }

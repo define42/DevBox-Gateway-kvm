@@ -265,10 +265,8 @@ func (s *Sound) complete(idx int, head uint16, response [][]byte, data []byte) {
 	q := s.queues[idx]
 	q.Used.Ring[q.Used.Idx%soundQueueSize(q)] = SplitUsedElem{ID: uint32(head), Len: written}
 	q.Used.Idx++
-	if q.Avail.Flags&1 == 0 {
-		if err := s.Interrupt(); err != nil {
-			log.Printf("virtio-snd: interrupt: %v", err)
-		}
+	if err := s.notifyUsed(idx, q); err != nil {
+		log.Printf("virtio-snd: interrupt: %v", err)
 	}
 }
 

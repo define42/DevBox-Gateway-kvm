@@ -71,6 +71,21 @@ type CapsAndMMIO interface {
 	MMIO(offset uint64, data []byte, isWrite bool)
 }
 
+// CapabilityHandler is implemented by functions that emulate writable
+// registers inside their capability list, such as MSI-X Message Control.
+// Calls are serialized with other configuration accesses and run with the bus
+// locked, so handlers must not call back into the bus.
+type CapabilityHandler interface {
+	// ReadCapability overlays live register values onto data, which already
+	// holds the static configuration bytes read from offset off (>= 0x40).
+	ReadCapability(off int, data []byte)
+
+	// WriteCapability applies a guest write at offset off (>= 0x40) and
+	// reports whether the function owns those bytes. Other writes are
+	// retained by the bus like any other writable configuration register.
+	WriteCapability(off int, data []byte) bool
+}
+
 type DeviceHeader struct {
 	VendorID uint16
 	DeviceID uint16
@@ -113,14 +128,15 @@ func (h DeviceHeader) Bytes() ([]byte, error) {
 // while registering, outside the bus lock. Adding another function in the same
 // slot updates function zero's multifunction header bit under the bus lock.
 type registeredDevice struct {
-	dev      Device
-	header   DeviceHeader
-	caps     []byte
-	barSizes [6]uint64
-	mmio     CapsAndMMIO
-	mmioBAR  int
-	slot     int
-	function int
+	dev        Device
+	header     DeviceHeader
+	caps       []byte
+	capHandler CapabilityHandler
+	barSizes   [6]uint64
+	mmio       CapsAndMMIO
+	mmioBAR    int
+	slot       int
+	function   int
 }
 
 var ErrDeviceAddress = errors.New("invalid PCI slot or function")
@@ -153,6 +169,10 @@ type PCI struct {
 	// Firmware uses this for chipset registers such as i440FX PAM shadow RAM
 	// controls, and later reads expect to see the values it wrote.
 	configOverride map[int]map[int]byte
+
+	// mmioObserver follows the guest-physical base of every modern
+	// function's memory BAR; see ObserveMMIOBARs.
+	mmioObserver func(dev CapsAndMMIO, base uint64)
 }
 
 func New(devices ...Device) *PCI {
@@ -186,6 +206,7 @@ func (p *PCI) AddDevices(devices ...Device) {
 func registerDevice(dev Device) registeredDevice {
 	entry := registeredDevice{dev: dev, header: dev.GetDeviceHeader()}
 	entry.barSizes[0] = dev.Size()
+	entry.capHandler, _ = dev.(CapabilityHandler)
 	if cm, ok := dev.(CapsAndMMIO); ok {
 		entry.caps = append([]byte(nil), cm.Capabilities()...)
 		bar := cm.MMIOBARIndex()
@@ -245,6 +266,29 @@ func (p *PCI) registerAt(slot, function int, entry registeredDevice) {
 	p.devices = append(p.devices, entry)
 	if slot >= p.nextSlot {
 		p.nextSlot = slot + 1
+	}
+	if p.mmioObserver != nil && entry.mmio != nil {
+		index := len(p.devices) - 1
+		p.mmioObserver(entry.mmio, p.barBase(index, entry.mmioBAR))
+	}
+}
+
+// ObserveMMIOBARs installs fn to follow the guest-physical base address of
+// every modern function's memory BAR. fn is called for each function already
+// registered, for functions registered later, and after every guest write that
+// moves a base. Calls are serialized with configuration accesses and run with
+// the bus locked, so fn must not call back into the bus.
+func (p *PCI) ObserveMMIOBARs(fn func(dev CapsAndMMIO, base uint64)) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.mmioObserver = fn
+	if fn == nil {
+		return
+	}
+	for index, entry := range p.devices {
+		if entry.mmio != nil {
+			fn(entry.mmio, p.barBase(index, entry.mmioBAR))
+		}
 	}
 }
 
@@ -431,6 +475,10 @@ func (p *PCI) PciConfDataIn(port uint64, values []byte) error {
 	for i := end - offset; i < len(values); i++ {
 		values[i] = 0xff
 	}
+	if h := p.devices[slot].capHandler; h != nil && end > 0x40 {
+		start := max(offset, 0x40)
+		h.ReadCapability(start, values[start-offset:end-offset])
+	}
 
 	return nil
 }
@@ -457,6 +505,9 @@ func (p *PCI) PciConfDataOut(port uint64, values []byte) error {
 
 	bar := barAtOffset(offset)
 	if bar < 0 {
+		if h := p.devices[slot].capHandler; h != nil && offset >= 0x40 && h.WriteCapability(offset, values) {
+			return nil
+		}
 		if p.configOverride == nil {
 			p.configOverride = map[int]map[int]byte{}
 		}
@@ -497,9 +548,13 @@ func (p *PCI) PciConfDataOut(port uint64, values []byte) error {
 			cur = v
 		}
 
+		before := p.barBase(slot, bar)
 		raw := NumToBytes(cur)
 		copy(raw[offset-barOffset:], values)
 		p.barOverride[slot][bar] = uint32(BytesToNum(raw))
+		if base := p.barBase(slot, bar); base != before && p.mmioObserver != nil {
+			p.mmioObserver(entry.mmio, base)
+		}
 	}
 
 	return nil

@@ -70,8 +70,8 @@ func TestBlkMMIOSize(t *testing.T) {
 		t.Fatalf("err: %v\n", err)
 	}
 
-	if sz := v.MMIOSize(); sz != 0x4000 {
-		t.Fatalf("MMIOSize: expected 0x4000, actual 0x%x", sz)
+	if sz := v.MMIOSize(); sz != 0x8000 {
+		t.Fatalf("MMIOSize: expected 0x8000, actual 0x%x", sz)
 	}
 
 	if idx := v.MMIOBARIndex(); idx != 0 {

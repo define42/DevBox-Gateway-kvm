@@ -36,7 +36,7 @@ func TestModernCommonRejectsInvalidWrites(t *testing.T) {
 				writeCfg(tr, 32, 0x1000, 4)
 				writeCfg(tr, 40, 0x2000, 4)
 				writeCfg(tr, 48, 0x3000, 4)
-				if err := tr.Interrupt(); err != nil {
+				if err := tr.Interrupt(0); err != nil {
 					t.Fatal(err)
 				}
 				var before, after [commonCfgLen]byte

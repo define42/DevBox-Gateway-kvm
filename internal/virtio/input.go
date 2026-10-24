@@ -462,7 +462,7 @@ func (d *InputDevice) flushEvents() error {
 		return err
 	}
 
-	return d.Interrupt()
+	return d.Interrupt(inputEventQueue)
 }
 
 func inputQueueSize(q *SplitQueue) uint16 {
@@ -566,7 +566,7 @@ func (d *InputDevice) drainStatusQueue() error {
 		return err
 	}
 
-	return d.Interrupt()
+	return d.Interrupt(inputStatusQueue)
 }
 
 func (d *InputDevice) drainStatusQueueLocked() error {

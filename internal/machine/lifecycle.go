@@ -78,6 +78,11 @@ func (m *Machine) Close() error {
 		var errs []error
 		errs = append(errs, m.Stop())
 		m.runWG.Wait()
+		// No doorbell can ring once the vCPUs are joined. Closing the
+		// ioeventfds ends their forwarders, which deviceWG joins below.
+		if m.doorbells != nil {
+			errs = append(errs, m.doorbells.close())
+		}
 		if m.pci != nil {
 			for _, dev := range m.pci.Devices() {
 				if closer, ok := dev.(io.Closer); ok {
@@ -91,6 +96,10 @@ func (m *Machine) Close() error {
 			}
 		}
 		m.deviceWG.Wait()
+		// Device workers signal MSI-X irqfds until they are joined.
+		if m.msiRoutes != nil {
+			errs = append(errs, m.msiRoutes.close())
+		}
 		for _, mapping := range m.runMappings {
 			errs = append(errs, syscall.Munmap(mapping))
 		}

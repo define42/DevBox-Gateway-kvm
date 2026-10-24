@@ -22,7 +22,7 @@ func TestModernConfigInterruptAndGeneration(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if err := tr.Interrupt(); err != nil {
+		if err := tr.Interrupt(0); err != nil {
 			t.Fatal(err)
 		}
 		if !configFirst {
@@ -65,7 +65,7 @@ func TestModernConfigInterruptConcurrent(t *testing.T) {
 	})
 	workers.Go(func() {
 		for range 1000 {
-			if err := tr.Interrupt(); err != nil {
+			if err := tr.Interrupt(0); err != nil {
 				t.Error(err)
 			}
 		}
@@ -221,7 +221,7 @@ func TestModernISRReadClears(t *testing.T) {
 	injected := 0
 	tr := newTestTransport(dev, make([]byte, 0x1000), &injected)
 
-	if err := tr.Interrupt(); err != nil {
+	if err := tr.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -250,10 +250,24 @@ func TestModernNotifyDispatch(t *testing.T) {
 	injected := 0
 	tr := newTestTransport(dev, make([]byte, 0x1000), &injected)
 
-	tr.MMIO(notifyCfgOffset, []byte{0x1, 0x0}, true)
+	// Each queue has its own doorbell. The queue comes from the address, as
+	// it does for a KVM ioeventfd that never sees the written value.
+	doorbells := tr.QueueDoorbells()
+	if !slices.Equal(doorbells, []uint64{notifyCfgOffset, notifyCfgOffset + notifyOffMultiplier}) {
+		t.Fatalf("queue doorbells = %#x", doorbells)
+	}
+	for queue := range 2 {
+		writeCfg(tr, 22, uint64(queue), 2)
+		if off := readCfg(tr, 30, 2); notifyCfgOffset+off*notifyOffMultiplier != doorbells[queue] {
+			t.Fatalf("queue %d notify offset %d does not address its doorbell", queue, off)
+		}
+	}
+	tr.MMIO(doorbells[1], []byte{0x1, 0x0}, true)
+	tr.MMIO(doorbells[0], []byte{0x0}, true)
+	tr.MMIO(notifyCfgOffset+2*notifyOffMultiplier, []byte{0x2, 0x0}, true)
 
-	if len(dev.notified) != 1 || dev.notified[0] != 1 {
-		t.Fatalf("notify dispatch: expected [1], got %v", dev.notified)
+	if !slices.Equal(dev.notified, []int{1, 0}) {
+		t.Fatalf("notify dispatch: expected [1 0], got %v", dev.notified)
 	}
 }
 
@@ -314,7 +328,7 @@ func TestModernDeviceReset(t *testing.T) {
 	writeCfg(tr, 40, 0x2000, 4)
 	writeCfg(tr, 48, 0x3000, 4)
 	writeCfg(tr, 28, 1, 2)
-	if err := tr.Interrupt(); err != nil {
+	if err := tr.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	writeCfg(tr, 20, 0, 1)
@@ -323,7 +337,7 @@ func TestModernDeviceReset(t *testing.T) {
 		t.Fatalf("transport did not reset: %+v", tr)
 	}
 	for _, queue := range tr.queues {
-		if queue != (queueState{size: QueueSize}) {
+		if queue != resetQueueState() {
 			t.Fatalf("reset retained queue mapping: %+v", queue)
 		}
 	}
@@ -534,7 +548,7 @@ func TestModernINTxAcknowledgement(t *testing.T) {
 
 		return nil
 	})
-	if err := tr.Interrupt(); err != nil {
+	if err := tr.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	if err := tr.ConfigChanged(); err != nil {
@@ -554,7 +568,7 @@ func TestModernINTxAcknowledgement(t *testing.T) {
 	if len(levels) != 3 {
 		t.Fatal("acknowledged interrupt was reasserted")
 	}
-	if err := tr.Interrupt(); err != nil {
+	if err := tr.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	writeCfg(tr, 20, 0, 1)
@@ -579,7 +593,7 @@ func TestModernINTxConcurrentAcknowledgement(t *testing.T) {
 	var workers sync.WaitGroup
 	workers.Go(func() {
 		for range 1000 {
-			if err := tr.Interrupt(); err != nil {
+			if err := tr.Interrupt(0); err != nil {
 				t.Error(err)
 			}
 		}
@@ -614,14 +628,14 @@ func TestModernINTxAcknowledgementError(t *testing.T) {
 
 		return nil
 	})
-	if err := tr.Interrupt(); err != nil {
+	if err := tr.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	tr.MMIO(isrCfgOffset, make([]byte, 1), false)
 	if err := tr.ReinjectIfPending(); !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("lost acknowledgement error: %v", err)
 	}
-	if err := tr.Interrupt(); !errors.Is(err, io.ErrClosedPipe) {
+	if err := tr.Interrupt(0); !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("lost acknowledgement error during next interrupt: %v", err)
 	}
 }

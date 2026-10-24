@@ -394,7 +394,7 @@ func (g *GPU) process(sel int, control bool) error {
 		g.present()
 	}
 	if completed {
-		return g.Interrupt()
+		return g.Interrupt(sel)
 	}
 
 	return ErrNoGPUReq

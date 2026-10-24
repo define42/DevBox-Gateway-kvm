@@ -14,9 +14,9 @@ func TestBlkCompletionNotificationSuppression(t *testing.T) {
 		flags     uint16
 	}{
 		{name: "writethrough_enabled"},
-		{name: "writethrough_suppressed", flags: blkAvailNoInterrupt},
+		{name: "writethrough_suppressed", flags: availNoInterrupt},
 		{name: "writeback_enabled", writeback: true},
-		{name: "writeback_suppressed", writeback: true, flags: blkAvailNoInterrupt},
+		{name: "writeback_suppressed", writeback: true, flags: availNoInterrupt},
 		{name: "reserved_flag_not_suppressed", flags: 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestBlkCompletionNotificationSuppression(t *testing.T) {
 				}
 				seen[id/3] = true
 			}
-			suppressed := blkNotificationSuppression && tc.flags&blkAvailNoInterrupt != 0
+			suppressed := notificationSuppression && tc.flags&availNoInterrupt != 0
 			if suppressed {
 				if assertions != 0 || v.interruptPending() || len(v.irqWake) != 0 {
 					t.Fatalf("suppressed completion raised an interrupt: assertions=%d", assertions)
@@ -85,7 +85,7 @@ func TestBlkCompletionNotificationReenabled(t *testing.T) {
 	backing := &batchImage{data: make([]byte, 4*SectorSize)}
 	v, q, mem := newFlushTestDevice(t, backing, false)
 	negotiateBlkFlush(v)
-	q.Avail.Flags = blkAvailNoInterrupt
+	q.Avail.Flags = availNoInterrupt
 	addFlushTestRequest(q, mem, 0, 0)
 	if err := v.IO(); err != nil {
 		t.Fatal(err)
@@ -112,8 +112,8 @@ func TestBlkSuppressedCompletionPreservesPendingInterrupt(t *testing.T) {
 
 	backing := &batchImage{data: make([]byte, 4*SectorSize)}
 	v, q, mem := newFlushTestDevice(t, backing, false)
-	q.Avail.Flags = blkAvailNoInterrupt
-	if err := v.Interrupt(); err != nil {
+	q.Avail.Flags = availNoInterrupt
+	if err := v.Interrupt(blkQueue); err != nil {
 		t.Fatal(err)
 	}
 	if err := v.ConfigChanged(); err != nil {
@@ -154,7 +154,7 @@ func TestBlkSuppressedCompletionPreservesInterruptRecovery(t *testing.T) {
 	if err := v.IO(); !errors.Is(err, errTestBlkIRQ) {
 		t.Fatalf("first completion IRQ error=%v, want %v", err, errTestBlkIRQ)
 	}
-	q.Avail.Flags = blkAvailNoInterrupt
+	q.Avail.Flags = availNoInterrupt
 	status := addFlushTestRequest(q, mem, 1, 0)
 	if err := v.IO(); err != nil {
 		t.Fatal(err)

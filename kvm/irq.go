@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"syscall"
 	"unsafe"
 )
 
@@ -139,17 +140,68 @@ func SetIRQChip(vmFd uintptr, irqc *IRQChip) error {
 	return err
 }
 
+const (
+	// Routing entry types (kvm_irq_routing_entry.type).
+	IRQRouteIRQChip = 1
+	IRQRouteMSI     = 2
+
+	// In-kernel interrupt controllers (kvm_irq_routing_irqchip.irqchip).
+	IRQChipPICMaster = 0
+	IRQChipPICSlave  = 1
+	IRQChipIOAPIC    = 2
+
+	// IOAPICPins is the number of KVM IOAPIC inputs, and so of legacy GSIs.
+	IOAPICPins = 24
+)
+
 type IRQRoutingIRQChip struct {
 	IRQChip uint32
 	Pin     uint32
 }
 
+// IRQRoutingEntry is struct kvm_irq_routing_entry. U is the kernel's 32-byte
+// union: irqchip and pin for IRQRouteIRQChip, or address_lo, address_hi and
+// data for IRQRouteMSI. Use NewIRQChipRoute and NewMSIRoute to fill it.
 type IRQRoutingEntry struct {
 	GSI   uint32
 	Type  uint32
 	Flags uint32
 	_     uint32
-	IRQRoutingIRQChip
+	U     [8]uint32
+}
+
+// NewIRQChipRoute routes gsi to pin of an in-kernel interrupt controller.
+func NewIRQChipRoute(gsi, irqChip, pin uint32) IRQRoutingEntry {
+	return IRQRoutingEntry{GSI: gsi, Type: IRQRouteIRQChip, U: [8]uint32{irqChip, pin}}
+}
+
+// NewMSIRoute routes gsi to the MSI message address/data.
+func NewMSIRoute(gsi uint32, address uint64, data uint32) IRQRoutingEntry {
+	return IRQRoutingEntry{
+		GSI:  gsi,
+		Type: IRQRouteMSI,
+		U:    [8]uint32{uint32(address), uint32(address >> 32), data},
+	}
+}
+
+// DefaultIRQRoutes returns the routing KVM_CREATE_IRQCHIP installs on x86:
+// GSIs 0-15 drive the IOAPIC pin and the PIC pin of the same number, GSIs
+// 16-23 only the IOAPIC. KVM_SET_GSI_ROUTING replaces the whole table, so a
+// table adding MSI routes must keep these for legacy line interrupts.
+func DefaultIRQRoutes() []IRQRoutingEntry {
+	routes := make([]IRQRoutingEntry, 0, IOAPICPins+16)
+	for gsi := uint32(0); gsi < IOAPICPins; gsi++ {
+		routes = append(routes, NewIRQChipRoute(gsi, IRQChipIOAPIC, gsi))
+		if gsi < 16 {
+			pic := uint32(IRQChipPICMaster)
+			if gsi >= 8 {
+				pic = IRQChipPICSlave
+			}
+			routes = append(routes, NewIRQChipRoute(gsi, pic, gsi%8))
+		}
+	}
+
+	return routes
 }
 
 type IRQRouting struct {
@@ -204,14 +256,21 @@ func NewIRQRouting(data []byte) (*IRQRouting, error) {
 }
 
 // SetGSIRouting sets the GSI routing table entries, overwriting any previously set entries.
+// Nr entries are passed to KVM, so Nr must not exceed len(Entries).
 func SetGSIRouting(vmFd uintptr, irqR *IRQRouting) error {
+	if int(irqR.Nr) > len(irqR.Entries) {
+		return syscall.EINVAL
+	}
+
 	data, err := irqR.Bytes()
 	if err != nil {
 		return err
 	}
 
+	// The ioctl encodes sizeof(struct kvm_irq_routing): the nr and flags
+	// header that precedes the flexible entry array.
 	_, err = Ioctl(vmFd,
-		IIOW(kvmSetGSIRouting, unsafe.Sizeof(irqR)),
+		IIOW(kvmSetGSIRouting, unsafe.Sizeof([2]uint32{})),
 		uintptr(unsafe.Pointer(&data[0])))
 
 	return err

@@ -173,6 +173,8 @@ type Machine struct {
 	uefiPower      *uefiPower
 	pciIRQMu       sync.Mutex
 	pciIRQLines    map[uint8]*sharedIRQLine
+	msiRoutes      *msiRouting       // Nil when KVM lacks irqfd or GSI routing.
+	doorbells      *doorbellRegistry // Nil when KVM lacks ioeventfd.
 }
 
 // New creates a new KVM. This includes opening the kvm device, creating VM, creating
@@ -262,7 +264,7 @@ func (m *Machine) AddIsolatedUserNetWithPolicy(policy, allowedCIDRs string) erro
 
 func (m *Machine) addNetwork(backend io.ReadWriter) {
 	v := virtio.NewNet(virtioNetIRQ, m, backend, m.mem)
-	m.connectVirtioIRQ(v.ModernTransport, virtioNetIRQ)
+	m.connectVirtio(v, virtioNetIRQ)
 	m.deviceWG.Go(v.TxThreadEntry)
 	m.deviceWG.Go(v.RxThreadEntry)
 	// 00:01.0 for Virtio net
@@ -323,7 +325,7 @@ func (m *Machine) addBlockDevice(v *virtio.Blk) {
 		v.SetInitialMMIOBase(0xd010_0000 + (m.blockCount-1)*0x10000)
 	}
 	m.blockCount++
-	m.connectVirtioIRQ(v.ModernTransport, virtioBlkIRQ)
+	m.connectVirtio(v, virtioBlkIRQ)
 	m.deviceWG.Go(v.IOThreadEntry)
 	m.pci.AddDevices(v)
 }
@@ -337,7 +339,7 @@ func (m *Machine) AddGPUDisplay(display virtio.Display) error {
 func (m *Machine) AddGPUDisplayWithTelemetry(display virtio.Display, collector *telemetry.Collector) error {
 	v := virtio.NewGPU(virtioGPUIRQ, m, m.mem, display)
 	v.SetTelemetry(collector)
-	m.connectVirtioIRQ(v.ModernTransport, virtioGPUIRQ)
+	m.connectVirtio(v, virtioGPUIRQ)
 	if resizable, ok := display.(interface{ SetResizeHandler(func(int, int) error) }); ok {
 		resizable.SetResizeHandler(v.SetDisplaySize)
 	}
@@ -352,7 +354,7 @@ func (m *Machine) AddGPUDisplayWithTelemetry(display virtio.Display, collector *
 // AddSound attaches a clocked virtio-snd playback device to the audio sink.
 func (m *Machine) AddSound(sink virtio.SoundSink) {
 	v := virtio.NewSound(virtioSoundIRQ, m.InjectVirtioSoundIRQ, m.mem, sink)
-	m.connectVirtioIRQ(v.ModernTransport, virtioSoundIRQ)
+	m.connectVirtio(v, virtioSoundIRQ)
 	m.pci.AddDevices(v)
 	m.deviceWG.Go(v.IOThreadEntry)
 }
@@ -369,7 +371,7 @@ func (m *Machine) AddPS2Input() virtio.DisplayInput {
 func (m *Machine) AddUEFIInput() virtio.DisplayInput {
 	legacy := m.AddPS2Input()
 	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)
-	m.connectVirtioIRQ(pointer.ModernTransport, virtioInputPointerIRQ)
+	m.connectVirtio(pointer, virtioInputPointerIRQ)
 	m.pci.AddDevices(pointer)
 	m.deviceWG.Go(pointer.IOThreadEntry)
 
@@ -379,8 +381,8 @@ func (m *Machine) AddUEFIInput() virtio.DisplayInput {
 func (m *Machine) AddVirtioInput() virtio.DisplayInput {
 	keyboard := virtio.NewInputKeyboard(virtioInputKeyboardIRQ, m.InjectVirtioInputKeyboardIRQ, m.mem)
 	pointer := virtio.NewInputTablet(virtioInputPointerIRQ, m.InjectVirtioInputPointerIRQ, m.mem)
-	m.connectVirtioIRQ(keyboard.ModernTransport, virtioInputKeyboardIRQ)
-	m.connectVirtioIRQ(pointer.ModernTransport, virtioInputPointerIRQ)
+	m.connectVirtio(keyboard, virtioInputKeyboardIRQ)
+	m.connectVirtio(pointer, virtioInputPointerIRQ)
 
 	m.deviceWG.Go(keyboard.IOThreadEntry)
 	m.deviceWG.Go(pointer.IOThreadEntry)
@@ -1389,6 +1391,7 @@ func (m *Machine) initVMandVCPU(kvmPath string, nCpus int) error {
 	if err := kvm.CreatePIT2(m.vmFd); err != nil {
 		return err
 	}
+	m.initVirtioEventFDs()
 	mmapSize, err := kvm.GetVCPUMMmapSize(m.kvmFd)
 	if err != nil {
 		return err

@@ -3,7 +3,6 @@ package machine
 import (
 	"sync"
 
-	"github.com/define42/DevBox-Gateway-kvm/internal/virtio"
 	"github.com/define42/DevBox-Gateway-kvm/kvm"
 )
 
@@ -43,7 +42,7 @@ func (line *sharedIRQLine) source() func(bool) error {
 	}
 }
 
-func (m *Machine) connectVirtioIRQ(transport *virtio.ModernTransport, irq uint8) {
+func (m *Machine) connectVirtioIRQ(transport interface{ SetIRQLine(func(bool) error) }, irq uint8) {
 	if !m.uefiIRQ {
 		return
 	}

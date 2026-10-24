@@ -117,10 +117,10 @@ func TestMachineConnectsUEFISharedIRQ(t *testing.T) {
 	}, nil)
 	m.connectVirtioIRQ(first.ModernTransport, 10)
 	m.connectVirtioIRQ(second.ModernTransport, 10)
-	if err := first.Interrupt(); err != nil {
+	if err := first.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
-	if err := second.Interrupt(); err != nil {
+	if err := second.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	first.MMIO(0x1000, make([]byte, 1), false)
@@ -144,7 +144,7 @@ func TestMachinePreservesDirectBootIRQ(t *testing.T) {
 		return nil
 	}, nil)
 	m.connectVirtioIRQ(device.ModernTransport, 10)
-	if err := device.Interrupt(); err != nil {
+	if err := device.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	if injected != 1 || len(m.pciIRQLines) != 0 {

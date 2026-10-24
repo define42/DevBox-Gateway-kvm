@@ -352,11 +352,11 @@ func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPen
 		*c.status = c.result
 		q.Used.Ring[(usedIdx+i)%queueSize] = SplitUsedElem{ID: c.id, Len: c.length}
 	}
-	blkCompletionBarrier()
+	completionBarrier()
 	StoreAddU16(&q.Used.Idx, count)
 	v.LastAvailIdx[blkQueue] += count
 
-	return v.notifyCompletion(q)
+	return v.notifyUsed(blkQueue, q)
 }
 
 // snapshotRequest retains only validated guest slices and command fields.

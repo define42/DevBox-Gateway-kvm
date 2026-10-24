@@ -245,7 +245,7 @@ func (v *Net) Rx() error {
 	v.LastAvailIdx[sel]++
 	StoreAddU16(&used.Idx, 1)
 
-	return v.Interrupt()
+	return v.notifyUsed(netRxQueue, q)
 }
 
 func (v *Net) rxBuffers(q *SplitQueue, head uint16) ([][]byte, int, error) {
@@ -377,7 +377,11 @@ func (v *Net) Tx() error {
 		v.LastAvailIdx[sel]++
 	}
 
-	return v.Interrupt()
+	// TX completions ignore VRING_AVAIL_F_NO_INTERRUPT. Without EVENT_IDX,
+	// Linux napi_tx drivers such as 5.14 can stop a full queue while TX
+	// notifications are disabled and still wait for this interrupt; INTx
+	// hid that by servicing every queue on any interrupt, MSI-X does not.
+	return v.Interrupt(netTxQueue)
 }
 
 // Read and Write satisfy pci.Device. A modern device has no IO-port BAR, so

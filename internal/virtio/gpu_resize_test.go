@@ -45,7 +45,7 @@ func gpuResizeRequest(kind uint32, values ...uint32) []byte {
 func TestGPUDisplayResizeNotification(t *testing.T) {
 	t.Parallel()
 	g, injected := newResizeGPU(t)
-	if err := g.Interrupt(); err != nil {
+	if err := g.Interrupt(0); err != nil {
 		t.Fatal(err)
 	}
 	if err := g.SetDisplaySize(1280, 800); err != nil {
