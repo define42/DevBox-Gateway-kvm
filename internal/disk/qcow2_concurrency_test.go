@@ -114,7 +114,7 @@ func TestQCOW2ConcurrentReadsAndWrites(t *testing.T) {
 
 func TestQCOW2ExclusiveOperationsDrainRead(t *testing.T) {
 	t.Parallel()
-	for _, operation := range []string{"write", "sync", "close"} {
+	for _, operation := range []string{"write", "close"} {
 		t.Run(operation, func(t *testing.T) {
 			t.Parallel()
 			q := openWriteTestQCOW2(t, createEmptyCacheTestQCOW2(t))
@@ -142,8 +142,6 @@ func TestQCOW2ExclusiveOperationsDrainRead(t *testing.T) {
 				case "write":
 					_, err := q.WriteAt([]byte("after!"), 0)
 					finished <- err
-				case "sync":
-					finished <- q.Sync()
 				case "close":
 					finished <- q.Close()
 				}
@@ -154,6 +152,31 @@ func TestQCOW2ExclusiveOperationsDrainRead(t *testing.T) {
 			waitQCOW2Operation(t, finished)
 		})
 	}
+}
+
+// A guest flush must not stall reads, so Sync does not wait for one either.
+func TestQCOW2SyncDoesNotWaitForRead(t *testing.T) {
+	t.Parallel()
+	q := openWriteTestQCOW2(t, createEmptyCacheTestQCOW2(t))
+	want := []byte("before")
+	mustWriteAt(t, q, want, 0)
+	entered := make(chan struct{}, 1)
+	release := make(chan struct{})
+	q.dataReader = qcow2DataReaderFunc(func(data []byte, off int64) (int, error) {
+		entered <- struct{}{}
+		<-release
+
+		return q.file.ReadAt(data, off)
+	})
+	var workers sync.WaitGroup
+	defer workers.Wait()
+	unblock := sync.OnceFunc(func() { close(release) })
+	defer unblock()
+	workers.Go(func() { checkConcurrentQCOW2Read(t, q, want, 0) })
+	waitQCOW2Signal(t, entered)
+	synced := make(chan error, 1)
+	workers.Go(func() { synced <- q.Sync() })
+	waitQCOW2Operation(t, synced)
 }
 
 func TestQCOW2CloseDrainsWrite(t *testing.T) {

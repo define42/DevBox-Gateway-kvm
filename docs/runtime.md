@@ -236,13 +236,15 @@ qemu-img create -f qcow2 blank.qcow2 4G
 Partition and format a blank disk in the guest before using it. The virtio block
 device advertises FLUSH support. A guest that negotiates it uses writeback
 caching: ordinary writes can complete in the host page cache, and an explicit
-guest flush synchronizes the image before reporting success. Guest filesystem
-barriers and application `fsync` calls therefore determine durability boundaries.
-Unflushed writes can be lost after a host crash, as with a physical writeback disk.
+guest flush synchronizes the image before reporting success. A flush covers the
+writes that completed before the guest submitted it; requests submitted later
+keep running while it synchronizes. Guest filesystem barriers and application
+`fsync` calls therefore determine durability boundaries. Unflushed writes can be
+lost after a host crash, as with a physical writeback disk.
 
 Guests that do not negotiate FLUSH retain writethrough behavior: pending writes
 share one sync per queue batch before completion. Closing a device waits for
-active I/O and synchronizes dirty data. Device reset retains that dirty state;
+active I/O, including running flushes, and synchronizes dirty data. Device reset retains that dirty state;
 reset itself is not a flush. The QCOW2 refcount cache is bounded to 4 MiB of
 block data and keeps metadata writes immediate; it does not defer them until
 eviction.

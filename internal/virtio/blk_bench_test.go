@@ -84,7 +84,7 @@ func BenchmarkBlkWriteFlushGroup(b *testing.B) {
 			image := &benchBlockImage{Image: backing}
 			mem := make([]byte, blockSize+64)
 			v := newBlk(image, false, 10, benchIRQInjector{}, mem)
-			b.Cleanup(func() { _ = backing.Close() })
+			b.Cleanup(func() { _ = v.Close() })
 			if writeback {
 				writeCfg(v.ModernTransport, 12, blkFeatureFlush, 4)
 				writeCfg(v.ModernTransport, 20, 0x08, 1)

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
@@ -90,66 +91,49 @@ func addFlushTestRequest(q *SplitQueue, mem []byte, index int, typ uint32) int {
 	return status
 }
 
-func TestBlkWritebackPublishesBeforeLaterFlush(t *testing.T) {
+func TestBlkRequestsProceedDuringFlush(t *testing.T) {
 	t.Parallel()
-
-	entered, release := make(chan struct{}), make(chan struct{})
-	var releaseOnce sync.Once
-	releaseFlush := func() { releaseOnce.Do(func() { close(release) }) }
-	defer releaseFlush()
-
-	backing := &batchImage{data: make([]byte, 4*SectorSize)}
-	backing.onSync = func() {
-		close(entered)
-		<-release
-	}
-	v, q, mem := newFlushTestDevice(t, backing, false)
-	negotiateBlkFlush(v)
-	readStatus := addFlushTestRequest(q, mem, 0, 0)
-	flushStatus := addFlushTestRequest(q, mem, 1, 4)
-	trailingStatus := addFlushTestRequest(q, mem, 2, 0)
-
-	done := make(chan error, 1)
-	go func() { done <- v.IO() }()
-
-	select {
-	case <-entered:
-	case <-time.After(5 * time.Second):
-		t.Fatal("FLUSH did not reach Sync")
-	}
-	if got := mem[readStatus]; got != 0 {
-		t.Fatalf("read status=%d, want success before FLUSH", got)
-	}
-	if q.Used.Idx != 1 || q.Used.Ring[0].ID != 0 {
-		t.Fatalf("published completions=(idx=%d, first ID=%d), want read only", q.Used.Idx, q.Used.Ring[0].ID)
-	}
-	if mem[flushStatus] != 0xff || mem[trailingStatus] != 0xff {
-		t.Fatal("published FLUSH or trailing read while Sync was blocked")
-	}
-	if backing.reads != 1 {
-		t.Fatalf("backend reads=%d, want only the leading read", backing.reads)
-	}
-	if !v.interruptPending() {
-		t.Fatal("leading read completion did not raise an interrupt")
-	}
-
-	releaseFlush()
-	select {
-	case err := <-done:
-		if err != nil {
+	synctest.Test(t, func(t *testing.T) {
+		v, d, statuses := newConcurrentBlkDevice(t, []uint32{0, 4, 0, 1}, true)
+		q := v.VirtQueue[blkQueue]
+		done := startConcurrentBlkIO(t, v, d)
+		synctest.Wait()
+		if d.syncs.Load() != 0 || q.Used.Idx != 0 {
+			t.Fatal("FLUSH started before the preceding read finished")
+		}
+		d.reads[0].release()
+		synctest.Wait()
+		if d.syncs.Load() != 1 || !d.started[2].Load() {
+			t.Fatal("trailing read waited for the FLUSH's Sync")
+		}
+		d.reads[2].release()
+		d.writeGate.release()
+		synctest.Wait()
+		if d.writes.Load() != 1 || q.Used.Idx != 3 {
+			t.Fatalf("requests after FLUSH: writes=%d used=%d, want both complete during Sync",
+				d.writes.Load(), q.Used.Idx)
+		}
+		if v.Mem[statuses[1]] != 0xff {
+			t.Fatal("FLUSH completed before its Sync returned")
+		}
+		select {
+		case err := <-done:
+			t.Fatalf("IO returned before its FLUSH completed: %v", err)
+		default:
+		}
+		d.syncGate.release()
+		if err := <-done; err != nil {
 			t.Fatal(err)
 		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("I/O did not finish after releasing FLUSH")
-	}
-	if q.Used.Idx != 3 || backing.reads != 2 || backing.syncs != 1 {
-		t.Fatalf("final state: used=%d reads=%d syncs=%d", q.Used.Idx, backing.reads, backing.syncs)
-	}
-	for i, status := range []int{readStatus, flushStatus, trailingStatus} {
-		if mem[status] != 0 || q.Used.Ring[i].ID != uint32(i*3) {
-			t.Fatalf("request %d: status=%d used ID=%d", i, mem[status], q.Used.Ring[i].ID)
+		if q.Used.Idx != 4 || q.Used.Ring[3] != (SplitUsedElem{ID: 3, Len: 1}) {
+			t.Fatalf("FLUSH completion: used=%d last=%+v", q.Used.Idx, q.Used.Ring[3])
 		}
-	}
+		for i, status := range statuses {
+			if v.Mem[status] != 0 {
+				t.Fatalf("request %d: status=%d", i, v.Mem[status])
+			}
+		}
+	})
 }
 
 func TestBlkWritebackInterruptFailureDrainsBatch(t *testing.T) {
@@ -304,6 +288,16 @@ func TestBlkFlushFailureRetry(t *testing.T) {
 func TestBlkFlushOrderAndClose(t *testing.T) {
 	t.Parallel()
 	backing := &flushImage{batchImage: batchImage{data: make([]byte, 4*SectorSize)}}
+	// Hold the trailing write until the FLUSH's Sync has begun, so that Sync
+	// cannot cover it and Close must persist it.
+	syncing := make(chan struct{})
+	backing.onSync = sync.OnceFunc(func() { close(syncing) })
+	writes := 0
+	backing.onWrite = func() {
+		if writes++; writes == 2 {
+			<-syncing
+		}
+	}
 	v, q, mem := newFlushTestDevice(t, backing, false)
 	negotiateBlkFlush(v)
 	statuses := []int{
@@ -477,4 +471,97 @@ func TestBlkFlushCloseWaitsForWrite(t *testing.T) {
 	if err := v.IO(); !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("IO after Close=%v", err)
 	}
+}
+
+// Lifecycle changes wait for a running Sync. Reset first publishes the FLUSH to
+// the queue it came from; Close drops it but keeps the image open until then.
+func TestBlkFlushDrainsBeforeLifecycleChange(t *testing.T) {
+	t.Parallel()
+	for _, action := range []string{"close", "reset"} {
+		t.Run(action, func(t *testing.T) {
+			t.Parallel()
+			synctest.Test(t, func(t *testing.T) {
+				v, d, statuses := newConcurrentBlkDevice(t, []uint32{4, 0}, true)
+				q := v.VirtQueue[blkQueue]
+				q.Avail.Idx = 1
+				done := startConcurrentBlkIO(t, v, d)
+				synctest.Wait()
+				// A read posted during the Sync makes IO return to take it.
+				q.Avail.Idx = 2
+				v.Notify(blkQueue)
+				if err := <-done; err != nil {
+					t.Fatal(err)
+				}
+				changed := make(chan error, 1)
+				go func() {
+					if action == "close" {
+						changed <- v.Close()
+
+						return
+					}
+					v.Reset()
+					changed <- nil
+				}()
+				synctest.Wait()
+				select {
+				case err := <-changed:
+					t.Fatalf("%s finished during Sync: %v", action, err)
+				default:
+				}
+				if d.closes.Load() != 0 {
+					t.Fatal("Close closed the image during Sync")
+				}
+				d.syncGate.release()
+				if err := <-changed; err != nil {
+					t.Fatal(err)
+				}
+				if d.started[1].Load() {
+					t.Fatal("lifecycle change serviced the read posted after the FLUSH")
+				}
+				if action == "reset" {
+					if v.Mem[statuses[0]] != 0 || q.Used.Idx != 1 || v.VirtQueue[blkQueue] != nil {
+						t.Fatal("Reset did not publish the FLUSH before discarding its queue")
+					}
+				} else if v.Mem[statuses[0]] != 0xff || q.Used.Idx != 0 || d.closes.Load() != 1 {
+					t.Fatal("Close published the FLUSH or did not close the image")
+				}
+			})
+		})
+	}
+}
+
+// A guest reposting one FLUSH chain can keep more FLUSH requests outstanding
+// than the ring holds. They must all complete without blocking the device.
+func TestBlkFlushBacklogExceedsRing(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		v, d, statuses := newConcurrentBlkDevice(t, []uint32{4}, true)
+		q := v.VirtQueue[blkQueue]
+		q.Avail.Idx = QueueSize // Every ring entry names the FLUSH at head 0.
+		first := startConcurrentBlkIO(t, v, d)
+		synctest.Wait()
+		if d.syncs.Load() != 1 {
+			t.Fatalf("syncs=%d, want one running Sync", d.syncs.Load())
+		}
+		q.Avail.Idx += QueueSize
+		v.Notify(blkQueue)
+		if err := <-first; err != nil {
+			t.Fatal(err)
+		}
+		second := make(chan error, 1)
+		go func() { second <- v.IO() }()
+		synctest.Wait()
+		// The bound keeps the flush channels from filling, which could block
+		// the queue owner and flush worker on each other.
+		if v.flushing != QueueSize {
+			t.Fatalf("outstanding FLUSH requests=%d, want at most %d", v.flushing, QueueSize)
+		}
+		d.syncGate.release()
+		if err := <-second; err != nil {
+			t.Fatal(err)
+		}
+		if q.Used.Idx != 2*QueueSize || v.Mem[statuses[0]] != 0 || d.syncs.Load() < 2 {
+			t.Fatalf("used=%d status=%d syncs=%d", q.Used.Idx, v.Mem[statuses[0]], d.syncs.Load())
+		}
+	})
 }

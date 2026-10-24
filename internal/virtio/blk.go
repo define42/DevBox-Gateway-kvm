@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
@@ -80,7 +81,10 @@ type Blk struct {
 	closeOnce sync.Once
 	closeErr  error
 	queueMu   sync.Mutex
-	dirty     bool // Protected by queueMu; retained across device resets.
+	// writes counts finished write attempts and synced the count the last
+	// successful Sync covered; they differ while data may not be durable.
+	// Both are retained across device resets.
+	writes, synced atomic.Uint64
 	// Reuse snapshots and lazily started read workers under queueMu. Only the
 	// queue owner publishes completions; Close drains and joins all workers.
 	// segments holds the batch's data buffers; each uses a ring descriptor,
@@ -90,6 +94,13 @@ type Blk struct {
 	readJobs    chan *blkPendingRequest
 	readDone    chan *blkPendingRequest
 	readWorkers sync.WaitGroup
+	// FLUSH requests sync on flushWorker while later requests proceed.
+	// flushing counts those the queue owner has not yet published; both
+	// channels have room for all of them. Protected by queueMu.
+	flushJobs   chan blkFlush
+	flushDone   chan blkFlush
+	flushWorker sync.WaitGroup
+	flushing    int
 
 	irq         uint8
 	IRQInjector IRQInjector
@@ -179,16 +190,18 @@ func (v *Blk) QueueReady(idx int, q *SplitQueue) {
 	v.queueMu.Lock()
 	defer v.queueMu.Unlock()
 	if idx == blkQueue {
+		v.finishFlushes()
 		v.VirtQueue[idx] = q
 		v.LastAvailIdx[idx] = 0
 		v.Notify(idx)
 	}
 }
 
-// Reset discards queue mappings after any active I/O batch finishes.
+// Reset discards queue mappings after any active I/O batch and FLUSH finish.
 func (v *Blk) Reset() {
 	v.queueMu.Lock()
 	defer v.queueMu.Unlock()
+	v.finishFlushes()
 	v.VirtQueue = [blkNumQueues]*SplitQueue{}
 	v.LastAvailIdx = [blkNumQueues]uint16{}
 }
@@ -251,6 +264,9 @@ type blkPendingRequest struct {
 	flush      bool
 }
 
+// IO services the requests the driver has posted. FLUSH requests sync in the
+// background while later requests proceed; IO then waits for them unless the
+// driver posts more requests, which the next call takes first.
 func (v *Blk) IO() error {
 	v.queueMu.Lock()
 	defer v.queueMu.Unlock()
@@ -260,11 +276,23 @@ func (v *Blk) IO() error {
 	default:
 	}
 
-	const sel = blkQueue
-	q := v.VirtQueue[sel]
+	q := v.VirtQueue[blkQueue]
 	if q == nil {
 		return ErrVQNotInit
 	}
+	err := v.processQueue(q)
+	if v.flushing > 0 {
+		if flushErr := v.awaitFlushes(q); err == nil || errors.Is(err, ErrNoTxPacket) {
+			err = flushErr
+		}
+	}
+
+	return err
+}
+
+// processQueue runs one batch of posted requests, leaving any FLUSH running.
+func (v *Blk) processQueue(q *SplitQueue) error {
+	const sel = blkQueue
 	queueSize := uint16(QueueSize)
 	if q.Size != 0 && q.Size <= QueueSize {
 		queueSize = q.Size
@@ -294,6 +322,8 @@ func (v *Blk) IO() error {
 		}
 		free = free[used:]
 	}
+	// Every snapshotted request now completes, here or after its FLUSH.
+	v.LastAvailIdx[sel] += count
 
 	needsSync := false
 	var interruptErr error
@@ -312,17 +342,25 @@ func (v *Blk) IO() error {
 			continue
 		}
 		c := &pending[i]
+		if c.flush && c.result == 0 {
+			// Every earlier write has returned, so a Sync starting now covers
+			// it. Later requests need not wait for this one.
+			if err := v.queueFlush(q, queueSize, c); err != nil && interruptErr == nil {
+				interruptErr = err
+			}
+			i++
+
+			continue
+		}
 		if c.result == 0 {
 			var ioErr error
 			switch {
-			case c.flush:
-				ioErr = v.syncImage()
 			case c.write && v.readOnly:
 				ioErr = errReadOnlyBlk
 			case c.write:
-				// A failed write can still have changed data or QCOW2 metadata.
-				v.dirty = true
 				ioErr = v.writeRequest(c)
+				// A failed write can still have changed data or QCOW2 metadata.
+				v.writes.Add(1)
 				needsSync = true
 			default:
 				ioErr = v.readRequest(c)
@@ -370,7 +408,7 @@ func (c *blkPendingRequest) setBounds() {
 }
 
 // releaseBatch drops the batch's guest buffers, including every pool entry its
-// requests referenced. A single defer keeps IO's defers open-coded.
+// requests referenced. A single defer keeps processQueue's defers open-coded.
 func (v *Blk) releaseBatch(pending []blkPendingRequest) {
 	for i := range pending {
 		clear(pending[i].segments)
@@ -396,8 +434,9 @@ func (v *Blk) writeRequest(c *blkPendingRequest) error {
 }
 
 // completeRequests transfers ownership of finished requests back to the guest.
-// Reads may finish out of order; queueMu serializes all used-ring publication.
-// Callers must not touch a completed request's guest buffers after Used.Idx moves.
+// Reads and FLUSH requests may finish out of order; queueMu serializes all
+// used-ring publication. Callers must not touch a completed request's guest
+// buffers after Used.Idx moves.
 func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPendingRequest) error {
 	count := uint16(len(pending)) //nolint:gosec // pending is bounded by QueueSize.
 	usedIdx := LoadU16(&q.Used.Idx)
@@ -408,7 +447,6 @@ func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPen
 	}
 	completionBarrier()
 	StoreAddU16(&q.Used.Idx, count)
-	v.LastAvailIdx[blkQueue] += count
 
 	return v.notifyUsed(blkQueue, q)
 }
@@ -522,11 +560,15 @@ func (v *Blk) IOPort() uint64 { return 0 }
 
 func (v *Blk) Size() uint64 { return 0 }
 
+// syncImage makes every finished write durable. A write still running counts
+// only once it returns, so it stays dirty. Each stored count was covered by its
+// own Sync, so overlapping Syncs can at worst cause another Sync at Close.
 func (v *Blk) syncImage() error {
+	written := v.writes.Load()
 	if err := v.image.Sync(); err != nil {
 		return err
 	}
-	v.dirty = false
+	v.synced.Store(written)
 
 	return nil
 }
@@ -541,8 +583,15 @@ func (v *Blk) Close() error {
 			close(v.readJobs)
 			v.readWorkers.Wait()
 		}
+		if v.flushJobs != nil {
+			// Finish running Syncs before closing the image. A closed device
+			// publishes nothing, so their completions are dropped.
+			close(v.flushJobs)
+			v.flushWorker.Wait()
+			v.flushing = 0
+		}
 		var syncErr error
-		if v.dirty {
+		if v.writes.Load() != v.synced.Load() {
 			syncErr = v.syncImage()
 		}
 		v.closeErr = errors.Join(syncErr, v.image.Close())

@@ -8,8 +8,10 @@ import (
 
 // Image is a random-access virtual disk backing store. ReadAt calls may run
 // concurrently with non-overlapping destination buffers; their completion order
-// is unspecified. Callers must serialize WriteAt, Sync and Close against other
-// operations to preserve request ordering, flush durability and handle lifetime.
+// is unspecified. Sync may also run concurrently with ReadAt and WriteAt: it
+// makes every write that returned before Sync was called durable. Callers must
+// serialize WriteAt against reads and other writes, and Close against every
+// operation, to preserve request ordering and handle lifetime.
 type Image interface {
 	io.ReaderAt
 	io.WriterAt

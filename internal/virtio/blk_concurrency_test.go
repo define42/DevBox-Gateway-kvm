@@ -97,10 +97,8 @@ func (d *concurrentBlkImage) WriteAt(p []byte, off int64) (int, error) {
 	return len(p), nil
 }
 
+// Sync may overlap reads and writes, unlike WriteAt and Close.
 func (d *concurrentBlkImage) Sync() error {
-	if d.active.Load() != 0 {
-		d.overlapped.Store(true)
-	}
 	d.syncs.Add(1)
 	<-d.syncGate.wait
 
@@ -225,46 +223,36 @@ func TestBlkReadConcurrencyBounded(t *testing.T) {
 	})
 }
 
-func TestBlkReadWriteAndFlushBarriers(t *testing.T) {
+// FLUSH is not a barrier for later requests; TestBlkRequestsProceedDuringFlush
+// covers it.
+func TestBlkReadWriteBarrier(t *testing.T) {
 	t.Parallel()
-	for _, tc := range []struct {
-		name string
-		kind uint32
-	}{
-		{name: "write", kind: 1},
-		{name: "flush", kind: 4},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			synctest.Test(t, func(t *testing.T) {
-				v, d, statuses := newConcurrentBlkDevice(t, []uint32{0, 0, tc.kind, 0}, true)
-				done := startConcurrentBlkIO(t, v, d)
-				d.reads[1].release()
-				synctest.Wait()
-				if d.writes.Load() != 0 || d.syncs.Load() != 0 || d.started[3].Load() {
-					t.Fatal("barrier or trailing read overtook the blocked leading read")
-				}
-				d.reads[0].release()
-				synctest.Wait()
-				if d.writes.Load()+d.syncs.Load() != 1 || d.overlapped.Load() {
-					t.Fatal("barrier did not wait for every preceding read")
-				}
-				if d.started[3].Load() || v.Mem[statuses[2]] != 0xff || v.VirtQueue[blkQueue].Used.Idx != 2 {
-					t.Fatal("trailing read or barrier completion overtook the blocked barrier")
-				}
-				d.writeGate.release()
-				d.syncGate.release()
-				synctest.Wait()
-				if !d.started[3].Load() || v.Mem[statuses[2]] != 0 {
-					t.Fatal("trailing read did not start after barrier completion")
-				}
-				d.reads[3].release()
-				if err := <-done; err != nil {
-					t.Fatal(err)
-				}
-			})
-		})
-	}
+	synctest.Test(t, func(t *testing.T) {
+		v, d, statuses := newConcurrentBlkDevice(t, []uint32{0, 0, 1, 0}, true)
+		done := startConcurrentBlkIO(t, v, d)
+		d.reads[1].release()
+		synctest.Wait()
+		if d.writes.Load() != 0 || d.started[3].Load() {
+			t.Fatal("write or trailing read overtook the blocked leading read")
+		}
+		d.reads[0].release()
+		synctest.Wait()
+		if d.writes.Load() != 1 || d.overlapped.Load() {
+			t.Fatal("write did not wait for every preceding read")
+		}
+		if d.started[3].Load() || v.Mem[statuses[2]] != 0xff || v.VirtQueue[blkQueue].Used.Idx != 2 {
+			t.Fatal("trailing read or write completion overtook the blocked write")
+		}
+		d.writeGate.release()
+		synctest.Wait()
+		if !d.started[3].Load() || v.Mem[statuses[2]] != 0 {
+			t.Fatal("trailing read did not start after write completion")
+		}
+		d.reads[3].release()
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestBlkConcurrentReadsPreserveWritethrough(t *testing.T) {

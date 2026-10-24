@@ -442,15 +442,18 @@ func (q *qcow2Image) Size() int64 {
 	return int64(q.size)
 }
 
+// Sync does not hold the lock while the file syncs, so reads and writes
+// continue. WriteAt issues all data and metadata writes before it returns, so
+// syncing the file covers every write that finished before Sync began.
 func (q *qcow2Image) Sync() error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
-	if q.closed {
+	q.mu.RLock()
+	closed, fault := q.closed, q.writeFault
+	q.mu.RUnlock()
+	if closed {
 		return os.ErrClosed
 	}
 
-	return errors.Join(q.writeFault, q.file.Sync())
+	return errors.Join(fault, q.file.Sync())
 }
 
 func (q *qcow2Image) Close() error {
