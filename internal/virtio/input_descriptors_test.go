@@ -1,6 +1,7 @@
 package virtio
 
 import (
+	"cmp"
 	"errors"
 	"slices"
 	"testing"
@@ -19,7 +20,6 @@ func TestInputRejectsMalformedEventChains(t *testing.T) {
 		{name: "head beyond table", head: QueueSize},
 		{name: "maximum head", head: ^uint16(0)},
 		{name: "head beyond negotiated size", size: 2, head: 2},
-		{name: "head beyond invalid size", size: QueueSize + 1, head: QueueSize},
 		{name: "next beyond table", descs: []SplitDesc{{Flags: descFNext, Next: QueueSize}}},
 		{name: "maximum next", descs: []SplitDesc{{Flags: descFNext, Next: ^uint16(0)}}},
 		{name: "next beyond negotiated size", size: 2, descs: []SplitDesc{{Flags: descFNext, Next: 2}}},
@@ -51,9 +51,8 @@ func TestInputRejectsMalformedEventChains(t *testing.T) {
 
 			mem := make([]byte, 0x1000)
 			v := NewInputKeyboard(5, func() error { return nil }, mem)
-			q := newInputSplitQueue()
-			q.Size = tc.size
-			copy(q.Desc[:], tc.descs)
+			q := newInputSplitQueue(cmp.Or(tc.size, QueueSize))
+			copy(q.Desc, tc.descs)
 			q.Avail.Ring[0] = tc.head
 			q.Avail.Idx = 1
 			v.QueueReady(inputEventQueue, q)
@@ -109,20 +108,15 @@ func TestInputEventDescriptorChains(t *testing.T) {
 		name string
 		size uint16
 	}{
-		{name: "default queue"},
+		{name: "maximum queue", size: QueueSize},
 		{name: "negotiated queue", size: 4},
-		{name: "oversized queue uses fixed maximum", size: QueueSize + 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			mem := make([]byte, 0x1000)
 			v := NewInputKeyboard(5, func() error { return nil }, mem)
-			q := newInputSplitQueue()
-			q.Size = tc.size
+			q := newInputSplitQueue(tc.size)
 			size := tc.size
-			if size == 0 || size > QueueSize {
-				size = QueueSize
-			}
 			// Walk every descriptor, including zero-length entries, before the
 			// two writable segments that hold one complete event.
 			for i := range size - 1 {
@@ -159,8 +153,7 @@ func TestInputRejectsQueueOverrun(t *testing.T) {
 			t.Parallel()
 			mem := make([]byte, 0x1000)
 			v := NewInputKeyboard(5, func() error { return nil }, mem)
-			q := newInputSplitQueue()
-			q.Size = 2
+			q := newInputSplitQueue(2)
 			q.Desc[0] = SplitDesc{Addr: 0x100, Len: inputEventLen, Flags: descFWrite}
 			q.Avail.Idx = q.Size + 1
 			v.QueueReady(tc.idx, q)
@@ -195,8 +188,7 @@ func TestInputNegotiatedQueueWrap(t *testing.T) {
 			t.Parallel()
 			mem := make([]byte, 0x1000)
 			v := NewInputKeyboard(5, func() error { return nil }, mem)
-			q := newInputSplitQueue()
-			q.Size = 2
+			q := newInputSplitQueue(2)
 			v.QueueReady(tc.idx, q)
 			for i := range uint16(5) {
 				head := i % q.Size

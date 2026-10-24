@@ -121,7 +121,7 @@ func TestGPUDisplaySizeValidationAndReset(t *testing.T) {
 	g.resourceBytes = 16
 	g.scanout[0] = 1
 	g.frame = image.NewRGBA(image.Rect(0, 0, 2, 2))
-	g.QueueReady(0, &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)})
+	g.QueueReady(0, NewSplitQueue(QueueSize))
 	g.MMIO(20, []byte{0}, true) // Driver probe/reset must preserve host preference.
 	if g.width != 1920 || g.height != 1080 || len(g.resources) != 0 || g.resourceBytes != 0 ||
 		g.frame != nil || g.scanout[0] != 0 || g.VirtQueue[0] != nil || g.events != 0 {
@@ -161,7 +161,7 @@ func TestGPUResizeConcurrentWithQueuesConfigAndReset(t *testing.T) {
 	})
 	workers.Go(func() {
 		for range 300 {
-			g.QueueReady(0, &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)})
+			g.QueueReady(0, NewSplitQueue(QueueSize))
 			g.Notify(0)
 			_ = g.ProcessControlQueue()
 			g.MMIO(20, []byte{0}, true)
@@ -262,7 +262,7 @@ func TestGPUResizeAllowsOverlappingScanoutBuffers(t *testing.T) {
 func TestGPURejectsCyclicAndOversizedDescriptorChains(t *testing.T) {
 	t.Parallel()
 	g, _ := newResizeGPU(t)
-	q := &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)}
+	q := NewSplitQueue(QueueSize)
 	for _, descriptor := range []SplitDesc{
 		{Addr: 4096, Len: 24, Flags: descFNext, Next: 0},
 		{Addr: 4096, Len: gpuMaxRequest + 1},

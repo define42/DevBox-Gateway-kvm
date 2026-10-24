@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -38,11 +39,7 @@ func (m *mockInjector) InjectVirtioGPUIRQ() error {
 // newSplitQueue builds a stand-alone split virtqueue for tests. The rings live
 // in ordinary Go memory; only descriptor data addresses point into mem.
 func newSplitQueue() *virtio.SplitQueue {
-	return &virtio.SplitQueue{
-		Desc:  &[virtio.QueueSize]virtio.SplitDesc{},
-		Avail: &virtio.SplitAvail{},
-		Used:  &virtio.SplitUsed{},
-	}
+	return virtio.NewSplitQueue(virtio.QueueSize)
 }
 
 func TestNetGetDeviceHeader(t *testing.T) {
@@ -492,7 +489,7 @@ func TestNetRXDescriptorChain(t *testing.T) {
 	q.Avail.Ring[0] = 3
 	q.Avail.Idx = 1
 	v.VirtQueue[0] = q
-	original := *q.Desc
+	original := slices.Clone(q.Desc)
 	if err := v.Rx(); err != nil {
 		t.Fatal(err)
 	}
@@ -500,7 +497,7 @@ func TestNetRXDescriptorChain(t *testing.T) {
 	if !bytes.Equal(got, payload) {
 		t.Fatalf("descriptor chain payload: %x; want %x", got, payload)
 	}
-	if *q.Desc != original {
+	if !slices.Equal(q.Desc, original) {
 		t.Fatal("RX changed guest descriptor metadata")
 	}
 	if q.Used.Idx != 1 || q.Used.Ring[0].ID != 3 || q.Used.Ring[0].Len != 16 || v.LastAvailIdx[0] != 1 {
@@ -645,8 +642,7 @@ func TestNetRxNegotiatedQueueWrap(t *testing.T) {
 	mem := make([]byte, 4096)
 	v := virtio.NewNet(9, &mockInjector{}, backend, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	q := newSplitQueue()
-	q.Size = 4
+	q := virtio.NewSplitQueue(4)
 	q.Desc[3] = virtio.SplitDesc{Addr: 256, Len: 64, Flags: 2}
 	q.Avail.Ring[0] = 3
 	q.Avail.Idx, q.Used.Idx = 5, 4
@@ -659,9 +655,6 @@ func TestNetRxNegotiatedQueueWrap(t *testing.T) {
 	}
 	if !bytes.Equal(mem[256+12:256+15], []byte{0xaa, 0xbb, 0xcc}) {
 		t.Fatal("wrapped packet copied to wrong buffer")
-	}
-	if q.Used.Ring[4] != (virtio.SplitUsedElem{}) {
-		t.Fatal("completion written outside negotiated ring")
 	}
 }
 

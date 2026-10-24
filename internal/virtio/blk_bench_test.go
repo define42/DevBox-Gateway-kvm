@@ -37,7 +37,7 @@ func BenchmarkBlkWriteBatch(b *testing.B) {
 			mem := make([]byte, requests*(blockSize+17))
 			v := newBlk(image, false, 10, benchIRQInjector{}, mem)
 			b.Cleanup(func() { _ = backing.Close() })
-			q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+			q := NewSplitQueue(QueueSize)
 			for i := 0; i < requests; i++ {
 				addr := uint64(i * (blockSize + 17))
 				head := uint16(i * 3)
@@ -89,7 +89,7 @@ func BenchmarkBlkWriteFlushGroup(b *testing.B) {
 				writeCfg(v.ModernTransport, 12, blkFeatureFlush, 4)
 				writeCfg(v.ModernTransport, 20, 0x08, 1)
 			}
-			q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+			q := NewSplitQueue(QueueSize)
 			binary.LittleEndian.PutUint32(mem, 1)
 			binary.LittleEndian.PutUint32(mem[blockSize+32:], 4)
 			q.Desc[0] = SplitDesc{Addr: 0, Len: 16, Flags: descFNext, Next: 1}

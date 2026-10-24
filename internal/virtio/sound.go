@@ -219,14 +219,6 @@ func (s *Sound) process(now time.Time) {
 	}
 }
 
-func soundQueueSize(q *SplitQueue) uint16 {
-	if q.Size == 0 || q.Size > QueueSize {
-		return QueueSize
-	}
-
-	return q.Size
-}
-
 func (s *Sound) pop(idx int) (uint16, bool) {
 	q := s.queues[idx]
 	if q == nil || q.Desc == nil || q.Avail == nil || q.Used == nil {
@@ -237,7 +229,7 @@ func (s *Sound) pop(idx int) (uint16, bool) {
 	if available == 0 {
 		return 0, false
 	}
-	if available > soundQueueSize(q) {
+	if available > q.Size {
 		// An overrun cannot describe valid outstanding buffers. Drop the
 		// corrupt publication rather than walking an unbounded index range.
 		s.lastAvail[idx] = q.Avail.Idx
@@ -245,7 +237,7 @@ func (s *Sound) pop(idx int) (uint16, bool) {
 		return 0, false
 	}
 
-	head := q.Avail.Ring[s.lastAvail[idx]%soundQueueSize(q)]
+	head := q.Avail.Ring[s.lastAvail[idx]%q.Size]
 	s.lastAvail[idx]++
 
 	return head, true
@@ -263,7 +255,7 @@ func (s *Sound) complete(idx int, head uint16, response [][]byte, data []byte) {
 	}
 
 	q := s.queues[idx]
-	q.Used.Ring[q.Used.Idx%soundQueueSize(q)] = SplitUsedElem{ID: uint32(head), Len: written}
+	q.Used.Ring[q.Used.Idx%q.Size] = SplitUsedElem{ID: uint32(head), Len: written}
 	q.Used.Idx++
 	if err := s.notifyUsed(idx, q); err != nil {
 		log.Printf("virtio-snd: interrupt: %v", err)
@@ -278,7 +270,7 @@ func (s *Sound) chain(q *SplitQueue, head uint16, limit int) ([][]byte, [][]byte
 	var seen [QueueSize]bool
 	readBytes, writeBytes := 0, 0
 	for {
-		if head >= soundQueueSize(q) || seen[head] {
+		if head >= q.Size || seen[head] {
 			return nil, nil, 0, 0, false
 		}
 		seen[head] = true

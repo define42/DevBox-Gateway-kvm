@@ -465,21 +465,13 @@ func (d *InputDevice) flushEvents() error {
 	return d.Interrupt(inputEventQueue)
 }
 
-func inputQueueSize(q *SplitQueue) uint16 {
-	if q.Size == 0 || q.Size > QueueSize {
-		return QueueSize
-	}
-
-	return q.Size
-}
-
 func (d *InputDevice) flushEventsLocked() error {
 	q := d.VirtQueue[inputEventQueue]
 	if q == nil {
 		return ErrVQNotInit
 	}
 
-	queueSize := inputQueueSize(q)
+	queueSize := q.Size
 	available := LoadU16(&q.Avail.Idx) - d.LastAvailIdx[inputEventQueue]
 	if available == 0 || available > queueSize {
 		return errNoInputEvent
@@ -509,9 +501,10 @@ func (d *InputDevice) flushEventsLocked() error {
 
 func (d *InputDevice) writeEvent(q *SplitQueue, head uint16, ev inputEvent) (uint32, bool) {
 	descID := head
-	queueSize := inputQueueSize(q)
+	queueSize := q.Size
 	var visited [QueueSize]bool
-	var writable [QueueSize][]byte
+	// Each kept segment holds at least one byte of the event.
+	var writable [inputEventLen][]byte
 	segments, remaining := 0, inputEventLen
 
 	// Snapshot the complete chain before modifying guest memory. An invalid
@@ -575,7 +568,7 @@ func (d *InputDevice) drainStatusQueueLocked() error {
 		return ErrVQNotInit
 	}
 
-	queueSize := inputQueueSize(q)
+	queueSize := q.Size
 	available := LoadU16(&q.Avail.Idx) - d.LastAvailIdx[inputStatusQueue]
 	if available == 0 || available > queueSize {
 		return errNoInputEvent

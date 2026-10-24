@@ -57,10 +57,8 @@ func TestUEFISoundRegistrationAndClose(t *testing.T) {
 	binary.LittleEndian.PutUint32(request, 0x0100)
 	binary.LittleEndian.PutUint32(request[8:], 1)
 	binary.LittleEndian.PutUint32(request[12:], 32)
-	queue := &virtio.SplitQueue{
-		Desc:  new([virtio.QueueSize]virtio.SplitDesc),
-		Avail: &virtio.SplitAvail{Idx: 1}, Used: new(virtio.SplitUsed),
-	}
+	queue := virtio.NewSplitQueue(virtio.QueueSize)
+	queue.Avail.Idx = 1
 	queue.Desc[0] = virtio.SplitDesc{Addr: 4096, Len: 16, Flags: 1, Next: 1}
 	queue.Desc[1] = virtio.SplitDesc{Addr: 8192, Len: 36, Flags: 2}
 	sound.QueueReady(0, queue)

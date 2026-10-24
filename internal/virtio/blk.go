@@ -27,8 +27,9 @@ const (
 	// blkMaxSegments is the seg_max offered with VIRTIO_BLK_F_SEG_MAX. A
 	// request's data buffers share the ring with its header and status, and
 	// Linux does not limit seg_max to the ring size when indirect descriptors
-	// are not negotiated: a larger value would allow requests that never fit.
-	blkMaxSegments = QueueSize - 2
+	// are not negotiated. Keep it well below the ring, so that one maximum-size
+	// request per read worker fits at once.
+	blkMaxSegments = QueueSize/blkReadWorkers - 2
 
 	// BlkMMIOBase is the guest-physical base of the block device's memory
 	// BAR. It sits in the 32-bit MMIO hole, distinct from the net device's
@@ -293,10 +294,7 @@ func (v *Blk) IO() error {
 // processQueue runs one batch of posted requests, leaving any FLUSH running.
 func (v *Blk) processQueue(q *SplitQueue) error {
 	const sel = blkQueue
-	queueSize := uint16(QueueSize)
-	if q.Size != 0 && q.Size <= QueueSize {
-		queueSize = q.Size
-	}
+	queueSize := q.Size
 	// Drivers negotiating FLUSH control durability boundaries explicitly.
 	// Other drivers retain writethrough: one Sync covers a bounded batch,
 	// and no write completes before that Sync succeeds.

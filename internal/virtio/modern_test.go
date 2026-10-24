@@ -201,12 +201,19 @@ func TestModernQueueSetup(t *testing.T) {
 		t.Fatalf("desc table not mapped at descAddr")
 	}
 
-	if got := uintptr(unsafe.Pointer(q.Avail)); got != uintptr(unsafe.Pointer(&mem[availAddr])) {
+	if unsafe.Pointer(q.Avail.splitRingHeader) != unsafe.Pointer(&mem[availAddr]) ||
+		unsafe.Pointer(&q.Avail.Ring[0]) != unsafe.Pointer(&mem[availAddr+4]) {
 		t.Fatalf("avail ring not mapped at availAddr")
 	}
 
-	if got := uintptr(unsafe.Pointer(q.Used)); got != uintptr(unsafe.Pointer(&mem[usedAddr])) {
+	if unsafe.Pointer(q.Used.splitRingHeader) != unsafe.Pointer(&mem[usedAddr]) ||
+		unsafe.Pointer(&q.Used.Ring[0]) != unsafe.Pointer(&mem[usedAddr+4]) {
 		t.Fatalf("used ring not mapped at usedAddr")
+	}
+
+	if q.Size != QueueSize || len(q.Desc) != QueueSize || len(q.Avail.Ring) != QueueSize || len(q.Used.Ring) != QueueSize {
+		t.Fatalf("views hold %d/%d/%d entries, want the negotiated %d",
+			len(q.Desc), len(q.Avail.Ring), len(q.Used.Ring), q.Size)
 	}
 
 	if e := readCfg(tr, 28, 2); e != 1 {

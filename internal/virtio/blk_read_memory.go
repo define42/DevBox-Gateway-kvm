@@ -9,13 +9,24 @@ import (
 // parallel reads. Another request's completion can update the used ring while
 // a read is in flight, and the queue owner still inspects notification flags.
 func blkReadOverlapsQueue(q *SplitQueue, c *blkPendingRequest) bool {
+	var avail, used *splitRingHeader
+	var availRing []uint16
+	var usedRing []SplitUsedElem
+	if q.Avail != nil {
+		avail, availRing = q.Avail.splitRingHeader, q.Avail.Ring
+	}
+	if q.Used != nil {
+		used, usedRing = q.Used.splitRingHeader, q.Used.Ring
+	}
 	for _, region := range [...]struct {
 		ptr  unsafe.Pointer
 		size uintptr
 	}{
-		{ptr: unsafe.Pointer(q.Desc), size: unsafe.Sizeof(*q.Desc)},
-		{ptr: unsafe.Pointer(q.Avail), size: unsafe.Sizeof(*q.Avail)},
-		{ptr: unsafe.Pointer(q.Used), size: unsafe.Sizeof(*q.Used)},
+		{ptr: unsafe.Pointer(unsafe.SliceData(q.Desc)), size: uintptr(len(q.Desc)) * unsafe.Sizeof(SplitDesc{})},
+		{ptr: unsafe.Pointer(avail), size: unsafe.Sizeof(splitRingHeader{})},
+		{ptr: unsafe.Pointer(unsafe.SliceData(availRing)), size: uintptr(len(availRing)) * unsafe.Sizeof(uint16(0))},
+		{ptr: unsafe.Pointer(used), size: unsafe.Sizeof(splitRingHeader{})},
+		{ptr: unsafe.Pointer(unsafe.SliceData(usedRing)), size: uintptr(len(usedRing)) * unsafe.Sizeof(SplitUsedElem{})},
 	} {
 		for _, segment := range c.segments {
 			if blkPointerRangesOverlap(

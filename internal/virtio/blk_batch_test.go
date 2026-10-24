@@ -82,7 +82,7 @@ func TestBlkRequestCapacity(t *testing.T) {
 				backing := &batchImage{data: make([]byte, SectorSize)}
 				v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 				t.Cleanup(func() { _ = v.Close() })
-				q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+				q := NewSplitQueue(QueueSize)
 				binary.LittleEndian.PutUint32(mem, operation.typ)
 				binary.LittleEndian.PutUint64(mem[8:], requestRange.sector)
 				mem[32] = 0x5a
@@ -140,7 +140,7 @@ func TestBlkBatchDurability(t *testing.T) {
 			backing := &batchImage{data: make([]byte, 3*SectorSize), syncErr: tc.syncErr}
 			v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 			t.Cleanup(func() { _ = v.Close() })
-			q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+			q := NewSplitQueue(QueueSize)
 			for i := 0; i < 3; i++ {
 				addr, head := uint64(i*1024), uint16(i*3)
 				if i != 1 {
@@ -202,7 +202,7 @@ func TestBlkBatchSnapshot(t *testing.T) {
 	backing := &batchImage{data: make([]byte, 2*SectorSize)}
 	v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	for i := 0; i < 2; i++ {
 		addr, head := uint64(i*1024), uint16(i*3)
 		binary.LittleEndian.PutUint32(mem[addr:], 1)
@@ -257,7 +257,7 @@ func TestBlkBatchSnapshotsDescriptorsBeforeIO(t *testing.T) {
 	backing := &batchImage{data: make([]byte, 2*SectorSize)}
 	v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	for i := 0; i < 2; i++ {
 		addr, head := uint64(i*1024), uint16(i*3)
 		binary.LittleEndian.PutUint32(mem[addr:], 1)
@@ -313,7 +313,7 @@ func TestBlkUnsupportedRequests(t *testing.T) {
 			backing := &batchImage{data: make([]byte, SectorSize)}
 			v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 			t.Cleanup(func() { _ = v.Close() })
-			q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+			q := NewSplitQueue(QueueSize)
 			binary.LittleEndian.PutUint32(mem, tc.typ)
 			q.Desc[0] = SplitDesc{Addr: 0, Len: 16, Flags: descFNext, Next: 1}
 			statusID := 1

@@ -28,7 +28,7 @@ func newTestSound(t *testing.T) (*Sound, *soundTestSink) {
 }
 
 func soundTestQueue() *SplitQueue {
-	return &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)}
+	return NewSplitQueue(QueueSize)
 }
 
 func soundRequest(code uint32, values ...uint32) []byte {
@@ -63,7 +63,7 @@ func soundPublish(s *Sound, q *SplitQueue, head uint16, address uint64, request 
 	responseAddress := address + uint64(len(request)) + 16
 	q.Desc[head] = SplitDesc{Addr: address, Len: uint32(len(request)), Flags: descFNext, Next: head + 1}
 	q.Desc[head+1] = SplitDesc{Addr: responseAddress, Len: uint32(responseLen), Flags: descFWrite}
-	q.Avail.Ring[q.Avail.Idx%soundQueueSize(q)] = head
+	q.Avail.Ring[q.Avail.Idx%q.Size] = head
 	q.Avail.Idx++
 
 	return s.Mem[responseAddress : responseAddress+uint64(responseLen)]
@@ -330,8 +330,7 @@ func TestSoundResetAndCloseConcurrent(t *testing.T) {
 func TestSoundSmallQueueAndWrap(t *testing.T) {
 	t.Parallel()
 	s, _ := newTestSound(t)
-	q := soundTestQueue()
-	q.Size = 4
+	q := NewSplitQueue(4)
 	q.Avail.Idx, q.Used.Idx = 0xffff, 0xffff
 	s.QueueReady(soundControlQueue, q)
 	s.lastAvail[soundControlQueue] = 0xffff

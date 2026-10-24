@@ -79,7 +79,7 @@ func TestInputKeyboardDeliversEvents(t *testing.T) {
 		return nil
 	}, mem)
 
-	q := newInputSplitQueue()
+	q := newInputSplitQueue(QueueSize)
 	queueInputBuffer(q, 0, 0x100)
 	queueInputBuffer(q, 1, 0x108)
 	v.QueueReady(inputEventQueue, q)
@@ -139,7 +139,7 @@ func TestInputKeyboardShiftedPunctuation(t *testing.T) {
 			t.Parallel()
 			mem := make([]byte, 0x1000)
 			v := NewInputKeyboard(5, func() error { return nil }, mem)
-			q := newInputSplitQueue()
+			q := newInputSplitQueue(QueueSize)
 			for i := range uint16(9) {
 				queueInputBuffer(q, i, 0x100+uint64(i)*inputEventLen)
 			}
@@ -195,12 +195,8 @@ func readInputConfig(v *InputDevice, sel, subsel uint8) [inputConfigLen]byte {
 	return cfg
 }
 
-func newInputSplitQueue() *SplitQueue {
-	return &SplitQueue{
-		Desc:  &[QueueSize]SplitDesc{},
-		Avail: &SplitAvail{},
-		Used:  &SplitUsed{},
-	}
+func newInputSplitQueue(size uint16) *SplitQueue {
+	return NewSplitQueue(size)
 }
 
 func queueInputBuffer(q *SplitQueue, descID uint16, addr uint64) {
@@ -303,7 +299,7 @@ func TestInputTabletFirstClickDeliversPosition(t *testing.T) {
 
 	mem := make([]byte, 0x1000)
 	v := NewInputTablet(6, func() error { return nil }, mem)
-	q := newInputSplitQueue()
+	q := newInputSplitQueue(QueueSize)
 	// Movement must be a complete report before the first button press.
 	for i := 0; i < 5; i++ {
 		queueInputBuffer(q, uint16(i), uint64(0x100+i*inputEventLen))
@@ -383,10 +379,10 @@ func TestInputConcurrentConfigurationAndQueues(t *testing.T) {
 	t.Parallel()
 
 	v := NewInputKeyboard(5, func() error { return nil }, make([]byte, 0x1000))
-	q := newInputSplitQueue()
+	q := newInputSplitQueue(QueueSize)
 	queueInputBuffer(q, 0, 0x100)
 	queueInputBuffer(q, 1, 0x108)
-	status := newInputSplitQueue()
+	status := newInputSplitQueue(QueueSize)
 	status.Avail.Idx = 1
 	var workers sync.WaitGroup
 	workers.Go(func() {
@@ -455,7 +451,7 @@ func TestInputQueueReplacementStartsAtFirstDescriptor(t *testing.T) {
 
 	v := NewInputKeyboard(5, func() error { return nil }, make([]byte, 0x1000))
 	for range 2 {
-		q := newInputSplitQueue()
+		q := newInputSplitQueue(QueueSize)
 		queueInputBuffer(q, 0, 0x100)
 		v.QueueReady(inputEventQueue, q)
 		v.KeyEvent(true, 'a')

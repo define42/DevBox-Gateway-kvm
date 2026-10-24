@@ -68,17 +68,47 @@ func (s *dnsStub) next(t *testing.T) dnsStubRequest {
 
 func (s *dnsStub) reply(t *testing.T, pending dnsStubRequest) {
 	t.Helper()
+	if err := s.writeReply(pending); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (s *dnsStub) writeReply(pending dnsStubRequest) error {
 	request := new(dns.Msg)
 	if err := request.Unpack(pending.data); err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("unpack DNS stub request: %w", err)
 	}
 	data, err := dnsAnswer(request).Pack()
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("pack DNS stub reply: %w", err)
 	}
 	if _, err := s.conn.WriteTo(data, pending.peer); err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("write DNS stub reply: %w", err)
 	}
+
+	return nil
+}
+
+func (s *dnsStub) replyQueued(t *testing.T) {
+	t.Helper()
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-stop:
+				return
+			case pending := <-s.requests:
+				if err := s.writeReply(pending); err != nil {
+					t.Errorf("upstream DNS responder: %v", err)
+
+					return
+				}
+			}
+		}
+	}()
+	t.Cleanup(func() { close(stop); <-done })
 }
 
 func dnsAnswer(request *dns.Msg) *dns.Msg {
@@ -214,20 +244,45 @@ func TestDNSSustainedFloodBoundedAndRecovers(t *testing.T) {
 		stub.reply(t, request)
 	}
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	for range pending {
-		if _, err := client.ReadMsg(); err != nil {
+	var received [maxDNSQueries]bool
+	for count := 0; count < len(pending); {
+		reply, err := client.ReadMsg()
+		if err != nil {
 			t.Fatal(err)
 		}
+		if reply.Id == 1000 {
+			continue
+		}
+		if reply.Id >= maxDNSQueries || received[reply.Id] || reply.Rcode != dns.RcodeSuccess || len(reply.Answer) != 1 {
+			t.Fatalf("initial DNS reply = %v", reply)
+		}
+		received[reply.Id] = true
+		count++
 	}
+	// Writes and an empty query budget do not drain the guest's UDP queues.
+	// Answer late flood requests as slots reopen, and use a fresh socket so
+	// their replies cannot be mistaken for the recovery query's response.
+	stub.replyQueued(t)
+	recovery := &dns.Conn{Conn: dnsGuestUDP(t, guest)}
+	resolver := &dns.Client{Timeout: 100 * time.Millisecond}
+	waitDNS(t, func() bool {
+		reply, _, err := resolver.ExchangeWithConn(dnsQuery(3000), recovery)
+		if err != nil {
+			var timeout net.Error
+			if !errors.As(err, &timeout) || !timeout.Timeout() {
+				t.Fatalf("DNS recovery query failed: %v", err)
+			}
+
+			// A recovery datagram can still be dropped behind queued flood work.
+			return false
+		}
+		if reply.Id != 3000 || reply.Rcode != dns.RcodeSuccess || len(reply.Answer) != 1 {
+			t.Fatalf("DNS failed to recover after overload: %v", reply)
+		}
+
+		return true
+	})
 	waitDNS(t, func() bool { return len(service.queries) == 0 })
-	if err := client.WriteMsg(dnsQuery(3000)); err != nil {
-		t.Fatal(err)
-	}
-	stub.reply(t, stub.next(t))
-	reply, err = client.ReadMsg()
-	if err != nil || reply.Id != 3000 || len(reply.Answer) != 1 {
-		t.Fatalf("DNS failed to recover after overload: %v, %v", reply, err)
-	}
 	t.Logf("dropped sustained overload of %d packets with %d upstream sockets", packets, len(peers))
 }
 

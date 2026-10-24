@@ -45,7 +45,7 @@ type pollTestDevice struct {
 func newPollTestDevice(t *testing.T, kind string) pollTestDevice {
 	t.Helper()
 	mem := make([]byte, 1024)
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	d := pollTestDevice{queue: q, interval: time.Millisecond}
 	switch kind {
 	case "block":

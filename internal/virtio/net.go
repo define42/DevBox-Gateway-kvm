@@ -198,10 +198,7 @@ func (v *Net) Rx() error {
 	avail := q.Avail
 	used := q.Used
 
-	queueSize := uint16(QueueSize)
-	if q.Size != 0 && q.Size <= QueueSize {
-		queueSize = q.Size
-	}
+	queueSize := q.Size
 	count := LoadU16(&avail.Idx) - v.LastAvailIdx[sel]
 	if count == 0 {
 		return ErrNoRxBuf
@@ -252,10 +249,7 @@ func (v *Net) rxBuffers(q *SplitQueue, head uint16) ([][]byte, int, error) {
 	var buffers [][]byte
 	capacity := 0
 	descID := head
-	queueSize := uint16(QueueSize)
-	if q.Size != 0 && q.Size <= QueueSize {
-		queueSize = q.Size
-	}
+	queueSize := q.Size
 	for range queueSize {
 		if descID >= queueSize {
 			return nil, 0, ErrNetDesc
@@ -325,10 +319,7 @@ func (v *Net) Tx() error {
 		return ErrNoTxPacket
 	}
 
-	queueSize := uint16(QueueSize)
-	if q.Size != 0 && q.Size <= QueueSize {
-		queueSize = q.Size
-	}
+	queueSize := q.Size
 	count := LoadU16(&avail.Idx) - v.LastAvailIdx[sel]
 	if count > queueSize {
 		return ErrNetDesc
@@ -411,7 +402,7 @@ func NewNet(irq uint8, irqInjector IRQInjector, tap io.ReadWriter, mem []byte) *
 	res := &Net{
 		irq:         irq,
 		IRQInjector: irqInjector,
-		txKick:      make(chan interface{}, QueueSize),
+		txKick:      make(chan interface{}, 1), // Tx drains the whole queue per wakeup.
 		rxKick:      make(chan os.Signal, 1),
 		rxNotify:    make(chan struct{}, 1),
 		done:        make(chan struct{}),

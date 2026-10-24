@@ -48,8 +48,8 @@ func TestBlkAdvertisesSegmentLimit(t *testing.T) {
 	if v.DeviceFeatures()&blkFeatureSegMax == 0 {
 		t.Fatal("VIRTIO_BLK_F_SEG_MAX is not offered")
 	}
-	if blkMaxSegments+2 > QueueSize {
-		t.Fatal("a request with seg_max segments cannot fit the ring")
+	if blkReadWorkers*(blkMaxSegments+2) > QueueSize {
+		t.Fatal("the ring cannot hold one seg_max request per read worker")
 	}
 	if v.DeviceConfigLen() != 16 {
 		t.Fatalf("device configuration length = %d, want through seg_max", v.DeviceConfigLen())
@@ -70,7 +70,7 @@ func TestBlkScatteredSegments(t *testing.T) {
 	backing := &batchImage{data: make([]byte, 8*SectorSize)}
 	v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	v.QueueReady(blkQueue, q)
 
 	writes := []blkTestSegment{{0x1000, 512}, {0x3000, 1024}, {0x2000, 512}}
@@ -104,17 +104,20 @@ func TestBlkScatteredSegments(t *testing.T) {
 	}
 }
 
+// seg_max limits what drivers send, but the device accepts any request whose
+// descriptors fit the ring.
 func TestBlkLargestRequestFillsRing(t *testing.T) {
 	t.Parallel()
 
-	mem := make([]byte, 64*1024)
-	backing := &batchImage{data: make([]byte, blkMaxSegments*SectorSize)}
+	const ringSegments = QueueSize - 2
+	mem := make([]byte, 0x1000+ringSegments*SectorSize)
+	backing := &batchImage{data: make([]byte, ringSegments*SectorSize)}
 	v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	v.QueueReady(blkQueue, q)
 	ids := make([]uint16, QueueSize)
-	segments := make([]blkTestSegment, blkMaxSegments)
+	segments := make([]blkTestSegment, ringSegments)
 	for i := range ids {
 		ids[i] = uint16(i)
 	}
@@ -126,7 +129,7 @@ func TestBlkLargestRequestFillsRing(t *testing.T) {
 	if err := v.IO(); err != nil {
 		t.Fatal(err)
 	}
-	if mem[0x200] != 0 || backing.writes != blkMaxSegments {
+	if mem[0x200] != 0 || backing.writes != ringSegments {
 		t.Fatalf("ring-sized request: status=%d writes=%d", mem[0x200], backing.writes)
 	}
 	for i := range segments {
@@ -140,7 +143,7 @@ func TestBlkLargestRequestFillsRing(t *testing.T) {
 	if err := v.IO(); err != nil {
 		t.Fatal(err)
 	}
-	if mem[0x200] != 1 || backing.writes != blkMaxSegments {
+	if mem[0x200] != 1 || backing.writes != ringSegments {
 		t.Fatalf("request past the capacity: status=%d writes=%d", mem[0x200], backing.writes)
 	}
 
@@ -148,7 +151,7 @@ func TestBlkLargestRequestFillsRing(t *testing.T) {
 	// the ring holds; the batch is malformed and must not perform I/O.
 	addSegmentedRequest(q, mem, ids, 1, 0, 0x100, 0x200, segments)
 	addSegmentedRequest(q, mem, ids, 1, 0, 0x100, 0x200, segments)
-	if err := v.IO(); !errors.Is(err, ErrBlkDesc) || backing.writes != blkMaxSegments {
+	if err := v.IO(); !errors.Is(err, ErrBlkDesc) || backing.writes != ringSegments {
 		t.Fatalf("batch sharing descriptors: IO=%v writes=%d", err, backing.writes)
 	}
 }
@@ -156,7 +159,7 @@ func TestBlkLargestRequestFillsRing(t *testing.T) {
 func TestBlkParallelReadsCheckEverySegment(t *testing.T) {
 	t.Parallel()
 
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	read := func(status uint64, segments ...blkTestSegment) blkPendingRequest {
 		c := blkPendingRequest{status: new(byte), statusAddr: status}
 		for _, segment := range segments {
@@ -194,7 +197,7 @@ func TestBlkParallelReadsCheckEverySegment(t *testing.T) {
 	}
 	v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	ring := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	ring := NewSplitQueue(QueueSize)
 	v.QueueReady(blkQueue, ring)
 	addSegmentedRequest(ring, mem, []uint16{0, 1, 2, 3}, 0, 0, 0x100, 0x200,
 		[]blkTestSegment{{0x1000, 512}, {0x5000, 1024}})

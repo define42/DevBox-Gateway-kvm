@@ -129,7 +129,7 @@ func newConcurrentBlkDevice(t *testing.T, kinds []uint32, writeback bool) (*Blk,
 	d := newConcurrentBlkImage(len(kinds))
 	mem := make([]byte, len(kinds)*1024)
 	v := newBlk(d, false, 10, benchIRQInjector{}, mem)
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	v.VirtQueue[blkQueue] = q
 	if writeback {
 		negotiateBlkFlush(v)
@@ -456,8 +456,9 @@ func TestBlkConcurrentReadRingWrap(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
 		v, d, _ := newConcurrentBlkDevice(t, []uint32{0, 0, 0, 0}, true)
-		q := v.VirtQueue[blkQueue]
-		q.Size = 16
+		q := NewSplitQueue(16)
+		copy(q.Desc, v.VirtQueue[blkQueue].Desc)
+		v.VirtQueue[blkQueue] = q
 		const start = uint16(65534)
 		v.LastAvailIdx[blkQueue], q.Used.Idx = start, start
 		for i := uint16(0); i < 4; i++ {

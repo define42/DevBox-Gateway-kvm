@@ -43,7 +43,7 @@ func BenchmarkBlkReadConcurrency(b *testing.B) {
 				v := newBlk(delayedReadImage{Image: backing, delay: delay}, false, 10, benchIRQInjector{}, mem)
 				b.Cleanup(func() { _ = v.Close() })
 				negotiateBlkFlush(v)
-				q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+				q := NewSplitQueue(QueueSize)
 				for i := range requests {
 					addr, head := uint64(i*(blockSize+17)), uint16(i*3)
 					binary.LittleEndian.PutUint64(mem[addr+8:], uint64(i*blockSize/SectorSize))

@@ -79,11 +79,17 @@ type SplitDesc struct {
 	Next  uint16
 }
 
+// splitRingHeader starts both the available and the used ring.
+type splitRingHeader struct {
+	Flags uint16
+	Idx   uint16
+}
+
+// SplitAvail is the available ring. used_event follows Ring in guest memory,
+// but is not mapped: EVENT_IDX is not offered.
 type SplitAvail struct {
-	Flags     uint16
-	Idx       uint16
-	Ring      [QueueSize]uint16
-	UsedEvent uint16
+	*splitRingHeader
+	Ring []uint16
 }
 
 type SplitUsedElem struct {
@@ -91,22 +97,32 @@ type SplitUsedElem struct {
 	Len uint32
 }
 
+// SplitUsed is the used ring. avail_event follows Ring in guest memory, but is
+// not mapped: EVENT_IDX is not offered.
 type SplitUsed struct {
-	Flags      uint16
-	Idx        uint16
-	Ring       [QueueSize]SplitUsedElem
-	AvailEvent uint16
+	*splitRingHeader
+	Ring []SplitUsedElem
 }
 
 // SplitQueue is a virtqueue the driver has fully programmed and enabled. The
-// pointers alias guest memory directly.
+// views alias guest memory directly; Desc and both Rings hold exactly Size
+// entries, the negotiated ring size.
 type SplitQueue struct {
-	Desc  *[QueueSize]SplitDesc
+	Desc  []SplitDesc
 	Avail *SplitAvail
 	Used  *SplitUsed
-	// Size is the negotiated ring size. Zero preserves the maximum-size
-	// convention used by devices and tests predating this field.
-	Size uint16
+	Size  uint16
+}
+
+// NewSplitQueue returns a queue of size entries in host memory, for tests and
+// harnesses that drive a device without a guest.
+func NewSplitQueue(size uint16) *SplitQueue {
+	return &SplitQueue{
+		Desc:  make([]SplitDesc, size),
+		Avail: &SplitAvail{splitRingHeader: new(splitRingHeader), Ring: make([]uint16, size)},
+		Used:  &SplitUsed{splitRingHeader: new(splitRingHeader), Ring: make([]SplitUsedElem, size)},
+		Size:  size,
+	}
 }
 
 // ModernDevice is the device-specific behaviour the modern transport drives.
@@ -631,26 +647,37 @@ func writeQueueAddr(q *queueState, which, half int, v uint32) {
 // caller publishes the returned queue to the device after releasing commonMu.
 func (t *ModernTransport) mapQueue(idx int) *SplitQueue {
 	q := &t.queues[idx]
-	// SplitQueue uses fixed-size views. Validate each entire view before
-	// taking an unsafe pointer, even when the driver selects a smaller ring.
 	valid := func(addr, size, align uint64) bool {
 		return addr%align == 0 && guestmem.ValidRange(t.Mem, addr, size)
 	}
+	// The specification sizes each part by the negotiated ring, including the
+	// unmapped event fields. The views cover only those bytes.
+	n := uint64(q.size)
 	if q.size == 0 || q.size > QueueSize || q.size&(q.size-1) != 0 ||
-		!valid(q.desc, uint64(unsafe.Sizeof([QueueSize]SplitDesc{})), 16) ||
-		!valid(q.driver, uint64(unsafe.Sizeof(SplitAvail{})), 2) ||
-		!valid(q.device, uint64(unsafe.Sizeof(SplitUsed{})), 4) {
+		!valid(q.desc, 16*n, 16) || !valid(q.driver, 6+2*n, 2) || !valid(q.device, 6+8*n, 4) {
 		q.enable = 0
 
 		return nil
 	}
 
 	return &SplitQueue{
-		Desc:  (*[QueueSize]SplitDesc)(unsafe.Pointer(&t.Mem[q.desc])),
-		Avail: (*SplitAvail)(unsafe.Pointer(&t.Mem[q.driver])),
-		Used:  (*SplitUsed)(unsafe.Pointer(&t.Mem[q.device])),
-		Size:  q.size,
+		Desc: guestSlice[SplitDesc](t.Mem, q.desc, n),
+		Avail: &SplitAvail{
+			splitRingHeader: (*splitRingHeader)(unsafe.Pointer(&t.Mem[q.driver])),
+			Ring:            guestSlice[uint16](t.Mem, q.driver+4, n),
+		},
+		Used: &SplitUsed{
+			splitRingHeader: (*splitRingHeader)(unsafe.Pointer(&t.Mem[q.device])),
+			Ring:            guestSlice[SplitUsedElem](t.Mem, q.device+4, n),
+		},
+		Size: q.size,
 	}
+}
+
+// guestSlice views n values of T at addr. The caller has validated the range
+// and aligned addr for T.
+func guestSlice[T any](mem []byte, addr, n uint64) []T {
+	return unsafe.Slice((*T)(unsafe.Pointer(&mem[addr])), n)
 }
 
 // setLoHi writes the low (half 0) or high (half 1) 32 bits of a 64-bit field.

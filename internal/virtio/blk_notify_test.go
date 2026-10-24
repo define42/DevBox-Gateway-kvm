@@ -28,8 +28,6 @@ func TestBlkCompletionNotificationSuppression(t *testing.T) {
 				negotiateBlkFlush(v)
 			}
 			q.Avail.Flags = tc.flags
-			// Unnegotiated EVENT_IDX must not suppress the ordinary flag path.
-			q.Avail.UsedEvent = 0xffff
 			statuses := []int{
 				addFlushTestRequest(q, mem, 0, 0),
 				addFlushTestRequest(q, mem, 1, 0),

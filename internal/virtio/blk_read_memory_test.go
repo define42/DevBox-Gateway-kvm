@@ -5,6 +5,13 @@ import (
 	"unsafe"
 )
 
+// sliceBytes views the memory backing s.
+func sliceBytes[T any](s []T) []byte {
+	var zero T
+
+	return unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(s))), uintptr(len(s))*unsafe.Sizeof(zero))
+}
+
 // setBlkData replaces a test request's data buffers.
 func setBlkData(c *blkPendingRequest, buffers ...[]byte) {
 	c.segments = nil
@@ -23,7 +30,9 @@ func TestBlkReadOverlapsQueue(t *testing.T) {
 		tail   bool
 	}{
 		{name: "descriptor_data", region: "descriptor"},
+		{name: "available_header_data", region: "available_header"},
 		{name: "available_data", region: "available"},
+		{name: "used_header_data", region: "used_header"},
 		{name: "used_data", region: "used"},
 		{name: "used_data_tail", region: "used", tail: true},
 		{name: "descriptor_status", region: "descriptor", status: true},
@@ -33,15 +42,19 @@ func TestBlkReadOverlapsQueue(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			q := &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)}
+			q := NewSplitQueue(QueueSize)
 			var region []byte
 			switch tc.region {
 			case "descriptor":
-				region = unsafe.Slice((*byte)(unsafe.Pointer(q.Desc)), int(unsafe.Sizeof(*q.Desc)))
+				region = sliceBytes(q.Desc)
+			case "available_header":
+				region = unsafe.Slice((*byte)(unsafe.Pointer(q.Avail.splitRingHeader)), unsafe.Sizeof(splitRingHeader{}))
 			case "available":
-				region = unsafe.Slice((*byte)(unsafe.Pointer(q.Avail)), int(unsafe.Sizeof(*q.Avail)))
+				region = sliceBytes(q.Avail.Ring)
+			case "used_header":
+				region = unsafe.Slice((*byte)(unsafe.Pointer(q.Used.splitRingHeader)), unsafe.Sizeof(splitRingHeader{}))
 			case "used":
-				region = unsafe.Slice((*byte)(unsafe.Pointer(q.Used)), int(unsafe.Sizeof(*q.Used)))
+				region = sliceBytes(q.Used.Ring)
 			}
 			if tc.tail {
 				region = region[len(region)-1:]
@@ -64,13 +77,13 @@ func TestBlkReadOverlapsQueue(t *testing.T) {
 func TestBlkReadSeparateQueueMemory(t *testing.T) {
 	t.Parallel()
 
-	q := &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)}
+	q := NewSplitQueue(QueueSize)
 	c := blkPendingRequest{status: new(byte)}
 	setBlkData(&c, make([]byte, 8), make([]byte, 8))
 	if blkReadOverlapsQueue(q, &c) {
 		t.Fatal("separate read buffers unexpectedly overlap queue memory")
 	}
-	setBlkData(&c, unsafe.Slice((*byte)(unsafe.Pointer(q.Used)), 0))
+	setBlkData(&c, sliceBytes(q.Used.Ring)[:0])
 	if blkReadOverlapsQueue(q, &c) {
 		t.Fatal("empty read buffer overlaps queue memory")
 	}

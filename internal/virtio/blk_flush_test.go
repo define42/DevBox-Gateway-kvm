@@ -49,7 +49,7 @@ func newFlushTestDevice(t *testing.T, backing disk.Image, readOnly bool) (*Blk, 
 	mem := make([]byte, 4*1024)
 	v := newBlk(backing, readOnly, 10, benchIRQInjector{}, mem)
 	t.Cleanup(func() { _ = v.Close() })
-	q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+	q := NewSplitQueue(QueueSize)
 	v.QueueReady(blkQueue, q)
 
 	return v, q, mem

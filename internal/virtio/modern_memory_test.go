@@ -62,6 +62,55 @@ func TestModernQueueGuestRAM(t *testing.T) {
 	}
 }
 
+// A driver may place a ring smaller than QueueSize at any aligned address whose
+// negotiated area is RAM. Each part fits at the last such address before the
+// end of RAM and before the MMIO hole; one alignment step later it does not.
+func TestModernSmallQueueAtRAMBoundary(t *testing.T) {
+	t.Parallel()
+	const size = 32
+	for _, boundary := range []struct {
+		name string
+		mem  []byte
+		end  uint64
+	}{
+		{"end of RAM", make([]byte, 0x10000), 0x10000},
+		{"MMIO hole", sparseGuestMemory(t), guestmem.MMIOStart},
+	} {
+		for part, area := range []struct {
+			name         string
+			bytes, align uint64
+		}{
+			{"descriptor", 16 * size, 16},
+			{"available", 6 + 2*size, 2},
+			{"used", 6 + 8*size, 4},
+		} {
+			for _, past := range []bool{false, true} {
+				name := boundary.name + "/" + area.name
+				if past {
+					name += "/past"
+				}
+				t.Run(name, func(t *testing.T) {
+					t.Parallel()
+					addrs := [3]uint64{0x1000, 0x2000, 0x3000}
+					addrs[part] = (boundary.end - area.bytes) &^ (area.align - 1)
+					if past {
+						addrs[part] += area.align
+					}
+					q := queueState{size: size, enable: 1, desc: addrs[0], driver: addrs[1], device: addrs[2]}
+					tr := &ModernTransport{Mem: boundary.mem, queues: []queueState{q}}
+					got := tr.mapQueue(0)
+					if (got != nil) == past {
+						t.Fatalf("%s at %#x accepted=%v, want %v", area.name, addrs[part], got != nil, !past)
+					}
+					if got != nil && (len(got.Desc) != size || len(got.Avail.Ring) != size || len(got.Used.Ring) != size) {
+						t.Fatalf("views hold %d/%d/%d entries, want %d", len(got.Desc), len(got.Avail.Ring), len(got.Used.Ring), size)
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestDeviceDMAGuestRAM(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -77,7 +126,7 @@ func TestDeviceDMAGuestRAM(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			mem := sparseGuestMemory(t)
-			q := &SplitQueue{Desc: new([QueueSize]SplitDesc), Avail: new(SplitAvail), Used: new(SplitUsed)}
+			q := NewSplitQueue(QueueSize)
 			q.Desc[0] = SplitDesc{Addr: tc.addr, Len: 16, Flags: descFWrite}
 			tr := &ModernTransport{Mem: mem}
 

@@ -24,7 +24,7 @@ func BenchmarkNetTx(b *testing.B) {
 			const packetSize = 1514 + netHdrLen
 			mem := make([]byte, tc.packets*packetSize)
 			v := NewNet(9, benchIRQInjector{}, benchNetBackend{}, mem)
-			q := &SplitQueue{Desc: &[QueueSize]SplitDesc{}, Avail: &SplitAvail{}, Used: &SplitUsed{}}
+			q := NewSplitQueue(QueueSize)
 			for p := 0; p < tc.packets; p++ {
 				q.Avail.Ring[p] = uint16(p * tc.segments)
 				for s := 0; s < tc.segments; s++ {

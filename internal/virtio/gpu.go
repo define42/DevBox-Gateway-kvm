@@ -356,10 +356,7 @@ func (g *GPU) process(sel int, control bool) error {
 	if q == nil || q.Desc == nil || q.Avail == nil || q.Used == nil {
 		return ErrVQNotInit
 	}
-	queueSize := uint16(QueueSize)
-	if q.Size != 0 && q.Size <= QueueSize {
-		queueSize = q.Size
-	}
+	queueSize := q.Size
 	if LoadU16(&q.Avail.Idx)-g.LastAvailIdx[sel] > queueSize {
 		g.LastAvailIdx[sel] = LoadU16(&q.Avail.Idx)
 
@@ -460,10 +457,7 @@ func (g *GPU) collectChain(q *SplitQueue, head uint16) ([]byte, []writableSeg) {
 
 	descID := head
 	var visited [QueueSize]bool
-	queueSize := uint16(QueueSize)
-	if q.Size != 0 && q.Size <= QueueSize {
-		queueSize = q.Size
-	}
+	queueSize := q.Size
 
 	for {
 		if descID >= queueSize || visited[descID] {
@@ -1160,7 +1154,7 @@ func NewGPU(irq uint8, irqInjector IRQInjector, mem []byte, display Display) *GP
 		height:      gpuDefaultHeight,
 		display:     display,
 		resources:   map[uint32]*gpuResource{},
-		kick:        make(chan int, QueueSize),
+		kick:        make(chan int, 1), // drain services both queues per wakeup.
 		done:        make(chan struct{}),
 		irq:         irq,
 		IRQInjector: irqInjector,
