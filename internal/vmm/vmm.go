@@ -32,8 +32,6 @@ var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software or 
 
 var errRDPH264QPConfig = errors.New("RDP H.264 QP must be between 0 and 51; an explicit QP requires H.264")
 
-var errRDPSurfaceCopiesConfig = errors.New("RDP surface copies require H.264")
-
 var errRDPProfileConfig = errors.New("RDP profile must be office or smooth and requires an RDP listener")
 
 var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
@@ -70,7 +68,6 @@ type Config struct {
 	RDPH264Encoder    string
 	RDPH264QP         *int // Nil selects QP 20; 0..51 selects quality, with lower values using more bandwidth.
 	RDPH264Threads    int
-	RDPSurfaceCopies  bool // Clients copy vertically scrolled areas instead of decoding them.
 	RDPStats          bool
 	Audio             string // Empty or "none" disables audio; "rdp" requires RDPListenerFile.
 	NCPUs             int
@@ -129,9 +126,6 @@ func (v *VMM) validateRDPPerformanceConfig() error {
 	}
 	if v.RDPH264Threads < 0 || v.RDPH264Threads > 16 || (v.RDPH264Threads != 0 && !v.RDPH264) {
 		return errRDPH264ThreadsConfig
-	}
-	if v.RDPSurfaceCopies && !v.RDPH264 {
-		return errRDPSurfaceCopiesConfig
 	}
 	if _, err := avc.ResolveQP(v.RDPH264QP); err != nil || (v.RDPH264QP != nil && !v.RDPH264) {
 		return errRDPH264QPConfig

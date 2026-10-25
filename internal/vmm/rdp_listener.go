@@ -32,7 +32,7 @@ func (v *VMM) newRDPDisplay() (*virtio.RDPDisplay, error) {
 		GatewayPID: v.RDPGatewayPID, GatewayUID: v.RDPGatewayUID,
 		H264Encoder: v.RDPH264Encoder, H264QP: v.RDPH264QP,
 		H264Threads: v.RDPH264Threads, Stats: v.RDPStats, GuestCPUs: v.NCPUs,
-		SurfaceCopies: v.RDPSurfaceCopies, Telemetry: v.Telemetry,
+		Telemetry: v.Telemetry,
 	})
 	if err != nil && listener != nil {
 		err = errors.Join(err, listener.Close())

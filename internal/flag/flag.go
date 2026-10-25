@@ -28,8 +28,6 @@ var ErrRDPH264QP = errors.New("-rdp-h264-qp must be between 0 and 51 and require
 
 var ErrRDPH264Threads = errors.New("-rdp-h264-threads must be 0 (auto) or 1..16 and requires -rdp-h264")
 
-var ErrRDPSurfaceCopies = errors.New("-rdp-surface-copies requires -rdp-h264")
-
 var ErrRDPStats = errors.New("-rdp-stats requires gateway-internal -rdp-fd")
 
 var ErrRDPWait = errors.New("-rdp-wait requires gateway-internal -rdp-fd")
@@ -76,7 +74,6 @@ type BootArgs struct {
 	RDPH264Encoder    string
 	RDPH264QP         int
 	RDPH264Threads    int
-	RDPSurfaceCopies  bool
 	RDPStats          bool
 	Audio             string
 	TraceCount        int
@@ -135,8 +132,6 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.IntVar(&c.RDPH264Threads, "rdp-h264-threads", 0,
 		"software H.264 slices: 0 selects one automatically, "+
 			"1..16 requests a count within the host budget (requires -rdp-h264)")
-	bootCmd.BoolVar(&c.RDPSurfaceCopies, "rdp-surface-copies", false,
-		"let H.264 clients copy vertically scrolled areas instead of decoding them (requires -rdp-h264)")
 	bootCmd.BoolVar(&c.RDPStats, "rdp-stats", false, "log RDP performance statistics every 5 seconds")
 	bootCmd.StringVar(&c.Audio, "audio", "", "audio output: rdp (virtio-snd playback through RDP) or none (default)")
 
@@ -248,9 +243,6 @@ func validateRDPH264Options(c *BootArgs, threadsSet, encoderSet, qpSet bool) err
 	c.RDPH264Encoder = "software"
 	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
 		return ErrRDPH264Threads
-	}
-	if c.RDPSurfaceCopies && !c.RDPH264 {
-		return ErrRDPSurfaceCopies
 	}
 	if _, err := avc.ResolveQP(&c.RDPH264QP); err != nil || (qpSet && !c.RDPH264) {
 		return ErrRDPH264QP

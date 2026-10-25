@@ -237,6 +237,55 @@ against the module. Other integration-tagged tests below remain opt-in.
 Use the check that matches the change. These commands can launch guests or a
 local LDAP service, and some need several GiB of free RAM.
 
+### RDP graphics ACK validation
+
+The ordinary ACK unit tests check transport-write exclusion, smoothing, reset,
+and acknowledgments that arrive while a write is still finishing. They need no
+FreeRDP client or display server:
+
+```bash
+go test ./internal/rdp -run '^TestGraphicsACK' -count=1
+```
+
+The opt-in Linux integration check connects a real FreeRDP client to a temporary
+RDP server over loopback TLS. It starts Xvfb on a private display and exercises
+H.264 decoding, damage repaints, and the production ACK handler. Missing ACKs
+and client-reported decode failures fail the check. It needs Xvfb and a FreeRDP
+X11 client with H.264 support, but no VM, guest image, or KVM device.
+`make freerdp` builds the bundled client; see
+[`tools/build-freerdp.sh`](../tools/build-freerdp.sh) for its build prerequisites.
+
+```bash
+make test-rdp-ack
+make bench-rdp-ack
+# Override client discovery when needed:
+DEVBOX_KVM_FREERDP=/path/to/xfreerdp make bench-rdp-ack
+```
+
+Both Make targets set `DEVBOX_KVM_REQUIRE_ACK_TEST=1`, so unavailable dependencies
+fail the requested check instead of silently skipping it. They are independent
+of `make test` and CI.
+
+The test and benchmark replay scroll and horizontal window-drag frames through
+the ordinary H.264 damage-update path. The benchmark keeps one frame in flight
+and reports the mean, p50, and p95 of raw ACK turnaround. Its test-only
+setup resets the smoothing accumulator before each frame; the production ACK
+handler still computes the sample from socket-write completion. ACKs received
+before write completion is recorded are counted separately and excluded from
+latency samples. Check that count alongside the reported samples.
+
+The standard `ns/op` includes encoding as well as sending and waiting for the
+ACK. The ACK metrics exclude encoding and socket-write time, but include client
+processing and the loopback return path. Xvfb exercises decode and repaint work;
+these results do not measure physical display presentation, WAN latency, or
+input-to-display latency.
+
+Run benchmark comparisons serially on the same quiet host, with the same client
+build and settings. `make bench-rdp-ack` runs 100 frames per case for six samples;
+compare before/after output with `benchstat`. There is no absolute latency
+threshold for CI because host scheduling and client processing affect the
+results.
+
 ### Image import
 
 The optional QCOW2 interoperability tests use `qemu-img` to generate independent

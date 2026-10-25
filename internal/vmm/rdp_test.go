@@ -36,7 +36,6 @@ func TestRDPPerformanceConfigBeforeMachineInit(t *testing.T) {
 			want:   errRDPH264EncoderConfig,
 		},
 		{name: "stats-without-rdp", config: Config{RDPStats: true}, want: errRDPStatsConfig},
-		{name: "surface-copies-without-h264", config: Config{RDPSurfaceCopies: true}, want: errRDPSurfaceCopiesConfig},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

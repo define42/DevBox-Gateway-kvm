@@ -96,7 +96,6 @@ func run(ctx context.Context, args []string) error {
 		RDPH264Encoder:    h264Encoder,
 		RDPH264QP:         h264QP,
 		RDPH264Threads:    bootArgs.RDPH264Threads,
-		RDPSurfaceCopies:  bootArgs.RDPSurfaceCopies,
 		RDPStats:          bootArgs.RDPStats,
 		Audio:             bootArgs.Audio,
 		NCPUs:             bootArgs.NCPUs,

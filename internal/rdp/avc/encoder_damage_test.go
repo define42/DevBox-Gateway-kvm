@@ -21,7 +21,7 @@ func (c *macroblockCodec) encode(pixels []byte, force bool, timestamp int64) ([]
 }
 
 func (c *macroblockCodec) encodeDamage(
-	pixels []byte, force bool, timestamp int64, unchanged, _ []bool, _ []int16,
+	pixels []byte, force bool, timestamp int64, unchanged []bool,
 ) ([]byte, error) {
 	c.hints = append(c.hints[:0], unchanged...)
 

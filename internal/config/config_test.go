@@ -29,7 +29,6 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.H264_QP:                    "20",
 		config.H264_SLICES:                "1",
 		config.RDP_PROFILE:                "office",
-		config.RDP_SURFACE_COPIES:         "true",
 		config.GATEWAY_VM_PROFILING:       "false",
 		config.VM_KEYBOARD:                "us",
 		config.VM_VCPU_COUNT:              "2",

@@ -134,43 +134,6 @@ func TestManagerRDPProfiles(t *testing.T) {
 	}
 }
 
-func TestManagerSurfaceCopies(t *testing.T) {
-	t.Parallel()
-	for _, enabled := range []bool{false, true} {
-		t.Run(strconv.FormatBool(enabled), func(t *testing.T) {
-			t.Parallel()
-			config := managerTestConfig(t, "graceful")
-			config.SurfaceCopies = enabled
-			m, err := NewManager(config)
-			if err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() {
-				if err := m.Close(); err != nil {
-					t.Error(err)
-				}
-			})
-			// The helper allocates no guest RAM.
-			m.cgroups = testCgroupFactory{}
-			m.readResident = func(int) (uint64, error) { return 0, nil }
-			m.readMemory = func() (hostMemory, error) {
-				return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
-			}
-			vm := createManagerVM(t, m, "alice", "desktop")
-			if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
-				t.Fatal(err)
-			}
-			copies, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.rdp-surface-copies"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if string(copies) != strconv.FormatBool(enabled) {
-				t.Fatalf("child surface copies = %q, want %t", copies, enabled)
-			}
-		})
-	}
-}
-
 func TestManagerAudioPlayback(t *testing.T) {
 	t.Parallel()
 	m := newTestManager(t, "graceful")
@@ -653,7 +616,6 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 		}
 		args["-rdp-h264-qp"] = strconv.Itoa(boot.RDPH264QP)
 		args["-rdp-h264-threads"] = strconv.Itoa(boot.RDPH264Threads)
-		args["-rdp-surface-copies"] = strconv.FormatBool(boot.RDPSurfaceCopies)
 
 		break
 	}
@@ -675,11 +637,6 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-profile"), []byte(args["-rdp-profile"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper profile:", err)
-		os.Exit(2)
-	}
-	copiesPath := filepath.Join(dir, "helper.rdp-surface-copies")
-	if err := os.WriteFile(copiesPath, []byte(args["-rdp-surface-copies"]), 0o600); err != nil {
-		fmt.Fprintln(os.Stderr, "write helper surface copies:", err)
 		os.Exit(2)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "helper.audio"), []byte(args["-audio"]), 0o600); err != nil {

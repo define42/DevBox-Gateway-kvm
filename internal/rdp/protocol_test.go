@@ -212,11 +212,11 @@ func activateSessionFixture(t *testing.T, secured net.Conn, inputFlags ...uint16
 	}
 }
 
-func protocolTestTLS(t *testing.T) (*tls.Config, *tls.Config) {
-	t.Helper()
+func protocolTestTLS(tb testing.TB) (*tls.Config, *tls.Config) {
+	tb.Helper()
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(1), DNSNames: []string{"localhost"},
@@ -225,11 +225,11 @@ func protocolTestTLS(t *testing.T) (*tls.Config, *tls.Config) {
 	}
 	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	certificate, err := x509.ParseCertificate(der)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	roots := x509.NewCertPool()
 	roots.AddCert(certificate)

@@ -40,7 +40,6 @@ type ManagerConfig struct {
 	H264Slices                                         int  // Software slices: 1, 2, or 4; zero defaults to 1.
 	Encoder, Keyboard                                  string
 	RDPProfile                                         string // office (default) or smooth; both cap at 30 FPS.
-	SurfaceCopies                                      bool   // Clients copy scrolled areas instead of decoding them.
 	VMProfiling                                        bool   // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	MemoryBudgetMiB                                    int    // Zero selects an automatic host-memory budget.
@@ -727,7 +726,6 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-h264-qp", fmt.Sprint(*m.config.H264QP),
 		"-rdp-h264-threads", strconv.Itoa(m.config.H264Slices),
 		"-rdp-profile", m.config.RDPProfile,
-		"-rdp-surface-copies=" + strconv.FormatBool(m.config.SurfaceCopies),
 		"-audio", "rdp",
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.

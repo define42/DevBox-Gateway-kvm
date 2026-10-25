@@ -51,7 +51,7 @@ generate: $(GOPATH)/bin/stringer
 golangci: golangci-lint
 	$(MAKE) generate
 	./golangci-lint run ./...
-	./golangci-lint run --build-tags=integration ./internal/vmm ./internal/machine ./internal/virtio
+	./golangci-lint run --build-tags=integration ./internal/vmm ./internal/machine ./internal/virtio ./internal/rdp
 
 .PHONY: test
 test:
@@ -90,6 +90,19 @@ test-qcow2:
 test-audio:
 	"$(GO)" test -tags=integration -count=1 -timeout 3m \
 		-run '^Test(UEFISound|RDPDisplayAudio)' ./internal/machine ./internal/virtio -v
+
+# Opt-in real-client graphics ACK checks; no VM or KVM device is needed.
+.PHONY: test-rdp-ack
+test-rdp-ack:
+	DEVBOX_KVM_REQUIRE_ACK_TEST=1 \
+		"$(GO)" test -tags=integration -run '^TestGraphicsACKFreeRDP$$' \
+		-count=1 -timeout 2m ./internal/rdp -v
+
+.PHONY: bench-rdp-ack
+bench-rdp-ack:
+	DEVBOX_KVM_REQUIRE_ACK_TEST=1 \
+		"$(GO)" test -tags=integration -run '^$$' -bench '^BenchmarkGraphicsACKFreeRDP$$' \
+		-benchtime=100x -count=6 -timeout 5m ./internal/rdp
 
 .PHONY: clean
 clean:

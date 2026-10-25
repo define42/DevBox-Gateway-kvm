@@ -27,7 +27,6 @@ const (
 	H264_QP                    = "H264_QP"
 	H264_SLICES                = "H264_SLICES"
 	RDP_PROFILE                = "RDP_PROFILE"
-	RDP_SURFACE_COPIES         = "RDP_SURFACE_COPIES"
 	GATEWAY_VM_PROFILING       = "GATEWAY_VM_PROFILING"
 	VM_KEYBOARD                = "VM_KEYBOARD"
 	VM_VCPU_COUNT              = "VM_VCPU_COUNT"
@@ -134,7 +133,6 @@ func NewSettings() *Settings {
 		"higher = more compression", 20)
 	s.SetInt(H264_SLICES, "Software H.264 slices: 1, 2, or 4, limited by the worker CPU budget", 1)
 	s.SetString(RDP_PROFILE, "Desktop graphics profile: office or smooth (both 30 FPS)", "office")
-	s.SetBool(RDP_SURFACE_COPIES, "Let H.264 RDP clients copy vertically scrolled areas instead of decoding them", true)
 	s.SetBool(GATEWAY_VM_PROFILING, "Enable private, on-demand VM worker CPU profiling sockets", false)
 	s.SetString(VM_KEYBOARD, "Guest keyboard layout", "us")
 	s.SetInt(VM_VCPU_COUNT, "vCPUs per desktop", 2)

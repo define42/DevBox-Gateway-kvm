@@ -59,7 +59,6 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
 | `H264_SLICES` | `1` | `-h264-slices` | Requested Go H.264 slices: `1`, `2`, or `4`. The worker CPU budget and picture size can reduce the count. Applies when a managed VM starts. |
 | `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` or `smooth`, both 30 FPS with identical behavior; bitmap fallback also stays at 30 FPS. Applies when a managed VM starts. |
-| `RDP_SURFACE_COPIES` | `true` | `-rdp-surface-copies` | Send vertically scrolled AVC420 content as surface copies, so the client moves pixels it already shows instead of decoding them again. `false` sends ordinary H.264 updates. Applies when a managed VM starts; see [scroll copies](runtime.md#scroll-copies). |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
 | `VM_VCPU_COUNT` | `2` | `-cpus` | vCPUs per desktop, from 1 to 64. |

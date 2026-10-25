@@ -75,12 +75,6 @@ type Frame struct {
 	// disables the hint. Decoded frames do not carry it. Incorrect hints can
 	// suppress real changes; encoders may ignore any or all hints.
 	UnchangedMacroblocks []bool
-	// ForcedMacroblocks, in the same order and used only with valid
-	// UnchangedMacroblocks, asks for true macroblocks to repeat a reference
-	// block whatever their source, displaced by ForcedShift luma rows when set;
-	// see api.SSourcePicture.
-	ForcedMacroblocks []bool
-	ForcedShift       []int16
 }
 
 // NewFrame allocates a zeroed frame of the given (even) size.
@@ -280,7 +274,6 @@ func (e *Encoder) Encode(f *Frame) ([]byte, api.EVideoFrameType, error) {
 	pic.IStride[0], pic.IStride[1], pic.IStride[2] = int32(f.Width), int32(f.Width/2), int32(f.Width/2)
 	pic.PData[0], pic.PData[1], pic.PData[2] = f.Y, f.U, f.V
 	pic.UnchangedMacroblocks = f.UnchangedMacroblocks
-	pic.ForcedMacroblocks, pic.ForcedShift = f.ForcedMacroblocks, f.ForcedShift
 	info := &e.info
 	if rv := e.e.EncodeFrame(pic, info); rv != 0 {
 		return nil, api.VideoFrameTypeInvalid, fmt.Errorf("openh264: EncodeFrame failed (%d)", rv)

@@ -1602,9 +1602,6 @@ func WelsMdInterMbLoop(pEncCtx *sWelsEncCtx, pSlice *SSlice, pWelsMd *SWelsMD, k
 		if unchangedRuns {
 			// Skips write no bits, so a run needs no dynamic slicing stash.
 			run, next := encodeUnchangedRun(pEncCtx, pMd, pSlice, iNextMbIdx, kiTotalNumMb-iNumMbCoded)
-			if run == 0 {
-				run, next = encodeForcedMotionRun(pEncCtx, pMd, pSlice, iNextMbIdx, kiTotalNumMb-iNumMbCoded)
-			}
 			if run > 0 {
 				iNumMbCoded += run
 				iNextMbIdx = next

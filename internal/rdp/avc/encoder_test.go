@@ -206,22 +206,14 @@ func TestRejectMalformedRGBA(t *testing.T) {
 	}
 }
 
-func TestEncoderCloseReleasesScrollStorage(t *testing.T) {
+func TestEncoderCloseReleasesStorage(t *testing.T) {
 	t.Parallel()
 	encoder := &Encoder{
-		codec: &recordingCodec{}, preparedForced: make([]bool, 4), preparedShift: make([]int16, 4),
-		mapped: []image.Rectangle{image.Rect(0, 0, 32, 32)},
-		surface: surfaceTracker{
-			matches: []regionMatch{{unchanged: make([]image.Point, 4), bands: make([]image.Rectangle, 1)}},
-			stale:   make([]bool, 4), forced: make([]bool, 4), shift: make([]int16, 4),
-			detector: scrollDetector{snapshot: regionSnapshot{luma: make([]byte, 1024)}},
-		},
+		codec: &recordingCodec{}, i420: make([]byte, 32*32*3/2), unchanged: make([]bool, 4), prepared: true,
 	}
 	encoder.Close()
 	encoder.Close()
-	if encoder.preparedForced != nil || encoder.preparedShift != nil || encoder.mapped != nil ||
-		encoder.surface.matches != nil || encoder.surface.stale != nil || encoder.surface.forced != nil ||
-		encoder.surface.shift != nil || encoder.surface.detector.snapshot.luma != nil {
-		t.Fatal("closed encoder retained scroll storage")
+	if encoder.i420 != nil || encoder.unchanged != nil || encoder.prepared {
+		t.Fatal("closed encoder retained picture storage or prepared state")
 	}
 }
