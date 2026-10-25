@@ -5,6 +5,7 @@ set -eu
 cd -- "$(dirname -- "$0")/.."
 python3 - <<'PY'
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -26,6 +27,7 @@ printf '\\n' >> "$PACKAGE_TEST_LOG"
 case "$name" in
     getent) [ "${PACKAGE_TEST_EXISTING:-0}" = 1 ] ;;
     id)
+        [ "${PACKAGE_TEST_FAIL:-}" != "id$1" ] || exit 1
         case "$1" in
             -u) printf '%s\\n' "${PACKAGE_TEST_UID:-987}" ;;
             -un) printf '%s\\n' "${PACKAGE_TEST_USER:-devbox-kvm}" ;;
@@ -39,11 +41,28 @@ case "$name" in
             exit 0
         fi
         ;;
+    stat)
+        [ "${PACKAGE_TEST_FAIL:-}" != stat ] || exit 1
+        printf '%s\\n' "${PACKAGE_TEST_FILESYSTEM:-cgroup2fs}"
+        ;;
+    mkdir)
+        [ "${PACKAGE_TEST_FAIL:-}" != mkdir ] || exit 1
+        exec /usr/bin/mkdir "$@"
+        ;;
+    chmod)
+        [ "${PACKAGE_TEST_FAIL:-}" != "chmod$1" ] || exit 1
+        exec /usr/bin/chmod "$@"
+        ;;
+    devbox-kvm)
+        printf 'VM_CGROUP_ROOT <%s>\\n' "$VM_CGROUP_ROOT" >> "$PACKAGE_TEST_LOG"
+        exit "${PACKAGE_TEST_GATEWAY_EXIT:-0}"
+        ;;
     groupadd|useradd|install|configure-firewall) exit 0 ;;
     *) exit 99 ;;
 esac
 '''
-    for name in ("getent", "id", "groupadd", "useradd", "install", "systemctl", "configure-firewall"):
+    for name in ("getent", "id", "groupadd", "useradd", "install", "systemctl",
+                 "configure-firewall", "stat", "mkdir", "chmod", "devbox-kvm"):
         command = mock / name
         command.write_text(dispatcher)
         command.chmod(0o755)
@@ -109,23 +128,85 @@ esac
     assert run("postremove.sh", "purge") == ""
 
     cgroup = directory / "cgroup"
-    cgroup.write_text("0::/unrelated.service\n")
+    service = directory / "devbox-kvm.service"
+    workers = service / "workers"
     launcher = directory / "start-service"
     launcher.write_text((root / "packaging/start-service.sh").read_text().replace(
-        "/proc/self/cgroup", str(cgroup)))
+        "/proc/self/cgroup", str(cgroup)).replace(
+        "/sys/fs/cgroup/system.slice/devbox-kvm.service", str(service)).replace(
+        "/usr/bin/devbox-kvm", str(mock / "devbox-kvm")))
+
+    def prepare_launcher():
+        # Ordinary temporary files model control-file I/O without touching cgroups.
+        if service.exists():
+            shutil.rmtree(service)
+        workers.mkdir(parents=True)
+        cgroup.write_text("0::/system.slice/devbox-kvm.service/supervisor\n")
+        (service / "cgroup.subtree_control").write_text("")
+        for control in ("cgroup.kill", "cgroup.procs", "cgroup.threads", "cgroup.subtree_control"):
+            (workers / control).write_text("")
+        (workers / "cgroup.events").write_text("populated 0\n")
+
+    def launch(values=None):
+        logfile.write_text("")
+        settings = dict(environment, LDAP_URL="ldaps://directory.example.com", AUTH_FILE="",
+                        VM_CGROUP_ROOT="/must-not-be-used", PACKAGE_TEST_FAIL="",
+                        PACKAGE_TEST_UID="987", PACKAGE_TEST_USER="devbox-kvm",
+                        PACKAGE_TEST_FILESYSTEM="cgroup2fs", PACKAGE_TEST_GATEWAY_EXIT="0")
+        settings.update(values or {})
+        return subprocess.run(["/bin/sh", str(launcher)], env=settings,
+                              capture_output=True, text=True)
+
+    def deny_write(path):
+        # A directory deterministically fails redirection, including when tests run as root.
+        path.unlink()
+        path.mkdir()
+
+    def symlink_workers():
+        shutil.rmtree(workers)
+        workers.symlink_to(directory)
+
     cases = (
-        ({"PACKAGE_TEST_UID": "0"}, "start the gateway with systemctl"),
-        ({"PACKAGE_TEST_USER": "somebody"}, "start the gateway with systemctl"),
-        ({}, "configure LDAP_URL and LDAP_BASE_DN"),
-        ({"LDAP_URL": "ldaps://directory.example.com"}, "requires systemd 254+"),
+        ({"PACKAGE_TEST_UID": "0"}, None, "start the gateway with systemctl"),
+        ({"PACKAGE_TEST_USER": "somebody"}, None, "start the gateway with systemctl"),
+        ({"PACKAGE_TEST_FAIL": "id-u"}, None, "cannot determine the service UID"),
+        ({"PACKAGE_TEST_FAIL": "id-un"}, None, "cannot resolve the service user"),
+        ({"LDAP_URL": ""}, None, "configure LDAP_URL and LDAP_BASE_DN"),
+        ({}, lambda: cgroup.write_text("0::/unrelated.service\n"), "requires systemd 254+"),
+        ({}, cgroup.unlink, "cannot read the service cgroup membership"),
+        ({"PACKAGE_TEST_FAIL": "stat"}, None, "cannot inspect the service cgroup"),
+        ({"PACKAGE_TEST_FILESYSTEM": "tmpfs"}, None, "unified cgroup v2 hierarchy"),
+        ({}, symlink_workers, "must not be a symbolic link"),
+        ({}, lambda: (workers / "cgroup.events").write_text("populated 1\n"),
+         "cannot confirm the VM subtree is empty"),
+        ({}, lambda: (workers / "cgroup.events").unlink(), "cannot confirm the VM subtree is empty"),
+        ({}, lambda: deny_write(service / "cgroup.subtree_control"), "cannot enable memory and pids"),
+        ({"PACKAGE_TEST_FAIL": "mkdir"}, None, "cannot create the VM cgroup"),
+        ({"PACKAGE_TEST_FAIL": "chmod0700"}, None, "cannot restrict access to the VM cgroup"),
+        ({}, lambda: deny_write(workers / "cgroup.subtree_control"), "cannot delegate memory and pids"),
+        ({}, lambda: (workers / "cgroup.kill").unlink(), "writable cgroup.kill is required"),
+        ({"PACKAGE_TEST_FAIL": "chmod0600"}, None, "cannot restrict access to VM cgroup control"),
     )
-    for values, message in cases:
-        result = subprocess.run(["/bin/sh", str(launcher)],
-                                env=dict(environment, LDAP_URL="", AUTH_FILE="", **values)
-                                if "LDAP_URL" not in values else
-                                dict(environment, AUTH_FILE="", **values),
-                                capture_output=True, text=True)
-        assert result.returncode == 1 and message in result.stderr, result.stderr
+    for values, change, message in cases:
+        prepare_launcher()
+        if change:
+            change()
+        result = launch(values)
+        assert result.returncode == 78 and message in result.stderr, (message, result.returncode, result.stderr)
+        assert "devbox-kvm <serve>" not in logfile.read_text(), logfile.read_text()
+
+    for gateway_exit in (0, 1, 78):
+        prepare_launcher()
+        result = launch({"PACKAGE_TEST_GATEWAY_EXIT": str(gateway_exit)})
+        assert result.returncode == gateway_exit, (gateway_exit, result.returncode, result.stderr)
+        calls = logfile.read_text()
+        assert "devbox-kvm <serve>" in calls, calls
+        assert f"VM_CGROUP_ROOT <{workers}>" in calls, calls
+        assert (service / "cgroup.subtree_control").read_text() == "+memory +pids\n"
+        assert (workers / "cgroup.subtree_control").read_text() == "+memory +pids\n"
+        assert workers.stat().st_mode & 0o777 == 0o700
+        for control in ("cgroup.procs", "cgroup.threads", "cgroup.subtree_control"):
+            assert (workers / control).stat().st_mode & 0o777 == 0o600
 
 print("Package lifecycle and launcher failure checks passed.")
 PY

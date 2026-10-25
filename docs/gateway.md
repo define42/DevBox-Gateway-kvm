@@ -21,15 +21,17 @@ and OpenSSL. Image imports use the built-in Go QCOW2 normalizer.
 No desktop image is required at startup. The `make gateway` target builds with
 the bundled pure Go H.264 encoder and requires no C compiler or native codec SDK.
 
+Prepare the private cgroup v2 subtree described under
+[`serve` options](#serve-options), then pass its path when launching the gateway
+as a non-root user:
+
 ```bash
+export VM_CGROUP_ROOT=/path/to/delegated-subtree
 make gateway
 ```
 
-This starts the management plane but does not create or delegate a VM cgroup.
-With the default empty `VM_CGROUP_ROOT`, desktop creation and other stopped-VM
-management work, but every VM start is refused. Configure the private cgroup v2
-subtree described under [`serve` options](#serve-options) before starting a
-desktop.
+This helper does not create or delegate the subtree. An unset or invalid
+`VM_CGROUP_ROOT` prevents gateway startup, including the management dashboard.
 
 Open **https://localhost:8443** and accept the locally generated self-signed
 certificate for this development instance. The bundled directory provides these
@@ -84,6 +86,7 @@ To build the application and start LDAP separately:
 ```bash
 make devbox-kvm
 make ldap
+VM_CGROUP_ROOT=/path/to/delegated-subtree \
 LDAP_URL=ldaps://127.0.0.1:1636 LDAP_BASE_DN=dc=glauth,dc=com \
 LDAP_USER_DOMAIN=example.com LDAP_USER_FILTER='(mail=%s)' \
 LDAP_USERNAME_ATTRIBUTE=mail \
@@ -98,8 +101,9 @@ The gateway extracts its embedded OVMF pair under `DATA_ROOT_DIR/firmware`. No
 host OVMF installation or firmware configuration is required.
 `CGO_ENABLED=0 go build -o devbox-kvm .` is also supported; catalog
 imports, including compressed QCOW2 images, work in that build too.
-As with `make gateway`, configure the [required VM cgroup delegation](#serve-options)
-and pass `VM_CGROUP_ROOT` when launching `serve` before trying to start desktops.
+As with `make gateway`, prepare the [required VM cgroup delegation](#serve-options)
+before launching `serve`. Startup checks verify kernel confinement, KVM access,
+and cgroup delegation before initializing gateway TLS or desktop state.
 
 ## Create and connect to a desktop
 
@@ -431,6 +435,7 @@ An administrator uploads image templates after startup:
 
 ```bash
 DATA_ROOT_DIR=/var/lib/devbox-kvm \
+VM_CGROUP_ROOT=/path/to/delegated-subtree \
 LISTEN_ADDR=0.0.0.0:8443 PUBLIC_ADDRESS=desktops.example.com:8443 \
 CERT_FILE=/etc/devbox-kvm/fullchain.pem KEY_FILE=/etc/devbox-kvm/key.pem \
 LDAP_URL=ldaps://directory.example.com LDAP_BASE_DN=dc=example,dc=com \
@@ -441,9 +446,9 @@ ADMIN_GROUP='CN=Desktop Admins,OU=Groups,DC=example,DC=com' \
 ./devbox-kvm serve
 ```
 
-For desktop starts, also set `VM_CGROUP_ROOT` to the prepared private subtree
-described under [`serve` options](#serve-options). Without it the management
-plane starts, but VM starts are refused.
+Run as a non-root account with access to the state, certificates, and `/dev/kvm`.
+Prepare `VM_CGROUP_ROOT` as described under [`serve` options](#serve-options)
+before launching this command; missing delegation prevents startup.
 
 Use the configured public hostname in the browser and downloaded RDP files.
 HTTPS and RDP share one TCP port. An ordinary HTTP reverse proxy cannot carry
@@ -494,9 +499,22 @@ gateway-wide settings, not per-image sizing. Restart running VMs after changing
 these settings. Count quotas and `VM_DISK_MAX_SIZE` are admission controls, not
 an aggregate physical-storage quota.
 
-`VM_CGROUP_ROOT` defaults to empty. This permits the gateway and stopped-desktop
-management to run, but every managed VM start fails closed. A non-empty value
-must be a clean absolute path to a writable cgroup v2 domain subtree that:
+Before initializing gateway TLS or desktop state, `serve` verifies Linux amd64,
+a non-root effective user, actual Landlock ABI 6 or newer, seccomp availability,
+and KVM access. The KVM check opens `/dev/kvm` read/write, verifies API version 12,
+and creates then closes an empty VM without booting a guest. It checks actual
+kernel capabilities, not just the kernel version string. Failures exit with
+status 78 and explain the unmet requirement on standard error, or in the systemd
+journal for the packaged service. The unit's `RestartPreventExitStatus=78`
+prevents a restart loop; correct the requirement and start the service again.
+These checks apply to direct `serve` commands as well as the packaged service.
+An empty image catalog remains valid; memory admission still happens separately
+for each desktop start.
+
+`VM_CGROUP_ROOT` is required for `serve` and is validated during these startup
+checks. The packaged systemd service supplies it automatically; direct launches
+must set it explicitly. The value must be a clean absolute path to a writable
+cgroup v2 domain subtree that:
 
 - is owned by the gateway's effective UID and is not group or other writable;
 - has no processes in `cgroup.procs`;
@@ -505,10 +523,10 @@ must be a clean absolute path to a writable cgroup v2 domain subtree that:
   `cgroup.subtree_control`; and
 - provides writable `cgroup.kill` controls in gateway-created children.
 
-A configured root is validated during gateway startup. A recursive
-`populated 1` rejects startup instead of accepting live orphan processes from a
-previous run. VM launches require Linux 6.12+ with Landlock ABI 6 enabled, seccomp, and cgroup v2 memory and
-pids controllers, `cgroup.kill`, and clone-time cgroup attachment support. Even after the
+A recursive `populated 1` rejects startup instead of accepting live orphan
+processes from a previous run. Managed VMs require Linux 6.12+ with Landlock ABI 6
+enabled, seccomp, cgroup v2 memory and pids controllers, `cgroup.kill`, and
+clone-time cgroup attachment support. Even after the
 filesystem checks pass, the kernel or container runtime policy may deny the
 required `clone3` cgroup attachment; that VM launch is refused rather than
 started without its limits.

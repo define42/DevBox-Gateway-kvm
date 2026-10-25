@@ -6,6 +6,7 @@
 Set exported variables in your service environment or pass them before the command:
 
 ```bash
+VM_CGROUP_ROOT=/path/to/delegated-subtree \
 LDAP_URL=ldaps://directory.example.com \
 LDAP_BASE_DN=dc=example,dc=com \
 LDAP_USER_DOMAIN=example.com \
@@ -16,8 +17,10 @@ ADMIN_GROUP=devbox-admins \
 Exactly one of `LDAP_URL` and `AUTH_FILE` must be set. Authentication, TLS,
 paths, and supported value ranges are validated during startup. See the
 [gateway guide](gateway.md) for LDAP, certificates, VM admission, and storage.
-This example starts the management UI; starting desktops additionally requires
-the delegated `VM_CGROUP_ROOT` described below.
+Run as a non-root user and prepare the delegated `VM_CGROUP_ROOT` described
+below before launching this command. Startup checks verify kernel confinement,
+KVM access, and cgroup delegation before initializing gateway TLS or desktop
+state; see [startup checks](packages.md#startup-checks).
 
 Precedence is **explicit command-line flag → environment variable → default**.
 Flags support explicit false and empty overrides.
@@ -59,7 +62,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_MEMORY_MIB` | `4096` | `-memory` | MiB per desktop, from 256 to 1048576. |
 | `VM_MEMORY_BUDGET_MIB` | `0` | `-memory-budget` | Maximum MiB reserved for running desktops, including per-worker overhead; 0 selects automatic capacity. An explicit value can lower that budget. |
 | `VM_MEMORY_OVERHEAD_MIB` | `512` | `-memory-overhead` | Host-memory allowance above guest RAM in each worker's reservation and hard cgroup limit, from 64 to 16384 MiB. |
-| `VM_CGROUP_ROOT` | Empty | `-vm-cgroup-root` | Clean absolute path to the private delegated cgroup v2 subtree used for VM workers. Empty permits management but refuses every VM start. |
+| `VM_CGROUP_ROOT` | Empty | `-vm-cgroup-root` | Required clean absolute path to the private delegated cgroup v2 subtree used for VM workers. Empty prevents gateway startup; the packaged service supplies it automatically. |
 | `VM_DISK_MAX_SIZE` | `500GB` | `-vm-disk-max-size` | Maximum virtual capacity of each template and managed VM disk. |
 | `MAX_VDI_PER_USER` | `3` | `-max-vms-per-user` | Desktop quota per account. |
 | `MAX_CONCURRENT_CREATIONS` | `2` | `-max-creations` | Gateway-wide simultaneous desktop provisioning limit, from `1` to `64`. Further requests wait within `VM_CREATE_TIMEOUT`. |
@@ -116,7 +119,7 @@ held until cleanup finishes. Keep the service manager's stop timeout longer than
 these waits; the supplied Compose configuration allows 45 seconds with the
 default 30-second guest timeout.
 
-Every managed VM start requires `VM_CGROUP_ROOT`. Its directory must be a
+Gateway startup requires `VM_CGROUP_ROOT`. Its directory must be a
 privately controlled, writable cgroup v2 domain subtree, reached without
 symlinks and owned by the gateway's effective UID, with no resident processes.
 Both `memory` and `pids` controllers must appear in `cgroup.controllers` and
@@ -137,11 +140,10 @@ Cleanup checks the child's recursive
 `populated` state, uses `cgroup.kill` when descendants remain, and releases the
 reservation only after verifying `populated 0` and removing the child. A
 cleanup failure blocks all later VM starts in that gateway process until the
-operator recovers the subtree and restarts it. An empty
-`VM_CGROUP_ROOT` still permits gateway and stopped-desktop management but starts
-no VM workers; an invalid configured root fails gateway startup. A kernel or
-runtime policy may still deny the clone-time `clone3` attachment after these
-checks pass, in which case that VM start is refused.
+operator recovers the subtree and restarts it. An empty or invalid
+`VM_CGROUP_ROOT` fails gateway startup. A kernel or runtime policy may still deny
+the clone-time `clone3` attachment after these checks pass, in which case that VM
+start is refused.
 
 `VM_DISK_MAX_SIZE` accepts a positive integer in bytes, optionally followed by
 `B`, `KB`, `MB`, `GB`, `TB`, `KiB`, `MiB`, `GiB`, or `TiB` (case-insensitive).
@@ -244,8 +246,10 @@ Its LDAP address, CA path, account attributes, and group settings differ from th
 executable's empty-directory defaults. File paths in Compose are container paths;
 add corresponding mounts when supplying certificates or an external base image.
 Compose also enables `GATEWAY_VM_PROFILING` by default. It passes
-`VM_CGROUP_ROOT` into the container but does not delegate or mount a subtree;
-see the [required container cgroup setup](docker.md#required-cgroup-v2-delegation-for-vm-starts).
+`VM_CGROUP_ROOT` into the container but does not delegate or mount a subtree.
+Include `compose.cgroup.yaml` and complete the
+[required container cgroup setup](docker.md#required-cgroup-v2-delegation-for-vm-starts)
+before starting the gateway.
 
 `GATEWAY_BIND`, `GATEWAY_HOST`, `GATEWAY_PORT`, `KVM_GID`, and
 `GATEWAY_STORAGE_PATH` are Compose host-deployment controls.

@@ -128,23 +128,19 @@ be uploaded through **Admin**.
 
 ### Start the gateway
 
-```bash
-make gateway
-```
-
-This starts the bundled LDAP directory, builds devbox-kvm, and serves the gateway on
-**https://localhost:8443**. A new state directory has an empty image catalog.
-For this local setup, accept the generated self-signed certificate in your
-browser and RDP client.
-
-With `VM_CGROUP_ROOT` unset, login, image uploads, and desktop creation work, but
-every VM start is refused. Before starting desktops, prepare the
-[required memory and pids delegation](docs/gateway.md#serve-options) and supply
-its path when launching the gateway, for example:
+Prepare the [required memory and pids delegation](docs/gateway.md#serve-options),
+then supply its path when launching the gateway as a non-root user:
 
 ```bash
 VM_CGROUP_ROOT=/path/to/delegated-subtree make gateway
 ```
+
+This starts the bundled LDAP directory, builds devbox-kvm, and serves the gateway
+on **https://localhost:8443**. Startup checks require kernel confinement, KVM
+access, and valid cgroup delegation; an unset `VM_CGROUP_ROOT` prevents startup.
+See [startup checks](docs/packages.md#startup-checks) for failures and host
+requirements. A new state directory has an empty image catalog. For this local
+setup, accept the generated self-signed certificate in your browser and RDP client.
 
 Sign in with one of the public development accounts:
 
@@ -215,23 +211,24 @@ UID/GID 10001 instead. To select another new, empty directory, set
 existing `gateway-state` named volume is left untouched, but is no longer
 mounted or migrated automatically; the selected host path is a fresh state root.
 
-```bash
-make gateway-docker
-```
-
-This runs `./docker/configure.sh`, then `docker compose up --build -d gateway`.
-Run it again after updating the checkout to rebuild the gateway and recreate
-its container while preserving state in the selected host directory.
-
-The default Compose stack starts the management plane only. Starting VMs also
-requires a dedicated delegated cgroup v2 subtree, a scoped container mount, and
-`VM_CGROUP_ROOT`; follow the [container delegation requirements](docs/docker.md#required-cgroup-v2-delegation-for-vm-starts).
+Gateway startup requires a dedicated delegated cgroup v2 subtree, a scoped
+container mount, and `VM_CGROUP_ROOT`; follow the
+[container delegation requirements](docs/docker.md#required-cgroup-v2-delegation-for-vm-starts).
+The base Compose file alone does not provide these and cannot start the gateway.
 Do not replace scoped delegation with a privileged container or a writable mount
 of the host's entire cgroup hierarchy.
 
-After that host setup, use `make docker` to rebuild and start the gateway and
-LDAP with software rendering and encoding. It selects the base and cgroup
-Compose files. Host Go is not required.
+For the supported rootful Docker/systemd setup described in that guide, run:
+
+```bash
+sudo ./docker/setup-cgroup.sh
+make docker
+```
+
+`make docker` configures KVM access, then builds and starts the gateway and LDAP
+with software rendering and encoding. It selects the base and cgroup Compose
+files. Run it again after updating the checkout to rebuild while preserving
+state in the selected host directory. Host Go is not required.
 Every image contains the static Go application and bundled Go H.264 encoder;
 `make docker-purego` is an alias for `make docker`.
 

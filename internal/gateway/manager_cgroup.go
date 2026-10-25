@@ -49,8 +49,14 @@ type vmCgroupFactory interface {
 
 type linuxVMCgroupFactory struct{}
 
-func (linuxVMCgroupFactory) Validate(root string) error {
+// ValidateCgroupRoot checks the caller's delegated cgroup v2 subtree before
+// gateway startup. It does not create worker cgroups or change resource limits.
+func ValidateCgroupRoot(root string) error {
 	return validateVMCgroupRootAtStartup(linuxVMCgroupSystem{}, root)
+}
+
+func (linuxVMCgroupFactory) Validate(root string) error {
+	return ValidateCgroupRoot(root)
 }
 
 func (linuxVMCgroupFactory) Prepare(root, vmID string, memoryMax uint64) (workerCgroup, error) {

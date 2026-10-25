@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"io"
 	"os"
 	"path/filepath"
@@ -200,5 +201,20 @@ func TestGatewayTLSModesRejectConflicts(t *testing.T) {
 				t.Fatalf("invalid TLS mode accepted: %v", err)
 			}
 		})
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeHelpDoesNotRequireHostSupport(t *testing.T) {
+	clearServeEnvironment(t)
+	var output bytes.Buffer
+	check := func(string) error {
+		t.Fatal("help must not probe host requirements")
+
+		return errHostRequirements
+	}
+	err := runServeWithHostCheck(t.Context(), []string{"-help"}, &output, check)
+	if !errors.Is(err, flag.ErrHelp) || !strings.Contains(output.String(), "Usage: devbox-kvm serve") {
+		t.Fatalf("help failed: %v, output %q", err, output.String())
 	}
 }

@@ -127,7 +127,8 @@ func NewSettings() *Settings {
 	s.SetInt(VM_MEMORY_MIB, "MiB per desktop", 4096)
 	s.SetInt(VM_MEMORY_BUDGET_MIB, "Maximum MiB reserved for running desktops including overhead (0: automatic)", 0)
 	s.SetInt(VM_MEMORY_OVERHEAD_MIB, "Per-worker host memory allowance above guest RAM, enforced by cgroup", 512)
-	s.SetString(VM_CGROUP_ROOT, "Delegated cgroup v2 directory for memory-confined VM workers; required to start VMs", "")
+	s.SetString(VM_CGROUP_ROOT,
+		"Delegated cgroup v2 directory for memory-confined VM workers; required for gateway startup", "")
 	s.SetString(VM_DISK_MAX_SIZE, "Maximum virtual disk capacity per template and desktop", DefaultVMDiskMaxSize)
 	s.SetInt(MAX_VDI_PER_USER, "Desktop quota per account", 3)
 	s.SetInt(MAX_CONCURRENT_CREATIONS, "Maximum simultaneous desktop provisioning operations", 2)

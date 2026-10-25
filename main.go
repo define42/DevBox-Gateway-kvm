@@ -25,6 +25,10 @@ func main() {
 	err := run(ctx, os.Args)
 	stop()
 	if err != nil && !errors.Is(err, stdflag.ErrHelp) && !isOnlyError(err, context.Canceled) {
+		if errors.Is(err, errHostRequirements) {
+			log.Print(err)
+			os.Exit(hostRequirementsExitCode)
+		}
 		log.Fatal(err)
 	}
 }

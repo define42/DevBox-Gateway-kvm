@@ -15,7 +15,7 @@ At startup, the gateway extracts the embedded CODE/VARS pair under
 The host and container need no OVMF package.
 
 It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
-and working `/dev/kvm` access. Managed desktop starts require Linux 6.12+ with
+and working `/dev/kvm` access. Gateway startup requires Linux 6.12+ with
 Landlock ABI 6 enabled, seccomp, and the delegated memory and pids controllers
 described below. See [worker confinement](worker-sandbox.md). If Linux itself
 runs in a VM, nested virtualization must be enabled.
@@ -97,7 +97,7 @@ COMPOSE_FILE=compose.yaml:compose.cgroup.yaml
 
 Explicit `-f` options override `COMPOSE_FILE`, so include the base and cgroup
 files when using them. The base `compose.yaml` alone leaves `VM_CGROUP_ROOT`
-empty: management remains available, but desktop starts are refused.
+empty and provides no delegated subtree, so gateway startup fails.
 
 After updating this checkout, run `make gateway-docker` to rebuild the
 gateway image and recreate its container using the saved `COMPOSE_FILE`.
@@ -284,8 +284,8 @@ docker run --rm devbox-gateway-kvm:local serve -help
 ```
 
 The default command starts `serve`, using environment configuration. It requires
-authentication settings; the command above explicitly requests help without
-starting a server. The image sets `DATA_ROOT_DIR=/var/lib/devbox-kvm` and
+authentication settings and valid cgroup delegation; the command above explicitly
+requests help without starting a server. The image sets `DATA_ROOT_DIR=/var/lib/devbox-kvm` and
 `LISTEN_ADDR=0.0.0.0:8443`. The entrypoint is `devbox-kvm`, so commands such as
 `serve`, `boot`, and `probe` follow the image name directly. Check KVM
 access using the same device and supplementary group used by the gateway:
@@ -302,10 +302,11 @@ docker run --rm \
 The gateway creates an empty image catalog in its persistent state directory.
 After startup, an administrator uploads QCOW2 templates through the web UI.
 
-The standalone example below deliberately omits a cgroup mount, so it starts the
-management plane but cannot start a VM. Add only a host-delegated, scoped cgroup
-mount as described under
-[required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts).
+The standalone example below uses the same host-delegated subtree and runtime
+settings as the Compose overlay. Complete the
+[required cgroup v2 delegation](#required-cgroup-v2-delegation-for-vm-starts)
+on the supported rootful Docker/systemd host before starting it. Without valid
+delegation, the gateway exits during startup checks.
 
 The example below uses an external LDAP directory and a TLS certificate trusted
 by the clients. Replace the example hostname, directory settings, and host paths.
@@ -316,15 +317,22 @@ directory owned by UID 10001 with mode `0700` satisfies these requirements.
 If your existing certificate manager uses symlinks, copy the resolved certificate
 and key into this mounted directory.
 
-For this rootful, non-remapped example, create a fresh, empty gateway state
-directory before starting the container:
+From the repository root, prepare delegation and a fresh, empty gateway state
+directory for this rootful, non-remapped example:
 
 ```bash
+sudo ./docker/setup-cgroup.sh
 sudo install -d -m 0700 -o 10001 -g 10001 /srv/devbox-storage
 
 docker run -d --name devbox-gateway-kvm \
   --restart unless-stopped \
   --stop-timeout 45 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --security-opt seccomp=./docker/seccomp-vm.json \
+  --cgroupns host --cgroup-parent devbox.slice \
+  --mount type=bind,source=/sys/fs/cgroup/devbox.slice/devbox-vm-cgroup.service/workers,target=/run/devbox-vms \
+  --env VM_CGROUP_ROOT=/run/devbox-vms \
   --device /dev/kvm:/dev/kvm \
   --group-add "$(stat -c '%g' /dev/kvm)" \
   --publish 8443:8443 \
@@ -407,10 +415,9 @@ Managed guest networking uses `user-isolated`; it needs neither a TUN device nor
 
 The message “The host cannot enforce this desktop's memory and process limits”
 means that VM worker resource isolation is unavailable. Creating an ordinary
-directory or
-setting `VM_CGROUP_ROOT` alone does not configure it. The base Compose file starts
-the management plane but intentionally refuses desktop starts until delegation
-is supplied.
+directory or setting `VM_CGROUP_ROOT` alone does not configure it. Gateway startup
+checks require valid delegation; the base Compose file alone cannot start the
+management dashboard. Include the cgroup overlay after preparing the host.
 
 For the supported rootful Docker/systemd setup, run:
 

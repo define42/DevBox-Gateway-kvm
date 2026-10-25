@@ -19,8 +19,10 @@ standalone binary archives are no longer released.
   memory overhead.
 
 The package installs its system dependencies and creates the `devbox-kvm`
-service account with KVM group access. It does not install an LDAP directory or
-a desktop image. See the [image requirements](../README.md#host-and-image-requirements).
+service account. The systemd unit supplies KVM access through
+`SupplementaryGroups=kvm`; `id devbox-kvm` need not list that group because
+systemd adds it when starting the service. It does not install an LDAP directory
+or a desktop image. See the [image requirements](../README.md#host-and-image-requirements).
 
 ## Install and configure
 
@@ -97,6 +99,34 @@ Open the configured HTTPS address and sign in with an LDAP administrator account
 Upload a compatible QCOW2 desktop image under **Admin → Base Images**, then
 follow the [desktop workflow](gateway.md#create-and-connect-to-a-desktop).
 A new installation starts with an empty image catalog.
+
+## Startup checks
+
+Before `serve` initializes gateway TLS or desktop state, it checks that it is
+running as a non-root user on Linux amd64, that the running kernel provides
+Landlock ABI 6 or newer and seccomp, and that its service account can open
+`/dev/kvm` read/write, use KVM API version 12, and create an empty KVM VM. It also
+validates the configured private cgroup v2 delegation. The packaged launcher
+supplies `VM_CGROUP_ROOT`; when running `serve` directly, you must supply it.
+An empty value now prevents gateway startup.
+
+These checks inspect the actual kernel and service permissions rather than
+relying on the kernel version string. For example, a host reporting Landlock
+ABI 4 cannot run managed desktops that require ABI 6. Install and boot a Linux
+6.12+ kernel with Landlock enabled; updating the application alone does not
+change the running kernel. Root execution is rejected because managed workers
+must run without root privileges.
+
+A failed check exits with status 78 and identifies the unmet requirement on
+standard error, available for the packaged service through
+`sudo journalctl -u devbox-kvm -b --no-pager`. The unit uses
+`RestartPreventExitStatus=78` to prevent repeated restart attempts after a failed
+check. Missing `/dev/kvm` is reported by this check rather than silently skipping
+the service. Correct the host requirement, then start the service again.
+
+These checks also run whenever `serve` is launched directly. They boot no guest
+and do not reserve desktop RAM. An empty image catalog is allowed; available
+memory and per-VM limits are still checked when each desktop starts.
 
 ## Host firewall
 

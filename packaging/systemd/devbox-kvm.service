@@ -3,7 +3,6 @@ Description=DevBox KVM desktop gateway
 Documentation=https://github.com/define42/DevBox-Gateway-kvm/blob/main/docs/packages.md
 Wants=network-online.target
 After=network-online.target firewalld.service ufw.service
-ConditionPathExists=/dev/kvm
 
 [Service]
 Type=exec
@@ -28,6 +27,8 @@ ExecStart=/usr/libexec/devbox-kvm/start-service
 KillMode=mixed
 TimeoutStopSec=45s
 Restart=on-failure
+# Host prerequisites need administrator action, not repeated startup attempts.
+RestartPreventExitStatus=78
 RestartSec=5s
 TasksMax=infinity
 LimitNOFILE=65536

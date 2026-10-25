@@ -111,7 +111,21 @@ def check(dist):
                                      text=True, capture_output=True, timeout=15, check=True)
         require("Usage: devbox-kvm serve" in help_result.stdout + help_result.stderr,
                 "packaged binary did not produce serve help")
-    print("Package checks passed: DEB/RPM metadata, payloads, configuration preservation, scripts, checksums, and binary startup")
+        # Missing delegation must fail on every CI host, before TLS or state
+        # initialization. Exercise main's exit status, not just the Go helpers.
+        state = root / "uninitialized-state"
+        failure = subprocess.run([
+            str(extracted / "usr/bin/devbox-kvm"), "serve",
+            "-ldap-url", "ldaps://directory.example.com",
+            "-ldap-base-dn", "dc=example,dc=com",
+            "-state", str(state), "-vm-cgroup-root", "",
+        ], env={}, text=True, capture_output=True, timeout=15, check=False)
+        require(failure.returncode == 78,
+                f"unmet host requirements exited {failure.returncode}, expected 78: {failure.stderr}")
+        require("VM_CGROUP_ROOT is required" in failure.stderr,
+                "packaged binary did not explain the missing host requirement")
+        require(not state.exists(), "host failure initialized gateway state")
+    print("Package checks passed: DEB/RPM metadata, payloads, configuration preservation, scripts, checksums, help, and startup rejection")
 
 
 try:

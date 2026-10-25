@@ -21,9 +21,19 @@ import (
 
 var errCommandUsage = errors.New("invalid command arguments")
 
-func runServe(ctx context.Context, args []string, output io.Writer) (serveErr error) {
+func runServe(ctx context.Context, args []string, output io.Writer) error {
+	return runServeWithHostCheck(ctx, args, output, checkServeHost)
+}
+
+func runServeWithHostCheck(
+	ctx context.Context, args []string, output io.Writer, checkHost func(string) error,
+) (serveErr error) {
 	options, err := readServeOptions(args, output)
 	if err != nil {
+		return err
+	}
+	// Refuse unsupported hosts before creating state or starting TLS maintenance.
+	if err := checkHost(options.manager.CgroupRoot); err != nil {
 		return err
 	}
 	manager, config, ldap := options.manager, options.gateway, options.ldap
