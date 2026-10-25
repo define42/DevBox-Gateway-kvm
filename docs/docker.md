@@ -1,6 +1,10 @@
-# Docker
+# Local Docker development
 
-The default Docker image starts from `scratch` and includes the static
+Release artifacts are [DEB and RPM packages](packages.md). Container images are
+not published. The Docker and Compose files in this repository remain available
+for local development builds.
+
+The locally built Docker image starts from `scratch` and includes the static
 DevBox-Gateway-kvm executable with embedded OVMF firmware and CA certificates.
 The application builds with `CGO_ENABLED=0`; H.264 encoding and QCOW2 image
 imports run entirely in Go. Guest graphics use a 2D virtio-gpu framebuffer. The
@@ -269,59 +273,6 @@ configure its `cert.pem` and `key.pem` as a supplied pair. Existing LDAP keys,
 and directory configuration remain in their named volumes. Existing image
 templates and VM disks remain only where they were stored: Compose does not
 migrate the legacy `gateway-state` named volume into `GATEWAY_STORAGE_PATH`.
-
-## Published container images
-
-After the checks pass for a push to `main`, CI publishes the pushed head commit
-as a GitHub release and two Linux amd64 container images:
-
-- `ghcr.io/define42/devbox-gateway-kvm`: the static Go gateway runtime with bundled Go H.264.
-- `ghcr.io/define42/devbox-gateway-kvm-ldap`: LDAP with automatic private TLS setup.
-
-New GHCR packages default to private. After the first release, set both packages
-to **Public** in their GitHub package settings for anonymous pulls, or sign in
-to GHCR with package read access. See [GitHub package visibility](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
-
-Both images use the release tag and full commit SHA as tags. Release versions
-come from the commit's UTC committer date/time and its first 12 SHA characters,
-for example `v2026.10.11-195952-g012345abcdef`. Month and day have no leading
-zeros. Retries reuse that version and any unfinished draft; published releases
-are preserved. A push containing several commits releases its head commit,
-matching the reference project's workflow. Pull requests and scheduled runs
-only validate changes.
-
-The workflow promotes both images and the GitHub release to `latest` only when
-the released commit is still the current `main` head. Older builds completing
-later cannot replace it. Use an explicit version to deploy a specific release;
-`latest` is available after a current-head release completes successfully.
-
-To use published images with the existing Compose stack, create a local override
-named `compose.published.yaml`:
-
-```yaml
-services:
-  gateway:
-    image: ghcr.io/define42/devbox-gateway-kvm:${RELEASE_TAG:?Set RELEASE_TAG}
-  ldap:
-    image: ghcr.io/define42/devbox-gateway-kvm-ldap:${RELEASE_TAG:?Set RELEASE_TAG}
-```
-
-Choose a tag from [GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases),
-then run from a checkout of that release:
-
-```bash
-export RELEASE_TAG=v2026.10.11-195952-g012345abcdef # Replace with a published tag.
-sudo ./docker/setup-cgroup.sh
-./docker/configure.sh
-docker compose -f compose.yaml -f compose.cgroup.yaml -f compose.published.yaml \
-  up --no-build --pull always -d
-```
-
-The override selects prebuilt images; `--no-build` keeps Compose from building
-local targets. Persistent gateway storage, LDAP accounts, and admin image
-uploads work as described above. The downloaded static binary archive and
-published container both use the static Go application and bundled Go H.264
-encoder. Neither requires host GPU devices or native libraries.
 
 ## Build and inspect
 

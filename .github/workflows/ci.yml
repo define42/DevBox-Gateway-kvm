@@ -177,7 +177,7 @@ jobs:
   release-check:
     name: Check release configuration
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -192,11 +192,24 @@ jobs:
       run: >-
         go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
         -ignore 'unexpected key "queue" for "concurrency" section'
+    - name: Test native package lifecycle
+      run: bash packaging/scripts-test.sh
     - name: Validate GoReleaser configuration
       uses: goreleaser/goreleaser-action@v7
       with:
         version: v2.18.3
         args: check
+    - name: Build DEB and RPM packages without publishing
+      uses: goreleaser/goreleaser-action@v7
+      with:
+        version: v2.18.3
+        args: release --snapshot --clean
+    - name: Install package inspection tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rpm
+    - name: Verify native packages and release assets
+      run: bash .github/scripts/package-check.sh dist
 
   release:
     runs-on: ubuntu-24.04
@@ -205,7 +218,6 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: write
-      packages: write
     # Queue releases instead of replacing pending commits when pushes overlap.
     concurrency:
       group: releases-${{ github.repository }}
@@ -224,8 +236,7 @@ jobs:
       shell: bash
       run: |
         tag=$(bash .github/scripts/release-version.sh "$GITHUB_SHA")
-        image="ghcr.io/${GITHUB_REPOSITORY,,}"
-        printf 'tag=%s\nimage=%s\n' "$tag" "$image" >> "$GITHUB_OUTPUT"
+        printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
 
     - name: Check whether this commit is already published
       id: existing
@@ -263,52 +274,7 @@ jobs:
         fi
         git push origin "refs/tags/$RELEASE_TAG"
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
-
-    - name: Log in to GHCR
-      uses: docker/login-action@v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Build and push gateway container
-      if: steps.existing.outputs.published != 'true'
-      uses: docker/build-push-action@v7
-      with:
-        context: .
-        target: runtime
-        platforms: linux/amd64
-        push: true
-        tags: |
-          ${{ steps.version.outputs.image }}:${{ steps.version.outputs.tag }}
-          ${{ steps.version.outputs.image }}:${{ github.sha }}
-        labels: |
-          org.opencontainers.image.version=${{ steps.version.outputs.tag }}
-          org.opencontainers.image.revision=${{ github.sha }}
-        cache-from: type=gha,scope=gateway
-        cache-to: type=gha,scope=gateway,mode=max
-
-    - name: Build and push LDAP container
-      if: steps.existing.outputs.published != 'true'
-      uses: docker/build-push-action@v7
-      with:
-        context: .
-        target: ldap
-        platforms: linux/amd64
-        push: true
-        tags: |
-          ${{ steps.version.outputs.image }}-ldap:${{ steps.version.outputs.tag }}
-          ${{ steps.version.outputs.image }}-ldap:${{ github.sha }}
-        labels: |
-          org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          org.opencontainers.image.version=${{ steps.version.outputs.tag }}
-          org.opencontainers.image.revision=${{ github.sha }}
-        cache-from: type=gha,scope=ldap
-        cache-to: type=gha,scope=ldap,mode=max
-
-    - name: Build binary archive and upload draft release
+    - name: Build DEB and RPM packages and upload draft release
       if: steps.existing.outputs.published != 'true'
       uses: goreleaser/goreleaser-action@v7
       with:
@@ -317,7 +283,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GORELEASER_CURRENT_TAG: ${{ steps.version.outputs.tag }}
-        RELEASE_IMAGE: ${{ steps.version.outputs.image }}
 
     - name: Publish completed release
       if: steps.existing.outputs.published != 'true'
@@ -330,7 +295,6 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         RELEASE_TAG: ${{ steps.version.outputs.tag }}
-        RELEASE_IMAGE: ${{ steps.version.outputs.image }}
       shell: bash
       run: |
         # Reruns of older commits must not replace a newer latest release.
@@ -339,7 +303,4 @@ jobs:
           echo 'A newer commit is on main; keeping the existing latest release.'
           exit 0
         fi
-        for image in "$RELEASE_IMAGE" "$RELEASE_IMAGE-ldap"; do
-          docker buildx imagetools create --tag "$image:latest" "$image:$RELEASE_TAG"
-        done
         gh release edit "$RELEASE_TAG" --latest

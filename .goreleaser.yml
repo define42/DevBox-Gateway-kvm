@@ -13,17 +13,81 @@ builds:
   flags:
   - -trimpath
 
+# Native packages are the only distributable binaries. The Linux override
+# suppresses both archives and standalone binary uploads.
 archives:
-- formats: [tar.gz]
-  files:
-  - LICENSE
-  - LICENSE-OpenH264
-  - LICENSE-go.264
-  - internal/qcow2import/LICENSE
-  - README.md
-  - CONTRIBUTING.md
-  - llms.txt
-  - docs/**
+- format_overrides:
+  - goos: linux
+    formats: [none]
+
+nfpms:
+- id: native
+  package_name: devbox-kvm
+  file_name_template: '{{ .ConventionalFileName }}'
+  vendor: define42
+  homepage: https://github.com/define42/DevBox-Gateway-kvm
+  maintainer: define42 <define42@users.noreply.github.com>
+  description: |-
+    Self-hosted Linux desktop gateway with a pure Go KVM runtime.
+    Includes the web dashboard, LDAP authentication, RDP, H.264 and UEFI firmware.
+    Managed desktops require Linux 6.12+ with Landlock ABI 6 and cgroup v2.
+  license: MIT
+  formats: [deb, rpm]
+  bindir: /usr/bin
+  section: admin
+  priority: optional
+  contents:
+  - src: packaging/systemd/devbox-kvm.service
+    dst: /usr/lib/systemd/system/devbox-kvm.service
+    file_info:
+      mode: 0644
+  - src: packaging/start-service.sh
+    dst: /usr/libexec/devbox-kvm/start-service
+    file_info:
+      mode: 0755
+  - src: packaging/devbox-kvm.env
+    dst: /etc/devbox-kvm/devbox-kvm.env
+    type: config|noreplace
+    file_info:
+      mode: 0600
+  - src: LICENSE
+    dst: /usr/share/doc/devbox-kvm/LICENSE
+  - src: LICENSE-OpenH264
+    dst: /usr/share/doc/devbox-kvm/LICENSE-OpenH264
+  - src: LICENSE-go.264
+    dst: /usr/share/doc/devbox-kvm/LICENSE-go.264
+  - src: internal/qcow2import/LICENSE
+    dst: /usr/share/doc/devbox-kvm/LICENSE-go-qcow2reader
+  - src: internal/gateway/firmware/LICENSE
+    dst: /usr/share/doc/devbox-kvm/LICENSE-OVMF
+  - src: README.md
+    dst: /usr/share/doc/devbox-kvm/README.md
+  - src: docs/packages.md
+    dst: /usr/share/doc/devbox-kvm/packages.md
+  - src: docs/configuration.md
+    dst: /usr/share/doc/devbox-kvm/configuration.md
+  scripts:
+    preinstall: packaging/scripts/preinstall.sh
+    postinstall: packaging/scripts/postinstall.sh
+    preremove: packaging/scripts/preremove.sh
+    postremove: packaging/scripts/postremove.sh
+  overrides:
+    deb:
+      dependencies:
+      - ca-certificates
+      - systemd (>= 254)
+      - passwd
+      - libc-bin
+      - coreutils
+      - grep
+    rpm:
+      dependencies:
+      - ca-certificates
+      - systemd >= 254
+      - shadow-utils
+      - glibc-common
+      - coreutils
+      - grep
 
 checksum:
   name_template: checksums.txt
@@ -40,15 +104,11 @@ release:
   header: |
     DevBox-Gateway-kvm built from commit `{{ .FullCommit }}`.
 
-    The Linux amd64 archive includes a static `devbox-kvm` binary with the
-    bundled pure Go H.264 encoder and Go QCOW2 image import. Install OVMF on
-    the host for gateway use.
+    Install the Linux amd64 DEB or RPM package for a static `devbox-kvm` binary,
+    systemd service, and configuration template. H.264 and OVMF firmware are
+    bundled; no host Go toolchain or OVMF package is required.
 
-    The container includes the static Go application, OVMF, and CA certificates:
-    ```sh
-    docker pull {{ .Env.RELEASE_IMAGE }}:{{ .Tag }}
-    ```
-    The matching Compose LDAP image is
-    `{{ .Env.RELEASE_IMAGE }}-ldap:{{ .Tag }}`.
-    See the [Docker guide](https://github.com/{{ .Env.GITHUB_REPOSITORY }}/blob/{{ .Tag }}/docs/docker.md)
-    for KVM access, LDAP, TLS, and persistent storage setup.
+    Configure `/etc/devbox-kvm/devbox-kvm.env`, then enable and start
+    `devbox-kvm.service`. The service prepares its private VM cgroup delegation.
+    See the [package installation guide](https://github.com/{{ .Env.GITHUB_REPOSITORY }}/blob/{{ .Tag }}/docs/packages.md)
+    for host requirements, authentication, TLS, and upgrades.

@@ -13,8 +13,9 @@ desktop runs in its own `devbox-kvm` process using Linux KVM directly.
 
 The repository is named **DevBox-Gateway-kvm** and uses the Go module path
 `github.com/define42/DevBox-Gateway-kvm`. The executable is `devbox-kvm`, runtime
-and test environment variables use the `DEVBOX_KVM_*` prefix, and native gateway
-state defaults to `.devbox-kvm-gateway/`. Gateway settings use the
+and test environment variables use the `DEVBOX_KVM_*` prefix. The packaged service
+stores state in `/var/lib/devbox-kvm`; a source build defaults to
+`.devbox-kvm-gateway/`. Gateway settings use the
 [environment configuration reference](docs/configuration.md), following
 DevBox-Gateway's centralized `config.go` design.
 
@@ -35,29 +36,21 @@ Remmina or FreeRDP and shows the VM's graphical console.
 
 ### Host and image requirements
 
-The local setup below needs:
+Running managed desktops needs:
 
 - An **x86-64 Linux host** with hardware virtualization and read/write access to
   `/dev/kvm`. Nested virtualization must be available when the host is itself a VM.
 - **Linux 6.12+ with Landlock ABI 6 enabled and seccomp** for managed worker confinement.
-- A private, delegated **cgroup v2 subtree** configured as `VM_CGROUP_ROOT` to
-  start managed VMs. The gateway does not create the delegation; see
+- **cgroup v2** with memory and pids controllers. The packaged service creates
+  private delegation automatically using **systemd 254 or newer**. Source and
+  container setups must supply `VM_CGROUP_ROOT`; see
   [VM isolation requirements](docs/gateway.md#serve-options).
-- **Go 1.26 or newer**, Git, and Make.
-- **Docker with the Compose plugin and OpenSSL** for the bundled development LDAP
-  directory. An external LDAP directory can be used instead.
+- An LDAP directory for user authentication and administrator access.
 - Enough RAM for the configured desktops and disk space for templates and each
   VM's independent disk. A new desktop defaults to **2 vCPUs and 4 GiB RAM**.
 
-On Debian/Ubuntu, install the local TLS tools with:
-
-```bash
-sudo apt install openssl ca-certificates
-```
-
-Go, Git, Make, and Docker Compose must also be installed. The application builds
-with `CGO_ENABLED=0` and needs no C compiler or native libraries. H.264 encoding
-uses the bundled pure Go codec; guest graphics use a 2D framebuffer. Matching
+The application builds with `CGO_ENABLED=0` and needs no C compiler or native
+libraries. H.264 encoding uses the bundled pure Go codec; guest graphics use a 2D framebuffer. Matching
 plain, non-SMM OVMF CODE and VARS firmware is embedded in the executable. The
 gateway extracts it under `DATA_ROOT_DIR/firmware` at startup and keeps a separate
 writable variables file for each VM; no host OVMF installation is required.
@@ -70,6 +63,40 @@ Managed UEFI guests use a PS/2 keyboard and a virtio-input absolute tablet once
 the guest driver is ready; firmware pointer input uses PS/2.
 Audio playback additionally requires the guest's `snd_virtio` driver and a
 working desktop audio stack; see [audio requirements](docs/runtime.md#audio).
+
+### Install a DEB or RPM package
+
+Download the Linux amd64 `.deb` or `.rpm` and `checksums.txt` from
+[GitHub Releases](https://github.com/define42/DevBox-Gateway-kvm/releases).
+Releases contain native packages and SHA-256 checksums only; container images
+and standalone binary archives are no longer published.
+
+Follow the [package installation guide](docs/packages.md) to verify and install
+one package, configure `/etc/devbox-kvm/devbox-kvm.env` for your LDAP directory,
+and start the service:
+
+```bash
+sudoedit /etc/devbox-kvm/devbox-kvm.env
+sudo systemctl enable --now devbox-kvm
+```
+
+Installation leaves the service stopped until it is configured. The default
+listener is **https://localhost:8443**. The package supplies the service account,
+private state directory, KVM group access, and cgroup delegation. No Go toolchain,
+Docker, host OVMF package, or bundled LDAP directory is needed.
+
+Sign in with an account in your configured `ADMIN_GROUP`, upload a compatible
+QCOW2 image through **Admin → Base Images**, and follow the
+[desktop workflow](docs/gateway.md#create-and-connect-to-a-desktop).
+For remote access, configure the listener, public address, and trusted TLS as
+covered in the package guide.
+
+### Local development from source
+
+Source builds require **Go 1.26 or newer**, Git, and Make. The bundled development
+LDAP setup also needs **Docker with the Compose plugin and OpenSSL**. On
+Debian/Ubuntu, install the local TLS tools with
+`sudo apt install openssl ca-certificates`.
 
 ### Prepare the sample desktop
 
@@ -166,7 +193,10 @@ workers that exceed `VM_STOP_TIMEOUT` (30 seconds by default). Saved desktops
 remain on disk and can be started again. The development LDAP service stays
 running until you run `make ldap-stop`.
 
-### Run in Docker
+### Build and run locally in Docker
+
+Docker and Compose remain available for local development builds; releases
+provide [DEB and RPM packages](docs/packages.md).
 
 On an x86-64 Linux host with Make, Docker Compose, and `/dev/kvm`, start both the
 gateway and development LDAP directory:
@@ -292,9 +322,10 @@ Linux/PVH kernel boot with an optional initrd. See
 
 ### Deployment boundaries
 
-The local example binds to loopback. Remote access requires an explicit public
+The default listener binds to loopback. Remote access requires an explicit public
 address, ACME or a trusted TLS certificate/key pair, and your LDAP directory settings.
-Keep `.devbox-kvm-gateway/` private and back it up with the service stopped. The state
+Keep the state directory private (`/var/lib/devbox-kvm` for the packaged service,
+`.devbox-kvm-gateway/` for source builds) and back it up with the service stopped. The state
 contains guest password hashes and private TLS keys.
 
 This is currently a **single-host application**. VM processes run under the
@@ -325,6 +356,8 @@ Run `./devbox-kvm serve -help`, `./devbox-kvm boot -help`, or `./devbox-kvm seed
 current flags. `serve` reads configuration from environment variables; explicit
 flags override them. LDAP is the authentication path used by `make gateway`.
 
+- [Native packages](docs/packages.md): DEB/RPM installation, systemd service,
+  upgrades, and release behavior.
 - [Environment configuration](docs/configuration.md): all gateway variables,
   defaults, flag overrides, and Compose migration.
 - [Gateway operations](docs/gateway.md): configuration, external LDAP/TLS, image
@@ -362,9 +395,10 @@ after CI passes. Versions use the commit's UTC date and time plus its short SHA,
 for example `v2026.10.11-195952-g012345abcdef`. A rerun reuses the same version.
 Pull requests and scheduled checks do not publish releases.
 
-Releases include a static Linux amd64 binary archive and SHA-256 checksums. The gateway
-and LDAP containers are published to GHCR with the same version
-and full commit SHA; see [published container images](docs/docker.md#published-container-images).
+Releases include Linux amd64 **DEB and RPM packages** and SHA-256 checksums.
+Retries preserve published releases; only a release for the current `main` head
+becomes `latest`. See [native packages](docs/packages.md) for installation and
+release behavior. Containers are built locally only and are not released.
 For development checks and VM test fixtures, follow the
 [development guide](docs/development.md). Include a reproduction or focused test
 for behavior changes and update the relevant user guide when changing a workflow.

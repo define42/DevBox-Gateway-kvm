@@ -1,4 +1,5 @@
 GOLANGCI_LINT_VERSION = v2.12.2
+GORELEASER ?= goreleaser
 
 GO ?= $(shell go env GOROOT)/bin/go
 QCOW2_IMAGE ?= ./rocky9-xfce-v2.4.16.qcow2
@@ -104,6 +105,11 @@ bench-rdp-ack:
 	DEVBOX_KVM_REQUIRE_ACK_TEST=1 \
 		"$(GO)" test -tags=integration -run '^$$' -bench '^BenchmarkGraphicsACKFreeRDP$$' \
 		-benchtime=100x -count=6 -timeout 5m ./internal/rdp
+
+# Build local DEB/RPM snapshots with GoReleaser v2.18.3, without publishing.
+.PHONY: packages
+packages:
+	$(GORELEASER) release --snapshot --clean
 
 .PHONY: clean
 clean:

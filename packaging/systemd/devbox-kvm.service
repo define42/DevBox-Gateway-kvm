@@ -1,0 +1,47 @@
+[Unit]
+Description=DevBox KVM desktop gateway
+Documentation=https://github.com/define42/DevBox-Gateway-kvm/blob/main/docs/packages.md
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/dev/kvm
+
+[Service]
+Type=exec
+User=devbox-kvm
+Group=devbox-kvm
+SupplementaryGroups=kvm
+EnvironmentFile=/etc/devbox-kvm/devbox-kvm.env
+WorkingDirectory=/var/lib/devbox-kvm
+StateDirectory=devbox-kvm
+StateDirectoryMode=0700
+UMask=0077
+
+# systemd 254+ keeps the gateway outside its process-free VM subtree.
+Slice=system.slice
+Delegate=memory pids
+DelegateSubgroup=supervisor
+ExecStart=/usr/libexec/devbox-kvm/start-service
+
+# Signal only the gateway first so it can request graceful guest shutdown.
+KillMode=mixed
+TimeoutStopSec=45s
+Restart=on-failure
+RestartSec=5s
+TasksMax=infinity
+LimitNOFILE=65536
+
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=false
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/devbox-kvm /sys/fs/cgroup/system.slice/devbox-kvm.service
+
+[Install]
+WantedBy=multi-user.target

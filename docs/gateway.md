@@ -6,8 +6,13 @@ runs in a separate devbox-kvm process using KVM, UEFI firmware, and devbox-kvm's
 console. The RDP connection shows the guest's shared screen, including firmware
 and its graphical login. It does not create a separate guest XRDP session.
 
-Run the commands below from the repository root. See the [README](../README.md)
-for host requirements and the project overview.
+For installation, use the [native DEB/RPM packages](packages.md). The packaged
+service reads `/etc/devbox-kvm/devbox-kvm.env`, stores state in
+`/var/lib/devbox-kvm`, and supplies its own private cgroup delegation. Configure
+your LDAP directory before enabling the service.
+
+The local development commands below run from the repository root. See the
+[README](../README.md) for host requirements and the project overview.
 
 ## Local development setup
 
