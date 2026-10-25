@@ -101,6 +101,12 @@ A new installation starts with an empty image catalog.
 | `/usr/libexec/devbox-kvm/start-service` | Service launcher that prepares private cgroup delegation. |
 | `/var/lib/devbox-kvm` | Private persistent state, owned by `devbox-kvm`, mode 0700. |
 
+The packaged unit explicitly sets `RestrictSUIDSGID=false`: enabling that
+systemd restriction blocks `openat2()`, which the gateway requires for secure
+cgroup access. The service runs as `devbox-kvm`, with `NoNewPrivileges=true`
+and empty capability sets. Upgrading an affected package installs this corrected
+unit; start the service after the upgrade as described below.
+
 The service supplies `VM_CGROUP_ROOT` automatically; leave it out of the
 configuration file. Keep the packaged state path unless you also update the
 systemd filesystem permissions. See [state and shutdown](gateway.md#state-networking-and-shutdown)

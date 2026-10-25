@@ -40,7 +40,9 @@ ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectKernelLogs=true
 ProtectControlGroups=false
-RestrictSUIDSGID=true
+# RestrictSUIDSGID blocks openat2 with ENOSYS; secure cgroup access requires it.
+# Set false explicitly to override any manager-wide default.
+RestrictSUIDSGID=false
 ReadWritePaths=/var/lib/devbox-kvm /sys/fs/cgroup/system.slice/devbox-kvm.service
 
 [Install]
