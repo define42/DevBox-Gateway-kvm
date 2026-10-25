@@ -11,7 +11,7 @@ for host requirements and the project overview.
 
 ## Local development setup
 
-The example uses matching OVMF CODE/VARS files, Docker with the Compose plugin,
+The example uses embedded OVMF firmware, Docker with the Compose plugin,
 and OpenSSL. Image imports use the built-in Go QCOW2 normalizer.
 No desktop image is required at startup. The `make gateway` target builds with
 the bundled pure Go H.264 encoder and requires no C compiler or native codec SDK.
@@ -54,14 +54,13 @@ normalized without an external conversion tool.
 | `GATEWAY_STATE` | `./.devbox-kvm-gateway` | Private persistent state. |
 | `GATEWAY_IMAGE` | Empty | Optional protected default image; if set and absent, converted from `QCOW2_IMAGE`. |
 | `GATEWAY_ARGS` | Empty | Additional `serve` flags. |
-| `OVMF_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | Firmware code. |
-| `OVMF_VARS` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | Matching pristine variables template. |
 | `GATEWAY_LDAP_LOCAL` | `1` | Set to `0` to skip the bundled directory. |
 | `LDAP_PORT` | `1636` | Bundled directory's host port. |
 
 The executable reads [environment configuration](configuration.md). These Make
 variables remain helper aliases for the local setup; explicit `serve` flags
-override environment values. To opt into a preconfigured protected default, for example:
+override environment values. The gateway always uses its embedded firmware.
+To opt into a preconfigured protected default image, for example:
 
 ```bash
 make gateway GATEWAY_IMAGE=./.devbox-kvm-gateway/base.qcow2 QCOW2_IMAGE=/path/to/desktop.qcow2
@@ -90,8 +89,9 @@ ADMIN_GROUP=devbox-admins LDAP_CA_FILE=./testldap/.tls/cert.pem \
 
 Open the same **https://localhost:8443** page and use the demo accounts above.
 Sign in as `administrator` to upload the first template if the catalog is empty.
-The default OVMF paths must exist; set `UEFI_CODE` and `UEFI_VARS_TEMPLATE` if
-needed. `CGO_ENABLED=0 go build -o devbox-kvm .` is also supported; catalog
+The gateway extracts its embedded OVMF pair under `DATA_ROOT_DIR/firmware`. No
+host OVMF installation or firmware configuration is required.
+`CGO_ENABLED=0 go build -o devbox-kvm .` is also supported; catalog
 imports, including compressed QCOW2 images, work in that build too.
 As with `make gateway`, configure the [required VM cgroup delegation](#serve-options)
 and pass `VM_CGROUP_ROOT` when launching `serve` before trying to start desktops.
@@ -421,8 +421,8 @@ settings and a migration from the former certificate helper service.
 ## LDAP and remote access
 
 For a remote deployment, enable ACME or supply a certificate trusted by both web
-browsers and RDP clients. The host must have matching OVMF firmware. An administrator uploads
-image templates after startup:
+browsers and RDP clients. The executable supplies the OVMF firmware.
+An administrator uploads image templates after startup:
 
 ```bash
 DATA_ROOT_DIR=/var/lib/devbox-kvm \
@@ -597,6 +597,7 @@ normally mode 0600. Only one gateway may own a state directory at a time.
 | `manager.lock` | Exclusive manager lock. |
 | `gateway.crt`, `gateway.key` | Persistent self-signed identity and ACME fallback. |
 | `acme/` | ACME account credentials, certificate cache, and renewal state. |
+| `firmware/` | Embedded firmware files extracted for gateway use. |
 | `images/<image-id>/image.json` | Uploaded template metadata. |
 | `images/<image-id>/disk.qcow2` | Validated, normalized template. |
 | `vms/<vm-id>/vm.json` | Persistent name, owner, state, and source-image identity. |
@@ -668,13 +669,14 @@ For headless developer disk boot, generate a seed explicitly. Start with an
 existing supported UEFI disk and create a separate writable variables copy.
 This example exposes the host serial console; guest output depends on the
 installed bootloader and OS serial configuration. Use the dashboard workflow
-for interactive desktop access:
+for interactive desktop access. Unlike `serve`, the standalone `boot` command
+requires explicit firmware paths; this example uses the committed firmware files:
 
 ```bash
-cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
+cp internal/gateway/firmware/OVMF_VARS_4M.fd ./guest_VARS.fd
 ./devbox-kvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
 # Read seed.iso.credentials.json for the generated guest login.
-./devbox-kvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+./devbox-kvm boot -uefi internal/gateway/firmware/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
   -m 4G -c 2 -net user
 ```

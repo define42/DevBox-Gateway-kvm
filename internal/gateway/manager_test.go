@@ -38,15 +38,9 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 	}
 	config := ManagerConfig{
 		DataDir: filepath.Join(dir, "state"), Binary: binaryPath,
-		BaseImage: filepath.Join(dir, "base.qcow2"), Firmware: filepath.Join(dir, "code.fd"),
-		VarsTemplate: filepath.Join(dir, "vars.fd"), StartTimeout: 3 * time.Second,
+		BaseImage: filepath.Join(dir, "base.qcow2"), StartTimeout: 3 * time.Second,
 		StopTimeout: 100 * time.Millisecond, MaxVMsPerUser: 2, MaxRunning: 1,
 		MemoryOverheadMiB: 256,
-	}
-	for _, path := range []string{config.Firmware, config.VarsTemplate} {
-		if err := os.WriteFile(path, make([]byte, 4096), 0o600); err != nil {
-			t.Fatal(err)
-		}
 	}
 
 	base := catalogQCOW2("manager test base")

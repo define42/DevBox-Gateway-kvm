@@ -20,7 +20,7 @@ This example starts the management UI; starting desktops additionally requires
 the delegated `VM_CGROUP_ROOT` described below.
 
 Precedence is **explicit command-line flag → environment variable → default**.
-Existing flags remain supported, including explicit false and empty overrides.
+Flags support explicit false and empty overrides.
 Surrounding whitespace is trimmed from string environment values; an explicitly
 empty value remains empty. Malformed integer, boolean, or duration environment
 values fall back to their registered defaults. Parsed values still undergo the
@@ -53,8 +53,6 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
 | `VM_NETWORK_POLICY` | `internet` | `-vm-network-policy` | Managed IPv4 TCP/UDP access: `internet` permits public destinations, while `allowlist` permits only explicit CIDRs. Visible host interface subnets, private and special ranges require an exception. DHCP/DNS remain available; see [networking](runtime.md#networking) for routed/NAT LAN limits. |
 | `VM_NETWORK_ALLOW_CIDRS` | Empty | `-vm-network-allow-cidrs` | Up to 64 comma-separated canonical IPv4 CIDRs allowed in addition to the policy. No `/0` or IPv6. Applies to newly started workers; host alias access requires `127.0.0.1/32`. See [networking](runtime.md#networking). |
-| `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
-| `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
@@ -72,6 +70,11 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_CREATE_TIMEOUT` | `30m` | `-vm-create-timeout` | Overall desktop provisioning timeout including queue wait, from `1m` to `24h`. |
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Guest ACPI shutdown wait; a dashboard stop timeout leaves the guest running. Gateway exit also has separate forced-termination and host-cleanup waits. |
+
+The gateway always uses its embedded plain, non-SMM OVMF CODE/VARS pair,
+extracted under `DATA_ROOT_DIR/firmware` at startup. Each VM keeps its own
+writable variables file at `vms/<vm-id>/vars.fd`. Standalone UEFI `boot` still
+requires explicit firmware paths.
 
 Guest graphics use the pure Go 2D virtio-gpu framebuffer and the bundled Go
 software H.264 encoder. No host GPU settings or native graphics libraries are required.
@@ -263,6 +266,12 @@ See [storage capacity responsibility](storage-isolation.md).
 `GATEWAY_HOST:GATEWAY_PORT` when it is unset. Keep the internal `LISTEN_ADDR`
 port aligned with the Compose port mapping and the state directory aligned with
 its bind mount.
+
+The gateway firmware settings `UEFI_CODE` and `UEFI_VARS_TEMPLATE` are no
+longer read; old assignments can be removed from `.env` and service environments.
+Remove the corresponding `serve -uefi` and `-uefi-vars-template` flags from startup
+commands, since those flags are no longer accepted. Firmware is bundled in the
+executable; the Docker image no longer supplies `/usr/share/OVMF` files.
 
 Compose uses the runtime environment names listed above. Set them in `.env` or
 export them in the shell. The native `make gateway` workflow retains its Make

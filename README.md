@@ -44,22 +44,23 @@ The local setup below needs:
   start managed VMs. The gateway does not create the delegation; see
   [VM isolation requirements](docs/gateway.md#serve-options).
 - **Go 1.26 or newer**, Git, and Make.
-- **OVMF firmware**: matching plain, non-SMM CODE and VARS files. The defaults are
-  `/usr/share/OVMF/OVMF_CODE_4M.fd` and `/usr/share/OVMF/OVMF_VARS_4M.fd`.
 - **Docker with the Compose plugin and OpenSSL** for the bundled development LDAP
   directory. An external LDAP directory can be used instead.
 - Enough RAM for the configured desktops and disk space for templates and each
   VM's independent disk. A new desktop defaults to **2 vCPUs and 4 GiB RAM**.
 
-On Debian/Ubuntu, install the firmware and local TLS tools with:
+On Debian/Ubuntu, install the local TLS tools with:
 
 ```bash
-sudo apt install ovmf openssl ca-certificates
+sudo apt install openssl ca-certificates
 ```
 
 Go, Git, Make, and Docker Compose must also be installed. The application builds
 with `CGO_ENABLED=0` and needs no C compiler or native libraries. H.264 encoding
-uses the bundled pure Go codec; guest graphics use a 2D framebuffer.
+uses the bundled pure Go codec; guest graphics use a 2D framebuffer. Matching
+plain, non-SMM OVMF CODE and VARS firmware is embedded in the executable. The
+gateway extracts it under `DATA_ROOT_DIR/firmware` at startup and keeps a separate
+writable variables file for each VM; no host OVMF installation is required.
 
 A desktop image must already contain an x86-64 UEFI-bootable Linux installation,
 systemd, cloud-init, a graphical desktop, a display manager, and virtio drivers
@@ -216,9 +217,9 @@ contents. The administrator remains responsible for aggregate filesystem
 capacity, quotas, and free-space reserves; the per-disk virtual-size limit is
 not an aggregate storage quota.
 
-The `scratch`-based gateway image includes the static Go application, OVMF,
-and CA certificates. The [Docker guide](docs/docker.md) covers image uploads,
-storage, automatic TLS/ACME, and external LDAP.
+The `scratch`-based gateway image includes the static Go application with
+embedded OVMF firmware and CA certificates. The [Docker guide](docs/docker.md)
+covers image uploads, storage, automatic TLS/ACME, and external LDAP.
 
 ## Features and behavior
 

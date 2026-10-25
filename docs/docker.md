@@ -1,10 +1,14 @@
 # Docker
 
 The default Docker image starts from `scratch` and includes the static
-DevBox-Gateway-kvm executable, OVMF firmware, and CA certificates. The application
-builds with `CGO_ENABLED=0`; H.264 encoding and QCOW2 image imports run entirely in
-Go. Guest graphics use a 2D virtio-gpu framebuffer. The runtime has no native
-graphics or codec libraries, shell, package manager, or FFmpeg command-line tool.
+DevBox-Gateway-kvm executable with embedded OVMF firmware and CA certificates.
+The application builds with `CGO_ENABLED=0`; H.264 encoding and QCOW2 image
+imports run entirely in Go. Guest graphics use a 2D virtio-gpu framebuffer. The
+runtime has no native graphics or codec libraries, shell, package manager, or
+FFmpeg command-line tool.
+At startup, the gateway extracts the embedded CODE/VARS pair under
+`/var/lib/devbox-kvm/firmware`; each VM receives its own writable variables copy.
+The host and container need no OVMF package.
 
 It runs as UID/GID **10001**. The host needs native **x86-64 Linux**, Make, Docker with Compose,
 and working `/dev/kvm` access. Managed desktop starts require Linux 6.12+ with
@@ -94,6 +98,11 @@ empty: management remains available, but desktop starts are refused.
 After updating this checkout, run `make gateway-docker` to rebuild the
 gateway image and recreate its container using the saved `COMPOSE_FILE`.
 Stop desktops first to let guest applications shut down cleanly.
+
+Old gateway firmware environment settings are ignored and may be removed;
+remove obsolete firmware flags from startup commands. See the
+[configuration migration notes](configuration.md#compose-and-existing-deployments).
+
 `docker compose restart` reuses the existing binary. If an older image reports
 `choose either -ldap-url or -auth-file: invalid command arguments` after the
 environment configuration migration, it may be ignoring the new variables;
@@ -407,7 +416,8 @@ Docker's port-forwarding path; the gateway does not install host firewall rules.
 See [edge protection](gateway.md#connection-admission-and-edge-protection) and the
 [opt-in nftables deployment guide](edge-rate-limiting.md) for a pre-DNAT example.
 
-The host storage directory holds `vms/<id>/disk.img`, firmware variables, seeds,
+The host storage directory holds extracted firmware under `firmware/`,
+`vms/<id>/disk.img`, per-VM firmware variables, seeds,
 uploaded templates under `images/`, metadata, and generated gateway TLS/ACME
 state. It must be private and owned by the host identity mapped to container UID
 10001 (`0700` for directories, normally `0600` for files). Only one gateway may

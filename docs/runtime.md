@@ -83,13 +83,14 @@ Standalone `boot` does not perform gateway admission checks.
 
 `-uefi` starts x86-64 OVMF firmware and executes the EFI bootloader installed on
 a supported standalone QCOW2 disk. The disk's bootloader loads its own kernel and
-initrd. Use a matching pair of **plain, non-SMM OVMF CODE and VARS images** from
-the host's OVMF package. Create a writable VARS copy for each VM before its first
-run. For the Debian/Ubuntu 4 MiB layout:
+initrd. Standalone `boot` requires explicit paths to a matching pair of
+**plain, non-SMM OVMF CODE and VARS images**. Use the committed pair below or
+compatible files from a host OVMF package. Create a writable VARS copy for each
+VM before its first run:
 
 ```bash
-cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
-./devbox-kvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+cp internal/gateway/firmware/OVMF_VARS_4M.fd ./guest_VARS.fd
+./devbox-kvm boot -uefi internal/gateway/firmware/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 \
   -m 2G -c 2 -net user
 ```
@@ -104,7 +105,7 @@ need a configured boot entry.
 CODE is read-only. The VARS copy is locked while the VM runs, updated by firmware
 writes, and flushed on shutdown. Keep it for subsequent runs; copying the
 template again resets firmware settings and boot entries. Do not use the
-package's shared VARS template directly or share a writable store between VMs.
+shared VARS template directly or share a writable store between VMs.
 
 UEFI requires virtio-capable guests. Legacy BIOS/CSM boot, Secure Boot, and
 SMM-enabled firmware are unsupported.
@@ -150,7 +151,7 @@ bootloader and OS configuration.
 | `QCOW2_IMAGE` | Source image. |
 | `QCOW2_DISK`, `QCOW2_VARS`, `QCOW2_SEED` | Persistent output paths. |
 | `QCOW2_USER`, `QCOW2_KEYBOARD` | Account and keyboard layout, default `rocky` and `us`; set before creating the seed. |
-| `OVMF_CODE`, `OVMF_VARS` | Matching firmware code and VARS template. |
+| `OVMF_CODE`, `OVMF_VARS` | Standalone firmware code and VARS template; defaults to the committed pair under `internal/gateway/firmware`. |
 | `QCOW2_ARGS` | Extra developer boot flags, such as `-m 6G`. |
 
 Changing account variables does not reprovision an existing seed or disk. For
@@ -285,10 +286,10 @@ For an image that already has systemd, cloud-init, a desktop, a display manager,
 and virtio drivers, create a fresh per-VM VARS copy and account seed:
 
 ```bash
-cp /usr/share/OVMF/OVMF_VARS_4M.fd ./guest_VARS.fd
+cp internal/gateway/firmware/OVMF_VARS_4M.fd ./guest_VARS.fd
 ./devbox-kvm seed -user rocky -hostname workstation -keyboard us -out seed.iso
 # Read seed.iso.credentials.json for the generated guest login.
-./devbox-kvm boot -uefi /usr/share/OVMF/OVMF_CODE_4M.fd \
+./devbox-kvm boot -uefi internal/gateway/firmware/OVMF_CODE_4M.fd \
   -uefi-vars ./guest_VARS.fd -d ./guest.qcow2 -cloud-init ./seed.iso \
   -m 4G -c 2 -net user
 ```
@@ -640,8 +641,8 @@ The following checks are opt-in and start test guests or exercise hardware.
 For firmware boot, persistent VARS across a guest reset, and shutdown:
 
 ```bash
-OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
-OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd tools/test-uefi.sh
+OVMF_CODE=internal/gateway/firmware/OVMF_CODE_4M.fd \
+OVMF_VARS=internal/gateway/firmware/OVMF_VARS_4M.fd tools/test-uefi.sh
 ```
 
 [tools/test-uefi.sh](../tools/test-uefi.sh) requires KVM, GNU-EFI development

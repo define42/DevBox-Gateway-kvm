@@ -273,7 +273,7 @@ func TestManagerPreparePublishesPrivateCompleteState(t *testing.T) {
 	for _, tc := range []struct{ path, want string }{
 		{manager.config.BaseImage, string(catalogQCOW2("immutable base"))},
 		{filepath.Join(dir, "disk.img"), string(catalogQCOW2("immutable base"))},
-		{manager.config.VarsTemplate, "firmware variables"},
+		{manager.firmwarePath(bundledVarsName), "firmware variables"},
 		{filepath.Join(dir, "vars.fd"), "firmware variables"},
 	} {
 		data, err := os.ReadFile(tc.path)
@@ -309,7 +309,9 @@ func TestManagerPrepareFailureCleansOnlyStaging(t *testing.T) {
 			case "canceled":
 				cancel()
 			case "clone failure":
-				manager.config.VarsTemplate = filepath.Join(t.TempDir(), "missing.fd")
+				if err := os.Remove(manager.firmwarePath(bundledVarsName)); err != nil {
+					t.Fatal(err)
+				}
 			case "existing target":
 				if err := os.Mkdir(dir, 0o700); err != nil {
 					t.Fatal(err)
@@ -343,7 +345,11 @@ func seedHelperManager(t *testing.T) (*Manager, VM) {
 		t.Fatal(err)
 	}
 	base := filepath.Join(root, "base.img")
-	variables := filepath.Join(root, "template.fd")
+	manager := &Manager{config: ManagerConfig{DataDir: root, BaseImage: base, Keyboard: "us"}}
+	if err := os.Mkdir(filepath.Join(root, "firmware"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	variables := manager.firmwarePath(bundledVarsName)
 	if err := os.WriteFile(base, catalogQCOW2("immutable base"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +357,7 @@ func seedHelperManager(t *testing.T) (*Manager, VM) {
 		t.Fatal(err)
 	}
 
-	return &Manager{config: ManagerConfig{DataDir: root, BaseImage: base, VarsTemplate: variables, Keyboard: "us"}},
+	return manager,
 		VM{
 			ID: "abcdefghijklmnopqrstuvwx23", Owner: "alice", Name: "desktop", State: "creating",
 			DiskSizeBytes: 2 << 20,

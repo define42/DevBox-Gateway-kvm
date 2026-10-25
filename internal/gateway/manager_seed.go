@@ -231,7 +231,7 @@ func (m *Manager) prepareOpenImageWithProgress(
 	if err := reportCreationProgress(ctx, report, CreateProgress{Phase: "configuring"}); err != nil {
 		return err
 	}
-	if err := cloneFile(ctx, m.config.VarsTemplate, filepath.Join(staging, "vars.fd")); err != nil {
+	if err := cloneFile(ctx, m.firmwarePath(bundledVarsName), filepath.Join(staging, "vars.fd")); err != nil {
 		return fmt.Errorf("clone VM firmware variables: %w", err)
 	}
 	if err := writePreparedSeed(staging, seed, record); err != nil {

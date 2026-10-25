@@ -21,8 +21,9 @@ GATEWAY_LDAP_USERNAME_ATTRIBUTE ?= mail
 GATEWAY_LDAP_REQUIRED_GROUP ?= ou=team10_r,ou=groups,dc=glauth,dc=com
 GATEWAY_LDAP_ADMIN_GROUP ?= devbox-admins
 GATEWAY_LDAP_CA ?= ./testldap/.tls/cert.pem
-OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
-OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
+# Firmware paths for standalone developer boots and smoke tests.
+OVMF_CODE ?= internal/gateway/firmware/OVMF_CODE_4M.fd
+OVMF_VARS ?= internal/gateway/firmware/OVMF_VARS_4M.fd
 
 # Docker builds use their own Go toolchain.
 ifneq ($(filter-out gateway-docker docker docker-purego,$(or $(MAKECMDGOALS),default)),)
@@ -80,8 +81,8 @@ coverage-check:
 .PHONY: test-qcow2
 test-qcow2:
 	DEVBOX_KVM_REQUIRE_UEFI_TEST=1 \
-		DEVBOX_KVM_TEST_OVMF_CODE="$(OVMF_CODE)" \
-		DEVBOX_KVM_TEST_OVMF_VARS="$(OVMF_VARS)" \
+		DEVBOX_KVM_TEST_OVMF_CODE="$(abspath $(OVMF_CODE))" \
+		DEVBOX_KVM_TEST_OVMF_VARS="$(abspath $(OVMF_VARS))" \
 		"$(GO)" test -tags=integration -count=1 -timeout 3m \
 		-run '^TestUEFIQCOW2Boot$$' ./internal/vmm -v
 
@@ -174,8 +175,6 @@ docker docker-purego:
 # Retain the GATEWAY_* make variables as defaults for existing invocations.
 gateway: export DATA_ROOT_DIR ?= $(GATEWAY_STATE)
 gateway: export BASE_IMAGE ?= $(GATEWAY_IMAGE)
-gateway: export UEFI_CODE ?= $(OVMF_CODE)
-gateway: export UEFI_VARS_TEMPLATE ?= $(OVMF_VARS)
 gateway: export LDAP_URL ?= $(GATEWAY_LDAP_URL)
 gateway: export LDAP_BASE_DN ?= $(GATEWAY_LDAP_BASE_DN)
 gateway: export LDAP_USER_DOMAIN ?= $(GATEWAY_LDAP_DOMAIN)

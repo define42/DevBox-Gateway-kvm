@@ -23,8 +23,6 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.VM_BINARY:                  "",
 		config.VM_NETWORK_POLICY:          "internet",
 		config.VM_NETWORK_ALLOW_CIDRS:     "",
-		config.UEFI_CODE:                  "/usr/share/OVMF/OVMF_CODE_4M.fd",
-		config.UEFI_VARS_TEMPLATE:         "/usr/share/OVMF/OVMF_VARS_4M.fd",
 		config.H264_QP:                    "20",
 		config.GATEWAY_VM_PROFILING:       "false",
 		config.VM_KEYBOARD:                "us",

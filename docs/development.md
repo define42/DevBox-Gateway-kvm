@@ -21,7 +21,10 @@ make devbox-kvm
 Application builds use `CGO_ENABLED=0` and produce a static executable. The
 runtime and bundled H.264 codec need no C compiler or native libraries. Guest
 graphics use the Go 2D virtio-gpu framebuffer and always use the bundled Go
-software encoder for H.264 output.
+software encoder for H.264 output. The matching plain, non-SMM OVMF CODE/VARS
+files in [`internal/gateway/firmware`](../internal/gateway/firmware) are committed
+and embedded with `go:embed`; builds do not download firmware or need a host OVMF
+package. The firmware license is included alongside those files.
 
 Booting guests also requires hardware virtualization and read/write access to
 `/dev/kvm`. Nested hosts must expose KVM. Go race tests require cgo and a C
@@ -128,7 +131,7 @@ initrd.
 On Debian/Ubuntu, install the full suite's host tools with:
 
 ```bash
-sudo apt-get install qemu-utils util-linux iproute2 ovmf \
+sudo apt-get install qemu-utils util-linux iproute2 \
   build-essential binutils gnu-efi dosfstools mtools
 ```
 
@@ -154,8 +157,9 @@ disk is used. This checks firmware discovery, QCOW2/virtio-block boot, EFI
 execution, and shutdown; it does not establish full OS or desktop readiness.
 
 Use matching plain, non-SMM OVMF CODE and VARS images. The Make target defaults
-to `/usr/share/OVMF/OVMF_CODE_4M.fd` and
-`/usr/share/OVMF/OVMF_VARS_4M.fd`; override them with `OVMF_CODE` and `OVMF_VARS`:
+to the committed `internal/gateway/firmware/OVMF_CODE_4M.fd` and
+`internal/gateway/firmware/OVMF_VARS_4M.fd` files; override them with
+`OVMF_CODE` and `OVMF_VARS`:
 
 ```bash
 make test-qcow2 OVMF_CODE=/path/to/OVMF_CODE.fd OVMF_VARS=/path/to/OVMF_VARS.fd
@@ -165,8 +169,8 @@ For a direct Go invocation, use the corresponding test environment variables:
 
 ```bash
 DEVBOX_KVM_REQUIRE_UEFI_TEST=1 \
-DEVBOX_KVM_TEST_OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
-DEVBOX_KVM_TEST_OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd \
+DEVBOX_KVM_TEST_OVMF_CODE="$PWD/internal/gateway/firmware/OVMF_CODE_4M.fd" \
+DEVBOX_KVM_TEST_OVMF_VARS="$PWD/internal/gateway/firmware/OVMF_VARS_4M.fd" \
   go test -tags=integration ./internal/vmm \
   -run '^TestUEFIQCOW2Boot$' -count=1 -timeout 3m -v
 ```
@@ -356,8 +360,8 @@ go test -tags integration ./internal/machine ./internal/vmm \
 For native UEFI disk boot, persistent variables across reset, and shutdown:
 
 ```bash
-OVMF_CODE=/usr/share/OVMF/OVMF_CODE_4M.fd \
-OVMF_VARS=/usr/share/OVMF/OVMF_VARS_4M.fd tools/test-uefi.sh
+OVMF_CODE=internal/gateway/firmware/OVMF_CODE_4M.fd \
+OVMF_VARS=internal/gateway/firmware/OVMF_VARS_4M.fd tools/test-uefi.sh
 ```
 
 This needs matching plain non-SMM OVMF firmware, KVM, GNU-EFI development files,

@@ -34,19 +34,19 @@ const defaultMaxCreations = 2
 // StartTimeout bounds readiness checks. StopTimeout is the guest's graceful
 // shutdown allowance; it does not include all escalation and host-cleanup waits.
 type ManagerConfig struct {
-	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
-	H264QP                                             *int // Nil selects QP 20; explicit 0 is valid.
-	Keyboard                                           string
-	VMProfiling                                        bool // Opt-in private per-worker CPU profiling sockets.
-	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
-	MemoryBudgetMiB                                    int    // Zero selects an automatic host-memory budget.
-	MemoryOverheadMiB                                  int    // Host-side worker allowance above guest RAM.
-	CgroupRoot                                         string // Empty disables starts, not isolation.
-	NetworkPolicy, NetworkAllowCIDRs                   string // Internet default; explicit CIDRs permit LAN/host access.
-	MaxCreations                                       int    // Bounds provisioning I/O across all owners.
-	StartTimeout, StopTimeout                          time.Duration
-	MaxImageUploadBytes                                int64
-	MaxDiskBytes                                       int64
+	DataDir, Binary, BaseImage                 string
+	H264QP                                     *int // Nil selects QP 20; explicit 0 is valid.
+	Keyboard                                   string
+	VMProfiling                                bool // Opt-in private per-worker CPU profiling sockets.
+	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning int
+	MemoryBudgetMiB                            int    // Zero selects an automatic host-memory budget.
+	MemoryOverheadMiB                          int    // Host-side worker allowance above guest RAM.
+	CgroupRoot                                 string // Empty disables starts, not isolation.
+	NetworkPolicy, NetworkAllowCIDRs           string // Internet default; explicit CIDRs permit LAN/host access.
+	MaxCreations                               int    // Bounds provisioning I/O across all owners.
+	StartTimeout, StopTimeout                  time.Duration
+	MaxImageUploadBytes                        int64
+	MaxDiskBytes                               int64
 }
 
 // Manager persists each VM's disk, firmware variables, seed and TLS identity.
@@ -157,6 +157,9 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 
 		return nil, fmt.Errorf("state directory is already in use: %w", err)
 	}
+	if err := prepareManagerFirmware(config.DataDir); err != nil {
+		return nil, errors.Join(err, releaseManagerLock(lock))
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	m := &Manager{
 		config: config, vms: make(map[string]*managedVM), images: make(map[string]Image),
@@ -187,8 +190,8 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 }
 
 func normalizeManagerConfig(c *ManagerConfig) error {
-	if c.DataDir == "" || c.Firmware == "" || c.VarsTemplate == "" {
-		return fmt.Errorf("state, firmware and variables template are required: %w", ErrInvalid)
+	if c.DataDir == "" {
+		return fmt.Errorf("state directory is required: %w", ErrInvalid)
 	}
 	if c.Binary == "" {
 		var err error
@@ -203,7 +206,7 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 	if err := normalizeManagerLimits(c); err != nil {
 		return err
 	}
-	for _, path := range []*string{&c.DataDir, &c.Binary, &c.BaseImage, &c.Firmware, &c.VarsTemplate} {
+	for _, path := range []*string{&c.DataDir, &c.Binary, &c.BaseImage} {
 		if *path == "" {
 			continue
 		}
@@ -213,7 +216,7 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		}
 		*path = absolute
 	}
-	for _, path := range []string{c.Binary, c.BaseImage, c.Firmware, c.VarsTemplate} {
+	for _, path := range []string{c.Binary, c.BaseImage} {
 		if path == "" {
 			continue
 		}
@@ -692,7 +695,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		return nil, err
 	}
 	args := []string{
-		"worker", "boot", "-uefi", m.config.Firmware, "-uefi-vars", filepath.Join(dir, "vars.fd"),
+		"worker", "boot", "-uefi", m.firmwarePath(bundledCodeName), "-uefi-vars", filepath.Join(dir, "vars.fd"),
 		"-d", filepath.Join(dir, "disk.img"),
 		"-disk-size-bytes", strconv.FormatInt(v.record.DiskSizeBytes, 10),
 		"-cloud-init", filepath.Join(dir, "seed.iso"),

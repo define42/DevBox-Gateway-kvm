@@ -63,7 +63,6 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/devbox-kvm",
-		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
 		"H264_QP":     "28",
 		"VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
@@ -93,8 +92,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 		manager: gateway.ManagerConfig{
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
-			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Keyboard: "dk",
-			H264QP: &qp, NetworkPolicy: "internet",
+			Keyboard: "dk",
+			H264QP:   &qp, NetworkPolicy: "internet",
 			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
 			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,

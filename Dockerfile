@@ -21,10 +21,8 @@ FROM debian:trixie-slim AS runtime-deps
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates ovmf \
+        ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && test -r /usr/share/OVMF/OVMF_CODE_4M.fd \
-    && test -r /usr/share/OVMF/OVMF_VARS_4M.fd \
     && groupadd --gid 10001 devbox \
     && useradd --uid 10001 --gid 10001 --no-create-home \
         --home-dir /var/lib/devbox-kvm --shell /usr/sbin/nologin devbox \
@@ -33,6 +31,7 @@ RUN apt-get update \
 COPY --from=build /out/devbox-kvm /usr/local/bin/devbox-kvm
 COPY LICENSE LICENSE-OpenH264 LICENSE-go.264 /usr/share/doc/devbox-gateway-kvm/
 COPY internal/qcow2import/LICENSE /usr/share/doc/devbox-gateway-kvm/LICENSE-go-qcow2reader
+COPY internal/gateway/firmware/LICENSE /usr/share/doc/devbox-gateway-kvm/LICENSE-OVMF
 
 ENV DATA_ROOT_DIR=/var/lib/devbox-kvm \
     LISTEN_ADDR=0.0.0.0:8443
@@ -60,9 +59,8 @@ install -d -m 0755 /rootfs
 install -d -m 1777 /rootfs/tmp
 install -d -m 0700 -o 10001 -g 10001 /rootfs/var/lib/devbox-kvm
 
-# The executable is static: only firmware, certificates and user records are needed.
+# The executable is static and embeds firmware; add certificates and user records.
 cp --parents -L /usr/local/bin/devbox-kvm \
-    /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_VARS_4M.fd \
     /etc/ssl/certs/ca-certificates.crt /etc/passwd /etc/group /etc/nsswitch.conf \
     /etc/os-release /etc/debian_version /rootfs
 
@@ -101,7 +99,7 @@ HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=5 \
         </dev/null >/dev/null 2>&1
 ENTRYPOINT ["/usr/local/bin/devbox-kvm-start-ldap"]
 
-# Scratch keeps only the static Go application, firmware, certificates and licenses.
+# Scratch keeps only the static Go application, certificates and licenses.
 FROM scratch AS runtime
 COPY --from=rootfs /rootfs/ /
 LABEL org.opencontainers.image.title="DevBox-Gateway-kvm" \

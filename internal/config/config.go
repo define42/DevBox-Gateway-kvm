@@ -21,8 +21,6 @@ const (
 	VM_BINARY                  = "VM_BINARY"
 	VM_NETWORK_POLICY          = "VM_NETWORK_POLICY"
 	VM_NETWORK_ALLOW_CIDRS     = "VM_NETWORK_ALLOW_CIDRS"
-	UEFI_CODE                  = "UEFI_CODE"
-	UEFI_VARS_TEMPLATE         = "UEFI_VARS_TEMPLATE"
 	H264_QP                    = "H264_QP"
 	GATEWAY_VM_PROFILING       = "GATEWAY_VM_PROFILING"
 	VM_KEYBOARD                = "VM_KEYBOARD"
@@ -123,8 +121,6 @@ func NewSettings() *Settings {
 		"Managed IPv4 access: internet (public destinations) or allowlist (explicit CIDRs only)", "internet")
 	s.SetString(VM_NETWORK_ALLOW_CIDRS, "Comma-separated IPv4 CIDRs allowed in addition to the managed network policy; "+
 		"empty denies LAN/host access", "")
-	s.SetString(UEFI_CODE, "OVMF CODE firmware", "/usr/share/OVMF/OVMF_CODE_4M.fd")
-	s.SetString(UEFI_VARS_TEMPLATE, "Matching pristine OVMF variables template", "/usr/share/OVMF/OVMF_VARS_4M.fd")
 	s.SetInt(H264_QP, "H.264 quantizer: min 0, max 51; lower = higher quality/more bandwidth, "+
 		"higher = more compression", 20)
 	s.SetBool(GATEWAY_VM_PROFILING, "Enable private, on-demand VM worker CPU profiling sockets", false)
