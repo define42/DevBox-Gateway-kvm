@@ -37,10 +37,15 @@ type framebuffer struct {
 	frameShared    bool
 	tileVersions   []uint64
 	seq            uint64
-	input          DisplayInput
 	done           chan struct{}
 	changed        chan struct{}
 	linearInterval time.Duration
+
+	// Input metadata never waits for pixel conversion. Publication may acquire
+	// inputMu while holding mu; input readers never acquire mu while holding it.
+	inputMu                 sync.Mutex
+	input                   DisplayInput
+	inputWidth, inputHeight int
 
 	textMu                 sync.Mutex
 	graphicsActive         bool
@@ -54,6 +59,8 @@ func newFramebuffer() *framebuffer {
 	d := &framebuffer{
 		width:          displayDefaultWidth,
 		height:         displayDefaultHeight,
+		inputWidth:     displayDefaultWidth,
+		inputHeight:    displayDefaultHeight,
 		done:           make(chan struct{}),
 		changed:        make(chan struct{}),
 		linearInterval: 33 * time.Millisecond,
@@ -64,9 +71,26 @@ func newFramebuffer() *framebuffer {
 
 // SetInput attaches an input sink for remote keyboard and pointer events.
 func (d *framebuffer) SetInput(input DisplayInput) {
-	d.mu.Lock()
+	d.inputMu.Lock()
 	d.input = input
-	d.mu.Unlock()
+	d.inputMu.Unlock()
+}
+
+// inputSnapshot keeps the sink and its pointer geometry coherent without
+// borrowing pixels. Callers release inputMu before invoking the sink.
+func (d *framebuffer) inputSnapshot() (DisplayInput, int, int) {
+	d.inputMu.Lock()
+	defer d.inputMu.Unlock()
+
+	return d.input, d.inputWidth, d.inputHeight
+}
+
+// publishInputGeometry is called with mu held after successful publication.
+// The separate lock is held only while copying the two dimensions.
+func (d *framebuffer) publishInputGeometry(width, height int) {
+	d.inputMu.Lock()
+	d.inputWidth, d.inputHeight = width, height
+	d.inputMu.Unlock()
 }
 
 // GraphicsReset releases graphics ownership after the GPU loses its scanout.
@@ -133,6 +157,7 @@ func (d *framebuffer) flush(width, height int, img *image.RGBA) error {
 	d.frameShared = false
 	d.seq++
 	d.markFrameDamageLocked(nil)
+	d.publishInputGeometry(width, height)
 	close(d.changed)
 	d.changed = make(chan struct{})
 	d.mu.Unlock()
@@ -289,9 +314,7 @@ func supportsRelativePointer(input DisplayInput) bool {
 }
 
 func (d *framebuffer) sendKeyEvent(down bool, keysym uint32) {
-	d.mu.Lock()
-	input := d.input
-	d.mu.Unlock()
+	input, _, _ := d.inputSnapshot()
 
 	if input != nil {
 		input.KeyEvent(down, keysym)

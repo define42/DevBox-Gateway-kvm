@@ -67,7 +67,7 @@ func TestRDPWaitReadyBeforeFirstGuestFrame(t *testing.T) {
 	stop := make(chan struct{})
 	close(stop)
 	for range 2 {
-		if err := d.writeFrames(conn, session, stop, nil, &suppressed); err != nil {
+		if err := d.writeFrames(conn, session, stop, nil, &suppressed, nil); err != nil {
 			t.Fatal(err)
 		}
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second)

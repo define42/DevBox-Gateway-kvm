@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
-	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 )
 
@@ -92,7 +91,7 @@ func TestRDPTelemetryMeasuresRealEncoderAcrossWriters(t *testing.T) {
 	for pass := range 2 {
 		writer := &rdpFrameWriter{
 			session: &rdp.Session{Width: 16, Height: 16}, graphics: true,
-			backend: avc.BackendSoftware, stats: rdpFrameStats{telemetry: collector.Connect()},
+			stats: rdpFrameStats{telemetry: collector.Connect()},
 		}
 		defer writer.shutdown()
 		// A transport-less session runs the actual software codec but cannot

@@ -1,0 +1,67 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                │      1      │                  2                  │                  4                  │
+                                │   sec/op    │   sec/op     vs base                │   sec/op     vs base                │
+GraphicsACKFreeRDP/Scroll-8       16.29m ± 1%   11.95m ± 1%  -26.64% (p=0.000 n=12)   10.54m ± 1%  -35.32% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   7.194m ± 2%   6.182m ± 2%  -14.07% (p=0.000 n=12)   5.665m ± 2%  -21.25% (p=0.000 n=12)
+geomean                           10.83m        8.596m       -20.60%                  7.726m       -28.63%
+
+                                │      1      │                  2                  │                 4                  │
+                                │ ack_mean_ms │ ack_mean_ms  vs base                │ ack_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll-8        6.537 ± 3%    5.770 ± 1%  -11.74% (p=0.000 n=12)    5.927 ± 1%  -9.34% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8    3.197 ± 2%    3.219 ± 2%        ~ (p=0.724 n=12)    3.251 ± 3%       ~ (p=0.143 n=12)
+geomean                            4.571         4.310        -5.72%                   4.390       -3.98%
+
+                                │     1      │                 2                  │                 4                  │
+                                │ ack_p50_ms │ ack_p50_ms  vs base                │ ack_p50_ms  vs base                │
+GraphicsACKFreeRDP/Scroll-8       6.697 ± 6%   5.526 ± 2%  -17.49% (p=0.000 n=12)   5.793 ± 2%  -13.50% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   2.939 ± 2%   2.996 ± 2%        ~ (p=0.075 n=12)   3.022 ± 3%        ~ (p=0.060 n=12)
+geomean                           4.437        4.069        -8.29%                  4.184        -5.69%
+
+                                │     1      │                 2                 │                 4                  │
+                                │ ack_p95_ms │ ack_p95_ms  vs base               │ ack_p95_ms  vs base                │
+GraphicsACKFreeRDP/Scroll-8       9.878 ± 5%   9.157 ± 6%  -7.30% (p=0.004 n=12)   7.919 ± 4%  -19.83% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   4.512 ± 5%   4.434 ± 3%       ~ (p=0.193 n=12)   4.532 ± 6%        ~ (p=0.590 n=12)
+geomean                           6.676        6.371       -4.57%                  5.991       -10.27%
+
+                                │        1        │                    2                     │                    4                     │
+                                │ ack_raced/frame │ ack_raced/frame  vs base                 │ ack_raced/frame  vs base                 │
+GraphicsACKFreeRDP/Scroll-8          0.000 ± 0%          0.000 ± 0%       ~ (p=1.000 n=12) ¹        0.000 ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag-8      0.000 ± 0%          0.000 ± 0%       ~ (p=1.000 n=12) ¹        0.000 ± 0%       ~ (p=1.000 n=12) ¹
+geomean                                         ²                    +0.00%                ²                    +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                │      1      │                  2                   │                  4                   │
+                                │ ack_samples │ ack_samples  vs base                 │ ack_samples  vs base                 │
+GraphicsACKFreeRDP/Scroll-8        100.0 ± 0%    100.0 ± 0%       ~ (p=1.000 n=12) ¹    100.0 ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag-8    100.0 ± 0%    100.0 ± 0%       ~ (p=1.000 n=12) ¹    100.0 ± 0%       ~ (p=1.000 n=12) ¹
+geomean                            100.0         100.0       +0.00%                     100.0       +0.00%
+¹ all samples are equal
+
+                                │      1       │                  2                   │                  4                   │
+                                │ bytes/frame  │ bytes/frame   vs base                │ bytes/frame   vs base                │
+GraphicsACKFreeRDP/Scroll-8       79.15Ki ± 0%   62.01Ki ± 0%  -21.66% (p=0.000 n=12)   70.44Ki ± 0%  -11.00% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   5.900Ki ± 0%   5.079Ki ± 0%  -13.92% (p=0.000 n=12)   5.589Ki ± 0%   -5.28% (p=0.000 n=12)
+geomean                           21.61Ki        17.75Ki       -17.88%                  19.84Ki        -8.18%
+
+                                │       1       │                   2                    │                   4                    │
+                                │ regions/frame │ regions/frame  vs base                 │ regions/frame  vs base                 │
+GraphicsACKFreeRDP/Scroll-8          1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=12) ¹      1.000 ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag-8      1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=12) ¹      1.000 ± 0%       ~ (p=1.000 n=12) ¹
+geomean                              1.000           1.000       +0.00%                       1.000       +0.00%
+¹ all samples are equal
+
+                                │         1         │                     2                     │                    4                     │
+                                │ write_ack_mean_ms │ write_ack_mean_ms  vs base                │ write_ack_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll-8              6.818 ± 3%          6.009 ± 1%  -11.87% (p=0.000 n=12)          6.194 ± 1%  -9.16% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8          3.295 ± 2%          3.321 ± 2%        ~ (p=0.600 n=12)          3.349 ± 2%       ~ (p=0.143 n=12)
+geomean                                  4.740               4.467        -5.76%                         4.555       -3.91%
+
+                                │       1       │                   2                   │                  4                   │
+                                │ write_mean_ms │ write_mean_ms  vs base                │ write_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll-8         264.0m ± 6%     219.7m ± 2%  -16.80% (p=0.000 n=12)     239.9m ± 4%  -9.11% (p=0.002 n=12)
+GraphicsACKFreeRDP/WindowDrag-8     78.79m ± 5%     80.87m ± 3%        ~ (p=0.203 n=12)     79.16m ± 3%       ~ (p=0.713 n=12)
+geomean                             144.2m          133.3m        -7.59%                    137.8m       -4.44%

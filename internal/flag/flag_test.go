@@ -61,8 +61,6 @@ func TestParseBootArgs(t *testing.T) {
 		"-rdp-cert", "console.crt",
 		"-rdp-key", "console.key",
 		"-rdp-h264",
-		"-rdp-h264-threads", "4",
-		"-rdp-h264-encoder", "software",
 		"-rdp-stats",
 		"-m",
 		"1G",
@@ -106,7 +104,7 @@ func TestParseBootArgs(t *testing.T) {
 	if c.RDPFD != 3 || c.RDPCert != "console.crt" || c.RDPKey != "console.key" || !c.RDPH264 {
 		t.Errorf("invalid RDP options: %+v", c)
 	}
-	if c.RDPH264Threads != 4 || c.RDPH264Encoder != "software" || !c.RDPStats {
+	if !c.RDPStats {
 		t.Errorf("invalid RDP performance options: %+v", c)
 	}
 
@@ -171,11 +169,8 @@ func TestParseBootArgsWithDefaults(t *testing.T) {
 	if c.RDPFD != 0 || c.RDPCert != "" || c.RDPKey != "" || c.RDPH264 {
 		t.Errorf("RDP must be disabled by default: %+v", c)
 	}
-	if c.RDPH264Encoder != "software" {
-		t.Errorf("RDP encoder must default to software: %+v", c)
-	}
-	if c.RDPH264Threads != 0 || c.RDPStats {
-		t.Errorf("RDP slices must default to auto and statistics must be disabled: %+v", c)
+	if c.RDPStats {
+		t.Errorf("RDP statistics must be disabled by default: %+v", c)
 	}
 
 	if c.NCPUs != 1 {
@@ -198,6 +193,8 @@ func TestParseBootArgsRejectsRemovedDisplayFlags(t *testing.T) {
 		flag  string
 		value string
 	}{
+		{name: "slices", flag: "-rdp-h264-threads", value: "4"},
+		{name: "profile", flag: "-rdp-profile", value: "smooth"},
 		{name: "png", flag: "-g", value: "framebuffer.png"},
 		{name: "vnc", flag: "-vnc", value: "127.0.0.1:5900"},
 	} {
@@ -306,114 +303,6 @@ func TestRDPH264RequiresListener(t *testing.T) {
 	t.Parallel()
 	if _, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-rdp-h264"}); !errors.Is(err, flag.ErrRDPH264) {
 		t.Fatalf("H.264 without RDP listener: got %v, want %v", err, flag.ErrRDPH264)
-	}
-}
-
-func TestRDPH264EncoderOptions(t *testing.T) {
-	t.Parallel()
-	for _, tc := range []struct {
-		name string
-		args []string
-		want string
-		err  error
-	}{
-		{name: "default", args: []string{"-rdp-fd", "3", "-rdp-h264"}, want: "software"},
-		{
-			name: "software",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder=software"},
-			want: "software",
-		},
-		{
-			name: "nvenc",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder=nvenc"},
-			err:  flag.ErrRDPH264Encoder,
-		},
-		{
-			name: "auto",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder=auto"},
-			want: "software",
-		},
-		{
-			name: "unknown",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder=vaapi"},
-			err:  flag.ErrRDPH264Encoder,
-		},
-		{
-			name: "empty",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-encoder="},
-			err:  flag.ErrRDPH264Encoder,
-		},
-		{
-			name: "software-without-codec",
-			args: []string{"-rdp-fd", "3", "-rdp-h264-encoder=software"},
-			err:  flag.ErrRDPH264Encoder,
-		},
-		{
-			name: "nvenc-without-codec",
-			args: []string{"-rdp-fd", "3", "-rdp-h264-encoder=nvenc"},
-			err:  flag.ErrRDPH264Encoder,
-		},
-		{name: "auto-without-rdp", args: []string{"-rdp-h264-encoder=auto"}, err: flag.ErrRDPH264Encoder},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			c, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
-			if !errors.Is(err, tc.err) {
-				t.Fatalf("got %v, want %v", err, tc.err)
-			}
-			if err == nil && c.RDPH264Encoder != tc.want {
-				t.Errorf("got encoder %q, want %q", c.RDPH264Encoder, tc.want)
-			}
-		})
-	}
-}
-
-func TestRDPH264ThreadOptions(t *testing.T) {
-	t.Parallel()
-	for _, tc := range []struct {
-		name string
-		args []string
-		want int
-		err  error
-	}{
-		{name: "default", args: []string{"-rdp-fd", "3", "-rdp-h264"}},
-		{name: "auto", args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-threads=0"}},
-		{name: "one-slice", args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-threads=1"}, want: 1},
-		{name: "maximum", args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-threads=16"}, want: 16},
-		{
-			name: "negative",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-threads=-1"},
-			err:  flag.ErrRDPH264Threads,
-		},
-		{
-			name: "too-many",
-			args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-h264-threads=17"},
-			err:  flag.ErrRDPH264Threads,
-		},
-		{
-			name: "auto-without-codec",
-			args: []string{"-rdp-fd", "3", "-rdp-h264-threads=0"},
-			err:  flag.ErrRDPH264Threads,
-		},
-		{
-			name: "slices-without-codec",
-			args: []string{"-rdp-fd", "3", "-rdp-h264-threads=2"},
-			err:  flag.ErrRDPH264Threads,
-		},
-		{name: "auto-without-rdp", args: []string{"-rdp-h264-threads=0"}, err: flag.ErrRDPH264Threads},
-		{name: "slices-without-rdp", args: []string{"-rdp-h264-threads=2"}, err: flag.ErrRDPH264Threads},
-		{name: "codec-without-rdp", args: []string{"-rdp-h264", "-rdp-h264-threads=2"}, err: flag.ErrRDPH264},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			c, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
-			if !errors.Is(err, tc.err) {
-				t.Fatalf("got %v, want %v", err, tc.err)
-			}
-			if err == nil && c.RDPH264Threads != tc.want {
-				t.Errorf("got %d slices, want %d", c.RDPH264Threads, tc.want)
-			}
-		})
 	}
 }
 

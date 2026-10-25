@@ -102,30 +102,6 @@ func assertChangedSamplesNotHinted(t *testing.T, previous, current []byte, hints
 	}
 }
 
-func TestEncoderDamageHintsAreConservativeAndReused(t *testing.T) {
-	t.Parallel()
-	encoder := &Encoder{width: 66, height: 50}
-	source := image.Rect(-7, 9, 59, 59)
-	mask := encoder.unchangedMacroblocks(source, []image.Rectangle{image.Rect(8, 24, 10, 26)})
-	// The edit straddles both macroblock boundaries at output coordinate 16.
-	for i, unchanged := range mask {
-		dirty := i == 0 || i == 1 || i == 5 || i == 6
-		if unchanged == dirty {
-			t.Fatalf("block %d unchanged = %v", i, unchanged)
-		}
-	}
-	first := &mask[0]
-	mask = encoder.unchangedMacroblocks(source, []image.Rectangle{image.Rect(58, 58, 59, 59)})
-	if &mask[0] != first {
-		t.Fatal("partial frames allocated a new mask")
-	}
-	for i, unchanged := range mask {
-		if unchanged == (i == len(mask)-1) {
-			t.Fatalf("edge block %d unchanged = %v", i, unchanged)
-		}
-	}
-}
-
 func TestEncoderDamageHintsResetForRefreshRetryAndGeometry(t *testing.T) {
 	t.Parallel()
 	codec := &macroblockCodec{}

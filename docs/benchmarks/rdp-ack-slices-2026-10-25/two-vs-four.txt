@@ -1,0 +1,27 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                │      2      │                  4                  │
+                                │   sec/op    │   sec/op     vs base                │
+GraphicsACKFreeRDP/Scroll-8       11.95m ± 1%   10.54m ± 1%  -11.84% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   6.182m ± 2%   5.665m ± 2%   -8.36% (p=0.000 n=12)
+geomean                           8.596m        7.726m       -10.12%
+
+                                │      2      │                 4                  │
+                                │ ack_mean_ms │ ack_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll-8        5.770 ± 1%    5.927 ± 1%  +2.72% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8    3.219 ± 2%    3.251 ± 3%       ~ (p=0.160 n=12)
+geomean                            4.310         4.390       +1.85%
+
+                                │     2      │                 4                  │
+                                │ ack_p95_ms │ ack_p95_ms  vs base                │
+GraphicsACKFreeRDP/Scroll-8       9.157 ± 6%   7.919 ± 4%  -13.51% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   4.434 ± 3%   4.532 ± 6%        ~ (p=0.504 n=12)
+geomean                           6.371        5.991        -5.98%
+
+                                │      2       │                  4                   │
+                                │ bytes/frame  │ bytes/frame   vs base                │
+GraphicsACKFreeRDP/Scroll-8       62.01Ki ± 0%   70.44Ki ± 0%  +13.61% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8   5.079Ki ± 0%   5.589Ki ± 0%  +10.04% (p=0.000 n=12)
+geomean                           17.75Ki        19.84Ki       +11.81%

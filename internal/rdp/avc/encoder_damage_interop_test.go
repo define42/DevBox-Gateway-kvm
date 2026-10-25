@@ -58,7 +58,7 @@ func TestEncoderDamageFFmpegCompatibility(t *testing.T) {
 func damageInteropFrames(t *testing.T, threads, width, height int) ([]byte, [][]byte) {
 	t.Helper()
 	encoder, err := NewEncoderWithOptions(damageInteropWidth, damageInteropHeight, Options{
-		Threads: threads, Backend: BackendSoftware,
+		Threads: threads,
 	})
 	if err != nil {
 		t.Fatal(err)

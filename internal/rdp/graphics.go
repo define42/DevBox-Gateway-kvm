@@ -33,20 +33,21 @@ type graphicsPendingFrame struct {
 }
 
 type graphicsState struct {
-	mu            sync.Mutex
-	writeMu       sync.Mutex
-	ackGeneration uint64
-	supported     bool
-	ready         bool
-	closed        bool
-	ackOff        bool
-	frameID       uint32
-	inFlight      []graphicsPendingFrame
-	averageBytes  uint64
-	ackTurnaround time.Duration
-	frameInterval time.Duration
-	baseInterval  time.Duration
-	changed       chan struct{}
+	mu               sync.Mutex
+	writeMu          sync.Mutex
+	ackGeneration    uint64
+	supported        bool
+	ready            bool
+	closed           bool
+	ackOff           bool
+	frameID          uint32
+	inFlight         []graphicsPendingFrame
+	averageBytes     uint64
+	ackTurnaround    time.Duration
+	frameInterval    time.Duration // Effective maximum of the requested floor and ACK pacing.
+	adaptiveInterval time.Duration // ACK pacing, retained even below the requested floor.
+	baseInterval     time.Duration
+	changed          chan struct{}
 }
 
 // BeginGraphics starts optional AVC420 negotiation. A false result means the
@@ -88,7 +89,8 @@ func (s *Session) GraphicsCanSend() bool {
 // GraphicsFrameInterval returns acknowledgement-adapted graphics pacing.
 // Ordinary frame acknowledgements report client queue depth; their turnaround
 // also provides a fallback for clients that report queue depth as unavailable.
-// Slowdown is immediate, while recovery is deliberately gradual.
+// Slowdown is immediate, while recovery is deliberately gradual. Changing the
+// requested floor takes effect immediately without discarding ACK pacing history.
 func (s *Session) GraphicsFrameInterval(base time.Duration) time.Duration {
 	if base <= 0 {
 		return 0
@@ -100,11 +102,9 @@ func (s *Session) GraphicsFrameInterval(base time.Duration) time.Duration {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.baseInterval = base
-	if g.frameInterval < base {
-		g.frameInterval = base
-	}
+	g.frameInterval = min(max(base, g.adaptiveInterval), graphicsMaxFrameInterval)
 
-	return min(g.frameInterval, graphicsMaxFrameInterval)
+	return g.frameInterval
 }
 
 // GraphicsStats is a read-only snapshot of acknowledgement-driven pacing.
@@ -362,6 +362,7 @@ func (g *graphicsState) resetAcknowledgments() {
 	g.averageBytes = 0
 	g.ackTurnaround = 0
 	g.frameInterval = 0
+	g.adaptiveInterval = 0
 }
 
 func (g *graphicsState) adaptAcknowledgments(queueDepth uint32, frame graphicsPendingFrame, now time.Time) {
@@ -379,10 +380,9 @@ func (g *graphicsState) adaptAcknowledgments(queueDepth uint32, frame graphicsPe
 		}
 	}
 
-	target := base
-	if turnaround := g.ackTurnaround / graphicsMaxFrames; turnaround > target {
-		target = turnaround
-	}
+	// Keep ACK pressure independent of the requested floor: a 30-FPS floor
+	// can hide a 25-ms slowdown that must survive a later switch to 60 FPS.
+	target := g.ackTurnaround / graphicsMaxFrames
 	if queueDepth != 0 && g.averageBytes != 0 {
 		buffered := (uint64(queueDepth) + g.averageBytes - 1) / g.averageBytes
 		maxBuffered := uint64(0)
@@ -394,16 +394,16 @@ func (g *graphicsState) adaptAcknowledgments(queueDepth uint32, frame graphicsPe
 	}
 	target = min(target, graphicsMaxFrameInterval)
 
-	current := max(g.frameInterval, base)
+	current := g.adaptiveInterval
 	if target >= current {
-		g.frameInterval = target
-
-		return
+		g.adaptiveInterval = target
+	} else {
+		// Preserve the fixed-floor recovery step while also recovering hidden
+		// ACK pressure below that floor. Base changes alone never recover it.
+		step := max(base/4, (max(current, base)-max(target, base))/4)
+		g.adaptiveInterval = max(target, current-step)
 	}
-	// Recover by at least a quarter frame interval, or one quarter of the
-	// remaining gap. This avoids an immediate burst after congestion clears.
-	step := max(base/4, (current-target)/4)
-	g.frameInterval = max(target, current-step)
+	g.frameInterval = min(max(base, g.adaptiveInterval), graphicsMaxFrameInterval)
 }
 
 func selectGraphicsCapabilities(data []byte) (uint32, uint32, error) {

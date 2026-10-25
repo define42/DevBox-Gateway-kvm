@@ -16,8 +16,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 )
 
 var _ ConsoleDisplay = (*RDPDisplay)(nil)
@@ -68,8 +66,7 @@ func TestRDPDisplayInitializationFailurePreservesSuppliedListener(t *testing.T) 
 		options RDPConfig
 		wantErr error
 	}{
-		{name: "encoder", options: RDPConfig{H264: true, H264Encoder: "invalid"}, wantErr: errRDPEncoder},
-		{name: "threads", options: RDPConfig{H264Threads: -1}, wantErr: errRDPThreads},
+		{name: "QP", options: RDPConfig{H264: true, H264QP: new(-1)}, wantErr: errRDPQP},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -92,42 +89,12 @@ func TestRDPDisplayInitializationFailurePreservesSuppliedListener(t *testing.T) 
 
 func TestRDPDisplayH264Configuration(t *testing.T) {
 	t.Parallel()
-	for _, backend := range []string{"", "software", "auto"} {
-		name := backend
-		if name == "" {
-			name = "default"
-		}
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			d := newRDPTestDisplayWithConfig(t, RDPConfig{H264: true, H264Encoder: backend})
-			if !d.h264 || d.h264Backend != avc.BackendSoftware {
-				t.Fatalf("software H.264 was not enabled: enabled=%v backend=%q", d.h264, d.h264Backend)
-			}
-			if d.linearInterval != time.Second/avc.FrameRate {
-				t.Fatalf("H.264 capture interval %v does not match encoder frame rate", d.linearInterval)
-			}
-		})
+	d := newRDPTestDisplayWithConfig(t, RDPConfig{H264: true})
+	if !d.h264 {
+		t.Fatal("software H.264 was not enabled")
 	}
-}
-
-func TestRDPEncoderConfigValidation(t *testing.T) {
-	t.Parallel()
-	for _, tc := range []struct {
-		name    string
-		options RDPConfig
-	}{
-		{name: "unknown", options: RDPConfig{H264: true, H264Encoder: "invalid"}},
-		{name: "removed-nvenc", options: RDPConfig{H264: true, H264Encoder: "nvenc"}},
-		{name: "software-without-h264", options: RDPConfig{H264Encoder: "software"}},
-		{name: "nvenc-without-h264", options: RDPConfig{H264Encoder: "nvenc"}},
-		{name: "auto-without-h264", options: RDPConfig{H264Encoder: "auto"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			if _, err := NewRDPDisplayWithConfig(tc.options); !errors.Is(err, errRDPEncoder) {
-				t.Fatalf("invalid encoder options reached listener creation: %v", err)
-			}
-		})
+	if d.linearInterval != time.Second/rdpBaseFrameRate {
+		t.Fatalf("H.264 capture interval %v does not match base pacing", d.linearInterval)
 	}
 }
 

@@ -1,7 +1,6 @@
 package virtio
 
 import (
-	"errors"
 	"image"
 	"testing"
 	"time"
@@ -9,25 +8,40 @@ import (
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 )
 
-func TestRDPEncoderSliceLimits(t *testing.T) {
+func TestRDPEncoderUsesFourSlices(t *testing.T) {
 	t.Parallel()
-	for _, tt := range []struct {
-		name                     string
-		cpus, guest, limit, want int
+	for _, test := range []struct {
+		name                string
+		width, height, want int
 	}{
-		{"automatic", 8, 2, 0, 1},
-		{"one slice", 8, 2, 1, 1},
-		{"explicit", 8, 2, 4, 4},
-		{"host and guest reservation", 8, 2, 16, 5},
-		{"small host", 1, 8, 4, 1},
-		{"automatic on small host", 2, 1, 0, 1},
-		{"default guest reservation", 8, 0, 16, 6},
-		{"maximum", 32, 1, 16, 16},
+		{name: "desktop", width: 1280, height: 720, want: 4},
+		{name: "small desktop", width: 320, height: 240, want: 4},
+		{name: "single macroblock", width: 16, height: 16, want: 1},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			if got := rdpEncoderSlices(tt.cpus, tt.guest, tt.limit); got != tt.want {
-				t.Fatalf("slice count: got %d, want %d", got, tt.want)
+			writer := &rdpFrameWriter{session: &rdp.Session{Width: test.width, Height: test.height}}
+			t.Cleanup(writer.close)
+			if _, err := writer.ensureAVC(); err != nil {
+				t.Fatal(err)
+			}
+			if got := writer.actualSlices(); got != test.want {
+				t.Fatalf("effective slices = %d, want %d", got, test.want)
+			}
+			data, err := writer.avc.Encode(image.NewRGBA(image.Rect(0, 0, test.width, test.height)), true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Count actual IDR slices in the Annex-B stream, including either
+			// three- or four-byte start codes. Escaped payloads cannot match.
+			slices := 0
+			for i := 0; i+3 < len(data); i++ {
+				if data[i] == 0 && data[i+1] == 0 && data[i+2] == 1 && data[i+3]&31 == 5 {
+					slices++
+				}
+			}
+			if slices != test.want {
+				t.Fatalf("encoded IDR slices = %d, want %d", slices, test.want)
 			}
 		})
 	}
@@ -58,17 +72,6 @@ func TestRDPFramePacingKeepsLatestFrame(t *testing.T) {
 	display.copyFrameChanges(&latest, false)
 	if latest.pix[0] != 3 {
 		t.Fatal("paced writer lost the latest guest publication")
-	}
-}
-
-func TestRDPSliceConfigValidation(t *testing.T) {
-	t.Parallel()
-	for _, options := range []RDPConfig{
-		{H264Threads: -1}, {H264Threads: 17, H264: true}, {H264Threads: 1},
-	} {
-		if _, err := NewRDPDisplayWithConfig(options); !errors.Is(err, errRDPThreads) {
-			t.Fatalf("invalid slice options reached listener creation: %v", err)
-		}
 	}
 }
 

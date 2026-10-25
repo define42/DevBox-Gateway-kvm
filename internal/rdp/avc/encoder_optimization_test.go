@@ -36,7 +36,7 @@ func TestEncoderOptimizationBitstreamParity(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			encoder, err := NewEncoderWithOptions(test.width, test.height,
-				Options{Backend: BackendSoftware, Threads: test.slices, QP: &test.qp})
+				Options{Threads: test.slices, QP: &test.qp})
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -21,29 +21,28 @@ func (e *Encoder) encodeWithDamageHints() ([]byte, error) {
 	return e.codec.encode(e.i420, e.preparedForce, timestamp)
 }
 
-// Every true bit certifies all Y/U/V samples in the corresponding 16x16 output
-// block are unchanged. Expanding to macroblocks also covers the 2x2 chroma halo.
-// Codec-owned padding in the last partial block is covered by the same bit.
-// The mask is borrowed synchronously and reused; no allocation is needed after
-// the first partial update. New streams, full conversions and retries omit it.
-func (e *Encoder) unchangedMacroblocks(source image.Rectangle, regions []image.Rectangle) []bool {
-	columns, rows := (e.width+15)/16, (e.height+15)/16
-	if len(e.unchanged) != columns*rows {
-		e.unchanged = make([]bool, columns*rows)
+// convertDamageWithHints certifies source I420 equality for each 16x16 block,
+// including unchanged pixels inside conservative damage rectangles. All planes
+// are compared before they are overwritten; overlapping regions only clear bits.
+// Full conversions and retries use the ordinary path without these hints.
+func (e *Encoder) convertDamageWithHints(img *image.RGBA, regions []image.Rectangle, bgrx bool) bool {
+	blocks := ((e.width + 15) / 16) * ((e.height + 15) / 16)
+	if len(e.unchanged) != blocks {
+		e.unchanged = make([]bool, blocks)
 	}
 	for i := range e.unchanged {
 		e.unchanged[i] = true
 	}
+	source := i420DamageSource{pix: img.Pix, stride: img.Stride, width: img.Rect.Dx(), height: img.Rect.Dy()}
+	if bgrx {
+		source.redIndex = 2
+	}
 	output := image.Rect(0, 0, e.width, e.height)
+	changed := false
 	for _, region := range regions {
-		mapped := damage.Align(damage.Map(region, source, output), 16, output)
-		if mapped.Empty() {
-			continue
-		}
-		for row := mapped.Min.Y / 16; row < (mapped.Max.Y+15)/16; row++ {
-			clear(e.unchanged[row*columns+mapped.Min.X/16 : row*columns+(mapped.Max.X+15)/16])
-		}
+		mapped := damage.Align(damage.Map(region, img.Rect, output), 2, output)
+		changed = e.convertI420DamageRegion(source, mapped) || changed
 	}
 
-	return e.unchanged
+	return changed
 }

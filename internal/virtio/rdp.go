@@ -15,7 +15,6 @@ import (
 	"math/big"
 	"net"
 	"os"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -30,11 +29,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const rdpResizeDelay = 150 * time.Millisecond
+const (
+	rdpResizeDelay   = 150 * time.Millisecond
+	rdpH264Slices    = 4
+	rdpBaseFrameRate = 30
+)
 
 var (
 	errRDPQP              = errors.New("rdp: H.264 QP must be between 0 and 51 and requires H.264")
-	errRDPEncoder         = errors.New("rdp: H.264 encoder must be software or auto and requires H.264")
 	errRDPListener        = errors.New("rdp: an inherited abstract Unix listener is required")
 	errRDPGatewayIdentity = errors.New("rdp: a valid gateway process identity is required")
 	errRDPGatewayParent   = errors.New("rdp: gateway parent identity changed")
@@ -46,19 +48,15 @@ var (
 type RDPConfig struct {
 	// Listener must be an inherited Linux abstract Unix listener. The display
 	// owns it on success; the caller retains ownership on failure.
-	Listener    net.Listener
-	GatewayPID  int
-	GatewayUID  uint32
-	TLS         *tls.Config
-	H264        bool
-	H264Encoder string // Empty selects the software encoder.
-	H264QP      *int   // Nil selects QP 20; 0..51, with lower values using more bandwidth for higher quality.
-	Profile     string // office or smooth (30 FPS); empty retains the standalone 60-FPS default.
-	Audio       bool
-	H264Threads int // Slice request; zero chooses a bounded automatic count.
-	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
-	Stats       bool
-	Telemetry   *telemetry.Collector // Optional process-owned performance counters.
+	Listener   net.Listener
+	GatewayPID int
+	GatewayUID uint32
+	TLS        *tls.Config
+	H264       bool
+	H264QP     *int // Nil selects QP 20; 0..51, with lower values using more bandwidth for higher quality.
+	Audio      bool
+	Stats      bool
+	Telemetry  *telemetry.Collector // Optional process-owned performance counters.
 
 	// getParentPID supports same-process transport tests. It is unexported so
 	// callers outside this package cannot override the live parent check.
@@ -74,10 +72,7 @@ type RDPDisplay struct {
 	listener       net.Listener
 	tls            *tls.Config
 	h264           bool
-	h264Backend    avc.Backend
-	h264Slices     int
 	h264QP         int
-	frameRate      int
 	stats          bool
 	telemetry      *telemetry.Collector
 	audio          *audio.Hub
@@ -103,26 +98,6 @@ type RDPDisplay struct {
 // Other clients retain bitmap updates. The caller must supply an inherited
 // abstract Unix listener and the expected parent gateway process identity.
 func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
-	frameRate, err := rdp.ProfileFrameRate(options.Profile)
-	if err != nil {
-		return nil, err
-	}
-	backend := avc.Backend(options.H264Encoder)
-	switch backend {
-	case "", avc.BackendSoftware, avc.BackendAuto:
-	default:
-		return nil, errRDPEncoder
-	}
-	if backend != "" && !options.H264 {
-		return nil, errRDPEncoder
-	}
-	if backend == "" || backend == avc.BackendAuto {
-		backend = avc.BackendSoftware
-	}
-	if options.H264Threads < 0 || options.H264Threads > avc.MaxThreads ||
-		(options.H264Threads != 0 && !options.H264) {
-		return nil, errRDPThreads
-	}
 	qp, err := avc.ResolveQP(options.H264QP)
 	if err != nil || (options.H264QP != nil && !options.H264) {
 		return nil, errRDPQP
@@ -141,16 +116,16 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 	if getParentPID() != options.GatewayPID {
 		return nil, errRDPGatewayParent
 	}
-	slices := rdpEncoderSlices(runtime.GOMAXPROCS(0), options.GuestCPUs, options.H264Threads)
 	if options.H264 {
 		// Fail before opening the listener if the H.264 encoder cannot initialize.
 		encoder, err := avc.NewEncoderWithOptions(1024, 768, avc.Options{
-			Backend: backend, Threads: slices, FrameRate: frameRate, QP: &qp,
+			Threads: rdpH264Slices, FrameRate: avc.FrameRate, QP: &qp,
 		})
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("rdp: H.264 encoder=%s requested=%s max_fps=%d qp=%d", encoder.Backend(), backend, frameRate, qp)
+		log.Printf("rdp: H.264 encoder=%s base_fps=%d drag_fps=%d qp=%d",
+			encoder.Backend(), rdpBaseFrameRate, avc.FrameRate, qp)
 		encoder.Close()
 	}
 	config := options.TLS
@@ -169,7 +144,7 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 	display := &RDPDisplay{
 		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
-		h264Backend: backend, h264Slices: slices, h264QP: qp, frameRate: frameRate,
+		h264QP:     qp,
 		telemetry:  options.Telemetry,
 		gatewayPID: int32(options.GatewayPID), gatewayUID: options.GatewayUID, getParentPID: getParentPID,
 	}
@@ -177,7 +152,7 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 		display.audio = audio.NewHub()
 	}
 	if options.H264 {
-		display.linearInterval = time.Second / time.Duration(frameRate)
+		display.linearInterval = time.Second / rdpBaseFrameRate
 	}
 	display.wg.Add(1)
 	go display.acceptLoop()
@@ -248,6 +223,18 @@ func (d *RDPDisplay) removeResizeViewer(session *rdp.Session) {
 	if d.viewer == session {
 		d.viewer = nil
 	}
+}
+
+func (d *RDPDisplay) resizeClient(session *rdp.Session, size rdp.DesktopSize) error {
+	resized, err := session.Resize(size.Width, size.Height)
+	if err != nil {
+		return err
+	}
+	if resized {
+		d.resizeGuest(session)
+	}
+
+	return nil
 }
 
 func (d *RDPDisplay) resizeGuest(session *rdp.Session) {
@@ -395,9 +382,8 @@ func (d *RDPDisplay) handleConn(conn net.Conn) {
 
 func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 	conn = trackRDPBandwidth(conn, d.telemetry)
-	d.mu.Lock()
-	relativePointer := supportsRelativePointer(d.input)
-	d.mu.Unlock()
+	input, _, _ := d.inputSnapshot()
+	relativePointer := supportsRelativePointer(input)
 	var options []rdp.AcceptOption
 	if relativePointer {
 		options = append(options, rdp.WithRelativePointer())
@@ -431,6 +417,7 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 		return err
 	}
 
+	interaction := newRDPInteraction()
 	decoder := rdp.InputDecoder{AllowRelativePointer: session.RelativePointerSupported()}
 	defer func() { d.dispatchInput(session, decoder.ReleaseAll()) }()
 	refresh := make(chan struct{}, 1)
@@ -439,7 +426,7 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 	writers := 1
 	var suppressed atomic.Bool
 	go func() {
-		writerDone <- d.writeFrames(conn, session, stop, refresh, &suppressed)
+		writerDone <- d.writeFrames(conn, session, stop, refresh, &suppressed, interaction)
 		_ = session.Close()
 	}()
 	if withAudio {
@@ -493,6 +480,7 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 			log.Printf("rdp: relative mouse input active")
 			relativePointerLogged = true
 		}
+		interaction.observe(events)
 		d.dispatchInput(session, events)
 	}
 }
@@ -542,7 +530,7 @@ func requestRDPRefresh(refresh chan<- struct{}) {
 
 func (d *RDPDisplay) writeFrames(
 	conn net.Conn, session *rdp.Session,
-	stop, refresh <-chan struct{}, suppressed *atomic.Bool,
+	stop, refresh <-chan struct{}, suppressed *atomic.Bool, interaction *rdpInteraction,
 ) error {
 	width, height := session.Size()
 	bitmap, err := rdp.NewBitmapEncoder(width, height, session.BitsPerPixel)
@@ -551,7 +539,8 @@ func (d *RDPDisplay) writeFrames(
 	}
 	writer := &rdpFrameWriter{
 		session: session, bitmap: bitmap, width: width, height: height, force: true,
-		backend: d.h264Backend, slices: d.h264Slices, frameRate: d.frameRate, h264QP: &d.h264QP,
+		h264QP:      &d.h264QP,
+		interaction: interaction,
 		stats: rdpFrameStats{
 			enabled: d.stats, peer: conn.RemoteAddr().String(), telemetry: d.telemetry.Connect(),
 		},
@@ -562,6 +551,7 @@ func (d *RDPDisplay) writeFrames(
 	timer.Stop()
 	defer timer.Stop()
 	graphicsChanged := session.GraphicsChanged()
+	interactionChanged := interaction.notification()
 	displayChanged := session.DisplayChanged()
 	resizeRequests := session.ResizeRequests()
 	resizeTimer := time.NewTimer(time.Hour)
@@ -575,14 +565,10 @@ func (d *RDPDisplay) writeFrames(
 	// the timer for a pending frame; idle clients need no periodic polling.
 	for {
 		if resizeReady && session.DisplayReady() {
-			resized, resizeErr := session.Resize(pending.Width, pending.Height)
-			if resizeErr != nil {
-				return resizeErr
+			if err := d.resizeClient(session, pending); err != nil {
+				return err
 			}
 			resizeReady = false
-			if resized {
-				d.resizeGuest(session)
-			}
 		}
 		if err := writer.updateSize(); err != nil {
 			return err
@@ -598,9 +584,7 @@ func (d *RDPDisplay) writeFrames(
 			// Readiness must not depend on a guest frame: boot may be waiting
 			// here before any vCPU has started producing graphics.
 			d.readyOnce.Do(func() { close(d.ready) })
-			d.mu.Lock()
-			guestWidth, guestHeight := d.width, d.height
-			d.mu.Unlock()
+			_, guestWidth, guestHeight := d.inputSnapshot()
 			if err := writer.updatePointer(cursor, guestWidth, guestHeight); err != nil {
 				return err
 			}
@@ -630,6 +614,7 @@ func (d *RDPDisplay) writeFrames(
 			writer.force = true
 		case <-published:
 		case <-graphicsChanged:
+		case <-interactionChanged:
 		case <-cursorChanged:
 		case <-displayChanged:
 		case pending = <-resizeRequests:
@@ -646,23 +631,21 @@ func (d *RDPDisplay) writeFrames(
 }
 
 type rdpFrameWriter struct {
-	session   *rdp.Session
-	bitmap    *rdp.BitmapEncoder
-	avc       *avc.Encoder
-	backend   avc.Backend
-	frame     displayFrame
-	width     int
-	height    int
-	graphics  bool
-	frameRate int
-	h264QP    *int
-	sequence  uint64
-	force     bool
-	nextFrame time.Time
-	lastFrame time.Time
-	pointer   rdpPointerWriter
-	slices    int
-	stats     rdpFrameStats
+	interaction *rdpInteraction
+	session     *rdp.Session
+	bitmap      *rdp.BitmapEncoder
+	avc         *avc.Encoder
+	frame       displayFrame
+	width       int
+	height      int
+	graphics    bool
+	h264QP      *int
+	sequence    uint64
+	force       bool
+	nextFrame   time.Time
+	lastFrame   time.Time
+	pointer     rdpPointerWriter
+	stats       rdpFrameStats
 }
 
 // Encoders retain geometry and the previous frame. Discard both after a resize
@@ -754,8 +737,8 @@ func (w *rdpFrameWriter) updateGraphics(conn net.Conn) bool {
 
 func (w *rdpFrameWriter) frameInterval() time.Duration {
 	if w.graphics {
-		frameRate := w.frameRate
-		if frameRate == 0 {
+		frameRate := rdpBaseFrameRate
+		if w.interaction.active() {
 			frameRate = avc.FrameRate
 		}
 		base := time.Second / time.Duration(frameRate)
@@ -766,11 +749,12 @@ func (w *rdpFrameWriter) frameInterval() time.Duration {
 		return base
 	}
 
-	return time.Second / 30
+	return time.Second / rdpBaseFrameRate
 }
 
-// frameDeadline recomputes the deadline from the last send so ACK feedback can
-// slow an already scheduled frame. nextFrame remains the initial/test hook.
+// frameDeadline recomputes the deadline from the last send so ACK feedback and
+// drag activity can adjust an already scheduled frame. nextFrame remains the
+// initial/test hook.
 func (w *rdpFrameWriter) frameDeadline() time.Time {
 	if !w.lastFrame.IsZero() {
 		return w.lastFrame.Add(w.frameInterval())
@@ -843,7 +827,8 @@ func (w *rdpFrameWriter) ensureAVC() (bool, error) {
 	}
 	width, height := w.session.Size()
 	encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
-		Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.measuring(), FrameRate: w.frameRate,
+		// Keep the codec clock stable while capture pacing changes with dragging.
+		Threads: rdpH264Slices, Measure: w.stats.measuring(), FrameRate: avc.FrameRate,
 		QP: w.h264QP,
 	})
 	if err != nil {
@@ -937,10 +922,7 @@ func (d *RDPDisplay) dispatchInput(session *rdp.Session, events []rdp.InputEvent
 			d.sendKeyEvent(event.Down, event.Key)
 		case rdp.InputPointer:
 			d.pointerInputMu.Lock()
-			d.mu.Lock()
-			input := d.input
-			width, height := d.width, d.height
-			d.mu.Unlock()
+			input, width, height := d.inputSnapshot()
 			clientWidth, clientHeight := session.Size()
 			x := min(int(event.X), clientWidth-1) * width / clientWidth
 			y := min(int(event.Y), clientHeight-1) * height / clientHeight
@@ -951,9 +933,7 @@ func (d *RDPDisplay) dispatchInput(session *rdp.Session, events []rdp.InputEvent
 			d.pointerInputMu.Unlock()
 		case rdp.InputRelativePointer:
 			d.pointerInputMu.Lock()
-			d.mu.Lock()
-			input := d.input
-			d.mu.Unlock()
+			input, _, _ := d.inputSnapshot()
 			if relative, ok := input.(RelativePointerInput); ok {
 				relative.RelativePointerEvent(event.Buttons, event.DX, event.DY)
 			}

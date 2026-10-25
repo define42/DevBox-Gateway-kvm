@@ -32,6 +32,7 @@ type graphicsACKClient struct {
 }
 
 type graphicsACKProcess struct {
+	pid  int
 	done chan struct{}
 	err  error // Read only after done closes.
 }
@@ -229,6 +230,7 @@ func startGraphicsACKProcess(tb testing.TB, name string, command *exec.Cmd) *gra
 		_ = log.Close()
 		tb.Fatalf("start %s: %v", name, err)
 	}
+	process.pid = command.Process.Pid
 	go func() {
 		process.err = command.Wait()
 		close(process.done)

@@ -1,0 +1,264 @@
+# Round 1: slice order (1, 2, 4)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16226567 ns/op	         6.505 ack_mean_ms	         6.964 ack_p50_ms	        10.03 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.786 write_ack_mean_ms	         0.2611 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7088105 ns/op	         3.151 ack_mean_ms	         2.852 ack_p50_ms	         4.497 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.248 write_ack_mean_ms	         0.07751 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11716546 ns/op	         5.602 ack_mean_ms	         5.374 ack_p50_ms	         8.697 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         5.845 write_ack_mean_ms	         0.2208 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6043926 ns/op	         3.184 ack_mean_ms	         2.958 ack_p50_ms	         4.325 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.287 write_ack_mean_ms	         0.08121 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10564292 ns/op	         5.933 ack_mean_ms	         5.894 ack_p50_ms	         7.622 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.185 write_ack_mean_ms	         0.2320 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5611347 ns/op	         3.223 ack_mean_ms	         3.029 ack_p50_ms	         4.278 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.321 write_ack_mean_ms	         0.07588 write_mean_ms
+PASS
+# Round 2: slice order (2, 4, 1)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11885974 ns/op	         5.813 ack_mean_ms	         5.592 ack_p50_ms	         8.839 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         6.058 write_ack_mean_ms	         0.2233 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6194141 ns/op	         3.174 ack_mean_ms	         2.926 ack_p50_ms	         4.367 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.274 write_ack_mean_ms	         0.08066 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10711509 ns/op	         6.054 ack_mean_ms	         5.847 ack_p50_ms	         8.232 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.327 write_ack_mean_ms	         0.2505 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5653591 ns/op	         3.247 ack_mean_ms	         3.126 ack_p50_ms	         4.613 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.345 write_ack_mean_ms	         0.07877 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16433444 ns/op	         6.724 ack_mean_ms	         7.238 ack_p50_ms	        10.37 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         7.011 write_ack_mean_ms	         0.2657 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7164077 ns/op	         3.184 ack_mean_ms	         2.964 ack_p50_ms	         4.249 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.284 write_ack_mean_ms	         0.08235 write_mean_ms
+PASS
+# Round 3: slice order (4, 1, 2)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10334690 ns/op	         5.779 ack_mean_ms	         5.606 ack_p50_ms	         7.757 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.033 write_ack_mean_ms	         0.2352 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   6032314 ns/op	         3.531 ack_mean_ms	         3.108 ack_p50_ms	         5.046 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.631 write_ack_mean_ms	         0.08073 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16635334 ns/op	         6.761 ack_mean_ms	         6.555 ack_p50_ms	         9.838 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         7.063 write_ack_mean_ms	         0.2800 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7126117 ns/op	         3.138 ack_mean_ms	         2.921 ack_p50_ms	         4.324 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.240 write_ack_mean_ms	         0.08125 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11979781 ns/op	         5.788 ack_mean_ms	         5.395 ack_p50_ms	         9.767 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         6.033 write_ack_mean_ms	         0.2250 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6006967 ns/op	         3.127 ack_mean_ms	         2.955 ack_p50_ms	         4.436 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.220 write_ack_mean_ms	         0.07564 write_mean_ms
+PASS
+# Round 4: slice order (4, 2, 1)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10480753 ns/op	         5.876 ack_mean_ms	         5.772 ack_p50_ms	         7.729 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.124 write_ack_mean_ms	         0.2266 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5563031 ns/op	         3.118 ack_mean_ms	         2.959 ack_p50_ms	         4.264 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.223 write_ack_mean_ms	         0.08486 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11667684 ns/op	         5.709 ack_mean_ms	         5.548 ack_p50_ms	         8.678 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         5.950 write_ack_mean_ms	         0.2204 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   5995889 ns/op	         3.157 ack_mean_ms	         2.945 ack_p50_ms	         4.325 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.258 write_ack_mean_ms	         0.07930 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16312466 ns/op	         6.678 ack_mean_ms	         7.030 ack_p50_ms	         9.720 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.983 write_ack_mean_ms	         0.2814 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7256770 ns/op	         3.176 ack_mean_ms	         2.884 ack_p50_ms	         4.473 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.274 write_ack_mean_ms	         0.07836 write_mean_ms
+PASS
+# Round 5: slice order (2, 1, 4)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  12015768 ns/op	         5.826 ack_mean_ms	         5.504 ack_p50_ms	        10.50 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         6.075 write_ack_mean_ms	         0.2279 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6169370 ns/op	         3.244 ack_mean_ms	         3.040 ack_p50_ms	         4.626 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.347 write_ack_mean_ms	         0.08108 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16618354 ns/op	         6.761 ack_mean_ms	         7.026 ack_p50_ms	        10.71 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         7.042 write_ack_mean_ms	         0.2585 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7138214 ns/op	         3.164 ack_mean_ms	         2.901 ack_p50_ms	         4.477 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.257 write_ack_mean_ms	         0.07483 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10439154 ns/op	         5.921 ack_mean_ms	         5.801 ack_p50_ms	         7.944 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.169 write_ack_mean_ms	         0.2282 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5607519 ns/op	         3.245 ack_mean_ms	         2.916 ack_p50_ms	         4.661 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.343 write_ack_mean_ms	         0.07871 write_mean_ms
+PASS
+# Round 6: slice order (1, 4, 2)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16202456 ns/op	         6.468 ack_mean_ms	         6.098 ack_p50_ms	         9.405 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.764 write_ack_mean_ms	         0.2707 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7601870 ns/op	         3.414 ack_mean_ms	         3.095 ack_p50_ms	         4.996 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.521 write_ack_mean_ms	         0.08170 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10719175 ns/op	         5.968 ack_mean_ms	         5.695 ack_p50_ms	         8.392 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.239 write_ack_mean_ms	         0.2493 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5988948 ns/op	         3.406 ack_mean_ms	         2.977 ack_p50_ms	         5.213 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.507 write_ack_mean_ms	         0.08173 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11948206 ns/op	         5.724 ack_mean_ms	         5.377 ack_p50_ms	         8.910 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         5.964 write_ack_mean_ms	         0.2189 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6352300 ns/op	         3.316 ack_mean_ms	         3.034 ack_p50_ms	         4.959 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.430 write_ack_mean_ms	         0.09528 write_mean_ms
+PASS
+# Round 7: slice order (1, 2, 4)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16484672 ns/op	         6.563 ack_mean_ms	         6.376 ack_p50_ms	        10.42 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.824 write_ack_mean_ms	         0.2409 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7227918 ns/op	         3.236 ack_mean_ms	         2.978 ack_p50_ms	         4.528 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.335 write_ack_mean_ms	         0.07922 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  12146447 ns/op	         5.838 ack_mean_ms	         5.488 ack_p50_ms	         9.192 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         6.079 write_ack_mean_ms	         0.2165 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6292220 ns/op	         3.243 ack_mean_ms	         2.981 ack_p50_ms	         4.552 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.343 write_ack_mean_ms	         0.07653 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10518494 ns/op	         5.906 ack_mean_ms	         5.825 ack_p50_ms	         7.565 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.161 write_ack_mean_ms	         0.2336 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5768074 ns/op	         3.276 ack_mean_ms	         3.085 ack_p50_ms	         4.531 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.374 write_ack_mean_ms	         0.07700 write_mean_ms
+PASS
+# Round 8: slice order (2, 4, 1)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11874837 ns/op	         5.740 ack_mean_ms	         5.640 ack_p50_ms	         9.053 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         5.982 write_ack_mean_ms	         0.2188 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6296475 ns/op	         3.291 ack_mean_ms	         3.059 ack_p50_ms	         4.431 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.392 write_ack_mean_ms	         0.07925 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10556851 ns/op	         5.904 ack_mean_ms	         5.849 ack_p50_ms	         7.894 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.170 write_ack_mean_ms	         0.2449 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5709735 ns/op	         3.336 ack_mean_ms	         2.936 ack_p50_ms	         4.533 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.433 write_ack_mean_ms	         0.07580 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16395119 ns/op	         6.527 ack_mean_ms	         6.361 ack_p50_ms	         9.918 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.812 write_ack_mean_ms	         0.2644 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7922407 ns/op	         3.559 ack_mean_ms	         3.166 ack_p50_ms	         5.332 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.696 write_ack_mean_ms	         0.1158 write_mean_ms
+PASS
+# Round 9: slice order (4, 1, 2)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10485607 ns/op	         5.944 ack_mean_ms	         5.677 ack_p50_ms	         7.960 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.202 write_ack_mean_ms	         0.2383 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5788824 ns/op	         3.307 ack_mean_ms	         3.016 ack_p50_ms	         4.657 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.408 write_ack_mean_ms	         0.07955 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16160367 ns/op	         6.548 ack_mean_ms	         6.839 ack_p50_ms	         9.672 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.835 write_ack_mean_ms	         0.2636 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7171859 ns/op	         3.232 ack_mean_ms	         2.958 ack_p50_ms	         4.687 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.330 write_ack_mean_ms	         0.07930 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  12129554 ns/op	         5.838 ack_mean_ms	         5.645 ack_p50_ms	         9.121 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         6.079 write_ack_mean_ms	         0.2173 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6138375 ns/op	         3.149 ack_mean_ms	         2.990 ack_p50_ms	         4.193 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.247 write_ack_mean_ms	         0.07889 write_mean_ms
+PASS
+# Round 10: slice order (4, 2, 1)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10669882 ns/op	         6.037 ack_mean_ms	         5.785 ack_p50_ms	         8.071 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.303 write_ack_mean_ms	         0.2438 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5676629 ns/op	         3.255 ack_mean_ms	         3.080 ack_p50_ms	         4.216 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.354 write_ack_mean_ms	         0.08084 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  12090213 ns/op	         5.909 ack_mean_ms	         5.663 ack_p50_ms	         9.748 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         6.140 write_ack_mean_ms	         0.2101 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6237809 ns/op	         3.328 ack_mean_ms	         3.095 ack_p50_ms	         4.498 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.434 write_ack_mean_ms	         0.08347 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  15838935 ns/op	         6.199 ack_mean_ms	         6.272 ack_p50_ms	         9.428 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.483 write_ack_mean_ms	         0.2649 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7310496 ns/op	         3.209 ack_mean_ms	         2.913 ack_p50_ms	         4.759 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.307 write_ack_mean_ms	         0.07753 write_mean_ms
+PASS
+# Round 11: slice order (2, 1, 4)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11957970 ns/op	         5.733 ack_mean_ms	         5.576 ack_p50_ms	         9.205 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         5.979 write_ack_mean_ms	         0.2236 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6111545 ns/op	         3.195 ack_mean_ms	         3.075 ack_p50_ms	         4.217 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.299 write_ack_mean_ms	         0.08370 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16272929 ns/op	         6.431 ack_mean_ms	         6.117 ack_p50_ms	         9.972 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.700 write_ack_mean_ms	         0.2483 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7215881 ns/op	         3.271 ack_mean_ms	         2.998 ack_p50_ms	         4.719 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.366 write_ack_mean_ms	         0.07346 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10446045 ns/op	         5.919 ack_mean_ms	         5.683 ack_p50_ms	         8.199 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.220 write_ack_mean_ms	         0.2784 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5580210 ns/op	         3.199 ack_mean_ms	         3.161 ack_p50_ms	         3.987 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.296 write_ack_mean_ms	         0.07738 write_mean_ms
+PASS
+# Round 12: slice order (1, 4, 2)
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=1-8         	     100	  16026342 ns/op	         6.256 ack_mean_ms	         7.046 ack_p50_ms	         9.283 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     81049 bytes/frame	         1.000 regions/frame	         6.519 write_ack_mean_ms	         0.2431 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=1-8     	     100	   7005729 ns/op	         3.104 ack_mean_ms	         2.860 ack_p50_ms	         4.349 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      6042 bytes/frame	         1.000 regions/frame	         3.198 write_ack_mean_ms	         0.07414 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=4-8         	     100	  10632588 ns/op	         5.975 ack_mean_ms	         5.895 ack_p50_ms	         7.617 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     72134 bytes/frame	         1.000 regions/frame	         6.238 write_ack_mean_ms	         0.2416 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=4-8     	     100	   5648361 ns/op	         3.197 ack_mean_ms	         2.955 ack_p50_ms	         4.414 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5723 bytes/frame	         1.000 regions/frame	         3.300 write_ack_mean_ms	         0.08179 write_mean_ms
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+BenchmarkGraphicsACKFreeRDP/Scroll/slices=2-8         	     100	  11893941 ns/op	         5.752 ack_mean_ms	         5.485 ack_p50_ms	         9.413 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	     63495 bytes/frame	         1.000 regions/frame	         5.985 write_ack_mean_ms	         0.2125 write_mean_ms
+BenchmarkGraphicsACKFreeRDP/WindowDrag/slices=2-8     	     100	   6236206 ns/op	         3.265 ack_mean_ms	         3.002 ack_p50_ms	         4.525 ack_p95_ms	         0 ack_raced/frame	       100.0 ack_samples	      5201 bytes/frame	         1.000 regions/frame	         3.367 write_ack_mean_ms	         0.08243 write_mean_ms
+PASS

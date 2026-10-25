@@ -20,8 +20,8 @@ make devbox-kvm
 
 Application builds use `CGO_ENABLED=0` and produce a static executable. The
 runtime and bundled H.264 codec need no C compiler or native libraries. Guest
-graphics use the Go 2D virtio-gpu framebuffer. `H264_ENCODER=software` and the
-compatibility value `auto` select the same Go codec.
+graphics use the Go 2D virtio-gpu framebuffer and always use the bundled Go
+software encoder for H.264 output.
 
 Booting guests also requires hardware virtualization and read/write access to
 `/dev/kvm`. Nested hosts must expose KVM. Go race tests require cgo and a C
@@ -267,10 +267,13 @@ fail the requested check instead of silently skipping it. They are independent
 of `make test` and CI.
 
 The test and benchmark replay scroll and horizontal window-drag frames through
-the ordinary H.264 damage-update path. The benchmark keeps one frame in flight
-and reports the mean, p50, and p95 of raw ACK turnaround. Its test-only
-setup resets the smoothing accumulator before each frame; the production ACK
-handler still computes the sample from socket-write completion. ACKs received
+the ordinary H.264 damage-update path, each with 1, 2, and 4 H.264 slices.
+These explicit codec settings support comparisons; the display implementation
+uses a fixed four-slice request. Each case verifies the effective encoder slice
+count. The benchmark keeps one frame in flight and reports the mean, p50, and p95
+of raw ACK turnaround. Its test-only setup resets the smoothing accumulator
+before each frame; the production ACK handler still computes the sample from
+socket-write completion. ACKs received
 before write completion is recorded are counted separately and excluded from
 latency samples. Check that count alongside the reported samples.
 
@@ -279,6 +282,34 @@ ACK. The ACK metrics exclude encoding and socket-write time, but include client
 processing and the loopback return path. Xvfb exercises decode and repaint work;
 these results do not measure physical display presentation, WAN latency, or
 input-to-display latency.
+
+CPU metrics report scheduled CPU milliseconds per frame, summed across each
+process's threads, separately for the server, FreeRDP and Xvfb. Sampling excludes
+startup, warmup and teardown. Server CPU includes conversion, encoding, transport,
+ACK processing and benchmark overhead. Compare CPU per frame at the same frame
+rate; unpaced CPU utilization can rise just because more frames finish per second.
+
+To isolate server conversion and encoding from client/transport timing, run
+`go test -tags=integration -run '^$' -bench '^BenchmarkGraphicsEncodeDamage$/.*/slices=2$' -benchtime=400x -count=12 ./internal/rdp`.
+This reuses the same scrolling and window-drag pictures and reports elapsed
+encoding work, process CPU per frame and allocations; it does not launch a client.
+
+To compare the CPU cost of the normal 30-FPS rate with the 60-FPS drag boost:
+
+```bash
+DEVBOX_KVM_REQUIRE_ACK_TEST=1 GOMAXPROCS=8 go test -tags=integration ./internal/rdp \
+  -run '^$' -bench '^BenchmarkGraphicsDragPacingFreeRDP$' -benchtime=120x -count=6
+```
+
+This paced window-drag comparison uses two slices and one stable 60-FPS codec
+clock; its explicit fixture setting is independent of the display's fixed four slices.
+It reports achieved FPS, frame-budget overruns, frame work time, and CPU percent
+for the server, client, and Xvfb (100% means one full CPU core). Each iteration
+includes its pacing wait; late frames do not trigger catch-up bursts. It measures
+codec/client cost, not guest input-to-display latency or the activation policy.
+Deterministic tests in `internal/virtio/rdp_interaction_test.go` cover the policy,
+pending capture deadlines and damage coalescing; `framebuffer_input_test.go`
+checks that input proceeds while conversion holds the pixel lock.
 
 Run benchmark comparisons serially on the same quiet host, with the same client
 build and settings. `make bench-rdp-ack` runs 100 frames per case for six samples;

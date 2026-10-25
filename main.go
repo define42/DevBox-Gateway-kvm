@@ -64,13 +64,8 @@ func run(ctx context.Context, args []string) error {
 		}
 	}
 
-	var h264Encoder, rdpProfile string
 	var h264QP *int
-	if bootArgs.RDPFD != 0 {
-		rdpProfile = bootArgs.RDPProfile
-	}
 	if bootArgs.RDPH264 {
-		h264Encoder = bootArgs.RDPH264Encoder
 		h264QP = &bootArgs.RDPH264QP
 	}
 	c := &vmm.Config{
@@ -88,14 +83,11 @@ func run(ctx context.Context, args []string) error {
 		Disk:              bootArgs.Disk,
 		DiskSizeBytes:     bootArgs.DiskSizeBytes,
 		CloudInit:         bootArgs.CloudInit,
-		RDPProfile:        rdpProfile,
 		RDPWait:           bootArgs.RDPWait,
 		RDPCert:           bootArgs.RDPCert,
 		RDPKey:            bootArgs.RDPKey,
 		RDPH264:           bootArgs.RDPH264,
-		RDPH264Encoder:    h264Encoder,
 		RDPH264QP:         h264QP,
-		RDPH264Threads:    bootArgs.RDPH264Threads,
 		RDPStats:          bootArgs.RDPStats,
 		Audio:             bootArgs.Audio,
 		NCPUs:             bootArgs.NCPUs,

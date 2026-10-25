@@ -26,7 +26,7 @@ type graphicsACKFrame struct {
 	regions []image.Rectangle
 }
 
-func newGraphicsACKFixture(tb testing.TB, workload string) *graphicsACKFixture {
+func newGraphicsACKFixture(tb testing.TB, workload string, sliceCount int) *graphicsACKFixture {
 	tb.Helper()
 	var fixture graphicsACKFixture
 	switch workload {
@@ -40,12 +40,15 @@ func newGraphicsACKFixture(tb testing.TB, workload string) *graphicsACKFixture {
 		return nil
 	}
 	encoder, err := avc.NewEncoderWithOptions(graphicsACKWidth, graphicsACKHeight, avc.Options{
-		Threads: 1,
+		Threads: sliceCount,
 	})
 	if err != nil {
 		tb.Fatal(err)
 	}
 	tb.Cleanup(encoder.Close)
+	if got := encoder.Threads(); got != sliceCount {
+		tb.Fatalf("effective H.264 slices = %d, requested %d", got, sliceCount)
+	}
 	fixture.encoder = encoder
 
 	return &fixture

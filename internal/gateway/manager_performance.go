@@ -90,8 +90,9 @@ func (m *Manager) Performance(ctx context.Context, owner, id string) (VMPerforma
 	}
 	result.GuestMemoryBytes = uint64(m.config.MemoryMiB) << 20
 	result.VCPUs = m.config.CPUs
-	result.RequestedEncoder = m.config.Encoder
-	result.RDPProfile = m.config.RDPProfile
+	// Retain the read-only API fields for clients that display the graphics policy.
+	result.RequestedEncoder = "software"
+	result.RDPProfile = "smooth"
 
 	return result, nil
 }

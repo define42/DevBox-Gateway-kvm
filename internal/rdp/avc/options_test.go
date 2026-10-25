@@ -21,21 +21,19 @@ func TestFrameRateOptions(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
 		name            string
-		backend         Backend
 		requested, want int
 		wantErr         error
 	}{
 		{name: "default", want: FrameRate},
 		{name: "minimum", requested: 1, want: 1},
 		{name: "office", requested: 30, want: 30},
-		{name: "auto compatibility alias", backend: BackendAuto, requested: 30, want: 30},
 		{name: "maximum", requested: FrameRate, want: FrameRate},
 		{name: "negative", requested: -1, wantErr: ErrFrameRate},
 		{name: "above maximum", requested: FrameRate + 1, wantErr: ErrFrameRate},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			encoder, err := NewEncoderWithOptions(64, 48, Options{Threads: 1, Backend: test.backend, FrameRate: test.requested})
+			encoder, err := NewEncoderWithOptions(64, 48, Options{Threads: 1, FrameRate: test.requested})
 			if !errors.Is(err, test.wantErr) {
 				t.Fatalf("NewEncoderWithOptions: got %v, want %v", err, test.wantErr)
 			}

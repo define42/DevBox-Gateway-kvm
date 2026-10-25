@@ -3,6 +3,7 @@
 package rdp
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -15,21 +16,23 @@ import (
 //nolint:paralleltest // Run clients serially to avoid distorting ACK latency with CPU contention.
 func TestGraphicsACKFreeRDP(t *testing.T) {
 	for _, workload := range []string{"Scroll", "WindowDrag"} {
-		t.Run(workload, func(t *testing.T) {
-			client := newGraphicsACKClient(t, graphicsACKWidth, graphicsACKHeight)
-			fixture := newGraphicsACKFixture(t, workload)
-			var measurements graphicsACKMeasurements
-			for frame := range 12 {
-				measurement := measureGraphicsACKFrame(t, client, fixture, frame)
-				if frame >= 4 {
-					measurements.add(measurement)
+		for _, sliceCount := range []int{1, 2, 4} {
+			t.Run(fmt.Sprintf("%s/slices=%d", workload, sliceCount), func(t *testing.T) {
+				client := newGraphicsACKClient(t, graphicsACKWidth, graphicsACKHeight)
+				fixture := newGraphicsACKFixture(t, workload, sliceCount)
+				var measurements graphicsACKMeasurements
+				for frame := range 12 {
+					measurement := measureGraphicsACKFrame(t, client, fixture, frame)
+					if frame >= 4 {
+						measurements.add(measurement)
+					}
 				}
-			}
-			measurements.validate(t)
-			mean, p50, p95 := measurements.latencies()
-			t.Logf("ACK mean=%s p50=%s p95=%s samples=%d raced=%d",
-				mean, p50, p95, len(measurements.samples), measurements.raced)
-		})
+				measurements.validate(t)
+				mean, p50, p95 := measurements.latencies()
+				t.Logf("ACK mean=%s p50=%s p95=%s samples=%d raced=%d",
+					mean, p50, p95, len(measurements.samples), measurements.raced)
+			})
+		}
 	}
 }
 
@@ -39,31 +42,39 @@ func TestGraphicsACKFreeRDP(t *testing.T) {
 // It measures client decoding/repaint, not a physical display or WAN latency.
 func BenchmarkGraphicsACKFreeRDP(b *testing.B) {
 	for _, workload := range []string{"Scroll", "WindowDrag"} {
-		b.Run(workload, func(b *testing.B) {
-			client := newGraphicsACKClient(b, graphicsACKWidth, graphicsACKHeight)
-			fixture := newGraphicsACKFixture(b, workload)
-			const warmup = 10
-			for frame := range warmup {
-				measureGraphicsACKFrame(b, client, fixture, frame)
-			}
-			measurements := graphicsACKMeasurements{samples: make([]time.Duration, 0, 1024)}
-			frame := warmup
-			for b.Loop() {
-				measurements.add(measureGraphicsACKFrame(b, client, fixture, frame))
-				frame++
-			}
-			measurements.validate(b)
-			mean, p50, p95 := measurements.latencies()
-			b.ReportMetric(float64(mean)/float64(time.Millisecond), "ack_mean_ms")
-			b.ReportMetric(float64(p50)/float64(time.Millisecond), "ack_p50_ms")
-			b.ReportMetric(float64(p95)/float64(time.Millisecond), "ack_p95_ms")
-			b.ReportMetric(float64(len(measurements.samples)), "ack_samples")
-			b.ReportMetric(float64(measurements.raced)/float64(b.N), "ack_raced/frame")
-			b.ReportMetric(float64(measurements.write)/float64(b.N)/float64(time.Millisecond), "write_mean_ms")
-			b.ReportMetric(float64(measurements.writeACK)/float64(b.N)/float64(time.Millisecond), "write_ack_mean_ms")
-			b.ReportMetric(float64(measurements.bytes)/float64(b.N), "bytes/frame")
-			b.ReportMetric(float64(measurements.regions)/float64(b.N), "regions/frame")
-		})
+		for _, sliceCount := range []int{1, 2, 4} {
+			b.Run(fmt.Sprintf("%s/slices=%d", workload, sliceCount), func(b *testing.B) {
+				client := newGraphicsACKClient(b, graphicsACKWidth, graphicsACKHeight)
+				fixture := newGraphicsACKFixture(b, workload, sliceCount)
+				const warmup = 10
+				for frame := range warmup {
+					measureGraphicsACKFrame(b, client, fixture, frame)
+				}
+				measurements := graphicsACKMeasurements{samples: make([]time.Duration, 0, 1024)}
+				frame := warmup
+				var cpuBefore graphicsACKCPU
+				for b.Loop() {
+					if frame == warmup {
+						cpuBefore = client.cpuTime(b)
+					}
+					measurements.add(measureGraphicsACKFrame(b, client, fixture, frame))
+					frame++
+				}
+				cpuAfter := client.cpuTime(b)
+				cpuAfter.report(b, cpuBefore)
+				measurements.validate(b)
+				mean, p50, p95 := measurements.latencies()
+				b.ReportMetric(float64(mean)/float64(time.Millisecond), "ack_mean_ms")
+				b.ReportMetric(float64(p50)/float64(time.Millisecond), "ack_p50_ms")
+				b.ReportMetric(float64(p95)/float64(time.Millisecond), "ack_p95_ms")
+				b.ReportMetric(float64(len(measurements.samples)), "ack_samples")
+				b.ReportMetric(float64(measurements.raced)/float64(b.N), "ack_raced/frame")
+				b.ReportMetric(float64(measurements.write)/float64(b.N)/float64(time.Millisecond), "write_mean_ms")
+				b.ReportMetric(float64(measurements.writeACK)/float64(b.N)/float64(time.Millisecond), "write_ack_mean_ms")
+				b.ReportMetric(float64(measurements.bytes)/float64(b.N), "bytes/frame")
+				b.ReportMetric(float64(measurements.regions)/float64(b.N), "regions/frame")
+			})
+		}
 	}
 }
 

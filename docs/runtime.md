@@ -63,8 +63,9 @@ automatically.
 
 The inherited `-rdp-fd` and `-telemetry-fd` descriptors and the worker's RDP
 tuning flags are internal gateway interfaces, not standalone access modes.
-Configure managed desktop graphics with the gateway's `H264_ENCODER`, `H264_QP`,
-`H264_SLICES`, and `RDP_PROFILE` settings instead. No unsafe public-RDP override is provided.
+Configure managed desktop H.264 quality with the gateway's `H264_QP` setting.
+The software encoder is built in and display pacing is automatic. No unsafe
+public-RDP override is provided.
 
 Guests larger than 3.25 GiB use separate low and high RAM regions, reserving PCI
 address space below 4 GiB. The requested `-m` value is RAM; the device address
@@ -406,31 +407,32 @@ SDL mouse-warp mode is unnecessary. Relative input is advertised only when the
 VM has a relative mouse device and the client supports the protocol extension.
 A virtio-tablet-only guest continues to use absolute input.
 
-### RDP graphics profiles
+<a id="rdp-graphics-profiles"></a>
 
-Managed desktops default to `RDP_PROFILE=office` for a 30 FPS AVC420 cap.
-`RDP_PROFILE=smooth` also caps AVC420 at 30 FPS; both profiles currently behave
-identically. Bitmap output remains capped at 30 FPS. For example, with gateway
-prerequisites configured:
+### RDP graphics pacing
 
-```bash
-RDP_PROFILE=office make gateway
-```
+H.264 display pacing is fixed at 30 FPS, rising to 60 FPS during left-button
+dragging. The boost ends on button release or after 150 ms without drag movement.
+Absolute and relative pointer movement are supported; ordinary pointer motion
+and scrolling keep the base rate. Bitmap output remains capped at 30 FPS.
 
-Configure the gateway with `RDP_PROFILE` or `serve -rdp-profile`; only `office`
-and `smooth` are accepted. The selected
-H.264 cap is applied before copying the framebuffer for encoding and converting
-colors. H.264 still encodes a full picture for each changed output frame:
-the frame cap reduces how often this work runs rather than making the codec
-encode individual dirty rectangles. Pending damage is combined into the next
-frame; unchanged screens do not incur periodic encoding. Input, cursor updates,
-and audio are not rate-limited by the graphics profile.
+The H.264 cap is applied before copying the framebuffer for encoding and
+converting colors. H.264 still encodes a full picture for each changed output
+frame: the frame cap reduces how often this work runs rather than making the
+codec encode individual dirty rectangles. Pending damage is combined into the
+next frame; unchanged screens do not incur periodic encoding. Input, cursor
+updates, and audio are not rate-limited by graphics pacing.
 
-The 30 FPS cap is an upper bound, not a guaranteed frame rate. Changing a managed
-desktop's profile requires restarting its VM. The historical
+The 30/60 FPS rates are upper bounds. Guest publication rate, encoding time,
+and acknowledgement-based congestion control can reduce the delivered rate.
+Dragging retains the existing two-frame acknowledgement window and congestion
+limits. Legacy linear-framebuffer capture stays at 30 FPS, so the boost requires
+faster guest updates.
+Only changed frames are encoded; 60 FPS can roughly double per-second encoding
+work while dragging compared with 30 FPS. The historical
 [four-stream work-budget measurements](benchmarks/office-profile-2026-10-12/README.md)
-compare the earlier 30 FPS office and 60 FPS smooth caps; they do not reflect the
-current identical caps.
+compare earlier fixed 30 FPS and 60 FPS caps; they do not reflect the current
+adaptive pacing.
 
 ### Guest graphics
 
@@ -487,11 +489,8 @@ make devbox-kvm
 # Or: CGO_ENABLED=0 go build -o devbox-kvm .
 ```
 
-The default `H264_ENCODER=software` selects this encoder. `auto` is retained as a
-compatibility alias for the same Go encoder. Other values, including `nvenc`,
-are rejected; remove an old hardware encoder selection before restarting the
-gateway. All application builds use cgo-disabled Go code for the display and
-encoder.
+H.264 output always uses this software encoder. All application builds use
+cgo-disabled Go code for the display and encoder.
 
 Follow the [gateway setup](gateway.md#run-the-gateway-directly) for direct launch.
 All RDP connections still use the gateway UI's downloaded files.
@@ -567,18 +566,15 @@ time waiting for a free acknowledgement slot after the pacing deadline. Zero
 `ack_wait` does not rule out reduced frame rate from adaptive pacing or guest
 rendering. Reported frame rate includes idle time in the reporting window.
 
-Set `H264_SLICES` (or `serve -h264-slices`) to `1`, `2`, or `4` to request
-Go codec parallelism. The worker CPU budget and small pictures can reduce that
-count. More slices can reduce encoding latency while using more CPU concurrently
-and increasing output size, so compare concurrent desktop workloads before
-raising the default. Restart the gateway and start new VM processes to apply
-changes. See the [configuration guide](configuration.md#storage-and-desktops)
-for the CPU cap.
+Display H.264 encoding uses four slices; the codec can use fewer when a picture
+is too small to split into four. This fixed count is independent of guest CPUs
+and the worker's Go execution budget. Available CPU time still limits actual
+parallel execution. Telemetry reports the effective codec slice count.
 
-Managed H.264 sessions with either named profile are capped at 30 fps; the
-standalone encoder API retains its 60 fps default. Bitmap output is capped at
-30 fps. Dirty rectangles reduce pixel conversion/copying, bitmap updates use
-64×64 tiles, and a slow client receives the latest frame rather than an expanding
+H.264 display sessions use 30 fps, rising to 60 during left-button dragging
+when client feedback allows it. The standalone encoder API
+retains its 60 fps default. Bitmap output is capped at 30 fps. Dirty rectangles
+reduce pixel conversion/copying, bitmap updates use 64×64 tiles, and a slow client receives the latest frame rather than an expanding
 queue. H.264 still encodes a complete picture using references to previous
 frames. IDR frames are sent for initialization, resize, refresh, and recovery;
 the software path disables deblocking to reduce latency. A two-frame decode

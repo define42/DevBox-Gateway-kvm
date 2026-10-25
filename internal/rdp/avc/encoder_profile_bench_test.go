@@ -38,7 +38,7 @@ func BenchmarkOfficeProfileBudget(b *testing.B) {
 			}
 			for index := range streams {
 				encoder, err := NewEncoderWithOptions(1920, 1080, Options{
-					Threads: 1, Backend: BackendSoftware, FrameRate: profile.rate,
+					Threads: 1, FrameRate: profile.rate,
 				})
 				if err != nil {
 					b.Fatal(err)

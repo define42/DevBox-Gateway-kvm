@@ -167,8 +167,7 @@ gateway-docker:
 # Compatibility alias: both targets use the bundled Go codec.
 docker docker-purego:
 	./docker/configure.sh
-	H264_ENCODER=software \
-		docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
+	docker compose -f compose.yaml -f compose.cgroup.yaml up --build -d gateway
 
 # Native gateway configuration uses the same ENV keys as the executable.
 # Scope native defaults to this target so Docker uses Compose/.env settings.

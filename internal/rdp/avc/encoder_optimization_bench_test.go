@@ -13,7 +13,7 @@ func BenchmarkSoftwareEncoderConstruction(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				encoder, err := NewEncoderWithOptions(1920, 1080, Options{
-					Backend: BackendSoftware, Threads: slices,
+					Threads: slices,
 				})
 				if err != nil {
 					b.Fatal(err)
@@ -33,7 +33,7 @@ func BenchmarkSoftwareEncoderStartup(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				encoder, err := NewEncoderWithOptions(1920, 1080, Options{
-					Backend: BackendSoftware, Threads: slices,
+					Threads: slices,
 				})
 				if err != nil {
 					b.Fatal(err)

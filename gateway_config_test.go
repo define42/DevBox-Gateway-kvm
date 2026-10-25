@@ -28,14 +28,11 @@ func clearServeEnvironment(t *testing.T) {
 }
 
 //nolint:paralleltest // clearServeEnvironment changes the process environment.
-func TestServeDefaultRDPProfile(t *testing.T) {
+func TestServeDefaultWorkerConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	options, err := readServeOptions([]string{"-auth-file=local.json"}, io.Discard)
 	if err != nil {
 		t.Fatal(err)
-	}
-	if options.manager.RDPProfile != "office" {
-		t.Fatalf("default RDP profile = %q, want office", options.manager.RDPProfile)
 	}
 	if options.manager.VMProfiling {
 		t.Fatal("VM profiling must be disabled by default")
@@ -67,8 +64,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/devbox-kvm",
 		"UEFI_CODE": "/firmware/code.fd", "UEFI_VARS_TEMPLATE": "/firmware/vars.fd",
-		"H264_ENCODER": "software", "H264_QP": "28", "H264_SLICES": "4",
-		"RDP_PROFILE": "smooth", "VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
+		"H264_QP":     "28",
+		"VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
 		"VM_DISK_MAX_SIZE":       "750GiB",
@@ -96,8 +93,8 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 		manager: gateway.ManagerConfig{
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
-			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Encoder: "software", Keyboard: "dk",
-			RDPProfile: "smooth", H264QP: &qp, H264Slices: 4, NetworkPolicy: "internet",
+			Firmware: "/firmware/code.fd", VarsTemplate: "/firmware/vars.fd", Keyboard: "dk",
+			H264QP: &qp, NetworkPolicy: "internet",
 			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
 			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
@@ -145,7 +142,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
 		"LDAP_URL": "ldaps://directory.example.com", "AUTH_FILE": "",
-		"VM_VCPU_COUNT": "8", "VM_MEMORY_BUDGET_MIB": "32768", "ACME_ENABLE": "true", "RDP_PROFILE": "smooth",
+		"VM_VCPU_COUNT": "8", "VM_MEMORY_BUDGET_MIB": "32768", "ACME_ENABLE": "true",
 		"VM_DISK_MAX_SIZE":       "malformed",
 		"VM_MEMORY_OVERHEAD_MIB": "1024", "VM_CGROUP_ROOT": "/delegated/env-workers",
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m", "ADMIN_GROUP": "admins",
@@ -157,7 +154,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		t.Setenv(key, value)
 	}
 	options, err := readServeOptions([]string{
-		"-ldap-url=", "-auth-file=local.json", "-cpus=3", "-memory-budget=0", "-acme=false", "-rdp-profile=office",
+		"-ldap-url=", "-auth-file=local.json", "-cpus=3", "-memory-budget=0", "-acme=false",
 		"-vm-disk-max-size=600GiB",
 		"-memory-overhead=768", "-vm-cgroup-root=/delegated/flag-workers",
 		"-image-upload-limit=10737418240", "-image-upload-timeout=20m", "-ldap-admin-group=",
@@ -170,9 +167,6 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 	}
 	if options.ldap.URL != "" || options.authFile != "local.json" || options.ldap.AdminGroup != "" {
 		t.Fatalf("string overrides not applied: %#v", options)
-	}
-	if options.manager.RDPProfile != "office" {
-		t.Fatalf("RDP profile override = %q, want office", options.manager.RDPProfile)
 	}
 	if options.manager.CPUs != 3 || options.manager.MemoryBudgetMiB != 0 || options.certificates.ACME ||
 		options.manager.VMProfiling {
@@ -323,50 +317,36 @@ func TestServeH264QPConfiguration(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // Verifies environment defaults and explicit flag precedence.
-func TestServeH264SlicesConfiguration(t *testing.T) {
-	for _, test := range []struct {
-		name    string
-		env     string
-		args    []string
-		want    int
-		invalid bool
-	}{
-		{name: "default", want: 1},
-		{name: "one", env: "1", want: 1},
-		{name: "two", env: "2", want: 2},
-		{name: "four", env: "4", want: 4},
-		{name: "trimmed", env: " 2 ", want: 2},
-		{name: "malformed uses default", env: "invalid", want: 1},
-		{name: "flag overrides environment", env: "4", args: []string{"-h264-slices=2"}, want: 2},
-		{name: "flag overrides invalid environment", env: "3", args: []string{"-h264-slices=4"}, want: 4},
-		{name: "environment zero", env: "0", invalid: true},
-		{name: "environment negative", env: "-1", invalid: true},
-		{name: "environment unsupported count", env: "3", invalid: true},
-		{name: "environment above maximum", env: "8", invalid: true},
-		{name: "flag zero", args: []string{"-h264-slices=0"}, invalid: true},
-		{name: "flag unsupported count", args: []string{"-h264-slices=3"}, invalid: true},
-		{name: "flag above maximum", args: []string{"-h264-slices=16"}, invalid: true},
+//nolint:paralleltest // Verifies that retired environment variables have no effect.
+func TestServeIgnoresRemovedEnvironment(t *testing.T) {
+	clearServeEnvironment(t)
+	t.Setenv("H264_ENCODER", "")
+	t.Setenv("H264_SLICES", "")
+	t.Setenv("RDP_PROFILE", "")
+	args := []string{"-auth-file=local.json"}
+	want, err := readServeOptions(args, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct{ name, value string }{
+		{"H264_ENCODER", "software"},
+		{"H264_ENCODER", "auto"},
+		{"H264_ENCODER", "invalid"},
+		{"H264_SLICES", "1"},
+		{"H264_SLICES", "4"},
+		{"H264_SLICES", "invalid"},
+		{"RDP_PROFILE", "office"},
+		{"RDP_PROFILE", "smooth"},
+		{"RDP_PROFILE", "invalid"},
 	} {
-		t.Run(test.name, func(t *testing.T) {
-			clearServeEnvironment(t)
-			if test.env != "" {
-				t.Setenv(config.H264_SLICES, test.env)
-			}
-			options, err := readServeOptions(append([]string{"-auth-file=local.json"}, test.args...), io.Discard)
-			if test.invalid {
-				if !errors.Is(err, errCommandUsage) || !strings.Contains(err.Error(), "H264_SLICES") ||
-					!strings.Contains(err.Error(), "1, 2, or 4") {
-					t.Fatalf("invalid slices error = %v, want named setting and choices", err)
-				}
-
-				return
-			}
+		t.Run(test.name+"="+test.value, func(t *testing.T) {
+			t.Setenv(test.name, test.value)
+			got, err := readServeOptions(args, io.Discard)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if options.manager.H264Slices != test.want {
-				t.Fatalf("slices = %d, want %d", options.manager.H264Slices, test.want)
+			if config.NewSettings().Has(test.name) || !reflect.DeepEqual(got, want) {
+				t.Fatalf("retired %s environment variable changed configuration", test.name)
 			}
 		})
 	}
@@ -414,11 +394,14 @@ func TestServeNetworkDestinationPolicy(t *testing.T) {
 }
 
 //nolint:paralleltest // clearServeEnvironment changes the process environment.
-func TestServeRejectsRemovedGPUFlag(t *testing.T) {
+func TestServeRejectsRemovedFlags(t *testing.T) {
 	clearServeEnvironment(t)
-	for _, arg := range []string{"-gpu-3d=true", "-gpu-3d=false"} {
-		if _, err := readServeOptions([]string{"-auth-file=local.json", arg}, io.Discard); err == nil {
-			t.Fatalf("removed 3D flag accepted: %s", arg)
+	for _, arg := range []string{
+		"-gpu-3d=true", "-gpu-3d=false", "-h264-slices=4", "-rdp-profile=smooth", "-encoder=software",
+	} {
+		_, err := readServeOptions([]string{"-auth-file=local.json", arg}, io.Discard)
+		if err == nil || !strings.Contains(err.Error(), "flag provided but not defined") {
+			t.Fatalf("removed flag %s: got %v, want unknown flag error", arg, err)
 		}
 	}
 }

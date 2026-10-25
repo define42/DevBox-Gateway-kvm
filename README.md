@@ -200,7 +200,7 @@ of the host's entire cgroup hierarchy.
 
 After that host setup, use `make docker` to rebuild and start the gateway and
 LDAP with software rendering and encoding. It selects the base and cgroup
-Compose files and selects `H264_ENCODER=software`. Host Go is not required.
+Compose files. Host Go is not required.
 Every image contains the static Go application and bundled Go H.264 encoder;
 `make docker-purego` is an alias for `make docker`.
 

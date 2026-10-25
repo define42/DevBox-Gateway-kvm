@@ -92,14 +92,14 @@ func TestInheritedRDPListenerSurvivesDisplayRestart(t *testing.T) {
 
 func TestInheritedRDPListenerInitializationFailureDoesNotLeak(t *testing.T) {
 	t.Parallel()
-	for _, failure := range []string{"encoder", "certificate", "missing gateway identity"} {
+	for _, failure := range []string{"QP", "certificate", "missing gateway identity"} {
 		t.Run(failure, func(t *testing.T) {
 			t.Parallel()
 			file, address := reservedRDPFile(t)
 			conf := Config{RDPListenerFile: file, RDPGatewayPID: os.Getppid(), RDPGatewayUID: uint32(os.Geteuid())}
 			switch failure {
-			case "encoder":
-				conf.RDPH264, conf.RDPH264Encoder = true, "invalid"
+			case "QP":
+				conf.RDPH264, conf.RDPH264QP = true, new(-1)
 			case "certificate":
 				conf.RDPCert, conf.RDPKey = "missing.crt", "missing.key"
 			case "missing gateway identity":

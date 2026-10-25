@@ -23,33 +23,28 @@ var (
 	ErrCodec           = errors.New("H.264 encoding failed")
 	ErrClosed          = errors.New("H.264 encoder is closed")
 	ErrThreads         = errors.New("H.264 slice count must be between 1 and 16")
-	ErrBackend         = errors.New("H.264 encoder must be software or auto")
 	ErrFrameRate       = errors.New("H.264 frame rate must be between 1 and 60")
 	ErrQP              = errors.New("H.264 quantizer must be between 0 and 51")
 	ErrPendingFrame    = errors.New("H.264 frame is already prepared")
 	ErrNoPreparedFrame = errors.New("no H.264 frame is prepared")
 )
 
-// Backend preserves compatibility with existing software and auto configurations.
+// Backend identifies the encoder implementation reported in telemetry.
 type Backend string
 
-const (
-	BackendSoftware Backend = "software"
-	// BackendAuto is a compatibility alias for BackendSoftware.
-	BackendAuto Backend = "auto"
-)
+const BackendSoftware Backend = "software"
 
-// Options controls the backend, software slices, frame rate, quantizer, and measurements.
+// Options controls software slices, frame rate, quantizer, and measurements.
 type Options struct {
 	Threads   int
 	Measure   bool
-	Backend   Backend // Empty, software, and auto all select the bundled pure Go encoder.
-	FrameRate int     // Zero selects FrameRate; otherwise must be between 1 and FrameRate.
-	QP        *int    // Nil selects DefaultQP; explicit values range from MinQP to MaxQP.
+	FrameRate int  // Zero selects FrameRate; otherwise must be between 1 and FrameRate.
+	QP        *int // Nil selects DefaultQP; explicit values range from MinQP to MaxQP.
 }
 
-// EncodeStats describes the most recent frame preparation and encoding. Encoding
-// includes damage hints, the codec and preparing its output as the returned Go slice.
+// EncodeStats describes the most recent frame preparation and encoding.
+// Conversion includes exact damage tracking; Encoding includes the codec and
+// preparing its output as the returned Go slice.
 type EncodeStats struct {
 	Conversion time.Duration
 	Encoding   time.Duration
@@ -114,9 +109,6 @@ func NewEncoderWithOptions(width, height int, options Options) (*Encoder, error)
 	if err != nil {
 		return nil, err
 	}
-	if options.Backend != "" && options.Backend != BackendSoftware && options.Backend != BackendAuto {
-		return nil, ErrBackend
-	}
 	codec, threads, err := newCodecEncoder(width, height, options.Threads, frameRate, qp)
 	if err != nil {
 		return nil, err
@@ -142,9 +134,9 @@ func (e *Encoder) QP() int { return e.qp }
 func (e *Encoder) Backend() Backend { return BackendSoftware }
 
 // LastStats returns measurements for the most recent encode or preparation call.
-// After preparation, Encoding includes only damage-hint preparation; EncodePrepared
-// adds codec execution. Measurements
-// are zero when Options.Measure is false; that path does not read the clock.
+// Preparation records Conversion, including exact damage tracking; EncodePrepared
+// records Encoding. Measurements are zero when Options.Measure is false; that
+// path does not read the clock.
 func (e *Encoder) LastStats() EncodeStats { return e.stats }
 
 // Encode scales img to the session dimensions and encodes it. Force requests an

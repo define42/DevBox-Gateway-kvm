@@ -145,7 +145,7 @@ func TestPerfSchemaPrivacyAndDownload(t *testing.T) {
 			want := VMPerformance{
 				State: "live", SampledAt: &sampledAt, SampleIntervalSeconds: &interval,
 				CPUPercent: &cpu, ResidentBytes: &resident, GuestMemoryBytes: 4 << 30, VCPUs: 2,
-				RequestedEncoder: "auto", RDPProfile: "office", Connections: 2, Encoder: "software",
+				RequestedEncoder: "software", RDPProfile: "smooth", Connections: 2, Encoder: "software",
 				FramesSent: 100, FramesPerSecond: &fps, PayloadBytes: 4096, PayloadBytesPerSecond: &payloadRate,
 				EncodeMs: &encode, WriteMs: &write, ACKMs: &ack,
 				Network: &VMNetworkPerformance{

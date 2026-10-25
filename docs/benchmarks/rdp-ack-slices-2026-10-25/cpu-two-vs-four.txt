@@ -1,0 +1,33 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                │      2       │                 4                  │
+                                │    sec/op    │   sec/op     vs base               │
+GraphicsACKFreeRDP/Scroll-8       10.283m ± 2%   9.352m ± 1%  -9.05% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8    5.147m ± 2%   4.951m ± 2%  -3.80% (p=0.000 n=12)
+geomean                            7.275m        6.805m       -6.46%
+
+                                │          2          │                     4                      │
+                                │ client_cpu_ms/frame │ client_cpu_ms/frame  vs base               │
+GraphicsACKFreeRDP/Scroll-8                6.365 ± 2%            6.739 ± 1%  +5.86% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8            3.375 ± 2%            3.585 ± 2%  +6.22% (p=0.000 n=12)
+geomean                                    4.635                 4.915       +6.04%
+
+                                │          2          │                      4                      │
+                                │ server_cpu_ms/frame │ server_cpu_ms/frame  vs base                │
+GraphicsACKFreeRDP/Scroll-8                8.689 ± 1%           11.200 ± 1%  +28.89% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8            4.249 ± 5%            5.474 ± 2%  +28.83% (p=0.000 n=12)
+geomean                                    6.076                 7.830       +28.86%
+
+                                │         2          │                     4                      │
+                                │ total_cpu_ms/frame │ total_cpu_ms/frame  vs base                │
+GraphicsACKFreeRDP/Scroll-8               16.95 ± 2%           19.89 ± 1%  +17.38% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8           9.233 ± 3%          10.745 ± 2%  +16.37% (p=0.000 n=12)
+geomean                                   12.51                14.62       +16.87%
+
+                                │         2         │                    4                     │
+                                │ xvfb_cpu_ms/frame │ xvfb_cpu_ms/frame  vs base               │
+GraphicsACKFreeRDP/Scroll-8              1.910 ± 1%          1.978 ± 2%  +3.56% (p=0.000 n=12)
+GraphicsACKFreeRDP/WindowDrag-8          1.602 ± 1%          1.676 ± 3%  +4.65% (p=0.000 n=12)
+geomean                                  1.749               1.821       +4.10%

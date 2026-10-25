@@ -11,8 +11,8 @@
   Application builds are static with cgo disabled and use the bundled Go H.264 codec.
 - make docker and its make docker-purego alias use Go H.264 with 2D rendering.
   Host GPU acceleration and native guest 3D processing are not supported.
-- H264_ENCODER defaults to software. auto is a compatibility alias for software;
-  nvenc is unsupported. Both office and smooth profiles cap H.264 at 30 FPS.
+- H.264 always uses the bundled Go software encoder with four slices. Display
+  pacing is 30 FPS, rising to 60 during left-button dragging when client feedback allows it.
 - Requires Go 1.26.0 or newer. Running guests requires Linux KVM access.
 - This is experimental software, not a production security boundary.
 

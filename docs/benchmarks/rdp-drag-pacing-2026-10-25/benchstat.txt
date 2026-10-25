@@ -1,0 +1,95 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                          │     30      │                 60                 │
+                          │   sec/op    │   sec/op     vs base               │
+GraphicsDragPacingFreeRDP   33.96m ± 1%   17.67m ± 4%  -47.98% (p=0.002 n=6)
+
+                          │     30      │                 60                 │
+                          │ ack_mean_ms │ ack_mean_ms  vs base               │
+GraphicsDragPacingFreeRDP   8.162 ± 21%   5.221 ± 32%  -36.04% (p=0.004 n=6)
+
+                          │     30      │                 60                 │
+                          │ ack_p50_ms  │ ack_p50_ms   vs base               │
+GraphicsDragPacingFreeRDP   8.887 ± 29%   4.172 ± 54%  -53.05% (p=0.004 n=6)
+
+                          │     30     │              60              │
+                          │ ack_p95_ms │ ack_p95_ms   vs base         │
+GraphicsDragPacingFreeRDP   11.47 ± 9%   10.84 ± 52%  ~ (p=0.093 n=6)
+
+                          │       30        │                 60                 │
+                          │ ack_raced/frame │ ack_raced/frame  vs base           │
+GraphicsDragPacingFreeRDP        0.000 ± 0%        0.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                          │     30      │               60               │
+                          │ ack_samples │ ack_samples  vs base           │
+GraphicsDragPacingFreeRDP    120.0 ± 0%    120.0 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                          │     30     │                60                 │
+                          │ actual_fps │ actual_fps  vs base               │
+GraphicsDragPacingFreeRDP   29.44 ± 1%   56.60 ± 4%  +92.26% (p=0.002 n=6)
+
+                          │      30      │               60                │
+                          │ bytes/frame  │ bytes/frame   vs base           │
+GraphicsDragPacingFreeRDP   5.085Ki ± 0%   5.085Ki ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                          │         30          │                     60                     │
+                          │ client_cpu_ms/frame │ client_cpu_ms/frame  vs base               │
+GraphicsDragPacingFreeRDP          10.365 ± 20%           6.603 ± 37%  -36.30% (p=0.004 n=6)
+
+                          │       30       │                  60                   │
+                          │ client_cpu_pct │ client_cpu_pct  vs base               │
+GraphicsDragPacingFreeRDP      30.48 ± 20%      37.31 ± 31%  +22.39% (p=0.015 n=6)
+
+                          │          30           │                   60                   │
+                          │ deadline_misses/frame │ deadline_misses/frame  vs base         │
+GraphicsDragPacingFreeRDP                0.0m ± ?           145.8m ± 163%  ? (p=0.004 n=6)
+
+                          │         30         │                    60                     │
+                          │ frame_work_mean_ms │ frame_work_mean_ms  vs base               │
+GraphicsDragPacingFreeRDP         15.420 ± 22%          9.716 ± 35%  -36.99% (p=0.004 n=6)
+
+                          │      30       │                60                │
+                          │ regions/frame │ regions/frame  vs base           │
+GraphicsDragPacingFreeRDP      1.000 ± 0%      1.000 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+                          │         30          │                     60                     │
+                          │ server_cpu_ms/frame │ server_cpu_ms/frame  vs base               │
+GraphicsDragPacingFreeRDP          13.615 ± 23%           8.402 ± 36%  -38.29% (p=0.004 n=6)
+
+                          │       30       │               60                │
+                          │ server_cpu_pct │ server_cpu_pct  vs base         │
+GraphicsDragPacingFreeRDP      40.08 ± 22%      47.48 ± 30%  ~ (p=0.065 n=6)
+
+                          │     30     │                 60                 │
+                          │ target_fps │ target_fps  vs base                │
+GraphicsDragPacingFreeRDP   30.00 ± 0%   60.00 ± 0%  +100.00% (p=0.002 n=6)
+
+                          │         30         │                    60                     │
+                          │ total_cpu_ms/frame │ total_cpu_ms/frame  vs base               │
+GraphicsDragPacingFreeRDP          27.41 ± 21%          17.29 ± 36%  -36.94% (p=0.004 n=6)
+
+                          │      30       │                  60                  │
+                          │ total_cpu_pct │ total_cpu_pct  vs base               │
+GraphicsDragPacingFreeRDP     80.69 ± 21%     97.66 ± 31%  +21.04% (p=0.026 n=6)
+
+                          │        30         │                    60                    │
+                          │ write_ack_mean_ms │ write_ack_mean_ms  vs base               │
+GraphicsDragPacingFreeRDP         8.396 ± 21%         5.377 ± 32%  -35.96% (p=0.004 n=6)
+
+                          │      30       │                  60                  │
+                          │ write_mean_ms │ write_mean_ms  vs base               │
+GraphicsDragPacingFreeRDP    192.2m ± 22%    129.2m ± 18%  -32.77% (p=0.002 n=6)
+
+                          │        30         │                    60                    │
+                          │ xvfb_cpu_ms/frame │ xvfb_cpu_ms/frame  vs base               │
+GraphicsDragPacingFreeRDP         3.438 ± 15%         2.280 ± 38%  -33.67% (p=0.004 n=6)
+
+                          │      30      │                 60                  │
+                          │ xvfb_cpu_pct │ xvfb_cpu_pct  vs base               │
+GraphicsDragPacingFreeRDP    10.12 ± 15%    12.88 ± 32%  +27.32% (p=0.004 n=6)

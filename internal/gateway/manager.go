@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/disk"
-	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	"github.com/define42/DevBox-Gateway-kvm/internal/workersandbox"
 	"golang.org/x/sys/unix"
@@ -37,10 +36,8 @@ const defaultMaxCreations = 2
 type ManagerConfig struct {
 	DataDir, Binary, BaseImage, Firmware, VarsTemplate string
 	H264QP                                             *int // Nil selects QP 20; explicit 0 is valid.
-	H264Slices                                         int  // Software slices: 1, 2, or 4; zero defaults to 1.
-	Encoder, Keyboard                                  string
-	RDPProfile                                         string // office (default) or smooth; both cap at 30 FPS.
-	VMProfiling                                        bool   // Opt-in private per-worker CPU profiling sockets.
+	Keyboard                                           string
+	VMProfiling                                        bool // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning         int
 	MemoryBudgetMiB                                    int    // Zero selects an automatic host-memory budget.
 	MemoryOverheadMiB                                  int    // Host-side worker allowance above guest RAM.
@@ -248,12 +245,6 @@ func normalizeManagerLimits(c *ManagerConfig) error {
 	if err := normalizeWorkerMemoryConfig(c); err != nil {
 		return err
 	}
-	if c.RDPProfile == "" {
-		c.RDPProfile = rdp.ProfileOffice
-	}
-	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil {
-		return fmt.Errorf("invalid RDP profile %q: %w", c.RDPProfile, ErrInvalid)
-	}
 	if err := normalizeManagerStorageLimits(c); err != nil {
 		return err
 	}
@@ -281,12 +272,6 @@ func normalizeManagerLimits(c *ManagerConfig) error {
 	if c.MemoryBudgetMiB < 0 || c.MemoryBudgetMiB > 1<<30 {
 		return fmt.Errorf("memory budget must be between 0 and 1073741824 MiB: %w", ErrInvalid)
 	}
-	if c.Encoder == "" || c.Encoder == "auto" {
-		c.Encoder = "software"
-	}
-	if c.Encoder != "software" {
-		return fmt.Errorf("invalid H.264 encoder: %w", ErrInvalid)
-	}
 	if c.Keyboard == "" {
 		c.Keyboard = "us"
 	}
@@ -310,13 +295,6 @@ func normalizeH264Config(c *ManagerConfig) error {
 	}
 	// Own the resolved value so caller mutations cannot change future launches.
 	c.H264QP = &qp
-	switch c.H264Slices {
-	case 0:
-		c.H264Slices = 1
-	case 1, 2, 4:
-	default:
-		return fmt.Errorf("H264_SLICES must be 1, 2, or 4: %w", ErrInvalid)
-	}
 
 	return nil
 }
@@ -722,10 +700,8 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-net-policy", m.config.NetworkPolicy, "-net-allow-cidrs", m.config.NetworkAllowCIDRs,
 		"-rdp-fd", "3",
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
-		"-rdp-h264", "-rdp-h264-encoder", m.config.Encoder,
+		"-rdp-h264",
 		"-rdp-h264-qp", fmt.Sprint(*m.config.H264QP),
-		"-rdp-h264-threads", strconv.Itoa(m.config.H264Slices),
-		"-rdp-profile", m.config.RDPProfile,
 		"-audio", "rdp",
 	}
 	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.

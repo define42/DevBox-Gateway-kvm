@@ -358,18 +358,18 @@ func TestManagerPerformanceConfiguration(t *testing.T) {
 			}
 			m := &Manager{
 				ctx: t.Context(), vms: map[string]*managedVM{record.ID: v},
-				config: ManagerConfig{CPUs: 2, MemoryMiB: 4096, Encoder: "auto", RDPProfile: "office"},
+				config: ManagerConfig{CPUs: 2, MemoryMiB: 4096},
 			}
 			got, err := m.Performance(t.Context(), "alice", record.ID)
 			if err != nil || got.State != test.want {
 				t.Fatalf("performance state = %+v, %v; want %s", got, err, test.want)
 			}
 			if got.VCPUs != 2 || got.GuestMemoryBytes != 4<<30 ||
-				got.RequestedEncoder != "auto" || got.RDPProfile != "office" {
+				got.RequestedEncoder != "software" || got.RDPProfile != "smooth" {
 				t.Fatalf("configuration missing or replaced by observed backend: %+v", got)
 			}
 			if test.want == "live" && got.Encoder != "software" {
-				t.Fatalf("observed encoder = %q, want software independently of requested auto", got.Encoder)
+				t.Fatalf("observed encoder = %q, want software", got.Encoder)
 			}
 		})
 	}

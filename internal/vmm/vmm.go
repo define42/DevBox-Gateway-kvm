@@ -12,7 +12,6 @@ import (
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/machine"
 	"github.com/define42/DevBox-Gateway-kvm/internal/pvh"
-	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 	"github.com/define42/DevBox-Gateway-kvm/internal/term"
@@ -26,13 +25,7 @@ var errNetworkConfig = errors.New(
 
 var errAudioConfig = errors.New("audio must be 'none' or 'rdp'; 'rdp' requires an RDP listener")
 
-var errRDPH264ThreadsConfig = errors.New("RDP H.264 slices must be 0 (auto) or 1..16; a slice count requires H.264")
-
-var errRDPH264EncoderConfig = errors.New("RDP H.264 encoder must be software or auto and requires H.264")
-
 var errRDPH264QPConfig = errors.New("RDP H.264 QP must be between 0 and 51; an explicit QP requires H.264")
-
-var errRDPProfileConfig = errors.New("RDP profile must be office or smooth and requires an RDP listener")
 
 var errRDPStatsConfig = errors.New("RDP statistics require an RDP listener")
 
@@ -60,14 +53,11 @@ type Config struct {
 	Disk              string
 	DiskSizeBytes     int64 // Fixed QCOW2 capacity; zero resolves once for standalone boot.
 	CloudInit         string
-	RDPProfile        string
 	RDPWait           bool
 	RDPCert           string
 	RDPKey            string
 	RDPH264           bool
-	RDPH264Encoder    string
 	RDPH264QP         *int // Nil selects QP 20; 0..51 selects quality, with lower values using more bandwidth.
-	RDPH264Threads    int
 	RDPStats          bool
 	Audio             string // Empty or "none" disables audio; "rdp" requires RDPListenerFile.
 	NCPUs             int
@@ -109,24 +99,6 @@ func New(c Config) *VMM {
 }
 
 func (v *VMM) validateRDPPerformanceConfig() error {
-	if _, err := rdp.ProfileFrameRate(v.RDPProfile); err != nil || (v.RDPProfile != "" && v.RDPListenerFile == nil) {
-		return errRDPProfileConfig
-	}
-	switch v.RDPH264Encoder {
-	case "", "software", "auto":
-	default:
-
-		return errRDPH264EncoderConfig
-	}
-	if v.RDPH264Encoder != "" && !v.RDPH264 {
-		return errRDPH264EncoderConfig
-	}
-	if v.RDPH264 {
-		v.RDPH264Encoder = "software"
-	}
-	if v.RDPH264Threads < 0 || v.RDPH264Threads > 16 || (v.RDPH264Threads != 0 && !v.RDPH264) {
-		return errRDPH264ThreadsConfig
-	}
 	if _, err := avc.ResolveQP(v.RDPH264QP); err != nil || (v.RDPH264QP != nil && !v.RDPH264) {
 		return errRDPH264QPConfig
 	}

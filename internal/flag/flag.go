@@ -9,7 +9,6 @@ import (
 
 	"github.com/define42/DevBox-Gateway-kvm/internal/config"
 	"github.com/define42/DevBox-Gateway-kvm/internal/ebda"
-	"github.com/define42/DevBox-Gateway-kvm/internal/rdp"
 	"github.com/define42/DevBox-Gateway-kvm/internal/rdp/avc"
 	"github.com/define42/DevBox-Gateway-kvm/internal/usernet"
 )
@@ -20,13 +19,7 @@ var ErrRDPOptions = errors.New("RDP certificate and key must be provided togethe
 
 var ErrRDPH264 = errors.New("-rdp-h264 requires gateway-internal -rdp-fd")
 
-var ErrRDPProfile = errors.New("-rdp-profile must be office or smooth and requires gateway-internal -rdp-fd")
-
-var ErrRDPH264Encoder = errors.New("-rdp-h264-encoder must be software or auto and requires -rdp-h264")
-
 var ErrRDPH264QP = errors.New("-rdp-h264-qp must be between 0 and 51 and requires -rdp-h264")
-
-var ErrRDPH264Threads = errors.New("-rdp-h264-threads must be 0 (auto) or 1..16 and requires -rdp-h264")
 
 var ErrRDPStats = errors.New("-rdp-stats requires gateway-internal -rdp-fd")
 
@@ -63,7 +56,6 @@ type BootArgs struct {
 	Disk              string
 	DiskSizeBytes     int64
 	CloudInit         string
-	RDPProfile        string
 	RDPFD             int
 	TelemetryFD       int
 	ProfileSocket     string
@@ -71,9 +63,7 @@ type BootArgs struct {
 	RDPCert           string
 	RDPKey            string
 	RDPH264           bool
-	RDPH264Encoder    string
 	RDPH264QP         int
-	RDPH264Threads    int
 	RDPStats          bool
 	Audio             string
 	TraceCount        int
@@ -110,8 +100,6 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 		"fixed primary disk capacity in bytes; standalone resolves once if omitted")
 	bootCmd.StringVar(&c.CloudInit, "cloud-init", "",
 		"path to a NoCloud/CIDATA seed ISO attached as a read-only secondary disk (requires -d)")
-	bootCmd.StringVar(&c.RDPProfile, "rdp-profile", rdp.ProfileSmooth,
-		"gateway-internal RDP display profile: office or smooth (both 30 FPS); requires -rdp-fd")
 	bootCmd.IntVar(&c.RDPFD, "rdp-fd", 0,
 		"gateway-internal inherited Unix listener descriptor (>=3); 0 disables RDP")
 	bootCmd.IntVar(&c.TelemetryFD, "telemetry-fd", 0,
@@ -125,13 +113,8 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	bootCmd.StringVar(&c.RDPKey, "rdp-key", "", "RDP TLS private key PEM file")
 	bootCmd.BoolVar(&c.RDPH264, "rdp-h264", false,
 		"enable H.264 AVC420 graphics for compatible RDP clients")
-	bootCmd.StringVar(&c.RDPH264Encoder, "rdp-h264-encoder", "software",
-		"H.264 encoder: software or auto (alias for the bundled pure Go encoder); requires -rdp-h264")
 	bootCmd.IntVar(&c.RDPH264QP, "rdp-h264-qp", avc.DefaultQP,
 		"H.264 quantization: min 0, max 51; lower means higher quality and more bandwidth (requires -rdp-h264)")
-	bootCmd.IntVar(&c.RDPH264Threads, "rdp-h264-threads", 0,
-		"software H.264 slices: 0 selects one automatically, "+
-			"1..16 requests a count within the host budget (requires -rdp-h264)")
 	bootCmd.BoolVar(&c.RDPStats, "rdp-stats", false, "log RDP performance statistics every 5 seconds")
 	bootCmd.StringVar(&c.Audio, "audio", "", "audio output: rdp (virtio-snd playback through RDP) or none (default)")
 
@@ -153,19 +136,13 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if c.NCPUs < 1 || c.NCPUs > ebda.MaxVCPUs {
 		return nil, ErrCPUCount
 	}
-	var threadsSet, encoderSet, profileSet, qpSet bool
+	var qpSet bool
 	bootCmd.Visit(func(f *flag.Flag) {
 		switch f.Name {
 		case "p":
 			c.ParamsSet = true
-		case "rdp-h264-threads":
-			threadsSet = true
-		case "rdp-h264-encoder":
-			encoderSet = true
 		case "rdp-h264-qp":
 			qpSet = true
-		case "rdp-profile":
-			profileSet = true
 		}
 	})
 	if c.CloudInit != "" && c.Disk == "" {
@@ -174,7 +151,7 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	if err := selectUEFIBootSource(bootCmd, c); err != nil {
 		return nil, err
 	}
-	if err := validateRDPOptions(c, threadsSet, encoderSet, profileSet, qpSet); err != nil {
+	if err := validateRDPOptions(c, qpSet); err != nil {
 		return nil, err
 	}
 	if err := validateTelemetryOptions(c); err != nil {
@@ -202,12 +179,9 @@ func parseBootArgs(args []string) (*BootArgs, error) {
 	return c, nil
 }
 
-func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet, qpSet bool) error {
+func validateRDPOptions(c *BootArgs, qpSet bool) error {
 	if c.RDPFD != 0 && c.RDPFD < 3 {
 		return ErrRDPFD
-	}
-	if _, err := rdp.ProfileFrameRate(c.RDPProfile); err != nil || c.RDPProfile == "" || (profileSet && c.RDPFD == 0) {
-		return ErrRDPProfile
 	}
 	if (c.RDPCert == "") != (c.RDPKey == "") || (c.RDPCert != "" && c.RDPFD == 0) {
 		return ErrRDPOptions
@@ -215,7 +189,7 @@ func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet, qpSet b
 	if c.RDPWait && c.RDPFD == 0 {
 		return ErrRDPWait
 	}
-	if err := validateRDPH264Options(c, threadsSet, encoderSet, qpSet); err != nil {
+	if err := validateRDPH264Options(c, qpSet); err != nil {
 		return err
 	}
 	if c.RDPStats && c.RDPFD == 0 {
@@ -228,21 +202,9 @@ func validateRDPOptions(c *BootArgs, threadsSet, encoderSet, profileSet, qpSet b
 	return nil
 }
 
-func validateRDPH264Options(c *BootArgs, threadsSet, encoderSet, qpSet bool) error {
+func validateRDPH264Options(c *BootArgs, qpSet bool) error {
 	if c.RDPH264 && c.RDPFD == 0 {
 		return ErrRDPH264
-	}
-	switch c.RDPH264Encoder {
-	case "software", "auto":
-	default:
-		return ErrRDPH264Encoder
-	}
-	if encoderSet && !c.RDPH264 {
-		return ErrRDPH264Encoder
-	}
-	c.RDPH264Encoder = "software"
-	if c.RDPH264Threads < 0 || c.RDPH264Threads > 16 || (threadsSet && !c.RDPH264) {
-		return ErrRDPH264Threads
 	}
 	if _, err := avc.ResolveQP(&c.RDPH264QP); err != nil || (qpSet && !c.RDPH264) {
 		return ErrRDPH264QP

@@ -23,10 +23,7 @@ const (
 	VM_NETWORK_ALLOW_CIDRS     = "VM_NETWORK_ALLOW_CIDRS"
 	UEFI_CODE                  = "UEFI_CODE"
 	UEFI_VARS_TEMPLATE         = "UEFI_VARS_TEMPLATE"
-	H264_ENCODER               = "H264_ENCODER"
 	H264_QP                    = "H264_QP"
-	H264_SLICES                = "H264_SLICES"
-	RDP_PROFILE                = "RDP_PROFILE"
 	GATEWAY_VM_PROFILING       = "GATEWAY_VM_PROFILING"
 	VM_KEYBOARD                = "VM_KEYBOARD"
 	VM_VCPU_COUNT              = "VM_VCPU_COUNT"
@@ -128,11 +125,8 @@ func NewSettings() *Settings {
 		"empty denies LAN/host access", "")
 	s.SetString(UEFI_CODE, "OVMF CODE firmware", "/usr/share/OVMF/OVMF_CODE_4M.fd")
 	s.SetString(UEFI_VARS_TEMPLATE, "Matching pristine OVMF variables template", "/usr/share/OVMF/OVMF_VARS_4M.fd")
-	s.SetString(H264_ENCODER, "H.264 encoder: software (bundled pure Go); auto is a compatibility alias", "software")
 	s.SetInt(H264_QP, "H.264 quantizer: min 0, max 51; lower = higher quality/more bandwidth, "+
 		"higher = more compression", 20)
-	s.SetInt(H264_SLICES, "Software H.264 slices: 1, 2, or 4, limited by the worker CPU budget", 1)
-	s.SetString(RDP_PROFILE, "Desktop graphics profile: office or smooth (both 30 FPS)", "office")
 	s.SetBool(GATEWAY_VM_PROFILING, "Enable private, on-demand VM worker CPU profiling sockets", false)
 	s.SetString(VM_KEYBOARD, "Guest keyboard layout", "us")
 	s.SetInt(VM_VCPU_COUNT, "vCPUs per desktop", 2)

@@ -52,25 +52,22 @@ func (e *Encoder) prepareFrame(img *image.RGBA, regions []image.Rectangle, force
 	changed := !e.initialized || e.retry
 	output := image.Rect(0, 0, e.width, e.height)
 	fullConversion := force || regions == nil || !e.initialized || e.source != img.Rect
-	if fullConversion {
+	_, supportsDamage := e.codec.(damageCodecEncoder)
+	trackChanges := supportsDamage && !fullConversion && !e.retry
+	switch {
+	case fullConversion:
 		changed = e.convertPreparedRegion(img, output, bgrx) || changed
-	} else {
+	case trackChanges:
+		changed = e.convertDamageWithHints(img, regions, bgrx) || changed
+	default:
 		changed = e.convertDamage(img, regions, bgrx) || changed
 	}
 	e.source, e.initialized = img.Rect, true
 	if e.measure {
 		e.stats.Conversion = time.Since(started)
-		started = time.Now()
 	}
 	e.prepared, e.preparedChanged, e.preparedForce = true, force || changed, force || e.retry
-	_, supportsDamage := e.codec.(damageCodecEncoder)
-	e.preparedHints = supportsDamage && !fullConversion && !e.preparedForce && e.preparedChanged
-	if e.preparedHints {
-		e.unchangedMacroblocks(img.Rect, regions)
-	}
-	if e.measure && e.preparedChanged {
-		e.stats.Encoding = time.Since(started)
-	}
+	e.preparedHints = trackChanges && e.preparedChanged
 
 	return nil
 }

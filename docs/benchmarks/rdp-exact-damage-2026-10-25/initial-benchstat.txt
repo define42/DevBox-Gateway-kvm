@@ -1,0 +1,92 @@
+goos: linux
+goarch: amd64
+pkg: github.com/define42/DevBox-Gateway-kvm/internal/rdp
+cpu: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+                                         │ initial-before.txt │          initial-after.txt          │
+                                         │       sec/op       │    sec/op     vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8             12.76m ± 35%   12.62m ± 19%       ~ (p=0.630 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8         6.820m ± 28%   6.937m ± 20%       ~ (p=0.514 n=12)
+geomean                                          9.328m         9.359m        +0.33%
+
+                                         │ initial-before.txt │         initial-after.txt          │
+                                         │    ack_mean_ms     │ ack_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8              6.311 ± 34%   6.243 ± 20%       ~ (p=0.932 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8          3.556 ± 30%   3.646 ± 21%       ~ (p=0.266 n=12)
+geomean                                           4.737         4.771        +0.71%
+
+                                         │ initial-before.txt │         initial-after.txt          │
+                                         │     ack_p50_ms     │ ack_p50_ms   vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8              5.988 ± 25%   5.870 ± 26%       ~ (p=0.640 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8          3.503 ± 26%   3.580 ± 19%       ~ (p=0.810 n=12)
+geomean                                           4.580         4.584        +0.09%
+
+                                         │ initial-before.txt │         initial-after.txt          │
+                                         │     ack_p95_ms     │ ack_p95_ms   vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8              9.898 ± 60%   9.953 ± 17%       ~ (p=0.855 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8          4.639 ± 46%   5.019 ± 40%       ~ (p=0.143 n=12)
+geomean                                           6.776         7.068        +4.30%
+
+                                         │ initial-before.txt │            initial-after.txt             │
+                                         │  ack_raced/frame   │ ack_raced/frame  vs base                 │
+GraphicsACKFreeRDP/Scroll/slices=2-8             0.000 ± 0%          0.000 ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag/slices=2-8         0.000 ± 0%          0.000 ± 0%       ~ (p=1.000 n=12) ¹
+geomean                                                     ²                    +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                         │ initial-before.txt │          initial-after.txt           │
+                                         │    ack_samples     │ ack_samples  vs base                 │
+GraphicsACKFreeRDP/Scroll/slices=2-8               100.0 ± 0%    100.0 ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag/slices=2-8           100.0 ± 0%    100.0 ± 0%       ~ (p=1.000 n=12) ¹
+geomean                                            100.0         100.0       +0.00%
+¹ all samples are equal
+
+                                         │ initial-before.txt │           initial-after.txt           │
+                                         │    bytes/frame     │ bytes/frame   vs base                 │
+GraphicsACKFreeRDP/Scroll/slices=2-8             62.01Ki ± 0%   62.01Ki ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag/slices=2-8         5.079Ki ± 0%   5.079Ki ± 0%       ~ (p=1.000 n=12) ¹
+geomean                                          17.75Ki        17.75Ki       +0.00%
+¹ all samples are equal
+
+                                         │ initial-before.txt  │             initial-after.txt              │
+                                         │ client_cpu_ms/frame │ client_cpu_ms/frame  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8               8.099 ± 21%           7.989 ± 17%       ~ (p=0.887 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8           4.431 ± 25%           4.595 ± 15%       ~ (p=0.378 n=12)
+geomean                                            5.991                 6.059        +1.14%
+
+                                         │ initial-before.txt │           initial-after.txt            │
+                                         │   regions/frame    │ regions/frame  vs base                 │
+GraphicsACKFreeRDP/Scroll/slices=2-8               1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=12) ¹
+GraphicsACKFreeRDP/WindowDrag/slices=2-8           1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=12) ¹
+geomean                                            1.000           1.000       +0.00%
+¹ all samples are equal
+
+                                         │ initial-before.txt  │             initial-after.txt              │
+                                         │ server_cpu_ms/frame │ server_cpu_ms/frame  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8               10.55 ± 22%           10.39 ± 14%       ~ (p=0.319 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8           5.597 ± 15%           5.741 ±  6%       ~ (p=0.887 n=12)
+geomean                                            7.686                 7.725        +0.51%
+
+                                         │ initial-before.txt │             initial-after.txt             │
+                                         │ total_cpu_ms/frame │ total_cpu_ms/frame  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8              21.38 ± 21%          21.13 ± 15%       ~ (p=0.619 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8          12.37 ± 19%          12.64 ± 12%       ~ (p=0.355 n=12)
+geomean                                           16.26                16.35        +0.50%
+
+                                         │ initial-before.txt │            initial-after.txt             │
+                                         │ write_ack_mean_ms  │ write_ack_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8              6.556 ± 34%         6.492 ± 20%       ~ (p=0.946 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8          3.659 ± 30%         3.755 ± 22%       ~ (p=0.272 n=12)
+geomean                                           4.898               4.937        +0.79%
+
+                                         │ initial-before.txt │          initial-after.txt           │
+                                         │   write_mean_ms    │ write_mean_ms  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8             224.2m ± 44%    225.2m ± 16%       ~ (p=0.590 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8         87.97m ± 18%    89.64m ± 70%       ~ (p=0.630 n=12)
+geomean                                          140.4m          142.1m        +1.18%
+
+                                         │ initial-before.txt │            initial-after.txt             │
+                                         │ xvfb_cpu_ms/frame  │ xvfb_cpu_ms/frame  vs base               │
+GraphicsACKFreeRDP/Scroll/slices=2-8              2.760 ± 10%         2.768 ± 15%       ~ (p=0.932 n=12)
+GraphicsACKFreeRDP/WindowDrag/slices=2-8          2.331 ± 19%         2.447 ± 12%       ~ (p=0.291 n=12)
+geomean                                           2.536               2.603        +2.63%

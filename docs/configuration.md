@@ -55,10 +55,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_NETWORK_ALLOW_CIDRS` | Empty | `-vm-network-allow-cidrs` | Up to 64 comma-separated canonical IPv4 CIDRs allowed in addition to the policy. No `/0` or IPv6. Applies to newly started workers; host alias access requires `127.0.0.1/32`. See [networking](runtime.md#networking). |
 | `UEFI_CODE` | `/usr/share/OVMF/OVMF_CODE_4M.fd` | `-uefi` | OVMF CODE firmware. |
 | `UEFI_VARS_TEMPLATE` | `/usr/share/OVMF/OVMF_VARS_4M.fd` | `-uefi-vars-template` | Matching pristine variables template, copied per VM. |
-| `H264_ENCODER` | `software` | `-encoder` | Bundled pure Go H.264. `auto` is a compatibility alias for `software`; other values are rejected. |
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
-| `H264_SLICES` | `1` | `-h264-slices` | Requested Go H.264 slices: `1`, `2`, or `4`. The worker CPU budget and picture size can reduce the count. Applies when a managed VM starts. |
-| `RDP_PROFILE` | `office` | `-rdp-profile` | AVC420 cap: `office` or `smooth`, both 30 FPS with identical behavior; bitmap fallback also stays at 30 FPS. Applies when a managed VM starts. |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
 | `VM_VCPU_COUNT` | `2` | `-cpus` | vCPUs per desktop, from 1 to 64. |
@@ -76,8 +73,8 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Guest ACPI shutdown wait; a dashboard stop timeout leaves the guest running. Gateway exit also has separate forced-termination and host-cleanup waits. |
 
-Guest graphics use the pure Go 2D virtio-gpu framebuffer. No host GPU settings
-or native graphics libraries are required.
+Guest graphics use the pure Go 2D virtio-gpu framebuffer and the bundled Go
+software H.264 encoder. No host GPU settings or native graphics libraries are required.
 
 `H264_QP` configures the bundled Go encoder. Zero is valid and selects the highest
 supported quality; AVC420 still uses chroma subsampling, so it does not promise lossless RGB. QP controls compression, not a
@@ -88,14 +85,15 @@ to apply the change; reconnecting RDP does not apply it.
 Every build uses the bundled Go codec with cgo disabled. No codec build selector
 or native codec SDK is needed.
 
-Set `H264_SLICES=2` (or `serve -h264-slices=2`) to try parallel encoding
-with the bundled Go codec. The default remains `1`. More slices can lower frame
-encoding latency while using more CPU concurrently and producing larger frames;
-compare concurrent desktops before choosing `4`. The cap subtracts the configured guest CPUs and
-one additional CPU from the worker's Go execution budget, allowing at least one
-slice. For example, a budget of four with two guest CPUs permits only one slice.
-This is a per-worker cap, not a CPU reservation across VMs.
-Restart the gateway and start new VM processes to apply a change.
+Display H.264 encoding uses four slices. The codec can use fewer for pictures
+that are too small to split into four slices. The count is fixed in the display
+implementation and is not reduced according to the guest CPU count or host CPU
+budget. Actual encoding concurrency still depends on available CPU time.
+
+Display pacing is fixed at 30 FPS, rising to 60 during left-button dragging.
+The boost ends on release or after 150 ms without drag movement. Bitmap fallback
+stays at 30 FPS, and client acknowledgements can reduce the H.264 rate. See
+[RDP graphics pacing](runtime.md#rdp-graphics-pacing) for the full behavior.
 
 Managed desktops enable virtio-snd playback over RDP automatically; there is no
 separate gateway audio setting. Guests need the `snd_virtio` driver and an audio
@@ -266,21 +264,6 @@ See [storage capacity responsibility](storage-isolation.md).
 port aligned with the Compose port mapping and the state directory aligned with
 its bind mount.
 
-Existing Compose `.env` files continue to work. These legacy Compose variables
-are used only when the corresponding canonical variable is unset:
-
-| Legacy Compose variable | Canonical environment variable |
-| --- | --- |
-| `GATEWAY_ENCODER` | `H264_ENCODER` |
-| `GATEWAY_CPUS` | `VM_VCPU_COUNT` |
-| `GATEWAY_MEMORY` | `VM_MEMORY_MIB` |
-| `GATEWAY_MAX_RUNNING` | `MAX_RUNNING_VMS` |
-| `GATEWAY_ACME` | `ACME_ENABLE` |
-| `GATEWAY_ACME_EMAIL` | `ACME_EMAIL` |
-| `GATEWAY_ACME_CA` | `ACME_CA` |
-
-Canonical variables take precedence even when explicitly empty. Rename legacy
-entries when migrating; avoid retaining conflicting values. The executable
-itself reads the canonical names only. The native `make gateway` workflow also
-retains its existing Make helpers and aliases; see the
-[development setup](gateway.md#local-development-setup).
+Compose uses the runtime environment names listed above. Set them in `.env` or
+export them in the shell. The native `make gateway` workflow retains its Make
+helpers and aliases; see the [development setup](gateway.md#local-development-setup).

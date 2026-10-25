@@ -15,8 +15,6 @@ The example uses matching OVMF CODE/VARS files, Docker with the Compose plugin,
 and OpenSSL. Image imports use the built-in Go QCOW2 normalizer.
 No desktop image is required at startup. The `make gateway` target builds with
 the bundled pure Go H.264 encoder and requires no C compiler or native codec SDK.
-The default encoder setting is `software`; `auto` remains a compatibility alias
-for the same Go encoder.
 
 ```bash
 make gateway
@@ -82,7 +80,6 @@ To build the application and start LDAP separately:
 ```bash
 make devbox-kvm
 make ldap
-H264_ENCODER=software \
 LDAP_URL=ldaps://127.0.0.1:1636 LDAP_BASE_DN=dc=glauth,dc=com \
 LDAP_USER_DOMAIN=example.com LDAP_USER_FILTER='(mail=%s)' \
 LDAP_USERNAME_ATTRIBUTE=mail \
@@ -177,9 +174,9 @@ binary to enable collection. No additional Docker ports or guest packages are
 required.
 
 The authenticated `GET /perf` endpoint exports an owner-scoped JSON report for
-diagnosis, with actual encoder, configured vCPUs/encoder/profile, CPU/RSS, frame
-and payload rates, RDP bandwidth and transfer totals, and encoding/write/ACK
-timings. Use `/perf?download=1` to save it, or `/perf?vm=<id>&download=1` for one
+diagnosis, with the active encoder, configured vCPUs, a fixed pacing
+label, CPU/RSS, frame and payload rates, RDP bandwidth and transfer totals, and
+encoding/write/ACK timings. Use `/perf?download=1` to save it, or `/perf?vm=<id>&download=1` for one
 owned desktop. See
 [performance diagnostics](performance.md) for collection and interpretation.
 
@@ -227,11 +224,12 @@ own VMs.
 Use TLS in the RDP client; NLA/CredSSP is not supported. Clients must send the
 entered password in the TLS-protected Client Info packet. The guest console accepts
 one RDP connection at a time. Managed VMs enable H.264, with bitmap fallback for
-clients without AVC420 support. The default `RDP_PROFILE=office` and
-`RDP_PROFILE=smooth` (or `serve -rdp-profile smooth`) both cap AVC420 graphics at
-30 FPS and currently behave identically. Bitmap fallback also stays at 30 FPS.
-The cap is applied before copying the framebuffer for
-encoding, converting colors, and invoking the full-picture H.264 codec.
+clients without AVC420 support. AVC420 pacing is fixed at 30 FPS, rising to 60
+during left-button dragging when client feedback allows it. The boost ends on
+release or after 150 ms without drag movement. Bitmap fallback stays at 30 FPS.
+Display H.264 encoding uses four slices; the codec can use fewer for very small
+pictures. The cap is applied before copying the framebuffer for encoding,
+converting colors, and invoking the full-picture H.264 codec.
 Changes between frames are coalesced without losing pending damage; idle screens
 are not encoded. This controls graphics only, not input, cursor updates, or audio.
 
@@ -242,11 +240,12 @@ Mbps cap, and even QP `0` retains AVC420 chroma subsampling. Restart the gateway
 and start new VM processes to apply a change; see the
 [configuration reference](configuration.md#storage-and-desktops).
 
-Four continuously changing AVC420 sessions target at most 120 encoded frames per second
-with either `office` or `smooth`. These are workload caps, not measured
-throughput or guarantees of session density; CPU, resolution, content, and the
-selected encoder still determine actual performance. See the
-[runtime profile reference](runtime.md#rdp-graphics-profiles) for details.
+Four continuously changing AVC420 sessions target at most 120 encoded frames
+per second at the normal rate, rising to 240 if all four are actively dragging.
+These are workload caps, not measured throughput or guarantees of session density;
+CPU, resolution, content, and the active encoding path still determine actual
+performance. See the
+[runtime pacing reference](runtime.md#rdp-graphics-pacing) for details.
 
 Managed VMs enable audio playback by default: 48 kHz stereo, signed 16-bit PCM
 over RDP. The guest needs the `snd_virtio` driver and a working desktop audio
@@ -485,10 +484,10 @@ read from environment variables; explicit flags remain available as overrides.
 See the [configuration reference](configuration.md) for every variable, default,
 and corresponding flag, or run `./devbox-kvm serve -help`.
 
-CPU, RAM, encoder, and RDP profile settings apply when a VM process starts; they
-are gateway-wide settings, not per-image sizing. Restart running VMs after
-changing the profile. Count quotas and `VM_DISK_MAX_SIZE` are admission controls,
-not an aggregate physical-storage quota.
+CPU, RAM, and H.264 quality settings apply when a VM process starts; they are
+gateway-wide settings, not per-image sizing. Restart running VMs after changing
+these settings. Count quotas and `VM_DISK_MAX_SIZE` are admission controls, not
+an aggregate physical-storage quota.
 
 `VM_CGROUP_ROOT` defaults to empty. This permits the gateway and stopped-desktop
 management to run, but every managed VM start fails closed. A non-empty value

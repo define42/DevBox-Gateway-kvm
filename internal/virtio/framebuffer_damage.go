@@ -87,6 +87,7 @@ func (d *framebuffer) flushPixels(
 	} else {
 		d.markFrameDamageLocked(damage)
 	}
+	d.publishInputGeometry(width, height)
 	close(d.changed)
 	d.changed = make(chan struct{})
 

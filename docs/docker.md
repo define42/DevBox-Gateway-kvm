@@ -67,8 +67,8 @@ make docker
 ```
 
 This runs `docker/configure.sh` and starts the gateway and LDAP with only
-`compose.yaml` and `compose.cgroup.yaml`, selecting `H264_ENCODER=software`.
-Other `.env` settings are retained, and host Go is not required. Both
+`compose.yaml` and `compose.cgroup.yaml`.
+The helper preserves `.env` settings, and host Go is not required. Both
 `make docker` and its compatibility alias `make docker-purego` build the same
 static Go application and bundled Go H.264 encoder.
 
@@ -78,9 +78,7 @@ When upgrading from a GPU-enabled deployment, remove `compose.virgl.yaml` and
 options. The application no longer supports native guest 3D or GPU driver access.
 
 Save your work and stop desktops before recreating the gateway; start them again
-afterward. `H264_ENCODER=software` is the default; `auto` is a compatibility
-alias for the same Go encoder. Remove any old `H264_ENCODER=nvenc` setting before
-starting the updated gateway, because that backend is no longer supported.
+afterward. H.264 output always uses the bundled Go software encoder.
 
 Persist the Compose file selection in `.env` so subsequent commands, including
 `make gateway-docker`, retain the delegation:
@@ -179,21 +177,21 @@ address. The gateway's built-in self-signed mode also works on LAN addresses;
 clients must explicitly trust that certificate.
 
 All gateway settings are passed through environment variables from `.env` or
-the shell. Both `RDP_PROFILE=office` (the default) and `smooth` cap H.264 at
-30 FPS and currently behave identically. Bitmap fallback also stays capped at
-30 FPS. Restart managed
-VMs to apply a profile change. `H264_QP` controls H.264 compression quality with
-a default of `20` and an inclusive range of `0`–`51`. Lower values improve
+the shell. H.264 display pacing is fixed at 30 FPS, rising to 60 during
+left-button dragging. The boost ends on release or after 150 ms without drag
+movement; client acknowledgements can reduce the rate. Bitmap fallback stays
+capped at 30 FPS. Display H.264 encoding uses four slices, with fewer only for
+pictures too small for the codec to split into four. `H264_QP` controls H.264
+compression quality with a default of `20` and an inclusive range of `0`–`51`. Lower values improve
 quality and increase traffic; higher values compress more and reduce quality.
-This is not a guaranteed Mbps cap. Set
-`H264_ENCODER`, `VM_VCPU_COUNT`, `VM_MEMORY_MIB`,
+This is not a guaranteed Mbps cap. Set `VM_VCPU_COUNT`, `VM_MEMORY_MIB`,
 `VM_MEMORY_OVERHEAD_MIB`, `VM_CGROUP_ROOT`, and `MAX_RUNNING_VMS` to change the
-defaults of pure Go H.264 encoding, 2 vCPUs, 4096 MiB per guest, 512 MiB of worker
-overhead, fail-closed cgroup configuration, and 4 running desktops. Allow enough
+defaults of 2 vCPUs, 4096 MiB per guest, 512 MiB of worker overhead, fail-closed
+cgroup configuration, and 4 running desktops. Allow enough
 host memory for guest RAM plus the overhead described below. See the
-[configuration reference](configuration.md) for every setting and the legacy Compose aliases retained for existing `.env`
-files. Canonical variables take precedence over legacy aliases. The native
-executable does not load `.env`; Compose passes these values into its environment.
+[configuration reference](configuration.md) for the supported environment names
+and defaults. The native executable does not load `.env`; Compose passes these
+values into its environment.
 
 ```bash
 docker compose stop         # Stop the gateway and LDAP; retain containers and data

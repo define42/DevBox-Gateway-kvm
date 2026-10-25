@@ -357,3 +357,108 @@ i420WideLoop:
 	SETNE ret+64(FP)
 	VZEROUPPER
 	RET
+
+// func rgb32ToI420DamageAVX2(dstY0, dstY1, dstU, dstV, src0, src1 *byte,
+//     unchanged *bool, width, redIndex int) bool
+// Like the wide kernel above, but clears one unchanged bit per 16-pixel block
+// whose Y/U/V samples differ. width is a positive multiple of 32; unchanged
+// points to width/16 bools. Existing false bits remain false.
+TEXT ·rgb32ToI420DamageAVX2(SB), NOSPLIT, $0-73
+	MOVQ dstY0+0(FP), AX
+	MOVQ dstY1+8(FP), BX
+	MOVQ dstU+16(FP), CX
+	MOVQ dstV+24(FP), DX
+	MOVQ src0+32(FP), SI
+	MOVQ src1+40(FP), DI
+	MOVQ unchanged+48(FP), R11
+	MOVQ width+56(FP), R8
+
+	VMOVDQU ·i420YCoeff<>(SB), Y15
+	VMOVDQU ·i420PairShuffle<>(SB), Y13
+	CMPQ redIndex+64(FP), $0
+	JE i420DamageWideCoefficientsReady
+	VMOVDQU ·i420BGRXYCoeff<>(SB), Y15
+	VMOVDQU ·i420BGRXPairShuffle<>(SB), Y13
+
+i420DamageWideCoefficientsReady:
+	VMOVDQU ·i420GMask<>(SB), Y14
+	VMOVDQU ·i420ByteOnes<>(SB), Y12
+	VMOVDQU ·i420WordOnes<>(SB), Y11
+	VMOVDQU ·i420LumaOrder<>(SB), Y9
+	VMOVDQU ·i420UByteCoeff<>(SB), Y6
+	VMOVDQU ·i420VByteCoeff<>(SB), Y7
+	VPCMPEQD Y8, Y8, Y8 // Signed word -1.
+
+	XORQ R9, R9   // Pixel offset.
+	XORQ R14, R14 // Chroma-byte offset.
+	XORQ R15, R15 // Whether any row-pair samples changed.
+
+i420DamageWideLoop:
+	VPXOR Y10, Y10, Y10 // Differences for these two macroblocks.
+	I420_WIDE_LUMA(SI, AX)
+	I420_WIDE_LUMA(DI, BX)
+
+	// Samples 0-3, 4-7, 8-11 and 12-15. Packing keeps lanes, so the bytes are
+	// R,G,B,0 for samples 0,1,4,5|2,3,6,7 and 8,9,12,13|10,11,14,15.
+	I420_WIDE_AVERAGE(0, Y2)
+	I420_WIDE_AVERAGE(32, Y3)
+	I420_WIDE_AVERAGE(64, Y4)
+	I420_WIDE_AVERAGE(96, Y5)
+	VPACKUSWB Y3, Y2, Y2
+	VPACKUSWB Y5, Y4, Y4
+
+	VPMADDUBSW Y6, Y2, Y0
+	VPMADDUBSW Y6, Y4, Y1
+	VPMADDWD Y8, Y0, Y0
+	VPMADDWD Y8, Y1, Y1
+	VPACKSSDW Y1, Y0, Y0
+
+	VPMADDUBSW Y7, Y2, Y1
+	VPMADDUBSW Y7, Y4, Y3
+	VPMADDWD Y8, Y1, Y1
+	VPMADDWD Y8, Y3, Y3
+	VPACKSSDW Y3, Y1, Y1
+
+	// Arithmetic shifts match the scalar >> 8; signed packing is then exact.
+	VPSRAW $8, Y0, Y0
+	VPSRAW $8, Y1, Y1
+	VPACKSSWB Y1, Y0, Y0
+	VPXOR ·i420ByteBias<>(SB), Y0, Y0
+	VPERMQ $0xd8, Y0, Y0
+	VPSHUFB ·i420ChromaOrder<>(SB), Y0, Y0
+
+	// The low lane is U and the high lane is V.
+	VMOVDQU (CX)(R14*1), X1
+	VINSERTI128 $1, (DX)(R14*1), Y1, Y1
+	VPXOR Y0, Y1, Y1
+	// Fold U and V into 16 bytes, then widen so their first eight samples
+	// occupy the low lane (first macroblock), and their last eight the high.
+	VEXTRACTI128 $1, Y1, X2
+	VPOR X2, X1, X1
+	VPMOVZXBW X1, Y1
+	VPOR Y1, Y10, Y10
+	VMOVDQU X0, (CX)(R14*1)
+	VEXTRACTI128 $1, Y0, (DX)(R14*1)
+
+	VPTEST Y10, Y10
+	SETNE R10
+	ORB R10, R15
+	// An AND preserves a bit cleared by an earlier row pair or region.
+	VPTEST X10, X10
+	SETEQ R10
+	ANDB R10, (R11)
+	VEXTRACTI128 $1, Y10, X1
+	VPTEST X1, X1
+	SETEQ R10
+	ANDB R10, 1(R11)
+	ADDQ $2, R11
+
+	ADDQ $32, R9
+	ADDQ $16, R14
+	CMPQ R9, R8
+	JB i420DamageWideLoop
+
+	TESTB R15, R15
+	SETNE ret+72(FP)
+	VZEROUPPER
+	RET
