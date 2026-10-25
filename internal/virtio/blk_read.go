@@ -75,6 +75,10 @@ func (v *Blk) readRequest(c *blkPendingRequest, scratch *[][]byte) error {
 		n, err := v.vector.ReadvAt(buffers, c.offset)
 		clear(buffers) // Do not retain guest buffers between requests.
 		*scratch = buffers[:0]
+		if n < 0 || n > total {
+			return io.ErrUnexpectedEOF
+		}
+		c.length = uint32(n) // The validated chain bounds the writable prefix.
 		if err != nil {
 			return err
 		}
@@ -87,6 +91,10 @@ func (v *Blk) readRequest(c *blkPendingRequest, scratch *[][]byte) error {
 	offset := c.offset
 	for _, segment := range c.segments {
 		n, err := v.image.ReadAt(segment.data, offset)
+		if n < 0 || n > len(segment.data) {
+			return io.ErrUnexpectedEOF
+		}
+		c.length += uint32(n) // Include bytes returned together with an error.
 		if err != nil {
 			return err
 		}

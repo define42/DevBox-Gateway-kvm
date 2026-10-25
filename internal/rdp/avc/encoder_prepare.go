@@ -116,7 +116,7 @@ func (e *Encoder) convertDamage(img *image.RGBA, regions []image.Rectangle, bgrx
 			}
 		}
 		if shift != 0 {
-			e.surface.matches = append(e.surface.matches, e.surface.detector.detect(e.i420, e.width, e.height, shift))
+			e.surface.detector.detect(e.surface.nextMatch(), e.i420, e.width, e.height, shift)
 		}
 	}
 

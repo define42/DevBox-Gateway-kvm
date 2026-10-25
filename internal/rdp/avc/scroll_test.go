@@ -356,3 +356,95 @@ func TestSurfaceTrackerCopiedFrameKeepsARegion(t *testing.T) {
 		t.Fatalf("copied frame update %+v", tracker.update)
 	}
 }
+
+// Separate panes must retain independent results while slots are reused,
+// disappear for a frame, and become active again.
+func TestScrollMatchesRetainIndependentAreas(t *testing.T) {
+	t.Parallel()
+	const width, height = 416, 192
+	panes := [2]image.Rectangle{image.Rect(0, 0, 192, height), image.Rect(224, 0, width, height)}
+	encoder := Encoder{
+		width: width, height: height, threads: 1, i420: make([]byte, width*height*3/2),
+		surface: surfaceTracker{enabled: true},
+	}
+	draw := func(offsets [2]int) *image.RGBA {
+		img := image.NewRGBA(image.Rect(0, 0, width, height))
+		for pane, area := range panes {
+			paintScrollPane(img, area, offsets[pane], 32)
+		}
+
+		return img
+	}
+	encoder.convertPreparedRegion(draw([2]int{}), image.Rect(0, 0, width, height), false)
+	for _, step := range []struct {
+		name    string
+		offsets [2]int
+		active  []int
+		shifts  []int
+	}{
+		{"two panes", [2]int{18, -7}, []int{0, 1}, []int{18, -7}},
+		{"one pane", [2]int{36, -7}, []int{0}, []int{18}},
+		{"no scroll", [2]int{36, -7}, []int{1}, nil},
+		{"both reused", [2]int{18, 0}, []int{0, 1}, []int{-18, 7}},
+	} {
+		previous := slices.Clone(encoder.i420)
+		regions := make([]image.Rectangle, len(step.active))
+		for i, pane := range step.active {
+			regions[i] = panes[pane]
+		}
+		encoder.surface.begin()
+		encoder.mapped = encoder.mapped[:0]
+		encoder.convertDamage(draw(step.offsets), regions, false)
+		if len(encoder.surface.matches) != len(step.shifts) {
+			t.Fatalf("%s: got %d matches, want %d", step.name, len(encoder.surface.matches), len(step.shifts))
+		}
+		for i, got := range encoder.surface.matches {
+			var fresh scrollDetector
+			fresh.snapshot.take(previous, width, height, regions[i])
+			var want regionMatch
+			fresh.detect(&want, encoder.i420, width, height, step.shifts[i])
+			if len(want.bands) == 0 || len(want.unchanged) == 0 {
+				t.Fatalf("%s: fixture must exercise both moved and unchanged blocks", step.name)
+			}
+			if got.shift != want.shift || !slices.Equal(got.bands, want.bands) || !slices.Equal(got.unchanged, want.unchanged) {
+				t.Fatalf("%s, area %d: reused result %+v differs from fresh result %+v", step.name, i, got, want)
+			}
+		}
+	}
+}
+
+func TestScrollDetectionResetsReusedResult(t *testing.T) {
+	t.Parallel()
+	const width, height = 64, 64
+	pixels := make([]byte, width*height*3/2)
+	var detector scrollDetector
+	detector.snapshot.take(pixels, width, height, image.Rect(0, 0, width, height))
+	match := regionMatch{
+		unchanged: []image.Point{image.Pt(50, 50)},
+		bands:     []image.Rectangle{image.Rect(10, 10, 20, 20)},
+		shift:     7,
+	}
+	detector.detect(&match, pixels, width, height, 0)
+	if match.shift != 0 || len(match.bands) != 0 || len(match.unchanged) != 16 {
+		t.Fatalf("reused result retained previous frame data: %+v", match)
+	}
+}
+
+// paintScrollPane draws spatially distinct static sidebars around scrolling
+// gray content. Probe rows have distinct identities and chroma remains exact.
+func paintScrollPane(img *image.RGBA, area image.Rectangle, offset, border int) {
+	for y := area.Min.Y; y < area.Max.Y; y++ {
+		for x := area.Min.X; x < area.Max.X; x++ {
+			value := byte(40 + (y/4+x/8)%70)
+			if x >= area.Min.X+border && x < area.Max.X-border {
+				v := uint32(x)*0x9e3779b9 ^ uint32(y+offset)*0x85ebca6b
+				v ^= v >> 16
+				v *= 0xc2b2ae35
+				v ^= v >> 13
+				value = byte(v >> 24)
+			}
+			pixel := img.Pix[img.PixOffset(x, y):][:4]
+			pixel[0], pixel[1], pixel[2], pixel[3] = value, value, value, 255
+		}
+	}
+}

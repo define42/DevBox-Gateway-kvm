@@ -256,15 +256,16 @@ type blkSegment struct {
 }
 
 type blkPendingRequest struct {
-	id, length uint32
-	status     *byte
-	segments   []blkSegment // Data buffers in transfer order, within Blk.segments.
-	lo, hi     uint64       // Guest bytes a read may write: data and status.
-	statusAddr uint64
-	offset     int64
-	result     byte
-	write      bool
-	flush      bool
+	id, length  uint32
+	status      *byte
+	segments    []blkSegment // Data buffers in transfer order, within Blk.segments.
+	lo, hi      uint64       // Guest bytes a read may write: data and status.
+	statusAddr  uint64
+	offset      int64
+	writableLen uint32 // Writable stream size, including its trailing status byte.
+	result      byte
+	write       bool
+	flush       bool
 }
 
 // IO services the requests the driver has posted. FLUSH requests sync in the
@@ -443,7 +444,13 @@ func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPen
 	for i := uint16(0); i < count; i++ {
 		c := &pending[i]
 		*c.status = c.result
-		q.Used.Ring[(usedIdx+i)%queueSize] = SplitUsedElem{ID: c.id, Len: c.length}
+		length := c.length
+		// used.len describes an initialized prefix. A status byte after
+		// unread data cannot extend that prefix after a failed/short read.
+		if length+1 == c.writableLen {
+			length++
+		}
+		q.Used.Ring[(usedIdx+i)%queueSize] = SplitUsedElem{ID: c.id, Len: length}
 	}
 	completionBarrier()
 	StoreAddU16(&q.Used.Idx, count)
@@ -451,82 +458,100 @@ func (v *Blk) completeRequests(q *SplitQueue, queueSize uint16, pending []blkPen
 	return v.notifyUsed(blkQueue, q)
 }
 
-// snapshotRequest retains only validated guest slices and command fields. A
-// request is a 16-byte header, up to blkMaxSegments data buffers and a status
-// byte. Each guest descriptor is read once, so a guest changing descriptors
-// during I/O cannot change what was validated. Data buffers are stored in
-// free; it returns how many entries the request kept.
+// snapshotRequest snapshots a readable header and payload followed by writable
+// data and a trailing status byte. Descriptor boundaries need not match these
+// fields. Each descriptor contributes at most one retained payload slice.
 func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPendingRequest, writeback bool,
 	free []blkSegment,
 ) (int, error) {
 	c.id = uint32(descID)
-	// Buffers go straight into free, so releaseBatch also sees those written
-	// before a request is rejected.
+	// Keep every appended entry visible to releaseBatch, including on errors.
 	c.segments = free[:0]
 	var seen [QueueSize]bool
-	var header, status SplitDesc
-	descriptors := 0
+	var header [16]byte
+	var readableLen, writableLen uint64
+	headerBytes := 0
+	writable := false
 	for {
 		if descID >= queueSize || seen[descID] {
 			return 0, ErrBlkDesc
 		}
 		seen[descID] = true
 		desc := q.Desc[descID]
-		if !guestmem.ValidRange(v.Mem, desc.Addr, uint64(desc.Len)) {
+		if desc.Flags & ^uint16(descFNext|descFWrite) != 0 ||
+			!guestmem.ValidRange(v.Mem, desc.Addr, uint64(desc.Len)) {
 			return 0, ErrBlkDesc
 		}
-		c.length += desc.Len
-		switch descriptors {
-		case 0:
-			header = desc
-		case 1:
-			status = desc
-		default:
-			// The previous candidate for the status byte was a data buffer.
-			// Only a batch whose chains share descriptors can exhaust free.
+		data := v.Mem[desc.Addr : desc.Addr+uint64(desc.Len)]
+		addr := desc.Addr
+		if desc.Flags&descFWrite != 0 {
+			writable = true
+			writableLen += uint64(desc.Len)
+			if headerBytes != len(header) {
+				return 0, ErrBlkDesc
+			}
+		} else {
+			if writable {
+				return 0, ErrBlkDesc
+			}
+			readableLen += uint64(desc.Len)
+			n := copy(header[headerBytes:], data)
+			headerBytes += n
+			data = data[n:]
+			addr += uint64(n)
+		}
+		// The descriptor-chain limit also bounds the 32-bit used length:
+		// at least 16 of these bytes belong to the readable header.
+		if readableLen+writableLen > 1<<32 {
+			return 0, ErrBlkDesc
+		}
+		if len(data) != 0 {
 			if len(c.segments) == cap(c.segments) {
 				return 0, ErrBlkDesc
 			}
-			c.segments = append(c.segments, blkSegment{
-				data: v.Mem[status.Addr : status.Addr+uint64(status.Len)], addr: status.Addr,
-			})
-			status = desc
+			c.segments = append(c.segments, blkSegment{data: data, addr: addr})
 		}
-		descriptors++
 		if desc.Flags&descFNext == 0 {
 			break
 		}
 		descID = desc.Next
 	}
-	if descriptors < 2 || header.Len < 16 || status.Len == 0 {
+	if headerBytes != len(header) || writableLen == 0 {
 		return 0, ErrBlkDesc
 	}
 
-	hdr := v.Mem[header.Addr : header.Addr+16]
-	typ := binary.LittleEndian.Uint32(hdr)
+	// Empty trailing descriptors do not move the status byte. Remove it
+	// from the last nonempty writable slice, retaining any data before it.
+	last := &c.segments[len(c.segments)-1]
+	statusOffset := len(last.data) - 1
+	c.status = &last.data[statusOffset]
+	c.statusAddr = last.addr + uint64(statusOffset)
+	last.data = last.data[:statusOffset]
+	if statusOffset == 0 {
+		*last = blkSegment{}
+		c.segments = c.segments[:len(c.segments)-1]
+	}
+	c.writableLen = uint32(writableLen) // Header bounds writableLen below 2^32.
+
+	typ := binary.LittleEndian.Uint32(header[:])
 	c.write = typ == 1
 	c.flush = typ == 4 && writeback
-	sector := binary.LittleEndian.Uint64(hdr[8:])
-	if sector > v.capacity {
-		c.result = 1 // VIRTIO_BLK_S_IOERR
-	} else {
-		c.offset = int64(sector * uint64(SectorSize))
-	}
-	if typ != 0 && typ != 1 && !c.flush {
-		// Unsupported commands, including unnegotiated FLUSH, must
-		// never be mistaken for data reads or writes.
+	switch {
+	case typ == 0:
+		if readableLen != uint64(len(header)) {
+			return 0, ErrBlkDesc
+		}
+	case c.write:
+		if writableLen != 1 {
+			return 0, ErrBlkDesc
+		}
+	case c.flush:
+		// FLUSH ignores any payload. Its status still follows the complete
+		// writable stream, and unread payload does not extend used.len.
+	default:
 		c.result = 2 // VIRTIO_BLK_S_UNSUPP
 	}
-	if (c.result == 2 || c.flush) && status.Flags&descFWrite == 0 {
-		return 0, ErrBlkDesc
-	}
-	c.status = &v.Mem[status.Addr]
-	c.statusAddr = status.Addr
 	if c.flush || c.result == 2 {
-		if c.flush {
-			c.length = 1 // Only the status byte is written by FLUSH.
-		}
-		// These commands transfer no data; return the pool entries.
 		clear(c.segments)
 		c.segments = nil
 
@@ -535,16 +560,12 @@ func (v *Blk) snapshotRequest(q *SplitQueue, queueSize, descID uint16, c *blkPen
 
 	c.segments = c.segments[:len(c.segments):len(c.segments)]
 	c.setBounds()
-	if c.result == 0 {
-		var dataLen uint64
-		for _, segment := range c.segments {
-			dataLen += uint64(len(segment.data))
-		}
-		capacityBytes := v.capacity * uint64(SectorSize)
-		offset := uint64(c.offset)
-		if offset > capacityBytes || dataLen > capacityBytes-offset {
-			c.result = 1 // VIRTIO_BLK_S_IOERR
-		}
+	sector := binary.LittleEndian.Uint64(header[8:])
+	dataLen := readableLen + writableLen - uint64(len(header)) - 1
+	if sector > v.capacity || dataLen > (v.capacity-sector)*uint64(SectorSize) {
+		c.result = 1 // VIRTIO_BLK_S_IOERR
+	} else {
+		c.offset = int64(sector * uint64(SectorSize))
 	}
 
 	return len(c.segments), nil

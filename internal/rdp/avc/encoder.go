@@ -235,6 +235,9 @@ func (e *Encoder) Close() {
 		e.codec = nil
 		e.i420 = nil
 		e.unchanged = nil
+		e.preparedForced, e.preparedShift = nil, nil
+		e.mapped = nil
+		e.surface = surfaceTracker{}
 		e.prepared = false
 	}
 }

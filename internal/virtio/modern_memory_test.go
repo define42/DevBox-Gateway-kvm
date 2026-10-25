@@ -173,7 +173,7 @@ func TestDeviceDMAGuestRAM(t *testing.T) {
 
 			// Check the whole block chain, with the data buffer at the tested address.
 			q.Desc[0] = SplitDesc{Addr: 0x100, Len: 16, Flags: descFNext, Next: 1}
-			q.Desc[1] = SplitDesc{Addr: tc.addr, Len: 16, Flags: descFNext, Next: 2}
+			q.Desc[1] = SplitDesc{Addr: tc.addr, Len: 16, Flags: descFNext | descFWrite, Next: 2}
 			q.Desc[2] = SplitDesc{Addr: 0x200, Len: 1, Flags: descFWrite}
 			b := &Blk{ModernTransport: tr}
 			_, err = b.snapshotRequest(q, QueueSize, 0, new(blkPendingRequest), false, make([]blkSegment, QueueSize))

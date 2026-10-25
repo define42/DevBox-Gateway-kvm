@@ -296,7 +296,7 @@ func (v *Net) TxThreadEntry() {
 	}
 }
 
-func (v *Net) Tx() error {
+func (v *Net) Tx() (err error) {
 	const sel = netTxQueue
 	v.queueMu[sel].Lock()
 	defer v.queueMu[sel].Unlock()
@@ -324,6 +324,18 @@ func (v *Net) Tx() error {
 	if count > queueSize {
 		return ErrNetDesc
 	}
+	completed := false
+	defer func() {
+		if completed {
+			// Notify even when a later packet fails: its predecessors already
+			// belong to the guest, and interrupt recovery needs this first IRQ.
+			// Ignore NO_INTERRUPT for TX, since Linux napi_tx can stop a full
+			// queue with notifications disabled and still wait for completion.
+			if irqErr := v.Interrupt(netTxQueue); irqErr != nil {
+				err = errors.Join(err, irqErr)
+			}
+		}
+	}()
 	for range count {
 		select {
 		case <-v.done:
@@ -363,16 +375,14 @@ func (v *Net) Tx() error {
 			return io.ErrShortWrite
 		}
 		uidx := LoadU16(&used.Idx)
-		used.Ring[uidx%queueSize] = SplitUsedElem{ID: uint32(head), Len: uint32(len(buf))}
+		// TX chains are read-only, so the device writes zero guest bytes.
+		used.Ring[uidx%queueSize] = SplitUsedElem{ID: uint32(head)}
 		StoreAddU16(&used.Idx, 1)
 		v.LastAvailIdx[sel]++
+		completed = true
 	}
 
-	// TX completions ignore VRING_AVAIL_F_NO_INTERRUPT. Without EVENT_IDX,
-	// Linux napi_tx drivers such as 5.14 can stop a full queue while TX
-	// notifications are disabled and still wait for this interrupt; INTx
-	// hid that by servicing every queue on any interrupt, MSI-X does not.
-	return v.Interrupt(netTxQueue)
+	return nil
 }
 
 // Read and Write satisfy pci.Device. A modern device has no IO-port BAR, so

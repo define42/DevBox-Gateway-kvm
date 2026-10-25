@@ -120,13 +120,14 @@ func growBytes(b []byte, n int) []byte {
 	return b[:n]
 }
 
-// detect compares the converted area with its snapshot: every interior block
-// at shift rows lower when shift is nonzero, and the rest at their own position.
-func (d *scrollDetector) detect(i420 []byte, width, height, shift int) regionMatch {
+// detect fills match with comparisons against the snapshot: every interior
+// block at shift rows lower when shift is nonzero, and the rest at their own
+// position. Each area owns its result slices and reuses them across frames.
+func (d *scrollDetector) detect(match *regionMatch, i420 []byte, width, height, shift int) {
 	snapshot := &d.snapshot
 	columns, rows := interiorBlocks(snapshot.region)
 	cols, blockRows := columns.Y-columns.X, rows.Y-rows.X
-	match := regionMatch{}
+	match.unchanged, match.bands, match.shift = match.unchanged[:0], match.bands[:0], 0
 	pictures := blockPictures{i420: i420, width: width, height: height, old: snapshot}
 	d.verified = growBools(d.verified, cols*blockRows)
 	if shift != 0 {
@@ -157,8 +158,6 @@ func (d *scrollDetector) detect(i420 []byte, width, height, shift int) regionMat
 			}
 		}
 	}
-
-	return match
 }
 
 // rowCovered reports whether bands cover every column of the block row.

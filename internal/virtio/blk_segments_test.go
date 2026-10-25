@@ -86,7 +86,7 @@ func TestBlkScatteredSegments(t *testing.T) {
 	if err := v.IO(); err != nil {
 		t.Fatal(err)
 	}
-	if mem[0x200] != 0 || q.Used.Idx != 1 || q.Used.Ring[0].Len != 16+2048+1 {
+	if mem[0x200] != 0 || q.Used.Idx != 1 || q.Used.Ring[0].Len != 1 {
 		t.Fatalf("segmented write: status=%d used=%d len=%d", mem[0x200], q.Used.Idx, q.Used.Ring[0].Len)
 	}
 	if !bytes.Equal(backing.data[SectorSize:SectorSize+2048], want) {

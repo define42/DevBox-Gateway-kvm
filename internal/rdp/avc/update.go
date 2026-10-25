@@ -61,6 +61,19 @@ func (t *surfaceTracker) begin() {
 	t.planned, t.full = false, false
 }
 
+// nextMatch reserves an independent result for the next detected area. begin
+// resets the active count while retaining each slot's reusable slices.
+func (t *surfaceTracker) nextMatch() *regionMatch {
+	index := len(t.matches)
+	if index == cap(t.matches) {
+		t.matches = append(t.matches, regionMatch{})
+	} else {
+		t.matches = t.matches[:index+1]
+	}
+
+	return &t.matches[index]
+}
+
 // repaintAll plans a frame coded entirely from its source, such as a keyframe,
 // which the client repaints completely, leaving nothing stale.
 func (t *surfaceTracker) repaintAll() {

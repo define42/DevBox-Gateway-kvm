@@ -16,7 +16,10 @@ import (
 )
 
 // descNext is VRING_DESC_F_NEXT; chains continue only through flagged descriptors.
-const descNext = 1
+const (
+	descNext     = 1
+	descWritable = 2
+)
 
 // countingInjector counts InjectVirtioBlkIRQ calls.
 type countingInjector struct {
@@ -166,6 +169,7 @@ func TestReadOnlyBlkRejectsWrites(t *testing.T) {
 
 	q.Desc[2].Addr = 0x3000
 	q.Desc[2].Len = 1
+	q.Desc[2].Flags = descWritable
 
 	mem[0x3000] = 0
 	v.VirtQueue[0] = q
@@ -232,11 +236,12 @@ func TestIO(t *testing.T) {
 	q.Desc[1].Addr = 0x400
 	q.Desc[1].Len = 0x200
 	q.Desc[1].Next = 2
-	q.Desc[1].Flags = descNext
+	q.Desc[1].Flags = descNext | descWritable
 
 	// desc[2]: status byte
 	q.Desc[2].Addr = 0x700
 	q.Desc[2].Len = 1
+	q.Desc[2].Flags = descWritable
 
 	mem[0x700] = 0xFF // poison status byte
 
@@ -298,11 +303,12 @@ func TestIOWithQCOW2(t *testing.T) {
 	q.Desc[1].Addr = 0x400
 	q.Desc[1].Len = 0x200
 	q.Desc[1].Next = 2
-	q.Desc[1].Flags = descNext
+	q.Desc[1].Flags = descNext | descWritable
 
 	// desc[2]: status byte
 	q.Desc[2].Addr = 0x700
 	q.Desc[2].Len = 1
+	q.Desc[2].Flags = descWritable
 
 	mem[0x700] = 0xFF // poison status byte
 
@@ -371,11 +377,12 @@ func TestBlkIOStatusByte(t *testing.T) {
 	q.Desc[1].Addr = 0x2000
 	q.Desc[1].Len = 512
 	q.Desc[1].Next = 2
-	q.Desc[1].Flags = descNext
+	q.Desc[1].Flags = descNext | descWritable
 
 	// desc[2]: status byte
 	q.Desc[2].Addr = 0x3000
 	q.Desc[2].Len = 1
+	q.Desc[2].Flags = descWritable
 
 	mem[0x3000] = 0xB8 // poison status byte
 
@@ -619,10 +626,11 @@ func TestBlkIOThreadReInjectsIRQ(t *testing.T) {
 	q.Desc[1].Addr = 0x2000
 	q.Desc[1].Len = 512
 	q.Desc[1].Next = 2
-	q.Desc[1].Flags = descNext
+	q.Desc[1].Flags = descNext | descWritable
 
 	q.Desc[2].Addr = 0x3000
 	q.Desc[2].Len = 1
+	q.Desc[2].Flags = descWritable
 
 	v.VirtQueue[0] = q
 

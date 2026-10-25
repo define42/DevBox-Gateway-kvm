@@ -205,3 +205,23 @@ func TestRejectMalformedRGBA(t *testing.T) {
 		t.Fatal("malformed image reached codec")
 	}
 }
+
+func TestEncoderCloseReleasesScrollStorage(t *testing.T) {
+	t.Parallel()
+	encoder := &Encoder{
+		codec: &recordingCodec{}, preparedForced: make([]bool, 4), preparedShift: make([]int16, 4),
+		mapped: []image.Rectangle{image.Rect(0, 0, 32, 32)},
+		surface: surfaceTracker{
+			matches: []regionMatch{{unchanged: make([]image.Point, 4), bands: make([]image.Rectangle, 1)}},
+			stale:   make([]bool, 4), forced: make([]bool, 4), shift: make([]int16, 4),
+			detector: scrollDetector{snapshot: regionSnapshot{luma: make([]byte, 1024)}},
+		},
+	}
+	encoder.Close()
+	encoder.Close()
+	if encoder.preparedForced != nil || encoder.preparedShift != nil || encoder.mapped != nil ||
+		encoder.surface.matches != nil || encoder.surface.stale != nil || encoder.surface.forced != nil ||
+		encoder.surface.shift != nil || encoder.surface.detector.snapshot.luma != nil {
+		t.Fatal("closed encoder retained scroll storage")
+	}
+}
