@@ -246,6 +246,12 @@
     // followed by the image, so the server can authenticate before streaming it.
     const body = new FormData(uploadForm);
     const xhr = new XMLHttpRequest();
+    let transferComplete = false;
+    const prepareImage = () => {
+      if (activeUpload !== xhr || transferComplete) return;
+      transferComplete = true;
+      preparingImage();
+    };
     activeUpload = xhr;
     mutationGeneration++;
     busy(true);
@@ -258,18 +264,24 @@
     cancelUpload.disabled = false;
     cancelUpload.focus();
     notice("Uploading base image...");
-    xhr.open("POST", uploadForm.action);
-    xhr.setRequestHeader("X-CSRF-Token", uploadForm.elements.csrf.value);
     xhr.upload.onprogress = (upload) => {
-      if (!upload.lengthComputable) {
+      if (activeUpload !== xhr || transferComplete) return;
+      if (!upload.lengthComputable || upload.total <= 0) {
         progressBar.removeAttribute("value");
+        progressLabel.textContent = "Uploading image...";
         return;
       }
-      const percentage = Math.min(100, Math.round(upload.loaded / upload.total * 100));
+      // Byte transfer can finish well before the import response arrives.
+      // Switch phases here too, without waiting for the upload load event.
+      if (upload.loaded >= upload.total) {
+        prepareImage();
+        return;
+      }
+      const percentage = Math.min(99, Math.floor(upload.loaded / upload.total * 100));
       progressBar.value = percentage;
       progressLabel.textContent = `Uploading image: ${percentage}%`;
     };
-    xhr.upload.onload = preparingImage;
+    xhr.upload.onload = prepareImage;
     xhr.onload = () => {
       activeUpload = null;
       if (sessionExpired(xhr.status, xhr.responseURL)) return;
@@ -291,6 +303,9 @@
       if (document.activeElement === cancelUpload) fileInput.focus();
       void refreshInventory();
     };
+    // Register upload listeners before open for browser compatibility.
+    xhr.open("POST", uploadForm.action);
+    xhr.setRequestHeader("X-CSRF-Token", uploadForm.elements.csrf.value);
     xhr.send(body);
   });
 

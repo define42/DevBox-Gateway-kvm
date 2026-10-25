@@ -134,10 +134,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '22'
-    - name: Check dashboard JavaScript syntax
-      run: node --check internal/gateway/dashboard.js
-    - name: Test performance panel lifecycle and accessibility contracts
-      run: node --test internal/gateway/dashboard.test.cjs
+    - name: Check dashboard and admin JavaScript syntax
+      run: |
+        node --check internal/gateway/dashboard.js
+        node --check internal/gateway/admin.js
+    - name: Test dashboard and admin behavior
+      run: node --test internal/gateway/dashboard.test.cjs internal/gateway/admin.test.cjs
 
   test-avc:
     runs-on: ubuntu-24.04
