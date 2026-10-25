@@ -417,6 +417,38 @@ func TestRDPH264ThreadOptions(t *testing.T) {
 	}
 }
 
+func TestRDPSurfaceCopiesOptions(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		args []string
+		want bool
+		err  error
+	}{
+		{name: "default", args: []string{"-rdp-fd", "3", "-rdp-h264"}},
+		{name: "enabled", args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-surface-copies"}, want: true},
+		{name: "disabled", args: []string{"-rdp-fd", "3", "-rdp-h264", "-rdp-surface-copies=false"}},
+		{name: "disabled-without-codec", args: []string{"-rdp-fd", "3", "-rdp-surface-copies=false"}},
+		{
+			name: "without-codec",
+			args: []string{"-rdp-fd", "3", "-rdp-surface-copies"},
+			err:  flag.ErrRDPSurfaceCopies,
+		},
+		{name: "without-rdp", args: []string{"-rdp-surface-copies"}, err: flag.ErrRDPSurfaceCopies},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			c, _, err := flag.ParseArgs(append([]string{"devbox-kvm", "boot"}, tc.args...))
+			if !errors.Is(err, tc.err) {
+				t.Fatalf("got %v, want %v", err, tc.err)
+			}
+			if err == nil && c.RDPSurfaceCopies != tc.want {
+				t.Errorf("surface copies = %t, want %t", c.RDPSurfaceCopies, tc.want)
+			}
+		})
+	}
+}
+
 func TestRDPStatisticsOptions(t *testing.T) {
 	t.Parallel()
 	if _, _, err := flag.ParseArgs([]string{"devbox-kvm", "boot", "-rdp-stats"}); !errors.Is(err, flag.ErrRDPStats) {

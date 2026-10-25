@@ -12,7 +12,12 @@ import (
 // never retained after EncodeFrame returns.
 type unchangedFrameState struct {
 	macroblocks []bool
-	changed     int // false entries in macroblocks
+	// forced, when set, has macroblocks' length; true entries repeat a
+	// reference block whatever their source, displaced by forcedShift rows
+	// when that is set (api.SSourcePicture).
+	forced      []bool
+	forcedShift []int16
+	changed     int // entries neither unchanged nor forced
 	reference   *SPicture
 	frameNum    int32
 	poc         int32
@@ -58,7 +63,7 @@ func unchangedConfiguration(param *SWelsSvcCodingParam) bool {
 }
 
 func (s *unchangedFrameState) begin(ctx *sWelsEncCtx, source *api.SSourcePicture) {
-	s.macroblocks, s.changed = nil, 0
+	s.macroblocks, s.forced, s.forcedShift, s.changed = nil, nil, nil, 0
 	s.reuseDestination = nil
 	s.codingStamp = 0
 	if source == nil || !unchangedConfiguration(ctx.pSvcParam) {
@@ -77,13 +82,53 @@ func (s *unchangedFrameState) begin(ctx *sWelsEncCtx, source *api.SSourcePicture
 		s.qp == param.SSpatialLayers[0].IDLayerQp
 	if validPrevious && int64(len(source.UnchangedMacroblocks)) == count {
 		s.macroblocks = source.UnchangedMacroblocks
-		for _, unchanged := range s.macroblocks {
-			if !unchanged {
+		if int64(len(source.ForcedMacroblocks)) == count {
+			s.forced = source.ForcedMacroblocks
+			if int64(len(source.ForcedShift)) == count {
+				s.forcedShift = source.ForcedShift
+			}
+		}
+		for index, unchanged := range s.macroblocks {
+			if !unchanged && !s.forcedAt(index) {
 				s.changed++
 			}
 		}
 		s.reuseDestination = s.reusableSource()
 	}
+}
+
+func (s *unchangedFrameState) forcedAt(index int) bool {
+	return s.forced != nil && s.forced[index]
+}
+
+// forcedShiftAt is a forced macroblock's vertical displacement in luma rows.
+func (s *unchangedFrameState) forcedShiftAt(index int) int16 {
+	if s.forcedShift == nil {
+		return 0
+	}
+
+	return s.forcedShift[index]
+}
+
+// validForcedShift keeps the predictors seen by ordinary motion estimation
+// within its cost table's range. Check the luma displacement before converting
+// to quarter-pel int16 motion, which could otherwise overflow.
+func validForcedShift(ctx *sWelsEncCtx, shift int16) bool {
+	limit := min(int32(api.MaxForcedShift), ctx.iMvRange)
+	return int32(shift) >= -limit && int32(shift) <= limit
+}
+
+// skipCandidate reports whether index may be coded as a zero-motion skip,
+// given a valid reference: a forced block, or an unchanged one whose reference
+// block was itself a zero-motion skip. sMvList is heuristic metadata, not
+// necessarily the final coded MV; copy elision separately requires proof.
+func (s *unchangedFrameState) skipCandidate(reference *SPicture, index int) bool {
+	if s.forcedAt(index) {
+		return s.forcedShiftAt(index) == 0
+	}
+
+	return s.macroblocks[index] && reference.uiRefMbType[index] == common.MB_TYPE_SKIP &&
+		reference.sMvList[index] == (SMVUnitXY{})
 }
 
 // beginStamps sizes the stamp arrays on the calling goroutine, before any
@@ -126,7 +171,7 @@ func (s *unchangedFrameState) finish(
 	output *api.SFrameBSInfo,
 	success bool,
 ) {
-	s.macroblocks = nil
+	s.macroblocks, s.forced, s.forcedShift = nil, nil, nil
 	s.reuseDestination = nil
 	if !success || source == nil || output == nil || !unchangedConfiguration(ctx.pSvcParam) {
 		*s = unchangedFrameState{}
@@ -155,26 +200,88 @@ func (s *unchangedFrameState) finish(
 func unchangedMacroblockEligible(ctx *sWelsEncCtx, mb *SMB) bool {
 	state := &ctx.unchanged
 	index := int(mb.iMbXY)
-	if index < 0 || index >= len(state.macroblocks) || !state.macroblocks[index] {
+	if index < 0 || index >= len(state.macroblocks) || !state.macroblocks[index] && !state.forcedAt(index) ||
+		!unchangedReferenceValid(ctx, mb) {
 		return false
 	}
+	reference := ctx.pCurDqLayer.pRefPic
+	// Unchanged blocks keep the existing hint policy, a previous P_SKIP with a
+	// zero motion-search vector, so their output matches unhinted encoding.
+	// First P frames after IDR still take the full path.
+	return reference.iPictureType == common.P_SLICE && state.skipCandidate(reference, index)
+}
+
+// unchangedReferenceValid reports whether mb's reference is the picture the
+// frame's hints describe, coded under the configuration they assume.
+func unchangedReferenceValid(ctx *sWelsEncCtx, mb *SMB) bool {
+	state := &ctx.unchanged
 	layer := ctx.pCurDqLayer
 	reference := layer.pRefPic
 	validReference := ctx.eSliceType == common.P_SLICE && ctx.iNumRef0 == 1 &&
 		reference != nil && reference == state.reference && reference == ctx.pRefList0[0] &&
 		reference.iFrameNum == state.frameNum && reference.iFramePoc == state.poc
-	if !validReference || layer.iLoopFilterDisableIdc != 1 || int32(mb.uiLumaQp) != state.qp {
+
+	return validReference && layer.iLoopFilterDisableIdc == 1 && int32(mb.uiLumaQp) == state.qp
+}
+
+// tryForcedMotionMacroblock codes a forced macroblock with a nonzero shift as
+// that vertical motion without residual, so the decoder moves its picture as
+// the caller moves the area: a P_SKIP when the skip predictor already carries
+// the motion, otherwise a P16x16. Explicit edges let the blocks they border
+// predict the motion, and skip. Prediction and bookkeeping mirror
+// WelsMdPSkipEnc without its cost test.
+func tryForcedMotionMacroblock(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, mb *SMB) bool {
+	state := &ctx.unchanged
+	index := int(mb.iMbXY)
+	if index < 0 || index >= len(state.macroblocks) || !state.forcedAt(index) || state.forcedShiftAt(index) == 0 ||
+		!unchangedReferenceValid(ctx, mb) {
 		return false
 	}
-	// Preserve the existing hint policy: previous P_SKIP and a zero motion-search
-	// vector. sMvList is heuristic metadata, not necessarily the final coded MV.
-	// Copy elision separately requires final-zero-MV proof. First P frames after
-	// IDR still take the full path.
-	previousSkip := reference.iPictureType == common.P_SLICE &&
-		reference.uiRefMbType[index] == common.MB_TYPE_SKIP && reference.sMvList[index] == (SMVUnitXY{})
-	if !previousSkip {
+	layer := ctx.pCurDqLayer
+	shift := state.forcedShiftAt(index)
+	if !validForcedShift(ctx, shift) {
 		return false
 	}
+	mv := SMVUnitXY{iMvY: int16(4 * int32(shift))}
+	if y := int32(mb.iMbY)<<4 + int32(mv.iMvY>>2); y < -29 || y > int32(layer.iMbHeight)<<4+12 {
+		return false
+	}
+	cache := &slice.sMbCacheInfo
+	var predicted SMVUnitXY
+	PredSkipMv(cache, &predicted)
+	// Predict straight into the reconstruction, which needs no residual.
+	funcs := ctx.pFuncList
+	data := &cache.SPicData
+	lumaStride, chromaStride := layer.pRefPic.iLineSize[0], layer.pRefPic.iLineSize[1]
+	funcs.sMcFuncs.PMcLumaFunc(data.pRefMb[0], data.iRefMbOff[0]+int(int32(mv.iMvY>>2)*lumaStride), lumaStride,
+		data.pCsMb[0], data.iCsMbOff[0], layer.iCsStride[0], mv.iMvX, mv.iMvY, 16, 16)
+	luma := funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16](data.pEncMb[0], data.iEncMbOff[0], layer.iEncStride[0],
+		data.pCsMb[0], data.iCsMbOff[0], layer.iCsStride[0])
+	chroma := int32(0)
+	for plane := 1; plane < 3; plane++ {
+		funcs.sMcFuncs.PMcChromaFunc(data.pRefMb[plane], data.iRefMbOff[plane]+int(int32(mv.iMvY>>3)*chromaStride),
+			chromaStride, data.pCsMb[plane], data.iCsMbOff[plane], layer.iCsStride[plane], mv.iMvX, mv.iMvY, 8, 8)
+		chroma += funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_8x8](data.pEncMb[plane], data.iEncMbOff[plane],
+			layer.iEncStride[plane], data.pCsMb[plane], data.iCsMbOff[plane], layer.iCsStride[plane])
+	}
+	setRefIndexZero(mb)
+	funcs.pfUpdateMbMv(mb.sMv, mv)
+	*mb.pSadCost = luma
+	md.iCostLuma = luma
+	md.iCostSkipMb = luma + chroma
+	mb.sP16x16Mv = mv
+	layer.pDecPic.sMvList[index] = mv
+	// WelsMdInterDecidedPskip without WelsRecPskip's copy. Otherwise a P16x16
+	// whose motion WelsSpatialWriteMbSyn codes against the 16x16 predictor,
+	// with an empty coded block pattern.
+	mb.uiMbType = common.MB_TYPE_SKIP
+	if predicted != mv {
+		PredMv(&cache.sMvComponents, 0, 4, 0, &cache.sMbMvp[0])
+		mb.uiMbType = common.MB_TYPE_16x16
+	}
+	clear(mb.pNonZeroCount[:24])
+	WelsMdInterUpdatePskip(layer, slice, mb, cache)
+
 	return true
 }
 
@@ -303,24 +410,38 @@ func encodeUnchangedRun(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, index, lim
 	csY, csUV := layer.iCsStride[0], layer.iCsStride[1]
 	refY, refUV := reference.iLineSize[0], reference.iLineSize[1]
 
-	count, last := int32(0), int32(-1)
-	for count < limit && index >= 0 && index < total {
-		mb := &blocks[index]
-		if !state.macroblocks[index] || reference.uiRefMbType[index] != common.MB_TYPE_SKIP ||
-			reference.sMvList[index] != (SMVUnitXY{}) {
+	// Find the run first. It ends where the slice's next macroblock is not the
+	// adjacent one, so every per-macroblock array below covers one range; the
+	// next call continues from there exactly as the per-block path would.
+	count, next := int32(0), index
+	for count < limit && next >= 0 && next == index+count && next < total {
+		if !state.skipCandidate(reference, int(next)) {
 			break
 		}
 		// After the run's first block, the previous block is either the left
 		// neighbor, now a zero-motion skip, or the end of the row above, which
 		// leaves no left neighbor. Both make the skip predictor zero.
-		if (count == 0 || last != index-1) && !unchangedSkipPredictorIsZero(mb, width) {
+		if count == 0 && !unchangedSkipPredictorIsZero(&blocks[next], width) {
 			break
 		}
-		// encodeUnchangedMacroblock, with the pointers of initIntraPicturePointers
-		// and initInterPicturePointers.
-		if state.resident(decoded, int(index)) {
-			if int(index) < len(state.residentStamps) {
-				state.residentStamps[index] = state.codingStamp
+		count++
+		next = WelsGetNextMbOfSlice(layer, next)
+	}
+	if count == 0 {
+		return 0, index
+	}
+	end := index + count
+	last := end - 1
+
+	// encodeUnchangedMacroblock, with the pointers of initIntraPicturePointers
+	// and initInterPicturePointers. Residency reads the zero-skip stamps that
+	// the run overwrites below.
+	reusable := state.reuseDestination != nil && decoded == state.reuseDestination
+	for i := index; i < end; i++ {
+		mb := &blocks[i]
+		if reusable && int(i) < state.finalZeroSkipCount && state.zeroSkipStamps[i] == state.finalStamp {
+			if int(i) < len(state.residentStamps) {
+				state.residentStamps[i] = state.codingStamp
 			}
 		} else {
 			x, y := int32(mb.iMbX), int32(mb.iMbY)
@@ -332,32 +453,30 @@ func encodeUnchangedRun(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, index, lim
 			}
 		}
 		mb.uiMbType, mb.uiCbp = common.MB_TYPE_SKIP, 0
-		*(*[4]int8)(mb.pRefIndex) = [4]int8{}
-		*(*[common.MB_BLOCK4x4_NUM]SMVUnitXY)(mb.sMv) = [common.MB_BLOCK4x4_NUM]SMVUnitXY{}
 		mb.sP16x16Mv = SMVUnitXY{}
-		decoded.sMvList[index] = SMVUnitXY{}
-		*(*[24]int8)(mb.pNonZeroCount) = [24]int8{}
 		mb.uiLumaQp, mb.uiChromaQp = qp, chromaQp
-		// WelsMdInterSaveSadAndRefMbType and WelsMdUpdateBGDInfo.
-		decoded.pMbSkipSad[index] = reference.pMbSkipSad[index]
-		decoded.uiRefMbType[index] = common.MB_TYPE_SKIP
-		if intraReference {
-			decoded.pRefMbQp[index] = qp
-		} else {
-			decoded.pRefMbQp[index] = reference.pRefMbQp[index]
-		}
-		// WelsSpatialWriteMbSyn and the zero-skip stamp of WelsMdInterMbLoop.
-		slice.iMbSkipRun++
-		if stamps != nil {
-			stamps[index] = state.codingStamp
-		}
-		count++
-		last = index
-		index = WelsGetNextMbOfSlice(layer, index)
 	}
-	if count == 0 {
-		return 0, index
+	// InitMbInfo gives consecutive macroblocks adjacent entries, so each
+	// block's slice extends over the rest of the run.
+	first := &blocks[index]
+	clear(first.pRefIndex[:count*common.MB_BLOCK8x8_NUM])
+	clear(first.sMv[:count*common.MB_BLOCK4x4_NUM])
+	clear(first.pNonZeroCount[:count*MB_LUMA_CHROMA_BLOCK4x4_NUM])
+	clear(decoded.sMvList[index:end])
+	// WelsMdInterSaveSadAndRefMbType and WelsMdUpdateBGDInfo.
+	copy(decoded.pMbSkipSad[index:end], reference.pMbSkipSad[index:end])
+	fillUnchanged(decoded.uiRefMbType[index:end], common.MB_TYPE_SKIP)
+	if intraReference {
+		fillUnchanged(decoded.pRefMbQp[index:end], qp)
+	} else {
+		copy(decoded.pRefMbQp[index:end], reference.pRefMbQp[index:end])
 	}
+	// WelsSpatialWriteMbSyn and the zero-skip stamp of WelsMdInterMbLoop.
+	slice.iMbSkipRun += count
+	if stamps != nil {
+		fillUnchanged(stamps[index:end], state.codingStamp)
+	}
+	index = next
 
 	// Leave the slice cache and mode decision as the last skip would have;
 	// the next macroblock advances these picture pointers incrementally.
@@ -387,6 +506,134 @@ func encodeUnchangedRun(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, index, lim
 	return count, index
 }
 
+// encodeForcedMotionRun codes the run of forced macroblocks from index, at most
+// limit, that share one nonzero shift and whose left and top neighbors already
+// carry that motion with reference 0. With A and B equal, the median skip
+// predictor is the motion too, so each block is the P_SKIP that
+// tryForcedMotionMacroblock would code, and the run leaves the same macroblock,
+// picture, slice and cache state as the per-macroblock path. It requires
+// unchangedRunsEnabled and returns the run length and the slice's next
+// macroblock, or -1 after the slice's last one.
+func encodeForcedMotionRun(ctx *sWelsEncCtx, md *SWelsMD, slice *SSlice, index, limit int32) (int32, int32) {
+	state := &ctx.unchanged
+	layer := ctx.pCurDqLayer
+	total := int32(layer.iMbWidth) * int32(layer.iMbHeight)
+	if state.forcedShift == nil || index < 0 || index >= total || !state.forcedAt(int(index)) {
+		return 0, index
+	}
+	shift := state.forcedShiftAt(int(index))
+	if !validForcedShift(ctx, shift) {
+		return 0, index
+	}
+	mv := SMVUnitXY{iMvY: int16(4 * int32(shift))}
+	blocks := layer.sMbDataP
+	width := int32(layer.iMbWidth)
+	count, next := int32(0), index
+	for count < limit && next >= 0 && next == index+count && next < total {
+		mb := &blocks[next]
+		if !state.forcedAt(int(next)) || state.forcedShiftAt(int(next)) != shift || shift == 0 ||
+			uint32(mb.uiNeighborAvail)&(LEFT_MB_POS|TOP_MB_POS) != LEFT_MB_POS|TOP_MB_POS {
+			break
+		}
+		if y := int32(mb.iMbY)<<4 + int32(shift); y < -29 || y > int32(layer.iMbHeight)<<4+12 {
+			break
+		}
+		left, top := mb.Add(-1), mb.Add(-width)
+		if count == 0 && !(common.IS_SVC_INTER(left.uiMbType) && left.pRefIndex[1] == 0 && left.sMv[3] == mv) ||
+			!(common.IS_SVC_INTER(top.uiMbType) && top.pRefIndex[2] == 0 && top.sMv[12] == mv) {
+			break
+		}
+		count++
+		next = WelsGetNextMbOfSlice(layer, next)
+	}
+	if count == 0 {
+		return 0, index
+	}
+
+	reference, decoded := layer.pRefPic, layer.pDecPic
+	funcs := ctx.pFuncList
+	qp := slice.uiLastMbQp
+	chromaQp := chromaQpOf(layer, qp)
+	stamps := state.stampsFor(layer)
+	csY, csUV := layer.iCsStride[0], layer.iCsStride[1]
+	refY, refUV := reference.iLineSize[0], reference.iLineSize[1]
+	encY, encUV := layer.iEncStride[0], layer.iEncStride[1]
+	end := index + count
+	for i := index; i < end; i++ {
+		mb := &blocks[i]
+		x, y := int32(mb.iMbX), int32(mb.iMbY)
+		lumaCs := layer.iCsDataOff[0] + int((x+y*csY)<<4)
+		copyReconstructed16x16(layer.pCsData[0], lumaCs, csY,
+			reference.pData[0], reference.iDataOff[0]+int((x+y*refY)<<4)+int(int32(shift)*refY), refY)
+		luma := funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_16x16](layer.pEncData[0],
+			layer.iEncDataOff[0]+int((x+y*encY)<<4), encY, layer.pCsData[0], lumaCs, csY)
+		chroma := int32(0)
+		for plane := 1; plane < 3; plane++ {
+			cs := layer.iCsDataOff[plane] + int((x+y*csUV)<<3)
+			ref := reference.iDataOff[plane] + int((x+y*refUV)<<3) + int(int32(mv.iMvY>>3)*refUV)
+			if shift%2 == 0 {
+				copyReconstructed8x8(layer.pCsData[plane], cs, layer.iCsStride[plane], reference.pData[plane], ref, refUV)
+			} else {
+				funcs.sMcFuncs.PMcChromaFunc(reference.pData[plane], ref, refUV, layer.pCsData[plane], cs,
+					layer.iCsStride[plane], mv.iMvX, mv.iMvY, 8, 8)
+			}
+			chroma += funcs.sSampleDealingFuncs.pfSampleSad[BLOCK_8x8](layer.pEncData[plane],
+				layer.iEncDataOff[plane]+int((x+y*encUV)<<3), encUV, layer.pCsData[plane], cs, layer.iCsStride[plane])
+		}
+		mb.uiMbType, mb.uiCbp = common.MB_TYPE_SKIP, 0
+		mb.sP16x16Mv = mv
+		mb.uiLumaQp, mb.uiChromaQp = qp, chromaQp
+		*mb.pSadCost = luma
+		decoded.pMbSkipSad[i] = luma + chroma
+	}
+	// InitMbInfo gives consecutive macroblocks adjacent entries.
+	first := &blocks[index]
+	clear(first.pRefIndex[:count*common.MB_BLOCK8x8_NUM])
+	fillUnchanged(first.sMv[:count*common.MB_BLOCK4x4_NUM], mv)
+	clear(first.pNonZeroCount[:count*MB_LUMA_CHROMA_BLOCK4x4_NUM])
+	fillUnchanged(decoded.sMvList[index:end], mv)
+	fillUnchanged(decoded.uiRefMbType[index:end], common.MB_TYPE_SKIP)
+	// WelsMdUpdateBGDInfo keeps the block's own QP: its prediction moved.
+	fillUnchanged(decoded.pRefMbQp[index:end], qp)
+	slice.iMbSkipRun += count
+	if stamps != nil {
+		clear(stamps[index:end]) // Not zero-motion skips.
+	}
+
+	// Leave the slice cache and mode decision as the last skip would have;
+	// the next macroblock advances these picture pointers incrementally.
+	last := end - 1
+	mb := &blocks[last]
+	x, y := int32(mb.iMbX), int32(mb.iMbY)
+	cache := &slice.sMbCacheInfo
+	data := &cache.SPicData
+	decY, decUV := decoded.iLineSize[0], decoded.iLineSize[1]
+	for plane := range 3 {
+		bits, enc, cs, dec, ref := int32(4), encY, csY, decY, refY
+		if plane > 0 {
+			bits, enc, cs, dec, ref = 3, encUV, csUV, decUV, refUV
+		}
+		data.pEncMb[plane], data.iEncMbOff[plane] = layer.pEncData[plane], layer.iEncDataOff[plane]+int((x+y*enc)<<bits)
+		data.pCsMb[plane], data.iCsMbOff[plane] = layer.pCsData[plane], layer.iCsDataOff[plane]+int((x+y*cs)<<bits)
+		data.pDecMb[plane], data.iDecMbOff[plane] = decoded.pData[plane], decoded.iDataOff[plane]+int((x+y*dec)<<bits)
+		data.pRefMb[plane], data.iRefMbOff[plane] = reference.pData[plane], reference.iDataOff[plane]+int((x+y*ref)<<bits)
+	}
+	cache.pEncSad, cache.iEncSadOff = decoded.pMbSkipSad, int(last)
+	cache.uiRefMbType = reference.uiRefMbType[last]
+	cache.bCollocatedPredFlag = false
+	UpdateNonZeroCountCache(mb, cache)
+	md.iCostLuma = *mb.pSadCost
+	md.iCostSkipMb = decoded.pMbSkipSad[last]
+
+	return count, next
+}
+
+func fillUnchanged[T any](s []T, value T) {
+	for i := range s {
+		s[i] = value
+	}
+}
+
 // unchangedPreferCallerThread reports whether so few macroblocks fall outside
 // unchanged runs that coding the slices on the calling goroutine costs less
 // than waking slice workers. Only hinted blocks over zero-motion skips can join
@@ -399,8 +646,8 @@ func unchangedPreferCallerThread(ctx *sWelsEncCtx) bool {
 	}
 	reference := ctx.pCurDqLayer.pRefPic
 	full := 0
-	for index, unchanged := range state.macroblocks {
-		if !unchanged || reference.uiRefMbType[index] != common.MB_TYPE_SKIP || reference.sMvList[index] != (SMVUnitXY{}) {
+	for index := range state.macroblocks {
+		if !state.skipCandidate(reference, index) {
 			full++
 			if full > limit {
 				return false

@@ -62,8 +62,28 @@ func blkRangesOverlap(a, aLen, b, bLen uint64) bool {
 	return aLen != 0 && bLen != 0 && a < b+bLen && b < a+aLen
 }
 
-// readRequest fills the data buffers from consecutive disk offsets.
-func (v *Blk) readRequest(c *blkPendingRequest) error {
+// readRequest fills the data buffers from consecutive disk offsets. An image
+// with vectored reads takes several buffers in one call, using the caller's
+// scratch list.
+func (v *Blk) readRequest(c *blkPendingRequest, scratch *[][]byte) error {
+	if v.vector != nil && len(c.segments) > 1 {
+		buffers, total := (*scratch)[:0], 0
+		for _, segment := range c.segments {
+			buffers = append(buffers, segment.data)
+			total += len(segment.data)
+		}
+		n, err := v.vector.ReadvAt(buffers, c.offset)
+		clear(buffers) // Do not retain guest buffers between requests.
+		*scratch = buffers[:0]
+		if err != nil {
+			return err
+		}
+		if n != total {
+			return io.ErrUnexpectedEOF
+		}
+
+		return nil
+	}
 	offset := c.offset
 	for _, segment := range c.segments {
 		n, err := v.image.ReadAt(segment.data, offset)
@@ -127,8 +147,9 @@ func (v *Blk) startReadWorkers() {
 	v.readDone = make(chan *blkPendingRequest, QueueSize)
 	for range blkReadWorkers {
 		v.readWorkers.Go(func() {
+			var scratch [][]byte
 			for c := range v.readJobs {
-				if err := v.readRequest(c); err != nil {
+				if err := v.readRequest(c, &scratch); err != nil {
 					c.result = 1 // VIRTIO_BLK_S_IOERR
 				}
 				v.readDone <- c

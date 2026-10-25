@@ -120,3 +120,53 @@ func BenchmarkBlkWriteFlushGroup(b *testing.B) {
 		})
 	}
 }
+
+// BenchmarkBlkSegmentedRead submits one maximum-size read into scattered 4 KiB
+// guest pages, as Linux readahead does, from a warm, fully allocated QCOW2
+// image, with and without the image's vectored reads.
+func BenchmarkBlkSegmentedRead(b *testing.B) {
+	for _, vectored := range []bool{false, true} {
+		name := "per_segment"
+		if vectored {
+			name = "vectored"
+		}
+		b.Run(name, func(b *testing.B) {
+			const pageSize, diskSize = 4096, 4 << 20
+			image, err := disk.CreateQCOW2(filepath.Join(b.TempDir(), "disk.qcow2"), diskSize)
+			if err != nil {
+				b.Fatal(err)
+			}
+			fill := make([]byte, 1<<20)
+			for off := int64(0); off < diskSize; off += int64(len(fill)) {
+				if _, err := image.WriteAt(fill, off); err != nil {
+					b.Fatal(err)
+				}
+			}
+			backing := image
+			if !vectored {
+				backing = struct{ disk.Image }{image} // Hides ReadvAt.
+			}
+			mem := make([]byte, 0x2000+2*blkMaxSegments*pageSize)
+			v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
+			b.Cleanup(func() { _ = v.Close() })
+			q := NewSplitQueue(QueueSize)
+			v.VirtQueue[blkQueue] = q
+			segments := make([]blkTestSegment, blkMaxSegments)
+			for i := range segments {
+				segments[i] = blkTestSegment{addr: 0x2000 + uint64(2*i*pageSize), len: pageSize}
+			}
+			ids := make([]uint16, blkMaxSegments+2)
+			for i := range ids {
+				ids[i] = uint16(i)
+			}
+			b.ReportAllocs()
+			b.SetBytes(blkMaxSegments * pageSize)
+			for b.Loop() {
+				addSegmentedRequest(q, mem, ids, 0, 0, 0x100, 0x200, segments)
+				if err := v.IO(); err != nil || mem[0x200] != 0 {
+					b.Fatalf("read: IO=%v status=%d", err, mem[0x200])
+				}
+			}
+		})
+	}
+}

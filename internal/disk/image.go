@@ -91,6 +91,10 @@ func (r *rawImage) ReadAt(b []byte, off int64) (int, error) {
 	return r.file.ReadAt(b, off)
 }
 
+func (r *rawImage) ReadvAt(buffers [][]byte, off int64) (int, error) {
+	return readvFile(r.file, buffers, off)
+}
+
 func (r *rawImage) WriteAt(b []byte, off int64) (int, error) {
 	if len(b) == 0 {
 		return 0, nil

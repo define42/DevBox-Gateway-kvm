@@ -584,6 +584,10 @@ type SFrameBSInfo struct {
 // PFrameBSInfo is the pointer alias of SFrameBSInfo.
 type PFrameBSInfo = *SFrameBSInfo
 
+// MaxForcedShift bounds forced vertical motion in luma rows. It fits the
+// ordinary motion search at every supported H.264 level, including level 1.
+const MaxForcedShift = 63
+
 // SSourcePicture is the structure for source picture (struct Source_Picture_s).
 type SSourcePicture struct {
 	IColorFormat int32    ///< color space type
@@ -604,6 +608,20 @@ type SSourcePicture struct {
 	// ceil(IPicWidth/16)*ceil(IPicHeight/16) elements. Nil/wrong length disables
 	// this optional hint; incorrect hints can suppress actual picture changes.
 	UnchangedMacroblocks []bool
+	// Go-only, borrowed read-only during EncodeFrame, with the layout of
+	// UnchangedMacroblocks and used only with a valid one. A true entry asks
+	// for that macroblock to repeat a reference block, as a P_SKIP, whatever
+	// its source: the colocated block, or with ForcedShift, the block that many
+	// luma rows lower (negative: higher). A caller copying an area itself, for
+	// example, keeps the decoded picture moving with it. When the motion
+	// predictor rules that skip out, the macroblock is coded normally from its
+	// source instead.
+	ForcedMacroblocks []bool
+	// ForcedShift, optional and with the same layout, gives each forced
+	// macroblock's vertical displacement in luma rows. Values outside
+	// [-MaxForcedShift, MaxForcedShift] are ignored: the macroblock is coded
+	// normally from its source instead.
+	ForcedShift []int16
 }
 
 // SBitrateInfo is the structure for bit rate info.

@@ -98,7 +98,7 @@ type qcow2Image struct {
 	l2CacheNext  int
 	l2CacheLimit int
 
-	// Warm reads share mu. Lazy metadata loading, writes, Sync and Close are
+	// Warm reads share mu. Lazy metadata loading, writes and Close are
 	// exclusive so data mappings cannot change during a complete read request.
 	mu     sync.RWMutex
 	closed bool
@@ -392,6 +392,103 @@ func (q *qcow2Image) readAt(b []byte, off int64) (int, error) {
 	}
 
 	return int(done), nil
+}
+
+func (q *qcow2Image) ReadvAt(buffers [][]byte, off int64) (int, error) {
+	total := 0
+	for _, b := range buffers {
+		total += len(b)
+	}
+	q.mu.RLock()
+	if q.readTablesCached(off, total) {
+		defer q.mu.RUnlock()
+
+		return q.readvAt(buffers, off, uint64(total))
+	}
+	q.mu.RUnlock()
+	// As in ReadAt, a cold read may populate the L2 cache.
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	return q.readvAt(buffers, off, uint64(total))
+}
+
+// readvAt has readAt's locking requirements and results for the buffers'
+// concatenation. Each run of clusters contiguous in the host file takes one
+// vectored read; zero clusters are cleared in place.
+func (q *qcow2Image) readvAt(buffers [][]byte, off int64, total uint64) (int, error) {
+	if q.closed {
+		return 0, os.ErrClosed
+	}
+	if total == 0 {
+		return 0, nil
+	}
+	if off < 0 {
+		return 0, errors.New("qcow2: negative read offset")
+	}
+	if uint64(off) >= q.size {
+		return 0, io.EOF
+	}
+
+	remaining := min(total, q.size-uint64(off))
+	cursor := vectorCursor{buffers: buffers, total: total}
+	// Guest bytes [read, mapped) form a pending run starting at host runHost.
+	var read, mapped, runHost uint64
+	for mapped < remaining {
+		guestOff := uint64(off) + mapped
+		chunk := min(remaining-mapped, q.clusterSize-guestOff&(q.clusterSize-1))
+		hostOff, zero, err := q.hostOffset(guestOff)
+		if err != nil {
+			return int(read), err
+		}
+		if pending := mapped - read; pending > 0 && (zero || hostOff != runHost+pending) {
+			if err := q.readRun(&cursor, runHost, pending); err != nil {
+				return int(read), err
+			}
+			read = mapped
+		}
+		switch {
+		case zero:
+			for _, b := range cursor.take(chunk) {
+				clear(b)
+			}
+			read += chunk
+		case mapped == read:
+			runHost = hostOff
+		}
+		mapped += chunk
+	}
+	if pending := mapped - read; pending > 0 {
+		if err := q.readRun(&cursor, runHost, pending); err != nil {
+			return int(read), err
+		}
+		read = mapped
+	}
+
+	if read < total {
+		return int(read), io.EOF
+	}
+
+	return int(read), nil
+}
+
+// readRun reads length host bytes at off into the cursor's next bytes.
+func (q *qcow2Image) readRun(cursor *vectorCursor, off, length uint64) error {
+	iov := cursor.take(length)
+	if q.dataReader != nil {
+		// Test hooks observe ordinary reads.
+		for _, b := range iov {
+			if _, err := q.dataReader.ReadAt(b, int64(off)); err != nil {
+				return err
+			}
+			off += uint64(len(b))
+		}
+
+		return nil
+	}
+	_, err := readvFile(q.file, iov, int64(off))
+
+	return err
 }
 
 func (q *qcow2Image) WriteAt(b []byte, off int64) (int, error) {

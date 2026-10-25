@@ -46,6 +46,9 @@ type Options struct {
 	Backend   Backend // Empty, software, and auto all select the bundled pure Go encoder.
 	FrameRate int     // Zero selects FrameRate; otherwise must be between 1 and FrameRate.
 	QP        *int    // Nil selects DefaultQP; explicit values range from MinQP to MaxQP.
+	// SurfaceCopies lets unscaled frames describe vertically scrolled areas as
+	// copies of pixels the client already shows; see Update and Sent.
+	SurfaceCopies bool
 }
 
 // EncodeStats describes the most recent frame preparation and encoding. Encoding
@@ -80,6 +83,10 @@ type Encoder struct {
 	preparedChanged bool
 	preparedForce   bool
 	preparedHints   bool
+	preparedForced  []bool            // Copied macroblocks of the prepared frame, or nil.
+	preparedShift   []int16           // Their vertical displacement in luma rows.
+	mapped          []image.Rectangle // Reused, the prepared damage in output coordinates.
+	surface         surfaceTracker
 	borrowedSource  image.RGBA // Temporary BGRX header, cleared before preparation returns.
 }
 
@@ -126,6 +133,7 @@ func NewEncoderWithOptions(width, height int, options Options) (*Encoder, error)
 		codec: codec, width: width, height: height,
 		i420: make([]byte, width*height*3/2), threads: threads,
 		measure: options.Measure, frameRate: frameRate, qp: qp,
+		surface: surfaceTracker{enabled: options.SurfaceCopies},
 	}, nil
 }
 
@@ -198,6 +206,26 @@ func (e *Encoder) EncodePrepared() ([]byte, error) {
 	e.retry = err != nil
 
 	return data, err
+}
+
+// Update describes how the client must present the frame EncodePrepared last
+// returned. It is meaningful only with Options.SurfaceCopies.
+func (e *Encoder) Update() Update {
+	if !e.surface.planned {
+		return Update{}
+	}
+
+	return e.surface.update
+}
+
+// Sent reports whether the caller delivered the frame EncodePrepared last
+// returned, presented as Update describes. An undelivered frame leaves the
+// client behind the encoder's reference, so the next frame is a keyframe.
+func (e *Encoder) Sent(ok bool) {
+	if !ok {
+		e.retry = true
+	}
+	e.surface.sent(ok)
 }
 
 // Close releases all codec buffers and is safe to call more than once.

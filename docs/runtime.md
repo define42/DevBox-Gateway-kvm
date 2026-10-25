@@ -510,6 +510,24 @@ The gateway passes the value to each worker with `-rdp-h264-qp`. Changing it
 requires restarting the gateway and starting new VM processes; reconnecting
 RDP or rebooting within the guest does not update the worker's setting.
 
+### Scroll copies
+
+With `RDP_SURFACE_COPIES=true` (the default; `serve -rdp-surface-copies`), the
+encoder looks in each frame's damage for content that moved vertically, such as
+a scrolled page, document or terminal. It sends the moved rectangles as RDPGFX
+surface-to-surface copies, which the client applies before the H.264 update,
+and repaints only the rows the scroll exposed. The copied macroblocks are coded
+as the same motion, so the client's decoder keeps its reference picture in step
+with the copied pixels without coding residual data. An odd-row shift leaves
+the decoder's chroma interpolated where the client copied exact pixels; the
+encoder tracks such blocks and codes them from their source before a later
+repaint shows them. Keyframes, horizontal movement, and damage too fragmented
+to describe fall back to ordinary repainting.
+
+Set `RDP_SURFACE_COPIES=false` to disable detection. The gateway passes the
+setting to each worker as `-rdp-surface-copies`, which requires `-rdp-h264`; like
+QP, it applies to newly started VM processes.
+
 ### FreeRDP build and cursor troubleshooting
 
 Check `xfreerdp /buildconfig` for `WITH_GFX_H264=ON` before requesting

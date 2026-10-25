@@ -12,12 +12,15 @@ import (
 )
 
 const (
-	graphicsChannelName      = "Microsoft::Windows::RDS::Graphics\x00"
-	graphicsChannelID        = 1
-	graphicsMaxMessage       = 8 << 20
-	graphicsMaxIncoming      = 1 << 20
-	graphicsMaxFrames        = 2
-	graphicsMaxRegions       = 128
+	graphicsChannelName = "Microsoft::Windows::RDS::Graphics\x00"
+	graphicsChannelID   = 1
+	graphicsMaxMessage  = 8 << 20
+	graphicsMaxIncoming = 1 << 20
+	graphicsMaxFrames   = 2
+	graphicsMaxRegions  = 128
+	graphicsMaxCopies   = 16
+	// RDPGFX_SURFACE_TO_SURFACE_PDU with one destination point.
+	graphicsCopyLength       = 8 + 2 + 2 + 8 + 2 + 4
 	graphicsVersion81        = 0x00080105
 	graphicsMinFrameInterval = time.Second / 60
 	graphicsMaxFrameInterval = 250 * time.Millisecond
@@ -176,6 +179,30 @@ func (s *Session) WriteAVC420(annexB []byte) (bool, error) {
 // interframe must never be dropped because its dirty region became empty.
 // IDR keyframes automatically repaint the complete desktop.
 func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (bool, error) {
+	return s.writeAVC420(annexB, regions, nil, true)
+}
+
+// SurfaceCopy moves the client's desktop pixels in Source so that its top-left
+// corner lands at Destination, in output desktop coordinates. The source and
+// destination may overlap.
+type SurfaceCopy struct {
+	Source      image.Rectangle
+	Destination image.Point
+}
+
+// WriteAVC420Update sends a complete access unit that the client paints only
+// within regions, after performing copies in order. Unlike WriteAVC420Damage,
+// regions are exact: they must be disjoint and inside the desktop, and they are
+// neither expanded nor merged, because the caller may keep the decoded picture
+// stale elsewhere. Nil regions repaint everything. A keyframe repaints the
+// complete desktop and drops the copies it makes redundant.
+func (s *Session) WriteAVC420Update(annexB []byte, regions []image.Rectangle, copies []SurfaceCopy) (bool, error) {
+	return s.writeAVC420(annexB, regions, copies, false)
+}
+
+func (s *Session) writeAVC420(
+	annexB []byte, regions []image.Rectangle, copies []SurfaceCopy, normalize bool,
+) (bool, error) {
 	if len(annexB) == 0 || len(annexB) > avc420MaxPayload(1) {
 		return false, errors.New("rdp: invalid AVC420 frame length")
 	}
@@ -195,13 +222,20 @@ func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (b
 	if width <= 0 || height <= 0 || width > 4096 || height > 4096 {
 		return false, errors.New("rdp: invalid AVC420 desktop geometry")
 	}
-	if len(regions) != 0 && avc420Keyframe(annexB) {
+	keyframe := (len(regions) != 0 || len(copies) != 0) && avc420Keyframe(annexB)
+	if keyframe {
 		// Periodic IDRs may re-quantize unchanged macroblocks. Repaint the
 		// complete picture, including keyframes not explicitly forced by us.
-		regions = nil
+		regions, copies = nil, nil
 	}
-	regions = avc420Regions(width, height, regions)
-	if len(annexB) > avc420MaxPayload(len(regions)) {
+	if normalize {
+		regions = avc420Regions(width, height, regions)
+	} else if err := validateAVC420Update(width, height, regions, copies); err != nil {
+		return false, err
+	} else if regions == nil {
+		regions = []image.Rectangle{image.Rect(0, 0, width, height)}
+	}
+	if len(annexB) > avc420MaxPayload(len(regions))-graphicsCopyLength*len(copies) {
 		return false, errors.New("rdp: AVC420 frame and region metadata exceed message limit")
 	}
 	g.mu.Lock()
@@ -219,9 +253,9 @@ func (s *Session) WriteAVC420Damage(annexB []byte, regions []image.Rectangle) (b
 	}
 	g.mu.Unlock()
 
-	var metadata [57 + 10*graphicsMaxRegions]byte
-	header, end := avc420FrameMetadata(metadata[:], width, height, frameID,
-		graphicsTimestamp(time.Now()), len(annexB), regions)
+	var metadata [57 + 10*graphicsMaxRegions + graphicsCopyLength*graphicsMaxCopies]byte
+	header, end := avc420FrameUpdateMetadata(metadata[:], width, height, frameID,
+		graphicsTimestamp(time.Now()), len(annexB), regions, copies)
 	frameLength := len(header) + len(annexB) + len(end)
 	err := s.writeGraphicsParts([][]byte{header, annexB, end})
 	g.mu.Lock()
@@ -566,14 +600,51 @@ func avc420FrameDamage(width, height int, frameID, timestamp uint32,
 	return append(data, end...)
 }
 
+// validateAVC420Update checks exact repaint regions and copies, which must not
+// be silently changed: either would repaint or keep the wrong pixels.
+func validateAVC420Update(width, height int, regions []image.Rectangle, copies []SurfaceCopy) error {
+	bounds := image.Rect(0, 0, width, height)
+	if len(regions) > graphicsMaxRegions || len(copies) > graphicsMaxCopies {
+		return errors.New("rdp: too many AVC420 regions or surface copies")
+	}
+	for i, rect := range regions {
+		if rect.Empty() || !rect.In(bounds) {
+			return errors.New("rdp: AVC420 region outside the desktop")
+		}
+		for _, other := range regions[:i] {
+			if rect.Overlaps(other) {
+				return errors.New("rdp: overlapping AVC420 regions")
+			}
+		}
+	}
+	for _, move := range copies {
+		destination := move.Source.Add(move.Destination.Sub(move.Source.Min))
+		if move.Source.Empty() || !move.Source.In(bounds) || !destination.In(bounds) {
+			return errors.New("rdp: surface copy outside the desktop")
+		}
+	}
+
+	return nil
+}
+
 // avc420FrameMetadata fills only the small frame header and trailer. The
 // access unit remains separate until the transport fragments are assembled.
 func avc420FrameMetadata(data []byte, width, height int, frameID, timestamp uint32,
 	payloadLength int, regions []image.Rectangle,
 ) ([]byte, []byte) {
+	return avc420FrameUpdateMetadata(data, width, height, frameID, timestamp, payloadLength, regions, nil)
+}
+
+// avc420FrameUpdateMetadata places each copy, an
+// RDPGFX_SURFACE_TO_SURFACE_PDU (MS-RDPEGFX 2.2.2.6), between START_FRAME and
+// the access unit, so the client performs it before repainting.
+func avc420FrameUpdateMetadata(data []byte, width, height int, frameID, timestamp uint32,
+	payloadLength int, regions []image.Rectangle, copies []SurfaceCopy,
+) ([]byte, []byte) {
 	metadataLength := 4 + 10*len(regions)
 	wireLength := 17 + metadataLength
-	data = data[:16+8+wireLength+12]
+	copyLength := graphicsCopyLength * len(copies)
+	data = data[:16+copyLength+8+wireLength+12]
 	clear(data)
 
 	start := data[:16]
@@ -582,7 +653,21 @@ func avc420FrameMetadata(data []byte, width, height int, frameID, timestamp uint
 	binary.LittleEndian.PutUint32(start[8:], timestamp)
 	binary.LittleEndian.PutUint32(start[12:], frameID)
 
-	wirePDU := data[16 : 16+8+wireLength]
+	for index, move := range copies {
+		pdu := data[16+graphicsCopyLength*index:][:graphicsCopyLength]
+		binary.LittleEndian.PutUint16(pdu, 0x05)
+		binary.LittleEndian.PutUint32(pdu[4:], graphicsCopyLength)
+		// surfaceIdSrc and surfaceIdDest are both the desktop surface, 0.
+		put16(pdu, 12, move.Source.Min.X)
+		put16(pdu, 14, move.Source.Min.Y)
+		put16(pdu, 16, move.Source.Max.X)
+		put16(pdu, 18, move.Source.Max.Y)
+		put16(pdu, 20, 1)
+		put16(pdu, 22, move.Destination.X)
+		put16(pdu, 24, move.Destination.Y)
+	}
+
+	wirePDU := data[16+copyLength : 16+copyLength+8+wireLength]
 	binary.LittleEndian.PutUint16(wirePDU, 1)
 	binary.LittleEndian.PutUint32(wirePDU[4:], uint32(len(wirePDU)+payloadLength))
 	// WIRE_TO_SURFACE_1 describes the complete coded desktop; its AVC420

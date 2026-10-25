@@ -9,13 +9,13 @@ import (
 // Damage hints let the codec reuse unchanged macroblocks without changing AVC
 // dimensions, surface placement, or the reference chain.
 type damageCodecEncoder interface {
-	encodeDamage([]byte, bool, int64, []bool) ([]byte, error)
+	encodeDamage(i420 []byte, force bool, timestamp int64, unchanged, forced []bool, shift []int16) ([]byte, error)
 }
 
 func (e *Encoder) encodeWithDamageHints() ([]byte, error) {
 	timestamp := e.frame * 1000 / int64(e.frameRate)
 	if codec, ok := e.codec.(damageCodecEncoder); ok && e.preparedHints {
-		return codec.encodeDamage(e.i420, false, timestamp, e.unchanged)
+		return codec.encodeDamage(e.i420, false, timestamp, e.unchanged, e.preparedForced, e.preparedShift)
 	}
 
 	return e.codec.encode(e.i420, e.preparedForce, timestamp)

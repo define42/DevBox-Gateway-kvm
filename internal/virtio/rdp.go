@@ -54,11 +54,14 @@ type RDPConfig struct {
 	H264Encoder string // Empty selects the software encoder.
 	H264QP      *int   // Nil selects QP 20; 0..51, with lower values using more bandwidth for higher quality.
 	Profile     string // office or smooth (30 FPS); empty retains the standalone 60-FPS default.
-	Audio       bool
-	H264Threads int // Slice request; zero chooses a bounded automatic count.
-	GuestCPUs   int // Guest vCPUs considered when bounding the encoder slice request.
-	Stats       bool
-	Telemetry   *telemetry.Collector // Optional process-owned performance counters.
+	// SurfaceCopies has the client copy vertically scrolled areas of the
+	// desktop instead of receiving them as encoded video.
+	SurfaceCopies bool
+	Audio         bool
+	H264Threads   int // Slice request; zero chooses a bounded automatic count.
+	GuestCPUs     int // Guest vCPUs considered when bounding the encoder slice request.
+	Stats         bool
+	Telemetry     *telemetry.Collector // Optional process-owned performance counters.
 
 	// getParentPID supports same-process transport tests. It is unexported so
 	// callers outside this package cannot override the live parent check.
@@ -77,6 +80,7 @@ type RDPDisplay struct {
 	h264Backend    avc.Backend
 	h264Slices     int
 	h264QP         int
+	surfaceCopies  bool
 	frameRate      int
 	stats          bool
 	telemetry      *telemetry.Collector
@@ -170,8 +174,8 @@ func NewRDPDisplayWithConfig(options RDPConfig) (*RDPDisplay, error) {
 		framebuffer: newFramebuffer(), listener: listener, tls: config, ready: make(chan struct{}),
 		h264: options.H264, stats: options.Stats,
 		h264Backend: backend, h264Slices: slices, h264QP: qp, frameRate: frameRate,
-		telemetry: options.Telemetry, gatewayPID: int32(options.GatewayPID), gatewayUID: options.GatewayUID,
-		getParentPID: getParentPID,
+		surfaceCopies: options.SurfaceCopies, telemetry: options.Telemetry,
+		gatewayPID: int32(options.GatewayPID), gatewayUID: options.GatewayUID, getParentPID: getParentPID,
 	}
 	if options.Audio {
 		display.audio = audio.NewHub()
@@ -552,6 +556,7 @@ func (d *RDPDisplay) writeFrames(
 	writer := &rdpFrameWriter{
 		session: session, bitmap: bitmap, width: width, height: height, force: true,
 		backend: d.h264Backend, slices: d.h264Slices, frameRate: d.frameRate, h264QP: &d.h264QP,
+		surfaceCopies: d.surfaceCopies,
 		stats: rdpFrameStats{
 			enabled: d.stats, peer: conn.RemoteAddr().String(), telemetry: d.telemetry.Connect(),
 		},
@@ -656,13 +661,16 @@ type rdpFrameWriter struct {
 	graphics  bool
 	frameRate int
 	h264QP    *int
-	sequence  uint64
-	force     bool
-	nextFrame time.Time
-	lastFrame time.Time
-	pointer   rdpPointerWriter
-	slices    int
-	stats     rdpFrameStats
+	// surfaceCopies lets the encoder describe scrolls as client-side copies.
+	surfaceCopies bool
+	copies        []rdp.SurfaceCopy // Reused conversion of the encoder's copies.
+	sequence      uint64
+	force         bool
+	nextFrame     time.Time
+	lastFrame     time.Time
+	pointer       rdpPointerWriter
+	slices        int
+	stats         rdpFrameStats
 }
 
 // Encoders retain geometry and the previous frame. Discard both after a resize
@@ -844,7 +852,7 @@ func (w *rdpFrameWriter) ensureAVC() (bool, error) {
 	width, height := w.session.Size()
 	encoder, err := avc.NewEncoderWithOptions(width, height, avc.Options{
 		Backend: w.backend, Threads: max(1, w.slices), Measure: w.stats.measuring(), FrameRate: w.frameRate,
-		QP: w.h264QP,
+		QP: w.h264QP, SurfaceCopies: w.surfaceCopies,
 	})
 	if err != nil {
 		return false, err
@@ -908,6 +916,23 @@ func (w *rdpFrameWriter) writeAVC(
 	if err != nil || len(data) == 0 {
 		return err == nil, err
 	}
+	if w.surfaceCopies {
+		if update := w.avc.Update(); update.Tracked {
+			w.copies = w.copies[:0]
+			for _, move := range update.Copies {
+				w.copies = append(w.copies, rdp.SurfaceCopy{Source: move.Source, Destination: move.Destination})
+			}
+			start := w.stats.begin()
+			sent, err := w.session.WriteAVC420Update(data, update.Regions, w.copies)
+			w.stats.written(w.stats.elapsed(start))
+			if sent {
+				w.stats.sent(len(data))
+			}
+			w.avc.Sent(sent)
+
+			return sent, err
+		}
+	}
 
 	var regions []image.Rectangle
 	if !force && damage != nil {
@@ -926,6 +951,9 @@ func (w *rdpFrameWriter) writeAVC(
 	w.stats.written(w.stats.elapsed(start))
 	if sent {
 		w.stats.sent(len(data))
+	}
+	if w.surfaceCopies {
+		w.avc.Sent(sent)
 	}
 
 	return sent, err

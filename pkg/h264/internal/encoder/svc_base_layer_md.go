@@ -1681,7 +1681,7 @@ func WelsMdFirstIntraMode(pEncCtx *sWelsEncCtx, pWelsMd *SWelsMD, pCurMb *SMB, p
 }
 
 func WelsMdInterMb(pEncCtx *sWelsEncCtx, pWelsMd *SWelsMD, pSlice *SSlice, pCurMb *SMB, pUnused *SMbCache) {
-	if tryUnchangedMacroblock(pEncCtx, pWelsMd, pSlice, pCurMb) {
+	if tryUnchangedMacroblock(pEncCtx, pWelsMd, pSlice, pCurMb) || tryForcedMotionMacroblock(pEncCtx, pWelsMd, pSlice, pCurMb) {
 		return
 	}
 	pCurDqLayer := pEncCtx.pCurDqLayer

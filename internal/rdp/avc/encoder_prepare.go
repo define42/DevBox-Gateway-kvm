@@ -52,13 +52,12 @@ func (e *Encoder) prepareFrame(img *image.RGBA, regions []image.Rectangle, force
 	changed := !e.initialized || e.retry
 	output := image.Rect(0, 0, e.width, e.height)
 	fullConversion := force || regions == nil || !e.initialized || e.source != img.Rect
+	e.surface.begin()
+	e.mapped = e.mapped[:0]
 	if fullConversion {
 		changed = e.convertPreparedRegion(img, output, bgrx) || changed
 	} else {
-		for _, region := range regions {
-			mapped := damage.Align(damage.Map(region, img.Rect, output), 2, output)
-			changed = e.convertPreparedRegion(img, mapped, bgrx) || changed
-		}
+		changed = e.convertDamage(img, regions, bgrx) || changed
 	}
 	e.source, e.initialized = img.Rect, true
 	if e.measure {
@@ -68,14 +67,60 @@ func (e *Encoder) prepareFrame(img *image.RGBA, regions []image.Rectangle, force
 	e.prepared, e.preparedChanged, e.preparedForce = true, force || changed, force || e.retry
 	_, supportsDamage := e.codec.(damageCodecEncoder)
 	e.preparedHints = supportsDamage && !fullConversion && !e.preparedForce && e.preparedChanged
+	e.preparedForced, e.preparedShift = nil, nil
 	if e.preparedHints {
 		e.unchangedMacroblocks(img.Rect, regions)
+		if e.surface.enabled {
+			e.preparedForced, e.preparedShift = e.surface.plan(e.unchanged, e.width, e.height, e.mapped)
+		}
+	} else if e.surface.enabled && e.preparedChanged {
+		// Without hints every block is coded from its source.
+		e.surface.repaintAll()
 	}
 	if e.measure && e.preparedChanged {
 		e.stats.Encoding = time.Since(started)
 	}
 
 	return nil
+}
+
+// convertDamage converts the output regions that regions map to, recording
+// them in e.mapped, and reports whether any samples changed.
+func (e *Encoder) convertDamage(img *image.RGBA, regions []image.Rectangle, bgrx bool) bool {
+	output := image.Rect(0, 0, e.width, e.height)
+	for _, region := range regions {
+		e.mapped = append(e.mapped, damage.Align(damage.Map(region, img.Rect, output), 2, output))
+	}
+	changed := false
+	if !e.surface.enabled || img.Rect != output {
+		for _, mapped := range e.mapped {
+			changed = e.convertPreparedRegion(img, mapped, bgrx) || changed
+		}
+
+		return changed
+	}
+	// Scrolls are found by comparing each unscaled area with the samples it
+	// replaces, snapshotted before any of it is converted.
+	e.surface.areas = detectionAreas(e.surface.areas, e.mapped)
+	for _, area := range e.surface.areas {
+		shift := 0
+		if scrollCandidate(area) {
+			shift = e.surface.detector.vote(img, bgrx, area, e.i420, e.width)
+		}
+		if shift != 0 {
+			e.surface.detector.snapshot.take(e.i420, e.width, e.height, area)
+		}
+		for _, mapped := range e.mapped {
+			if mapped.In(area) {
+				changed = e.convertPreparedRegion(img, mapped, bgrx) || changed
+			}
+		}
+		if shift != 0 {
+			e.surface.matches = append(e.surface.matches, e.surface.detector.detect(e.i420, e.width, e.height, shift))
+		}
+	}
+
+	return changed
 }
 
 func (e *Encoder) convertPreparedRegion(img *image.RGBA, region image.Rectangle, bgrx bool) bool {

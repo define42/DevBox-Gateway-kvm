@@ -95,6 +95,8 @@ type Blk struct {
 	readJobs    chan *blkPendingRequest
 	readDone    chan *blkPendingRequest
 	readWorkers sync.WaitGroup
+	readScratch [][]byte          // The queue owner's buffer list for vector reads.
+	vector      disk.VectorReader // The image, when it supports vectored reads.
 	// FLUSH requests sync on flushWorker while later requests proceed.
 	// flushing counts those the queue owner has not yet published; both
 	// channels have room for all of them. Protected by queueMu.
@@ -361,7 +363,7 @@ func (v *Blk) processQueue(q *SplitQueue) error {
 				v.writes.Add(1)
 				needsSync = true
 			default:
-				ioErr = v.readRequest(c)
+				ioErr = v.readRequest(c, &v.readScratch)
 			}
 			if ioErr != nil {
 				c.result = 1 // VIRTIO_BLK_S_IOERR
@@ -648,6 +650,7 @@ func newBlk(image disk.Image, readOnly bool, irq uint8, irqInjector IRQInjector,
 		done:        make(chan struct{}),
 	}
 
+	res.vector, _ = image.(disk.VectorReader)
 	res.ModernTransport = NewModernTransport(res, mem, func() error {
 		return irqInjector.InjectVirtioBlkIRQ()
 	})

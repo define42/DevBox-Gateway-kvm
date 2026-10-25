@@ -216,3 +216,74 @@ func TestBlkParallelReadsCheckEverySegment(t *testing.T) {
 		t.Fatalf("backend reads = %d, want one per segment", backing.reads)
 	}
 }
+
+// vectorImage serves vectored reads from batchImage's data and counts them.
+type vectorImage struct {
+	batchImage
+	readvs  int
+	readErr error
+	short   bool // Report one byte fewer than requested.
+}
+
+func (d *vectorImage) ReadvAt(buffers [][]byte, off int64) (int, error) {
+	d.readMu.Lock()
+	d.readvs++
+	d.readMu.Unlock()
+	if d.readErr != nil {
+		return 0, d.readErr
+	}
+	n := 0
+	for _, b := range buffers {
+		n += copy(b, d.data[min(off+int64(n), int64(len(d.data))):])
+	}
+	if d.short {
+		return n - 1, nil
+	}
+
+	return n, nil
+}
+
+func TestBlkMultiSegmentReadUsesVectorReader(t *testing.T) {
+	t.Parallel()
+
+	mem := make([]byte, 64*1024)
+	backing := &vectorImage{batchImage: batchImage{data: make([]byte, 8*SectorSize)}}
+	for i := range backing.data {
+		backing.data[i] = byte(i % 251)
+	}
+	v := newBlk(backing, false, 10, benchIRQInjector{}, mem)
+	t.Cleanup(func() { _ = v.Close() })
+	q := NewSplitQueue(QueueSize)
+	v.QueueReady(blkQueue, q)
+
+	reads := []blkTestSegment{{0x8000, 1536}, {0x6000, 512}, {0x7000, 1024}}
+	addSegmentedRequest(q, mem, []uint16{0, 1, 2, 3, 4}, 0, 1, 0x100, 0x200, reads)
+	if err := v.IO(); err != nil {
+		t.Fatal(err)
+	}
+	var got []byte
+	for _, segment := range reads {
+		got = append(got, mem[segment.addr:segment.addr+uint64(segment.len)]...)
+	}
+	if mem[0x200] != 0 || backing.readvs != 1 || backing.reads != 0 ||
+		!bytes.Equal(got, backing.data[SectorSize:SectorSize+len(got)]) {
+		t.Fatalf("vectored read: status=%d readvs=%d reads=%d, data matches=%v",
+			mem[0x200], backing.readvs, backing.reads, bytes.Equal(got, backing.data[SectorSize:SectorSize+len(got)]))
+	}
+
+	// One buffer needs no list; failed or short vectored reads are I/O errors.
+	addSegmentedRequest(q, mem, []uint16{5, 6, 7}, 0, 0, 0x300, 0x400, reads[:1])
+	if err := v.IO(); err != nil || mem[0x400] != 0 || backing.readvs != 1 || backing.reads != 1 {
+		t.Fatalf("single-segment read: IO=%v status=%d readvs=%d reads=%d", err, mem[0x400], backing.readvs, backing.reads)
+	}
+	backing.readErr = errTestBlkIRQ
+	addSegmentedRequest(q, mem, []uint16{0, 1, 2, 3, 4}, 0, 1, 0x100, 0x200, reads)
+	if err := v.IO(); err != nil || mem[0x200] != 1 {
+		t.Fatalf("failed vectored read: IO=%v status=%d", err, mem[0x200])
+	}
+	backing.readErr, backing.short = nil, true
+	addSegmentedRequest(q, mem, []uint16{0, 1, 2, 3, 4}, 0, 1, 0x100, 0x200, reads)
+	if err := v.IO(); err != nil || mem[0x200] != 1 || backing.readvs != 3 {
+		t.Fatalf("short vectored read: IO=%v status=%d readvs=%d", err, mem[0x200], backing.readvs)
+	}
+}
