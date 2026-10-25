@@ -24,10 +24,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
+func managerTestWorker(t *testing.T, behavior string) string {
 	t.Helper()
-	dir := t.TempDir()
-	binaryPath := filepath.Join(dir, "helper")
+	binaryPath := filepath.Join(t.TempDir(), "helper")
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
 	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 DEVBOX_KVM_MANAGER_HELPER=" + quote(behavior) +
 		" exec " + quote(os.Args[0]) +
@@ -36,8 +35,15 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 	if err := os.WriteFile(binaryPath, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
+
+	return binaryPath
+}
+
+func managerTestConfig(t *testing.T) ManagerConfig {
+	t.Helper()
+	dir := t.TempDir()
 	config := ManagerConfig{
-		DataDir: filepath.Join(dir, "state"), Binary: binaryPath,
+		DataDir:   filepath.Join(dir, "state"),
 		BaseImage: filepath.Join(dir, "base.qcow2"), StartTimeout: 3 * time.Second,
 		StopTimeout: 100 * time.Millisecond, MaxVMsPerUser: 2, MaxRunning: 1,
 		MemoryOverheadMiB: 256,
@@ -54,10 +60,11 @@ func managerTestConfig(t *testing.T, behavior string) ManagerConfig {
 
 func newTestManager(t *testing.T, behavior string) *Manager {
 	t.Helper()
-	manager, err := NewManager(managerTestConfig(t, behavior))
+	manager, err := NewManager(managerTestConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
+	manager.workerBinary = managerTestWorker(t, behavior)
 	// Helper children do not allocate guest RAM; keep lifecycle tests independent
 	// of the test host and its cgroup memory limit.
 	manager.cgroups = testCgroupFactory{}
@@ -201,6 +208,7 @@ func TestManagerReloadWithoutConfiguredBaseImage(t *testing.T) {
 				t.Fatalf("VM source metadata = %+v, %v", loaded, err)
 			}
 			// The helper child does not allocate guest RAM.
+			reopened.workerBinary = m.workerBinary
 			reopened.cgroups = testCgroupFactory{}
 			reopened.readMemory = m.readMemory
 			reopened.readResident = m.readResident
@@ -455,7 +463,7 @@ func TestManagerRejectsUnsafeState(t *testing.T) {
 	} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			m, err := NewManager(config)
 			if err != nil {
 				t.Fatal(err)
@@ -701,7 +709,7 @@ func TestManagerH264QPWorkerConfiguration(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			config.H264QP = test.qp
 			m, err := NewManager(config)
 			if err != nil {
@@ -716,6 +724,7 @@ func TestManagerH264QPWorkerConfiguration(t *testing.T) {
 				// Future workers must use the configuration captured at startup.
 				*config.H264QP = 52
 			}
+			m.workerBinary = managerTestWorker(t, "graceful")
 			m.cgroups = testCgroupFactory{}
 			m.readResident = func(int) (uint64, error) { return 0, nil }
 			m.readMemory = func() (hostMemory, error) {
@@ -741,7 +750,7 @@ func TestManagerRejectsInvalidH264QP(t *testing.T) {
 	for _, qp := range []int{-1, 52} {
 		t.Run(strconv.Itoa(qp), func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			config.H264QP = &qp
 			m, err := NewManager(config)
 			if m != nil {

@@ -62,7 +62,7 @@ func TestServeDefaultVMDiskSize(t *testing.T) {
 func TestServeEnvironmentConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
-		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2", "VM_BINARY": "/opt/devbox-kvm",
+		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2",
 		"H264_QP":     "28",
 		"VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
@@ -91,7 +91,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	want := serveOptions{
 		manager: gateway.ManagerConfig{
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
-			DataDir: "/srv/desktops", Binary: "/opt/devbox-kvm", BaseImage: "/srv/images/desktop.qcow2",
+			DataDir: "/srv/desktops", BaseImage: "/srv/images/desktop.qcow2",
 			Keyboard: "dk",
 			H264QP:   &qp, NetworkPolicy: "internet",
 			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,

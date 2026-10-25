@@ -113,7 +113,7 @@ func TestManagerDiskLimitConfig(t *testing.T) {
 func TestManagerRejectsOversizedDefaultDisk(t *testing.T) {
 	t.Parallel()
 
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.MaxDiskBytes = 4095
 	before, err := os.ReadFile(config.BaseImage)
 	if err != nil {
@@ -136,7 +136,7 @@ func TestManagerRejectsOversizedDefaultDisk(t *testing.T) {
 func TestManagerImportRejectsVirtualDiskOverLimit(t *testing.T) {
 	t.Parallel()
 
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.MaxDiskBytes = (2 << 20) - 1
 	manager, err := NewManager(config)
 	if err != nil {
@@ -259,7 +259,7 @@ func assertRejectedCreationClean(t *testing.T, manager *Manager) {
 func TestManagerLoadsOversizedCatalogButBlocksCreation(t *testing.T) {
 	t.Parallel()
 
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.MaxDiskBytes = 2 << 20
 	manager, err := NewManager(config)
 	if err != nil {
@@ -300,7 +300,7 @@ func TestManagerLoadsOversizedCatalogButBlocksCreation(t *testing.T) {
 func TestManagerLoadsOversizedVMButBlocksStart(t *testing.T) {
 	t.Parallel()
 
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.MaxDiskBytes = 4096
 	manager, err := NewManager(config)
 	if err != nil {

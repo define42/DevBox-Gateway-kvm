@@ -9,7 +9,7 @@ import (
 
 func TestManagerBundledFirmware(t *testing.T) {
 	t.Parallel()
-	manager, err := NewManager(managerTestConfig(t, "graceful"))
+	manager, err := NewManager(managerTestConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestManagerBundledFirmware(t *testing.T) {
 
 func TestManagerBundledFirmwarePreservesVMVariables(t *testing.T) {
 	t.Parallel()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	manager, err := NewManager(config)
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +82,7 @@ func TestManagerFirmwareCacheFailureReleasesLock(t *testing.T) {
 	for _, name := range []string{"symlink directory", "public directory", "regular file", "asset directory"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			if err := os.Mkdir(config.DataDir, 0o700); err != nil {
 				t.Fatal(err)
 			}

@@ -36,7 +36,7 @@ func TestManagerProfilingLifecycle(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			config.DataDir = profilingTestDirectory(t)
 			config.VMProfiling = test.enabled
 			m, err := NewManager(config)
@@ -44,6 +44,7 @@ func TestManagerProfilingLifecycle(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = m.Close() })
+			m.workerBinary = managerTestWorker(t, "graceful")
 			m.cgroups = testCgroupFactory{}
 			m.readResident = func(int) (uint64, error) { return 0, nil }
 			m.readMemory = func() (hostMemory, error) {
@@ -93,7 +94,7 @@ func TestManagerProfilingLifecycle(t *testing.T) {
 
 func TestManagerProfilingLaunchFailureCleanup(t *testing.T) {
 	t.Parallel()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.DataDir = profilingTestDirectory(t)
 	config.VMProfiling = true
 	m, err := NewManager(config)
@@ -105,7 +106,7 @@ func TestManagerProfilingLaunchFailureCleanup(t *testing.T) {
 		return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil
 	}
 	vm := createManagerVM(t, m, "alice", "desktop")
-	m.config.Binary = "/nonexistent-vm-worker"
+	m.workerBinary = "/nonexistent-vm-worker"
 	if err := m.Start(t.Context(), vm.Owner, vm.ID); err == nil {
 		t.Fatal("invalid child executable unexpectedly started")
 	}

@@ -41,7 +41,7 @@ func catalogQCOW2(marker string) []byte {
 
 func TestImageCatalogWithoutDefaultImage(t *testing.T) {
 	t.Parallel()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.BaseImage = ""
 	m, err := NewManager(config)
 	if err != nil {
@@ -200,7 +200,7 @@ func TestImageCatalogFailureCleansStaging(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			config.MaxImageUploadBytes = test.limit
 			m, err := NewManager(config)
 			if err != nil {

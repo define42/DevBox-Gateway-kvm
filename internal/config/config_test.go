@@ -20,7 +20,6 @@ func TestNewSettingsDefaults(t *testing.T) {
 	want := map[string]string{
 		config.DATA_ROOT_DIR:              ".devbox-kvm-gateway",
 		config.BASE_IMAGE:                 "",
-		config.VM_BINARY:                  "",
 		config.VM_NETWORK_POLICY:          "internet",
 		config.VM_NETWORK_ALLOW_CIDRS:     "",
 		config.H264_QP:                    "20",

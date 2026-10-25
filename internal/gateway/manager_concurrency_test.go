@@ -118,7 +118,7 @@ func TestManagerCreationLimit(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			config.MaxCreations = test.limit
 			m, err := NewManager(config)
 			if test.invalid {
@@ -255,7 +255,7 @@ func TestManagerCloseWaitsForCanceledOperations(t *testing.T) {
 func TestManagerCloseRetainsLockUntilPendingCleanupFinishes(t *testing.T) {
 	t.Parallel()
 	synctest.Test(t, func(t *testing.T) {
-		m, err := NewManager(managerTestConfig(t, "graceful"))
+		m, err := NewManager(managerTestConfig(t))
 		if err != nil {
 			t.Fatal(err)
 		}

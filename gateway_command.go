@@ -133,7 +133,6 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	}
 	stringFlag(&options.manager.DataDir, "state", config.DATA_ROOT_DIR)
 	stringFlag(&options.manager.BaseImage, "image", config.BASE_IMAGE)
-	stringFlag(&options.manager.Binary, "vm-binary", config.VM_BINARY)
 	stringFlag(&options.manager.NetworkPolicy, "vm-network-policy", config.VM_NETWORK_POLICY)
 	stringFlag(&options.manager.NetworkAllowCIDRs, "vm-network-allow-cidrs", config.VM_NETWORK_ALLOW_CIDRS)
 	options.manager.H264QP = flags.Int("h264-qp", s.Int(config.H264_QP), description(config.H264_QP))

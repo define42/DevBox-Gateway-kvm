@@ -18,7 +18,6 @@ import (
 const (
 	DATA_ROOT_DIR              = "DATA_ROOT_DIR"
 	BASE_IMAGE                 = "BASE_IMAGE"
-	VM_BINARY                  = "VM_BINARY"
 	VM_NETWORK_POLICY          = "VM_NETWORK_POLICY"
 	VM_NETWORK_ALLOW_CIDRS     = "VM_NETWORK_ALLOW_CIDRS"
 	H264_QP                    = "H264_QP"
@@ -116,7 +115,6 @@ func NewSettings() *Settings {
 
 	s.SetString(DATA_ROOT_DIR, "Private persistent VM state directory", ".devbox-kvm-gateway")
 	s.SetString(BASE_IMAGE, "Optional immutable standalone uncompressed QCOW2 default image", "")
-	s.SetString(VM_BINARY, "VM worker executable; empty uses the current executable", "")
 	s.SetString(VM_NETWORK_POLICY,
 		"Managed IPv4 access: internet (public destinations) or allowlist (explicit CIDRs only)", "internet")
 	s.SetString(VM_NETWORK_ALLOW_CIDRS, "Comma-separated IPv4 CIDRs allowed in addition to the managed network policy; "+

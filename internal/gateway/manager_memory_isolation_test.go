@@ -70,7 +70,7 @@ func TestManagerRequiresCgroupIsolation(t *testing.T) {
 
 func TestManagerRejectsUnsafeConfiguredCgroupRoot(t *testing.T) {
 	t.Parallel()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.CgroupRoot = t.TempDir()
 	if manager, err := NewManager(config); !errors.Is(err, ErrCgroupUnavailable) {
 		if manager != nil {
@@ -97,11 +97,12 @@ func TestManagerCgroupCleanupFailureBlocksNewWorkers(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			manager, err := NewManager(managerTestConfig(t, "graceful"))
+			manager, err := NewManager(managerTestConfig(t))
 			if err != nil {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = manager.Close() })
+			manager.workerBinary = managerTestWorker(t, "graceful")
 			group := &testWorkerCgroup{cleanupErr: syscall.EBUSY}
 			if failLaunch {
 				group.applyErr = os.ErrPermission
@@ -161,7 +162,7 @@ func TestManagerCgroupLifecycle(t *testing.T) {
 			case "apply failure":
 				group.applyErr = os.ErrPermission
 			case "exec failure":
-				m.config.Binary = filepath.Join(t.TempDir(), "missing-worker")
+				m.workerBinary = filepath.Join(t.TempDir(), "missing-worker")
 			case "close failure":
 				group.closeErr = os.ErrInvalid
 			}

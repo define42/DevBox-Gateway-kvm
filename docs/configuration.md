@@ -50,7 +50,6 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | --- | --- | --- | --- |
 | `DATA_ROOT_DIR` | `.devbox-kvm-gateway` | `-state` | Private persistent state directory. |
 | `BASE_IMAGE` | Empty | `-image` | Optional immutable standalone uncompressed QCOW2 default template. Omit to use administrator uploads. |
-| `VM_BINARY` | Empty | `-vm-binary` | Executable for managed VMs; empty uses the current executable. |
 | `VM_NETWORK_POLICY` | `internet` | `-vm-network-policy` | Managed IPv4 TCP/UDP access: `internet` permits public destinations, while `allowlist` permits only explicit CIDRs. Visible host interface subnets, private and special ranges require an exception. DHCP/DNS remain available; see [networking](runtime.md#networking) for routed/NAT LAN limits. |
 | `VM_NETWORK_ALLOW_CIDRS` | Empty | `-vm-network-allow-cidrs` | Up to 64 comma-separated canonical IPv4 CIDRs allowed in addition to the policy. No `/0` or IPv6. Applies to newly started workers; host alias access requires `127.0.0.1/32`. See [networking](runtime.md#networking). |
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
@@ -71,8 +70,9 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_START_TIMEOUT` | `30s` | `-vm-start-timeout` | Time allowed for a managed VM to start its RDP console. |
 | `VM_STOP_TIMEOUT` | `30s` | `-vm-stop-timeout` | Guest ACPI shutdown wait; a dashboard stop timeout leaves the guest running. Gateway exit also has separate forced-termination and host-cleanup waits. |
 
-The gateway always uses its embedded plain, non-SMM OVMF CODE/VARS pair,
-extracted under `DATA_ROOT_DIR/firmware` at startup. Each VM keeps its own
+The gateway launches VM workers using its own executable. It always uses its
+embedded plain, non-SMM OVMF CODE/VARS pair, extracted under
+`DATA_ROOT_DIR/firmware` at startup. Each VM keeps its own
 writable variables file at `vms/<vm-id>/vars.fd`. Standalone UEFI `boot` still
 requires explicit firmware paths.
 
@@ -272,6 +272,9 @@ longer read; old assignments can be removed from `.env` and service environments
 Remove the corresponding `serve -uefi` and `-uefi-vars-template` flags from startup
 commands, since those flags are no longer accepted. Firmware is bundled in the
 executable; the Docker image no longer supplies `/usr/share/OVMF` files.
+
+The gateway also no longer reads `VM_BINARY` or accepts `serve -vm-binary`;
+remove these from existing configuration and startup commands.
 
 Compose uses the runtime environment names listed above. Set them in `.env` or
 export them in the shell. The native `make gateway` workflow retains its Make

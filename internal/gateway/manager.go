@@ -34,7 +34,7 @@ const defaultMaxCreations = 2
 // StartTimeout bounds readiness checks. StopTimeout is the guest's graceful
 // shutdown allowance; it does not include all escalation and host-cleanup waits.
 type ManagerConfig struct {
-	DataDir, Binary, BaseImage                 string
+	DataDir, BaseImage                         string
 	H264QP                                     *int // Nil selects QP 20; explicit 0 is valid.
 	Keyboard                                   string
 	VMProfiling                                bool // Opt-in private per-worker CPU profiling sockets.
@@ -54,6 +54,7 @@ type ManagerConfig struct {
 // owns its state directory until Close has finished all tracked cleanup.
 type Manager struct {
 	config       ManagerConfig
+	workerBinary string // The current executable; package tests inject helper processes.
 	mu           sync.Mutex
 	vms          map[string]*managedVM
 	active       int
@@ -138,6 +139,10 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 	if err := normalizeManagerConfig(&config); err != nil {
 		return nil, err
 	}
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("locate current executable: %w", err)
+	}
 	if err := os.MkdirAll(config.DataDir, 0o700); err != nil {
 		return nil, err
 	}
@@ -162,7 +167,7 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	m := &Manager{
-		config: config, vms: make(map[string]*managedVM), images: make(map[string]Image),
+		config: config, workerBinary: executable, vms: make(map[string]*managedVM), images: make(map[string]Image),
 		imageImports: make(chan struct{}, 1), lock: lock, ctx: ctx, cancel: cancel,
 		readMemory: readHostMemory, readResident: readProcessMemory,
 		cgroups:   linuxVMCgroupFactory{},
@@ -193,20 +198,13 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 	if c.DataDir == "" {
 		return fmt.Errorf("state directory is required: %w", ErrInvalid)
 	}
-	if c.Binary == "" {
-		var err error
-		c.Binary, err = os.Executable()
-		if err != nil {
-			return err
-		}
-	}
 	if err := normalizeManagerNetworkConfig(c); err != nil {
 		return err
 	}
 	if err := normalizeManagerLimits(c); err != nil {
 		return err
 	}
-	for _, path := range []*string{&c.DataDir, &c.Binary, &c.BaseImage} {
+	for _, path := range []*string{&c.DataDir, &c.BaseImage} {
 		if *path == "" {
 			continue
 		}
@@ -216,19 +214,14 @@ func normalizeManagerConfig(c *ManagerConfig) error {
 		}
 		*path = absolute
 	}
-	for _, path := range []string{c.Binary, c.BaseImage} {
-		if path == "" {
-			continue
-		}
-		info, err := os.Stat(path)
+	if c.BaseImage != "" {
+		info, err := os.Stat(c.BaseImage)
 		if err != nil {
 			return err
 		}
 		if !info.Mode().IsRegular() || info.Size() == 0 {
-			return fmt.Errorf("%s must be a nonempty regular file: %w", path, ErrInvalid)
+			return fmt.Errorf("%s must be a nonempty regular file: %w", c.BaseImage, ErrInvalid)
 		}
-	}
-	if c.BaseImage != "" {
 		image, err := disk.OpenReadOnly(c.BaseImage)
 		if err != nil {
 			return fmt.Errorf("base image must be supported by devbox-kvm (convert compressed qcow2 first): %w", err)
@@ -707,7 +700,7 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-rdp-h264-qp", fmt.Sprint(*m.config.H264QP),
 		"-audio", "rdp",
 	}
-	cmd := exec.Command(m.config.Binary, args...) //nolint:gosec // Operator binary; validated VM paths, no shell.
+	cmd := exec.Command(m.workerBinary, args...) //nolint:gosec // Current executable; validated VM paths, no shell.
 	cmd.Env = workersandbox.Environment(os.Environ())
 	profiling := m.prepareProfiling(dir)
 	defer func() {

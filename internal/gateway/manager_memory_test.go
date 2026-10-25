@@ -146,12 +146,12 @@ func TestManagerFailedLaunchReleasesMemory(t *testing.T) {
 	m := newTestManager(t, "graceful")
 	m.config.MemoryMiB, m.config.MemoryBudgetMiB = 256, 512
 	vm := createManagerVM(t, m, "alice", "desktop")
-	binary := m.config.Binary
-	m.config.Binary = filepath.Join(t.TempDir(), "missing")
+	binary := m.workerBinary
+	m.workerBinary = filepath.Join(t.TempDir(), "missing")
 	if err := m.Start(t.Context(), vm.Owner, vm.ID); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected executable launch failure, got %v", err)
 	}
-	m.config.Binary = binary
+	m.workerBinary = binary
 	if err := m.Start(t.Context(), vm.Owner, vm.ID); err != nil {
 		t.Fatalf("failed launch leaked reservation: %v", err)
 	}

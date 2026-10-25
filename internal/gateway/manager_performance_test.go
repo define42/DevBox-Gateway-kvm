@@ -377,12 +377,13 @@ func TestManagerPerformanceConfiguration(t *testing.T) {
 
 func TestManagerPerformanceInheritedSocketLifecycle(t *testing.T) {
 	t.Parallel()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
+	binaryPath := filepath.Join(t.TempDir(), "helper")
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
 	script := "#!/bin/sh\nGORACE=atexit_sleep_ms=0 DEVBOX_KVM_PERFORMANCE_HELPER=1 exec " + quote(os.Args[0]) +
 		" -test.run='^TestPerformanceHelperProcess$' -- \"$@\"\n"
 	//nolint:gosec // Private executable test fixture.
-	if err := os.WriteFile(config.Binary, []byte(script), 0o700); err != nil {
+	if err := os.WriteFile(binaryPath, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	m, err := NewManager(config)
@@ -394,6 +395,7 @@ func TestManagerPerformanceInheritedSocketLifecycle(t *testing.T) {
 			t.Error(err)
 		}
 	})
+	m.workerBinary = binaryPath
 	m.cgroups = testCgroupFactory{}
 	m.readResident = func(int) (uint64, error) { return 0, nil }
 	m.readMemory = func() (hostMemory, error) { return hostMemory{Total: 64 << 30, Available: 32 << 30}, nil }

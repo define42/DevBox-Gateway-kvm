@@ -47,6 +47,7 @@ func TestManagerPreservesQCOW2CapacityAcrossReload(t *testing.T) {
 					t.Error(err)
 				}
 			})
+			reopened.workerBinary = manager.workerBinary
 			reopened.cgroups = testCgroupFactory{}
 			reopened.readMemory, reopened.readResident = manager.readMemory, manager.readResident
 			loaded, err := reopened.GetAny(t.Context(), vm.ID)
@@ -94,7 +95,7 @@ func TestManagerRejectsChangedQCOW2Disk(t *testing.T) {
 
 func TestManagerRejectsRawBaseImage(t *testing.T) {
 	t.Parallel()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	if err := os.WriteFile(config.BaseImage, make([]byte, 4096), 0o600); err != nil {
 		t.Fatal(err)
 	}

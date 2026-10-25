@@ -23,7 +23,7 @@ type diskLimitHTTPFixture struct {
 
 func newDiskLimitHTTPFixture(t *testing.T) diskLimitHTTPFixture {
 	t.Helper()
-	config := managerTestConfig(t, "graceful")
+	config := managerTestConfig(t)
 	config.MaxDiskBytes = 4096
 	manager, err := NewManager(config)
 	if err != nil {

@@ -47,7 +47,7 @@ func TestManagerRejectsInvalidNetworkPolicy(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			config := managerTestConfig(t, "graceful")
+			config := managerTestConfig(t)
 			config.NetworkPolicy, config.NetworkAllowCIDRs = tc.policy, tc.cidrs
 			m, err := NewManager(config)
 			if m != nil {
