@@ -53,6 +53,7 @@ def check(dist):
     expected_files = {
         "/usr/bin/devbox-kvm": 0o755,
         "/usr/libexec/devbox-kvm/start-service": 0o755,
+        "/usr/libexec/devbox-kvm/configure-firewall": 0o755,
         "/usr/lib/systemd/system/devbox-kvm.service": 0o644,
         "/etc/devbox-kvm/devbox-kvm.env": 0o600,
     }

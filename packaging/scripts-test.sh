@@ -39,11 +39,11 @@ case "$name" in
             exit 0
         fi
         ;;
-    groupadd|useradd|install) exit 0 ;;
+    groupadd|useradd|install|configure-firewall) exit 0 ;;
     *) exit 99 ;;
 esac
 '''
-    for name in ("getent", "id", "groupadd", "useradd", "install", "systemctl"):
+    for name in ("getent", "id", "groupadd", "useradd", "install", "systemctl", "configure-firewall"):
         command = mock / name
         command.write_text(dispatcher)
         command.chmod(0o755)
@@ -54,7 +54,8 @@ esac
     for source in (root / "packaging/scripts").glob("*.sh"):
         # Model a booted systemd host even in an offline CI build environment.
         (scripts / source.name).write_text(source.read_text().replace(
-            "/run/systemd/system", str(running_systemd)))
+            "/run/systemd/system", str(running_systemd)).replace(
+            "/usr/libexec/devbox-kvm/configure-firewall", str(mock / "configure-firewall")))
 
     def run(script, argument="", existing=False, uid="987", active=False, expected=0):
         logfile.write_text("")
@@ -99,11 +100,12 @@ esac
         calls = run("preremove.sh", argument)
         assert "systemctl <stop> <devbox-kvm.service>" in calls, calls
         assert "systemctl <disable> <devbox-kvm.service>" in calls, calls
+        assert "configure-firewall <--remove>" in calls, calls
     assert run("postremove.sh", "purge") == "systemctl <daemon-reload>\n"
     running_systemd.rmdir()
     assert run("preinstall.sh", "upgrade", active=True) == ""
     assert "systemctl " not in run("postinstall.sh", "configure", existing=True)
-    assert run("preremove.sh", "remove") == ""
+    assert run("preremove.sh", "remove") == "configure-firewall <--remove>\n"
     assert run("postremove.sh", "purge") == ""
 
     cgroup = directory / "cgroup"

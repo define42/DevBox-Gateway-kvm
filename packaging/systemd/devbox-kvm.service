@@ -2,7 +2,7 @@
 Description=DevBox KVM desktop gateway
 Documentation=https://github.com/define42/DevBox-Gateway-kvm/blob/main/docs/packages.md
 Wants=network-online.target
-After=network-online.target
+After=network-online.target firewalld.service ufw.service
 ConditionPathExists=/dev/kvm
 
 [Service]
@@ -20,6 +20,8 @@ UMask=0077
 Slice=system.slice
 Delegate=memory pids
 DelegateSubgroup=supervisor
+# The root helper changes only gateway-owned firewall rules for LISTEN_ADDR.
+ExecStartPre=+/usr/libexec/devbox-kvm/configure-firewall
 ExecStart=/usr/libexec/devbox-kvm/start-service
 
 # Signal only the gateway first so it can request graceful guest shutdown.
@@ -31,8 +33,9 @@ TasksMax=infinity
 LimitNOFILE=65536
 
 NoNewPrivileges=true
-CapabilityBoundingSet=
-AmbientCapabilities=
+# Permit the shared HTTPS/RDP listener on privileged ports without running as root.
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true

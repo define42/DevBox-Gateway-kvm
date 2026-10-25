@@ -68,15 +68,22 @@ systemd `EnvironmentFile` syntax: `KEY=value`, without `export` or shell
 substitutions. See [LDAP and remote access](gateway.md#ldap-and-remote-access)
 and the [configuration reference](configuration.md) for directory-specific options.
 
-The default listener is `127.0.0.1:8443`, with `PUBLIC_ADDRESS=localhost:8443`.
-For remote access, set `LISTEN_ADDR` to the desired host interface and
-`PUBLIC_ADDRESS` to the hostname and port clients use. Supply a trusted TLS
-certificate/key pair with `CERT_FILE` and `KEY_FILE`, or configure
-[ACME](gateway.md#gateway-certificates-and-acme). The service cannot bind
-privileged ports; for ACME, forward public TCP 443 to its listener on port 8443.
-Files must be readable by the service account. HTTPS and RDP share the same raw
-TCP listener; an ordinary HTTP
-reverse proxy cannot carry both protocols.
+The default listener remains `127.0.0.1:8443`, with
+`PUBLIC_ADDRESS=localhost:8443`. For direct public access on port 443 with
+[ACME](gateway.md#gateway-certificates-and-acme), set your hostname and email:
+
+```dotenv
+LISTEN_ADDR=0.0.0.0:443
+PUBLIC_ADDRESS=desktop.example.com:443
+ACME_ENABLE=true
+ACME_EMAIL=admin@example.com
+```
+
+Point the hostname at this host and allow public TCP 443 to reach it. You can
+instead supply a trusted TLS certificate/key pair using `CERT_FILE` and
+`KEY_FILE`, with both files readable by `devbox-kvm`. HTTPS and RDP share the
+same raw TCP listener; an ordinary HTTP reverse proxy cannot carry both
+protocols. Ports 80 and 3389 are not required.
 
 Start the configured service and inspect its logs:
 
@@ -91,6 +98,32 @@ Upload a compatible QCOW2 desktop image under **Admin → Base Images**, then
 follow the [desktop workflow](gateway.md#create-and-connect-to-a-desktop).
 A new installation starts with an empty image catalog.
 
+## Host firewall
+
+At service startup, a root helper opens the TCP port configured in `LISTEN_ADDR`
+in active firewalld and UFW installations. Loopback listeners need no inbound
+rule. The helper never starts or enables a disabled firewall. If neither manager
+is active, startup logs a warning and continues; configure any other host or
+cloud firewall separately. Errors from an active firewall manager fail service
+startup and appear in `journalctl -u devbox-kvm`.
+
+For firewalld, rules apply to both runtime and permanent configuration in the
+default and active zones. Set `FIREWALL_ZONE=public` in the environment file to
+select one zone instead. UFW uses a dedicated application profile for the
+configured port. Set `FIREWALL_MANAGE=false` to manage firewall rules yourself;
+this leaves existing rules unchanged. To remove previously added rules before
+opting out, run `sudo /usr/libexec/devbox-kvm/configure-firewall --remove`.
+
+The helper records rules it adds, updates them when the listener port or selected
+zones change, and removes its rules during uninstall when the firewall manager
+can perform cleanup. Preexisting manual rules are preserved. If firewalld is
+inactive, runtime rules may remain; the helper warns and retains their ownership
+records. Start firewalld and run the helper with `--remove` before uninstalling
+to finish runtime cleanup. Saved firewalld rules also require its offline cleanup
+tool or a running daemon; unavailable managers leave records for later cleanup.
+Other host or network policies can still block access. Restart the service after
+changing the configuration to apply the listener and firewall settings.
+
 ## Service and upgrades
 
 | Installed path | Purpose |
@@ -99,13 +132,18 @@ A new installation starts with an empty image catalog.
 | `/etc/devbox-kvm/devbox-kvm.env` | Root-owned service configuration, mode 0600. |
 | `/usr/lib/systemd/system/devbox-kvm.service` | Packaged systemd unit. |
 | `/usr/libexec/devbox-kvm/start-service` | Service launcher that prepares private cgroup delegation. |
-| `/var/lib/devbox-kvm` | Private persistent state, owned by `devbox-kvm`, mode 0700. |
+| `/usr/libexec/devbox-kvm/configure-firewall` | Root helper for the configured listener's firewall rules. |
+| `/var/lib/devbox-kvm` | Private desktop state, owned by `devbox-kvm`, mode 0700. |
+| `/var/lib/devbox-kvm-firewall` | Root-only record of package-managed firewall rules, separate from desktop state. |
 
 The packaged unit explicitly sets `RestrictSUIDSGID=false`: enabling that
 systemd restriction blocks `openat2()`, which the gateway requires for secure
-cgroup access. The service runs as `devbox-kvm`, with `NoNewPrivileges=true`
-and empty capability sets. Upgrading an affected package installs this corrected
-unit; start the service after the upgrade as described below.
+cgroup access. The gateway runs as `devbox-kvm`, with `NoNewPrivileges=true`
+and only `CAP_NET_BIND_SERVICE` in its bounding and ambient capability sets,
+allowing port 443 without running the gateway as root. Managed VM workers
+[drop all capabilities](../internal/workersandbox/sandbox_linux.go) before running
+guests. Upgrades preserve your environment configuration; select port 443
+explicitly when moving an existing installation from port 8443.
 
 The service supplies `VM_CGROUP_ROOT` automatically; leave it out of the
 configuration file. Keep the packaged state path unless you also update the

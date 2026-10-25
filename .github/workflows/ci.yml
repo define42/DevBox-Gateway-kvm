@@ -194,7 +194,9 @@ jobs:
         -ignore 'unexpected key "queue" for "concurrency" section'
     - name: Test native package lifecycle
       run: bash packaging/scripts-test.sh
-    - name: Test cgroup access under the packaged systemd sandbox
+    - name: Test native firewall integration
+      run: bash packaging/firewall-test.sh
+    - name: Test cgroup access and privileged-port binding under the packaged systemd sandbox
       run: sudo bash packaging/systemd-test.sh
     - name: Validate GoReleaser configuration
       uses: goreleaser/goreleaser-action@v7

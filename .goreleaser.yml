@@ -45,6 +45,10 @@ nfpms:
     dst: /usr/libexec/devbox-kvm/start-service
     file_info:
       mode: 0755
+  - src: packaging/configure-firewall.sh
+    dst: /usr/libexec/devbox-kvm/configure-firewall
+    file_info:
+      mode: 0755
   - src: packaging/devbox-kvm.env
     dst: /etc/devbox-kvm/devbox-kvm.env
     type: config|noreplace
@@ -80,6 +84,7 @@ nfpms:
       - libc-bin
       - coreutils
       - grep
+      - util-linux
     rpm:
       dependencies:
       - ca-certificates
@@ -88,6 +93,7 @@ nfpms:
       - glibc-common
       - coreutils
       - grep
+      - util-linux
 
 checksum:
   name_template: checksums.txt

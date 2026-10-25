@@ -1,16 +1,19 @@
 #!/bin/sh
-# Exercise the packaged systemd sandbox without installing the package or
-# writing host cgroups. Use sudo for the system manager, or pass --user.
+# Exercise the packaged sandbox in temporary system-manager units. Each probe
+# gets a private network namespace, so binding port 443 cannot affect the host.
 set -eu
 cd -- "$(dirname -- "$0")/.."
 python3 - "$@" <<'PY'
 import configparser
+import os
 import platform
 import subprocess
 import sys
 
-if sys.argv[1:] not in ([], ["--user"]):
-    sys.exit("usage: packaging/systemd-test.sh [--user]")
+if sys.argv[1:]:
+    sys.exit("usage: sudo -n bash packaging/systemd-test.sh (the system manager is required; --user is unsupported)")
+if os.geteuid() != 0:
+    sys.exit("This capability test requires the system manager: run sudo -n bash packaging/systemd-test.sh.")
 if platform.machine() != "x86_64":
     sys.exit("The package and this openat2 syscall probe require Linux x86_64.")
 
@@ -25,7 +28,8 @@ properties = (
     "RestrictSUIDSGID", "SystemCallFilter", "SystemCallErrorNumber",
     "SystemCallArchitectures",
 )
-command = ["systemd-run", *sys.argv[1:], "--wait", "--pipe", "--collect",
+command = ["systemd-run", "--wait", "--pipe", "--collect",
+           "--property=User=nobody", "--property=PrivateNetwork=yes",
            "--property=WorkingDirectory=/", "--property=RuntimeMaxSec=30s"]
 for name in properties:
     if name in service:
@@ -36,6 +40,18 @@ for name in properties:
 probe = r'''
 import ctypes
 import os
+import socket
+import sys
+
+without_capabilities = sys.argv[1] == "without-capabilities"
+expected_capabilities = 0 if without_capabilities else 1 << 10  # CAP_NET_BIND_SERVICE
+with open("/proc/self/status") as status_file:
+    status = dict(line.split(":", 1) for line in status_file if ":" in line)
+assert os.geteuid() != 0, "probe must run as an unprivileged user"
+assert int(status["NoNewPrivs"].strip()) == 1, "NoNewPrivileges must remain enabled"
+for field in ("CapEff", "CapAmb"):
+    actual = int(status[field].strip(), 16)
+    assert actual == expected_capabilities, f"{field}: expected {expected_capabilities:#x}, got {actual:#x}"
 
 class OpenHow(ctypes.Structure):
     _fields_ = [("flags", ctypes.c_uint64), ("mode", ctypes.c_uint64),
@@ -67,8 +83,31 @@ try:
         os.close(control)
 finally:
     os.close(directory)
-print("Packaged systemd sandbox permits secure cgroup opens.")
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+    try:
+        listener.bind(("127.0.0.1", 443))
+    except PermissionError:
+        if without_capabilities:
+            print("Port 443 correctly denied without capabilities.", flush=True)
+            sys.exit(77)
+        raise
+    assert not without_capabilities, "port 443 unexpectedly allowed without capabilities"
+print("Packaged sandbox permits secure cgroup opens and unprivileged port 443 binding with only CAP_NET_BIND_SERVICE.")
 '''
-command.extend(["/usr/bin/python3", "-c", probe])
-sys.exit(subprocess.run(command, check=False).returncode)
+
+result = subprocess.run(command + ["/usr/bin/python3", "-c", probe, "packaged-capabilities"], check=False)
+if result.returncode:
+    sys.exit(result.returncode)
+
+# Override capabilities only for this collected transient unit. The packaged
+# service retains its narrowly scoped capability and all sandbox properties.
+control = subprocess.run(command + ["--property=CapabilityBoundingSet=", "--property=AmbientCapabilities=",
+                         "/usr/bin/python3", "-c", probe, "without-capabilities"],
+                         text=True, capture_output=True, check=False)
+if control.returncode != 77 or "Port 443 correctly denied without capabilities." not in control.stdout:
+    print(control.stdout, end="")
+    print(control.stderr, end="", file=sys.stderr)
+    sys.exit("No-capability control did not fail specifically with permission denied for port 443.")
+print("No-capability control failed to bind port 443 as expected.")
 PY

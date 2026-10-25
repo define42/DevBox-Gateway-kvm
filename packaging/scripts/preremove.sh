@@ -9,5 +9,8 @@ case "${1:-}" in
             systemctl stop devbox-kvm.service
             systemctl disable devbox-kvm.service
         fi
+        if [ -x /usr/libexec/devbox-kvm/configure-firewall ]; then
+            /usr/libexec/devbox-kvm/configure-firewall --remove
+        fi
         ;;
 esac
