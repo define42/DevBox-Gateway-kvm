@@ -20,9 +20,10 @@ not the `mstsc.exe` or Windows App user interface, credential prompt behavior, o
 every Windows client version. Authentication and an `OnConnected` event alone do
 not establish that a desktop was displayed.
 
-Regular CI also compiles and self-tests the harness on `windows-2022`, without
-credentials, a gateway, or a graphical desktop. This offline job is separate from
-the existing release dependencies; only the manual workflow contacts test targets.
+Regular CI runs the separate [live loopback test](windows-rdp-ci.md) on
+`windows-2022`, as well as an explicitly offline harness check. Neither needs
+gateway credentials or contacts external targets. Release dependencies are
+unchanged; only this manual gateway workflow contacts configured test targets.
 The live harness explicitly uses a 1024 × 768 window and supplies credentials
 programmatically instead of exercising the downloaded profile's password dialog.
 

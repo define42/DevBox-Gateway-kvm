@@ -185,7 +185,7 @@ jobs:
       with:
         persist-credentials: false
     # No environment, gateway connection, credentials, or graphical desktop
-    # required. Live compatibility tests are manual in rdp-windows.yml.
+    # required. The separate test-windows-rdp job performs real connections.
     - uses: actions/setup-go@v7
       with:
         go-version-file: go.mod
@@ -193,7 +193,7 @@ jobs:
       env:
         CGO_ENABLED: '0'
       run: |
-        go test ./scripts/rdp-windows/server
+        go test ./scripts/rdp-windows/...
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         go build -o "$env:RUNNER_TEMP/rdp-server.exe" ./scripts/rdp-windows/server
     - name: Compile and test the Microsoft client harness and orchestration
@@ -201,6 +201,16 @@ jobs:
       run: ./scripts/rdp-windows/Test.ps1
     - name: Test guest fixture
       run: node --test scripts/rdp-windows/desktop.test.cjs
+
+  test-windows-rdp:
+    name: Microsoft RDP live picture and input
+    permissions:
+      contents: read
+    # Same checked-out commit and test path as manual runs. No gateway secrets.
+    uses: ./.github/workflows/rdp-windows.yml
+    with:
+      runner: windows-2022
+      mode: both
 
   release-check:
     name: Check release configuration

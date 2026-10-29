@@ -1,8 +1,9 @@
 # Windows-only RDP compatibility CI
 
-The manually triggered [Windows-only RDP workflow](../.github/workflows/rdp-windows.yml)
-runs both our Go RDP test server and Microsoft's RDP ActiveX client on **one
-Windows runner**, over loopback. No Linux machine, KVM, external gateway, LDAP
+The [Windows-only RDP workflow](../.github/workflows/rdp-windows.yml)
+runs automatically as part of [CI](../.github/workflows/ci.yml), and can also be
+started manually. It runs both our Go RDP test server and Microsoft's RDP ActiveX
+client on **one Windows runner**, over loopback. No Linux machine, KVM, external gateway, LDAP
 account, GitHub environment, or repository secrets are needed.
 
 The workflow builds the server from the checked-out commit. It uses the
@@ -14,7 +15,15 @@ and [RunLocal.ps1](../scripts/rdp-windows/RunLocal.ps1) manages the local sessio
 
 ## Run the test
 
-In **Actions**, select **Windows-only RDP compatibility** and choose **Run workflow**:
+CI runs the live test on pushes to `main`, pull requests targeting `main`, and
+the nightly schedule. Look for **Microsoft RDP live picture and input**, with
+separate **Live Microsoft RDP (h264)** and **Live Microsoft RDP (bitmap)** jobs
+on `windows-2022`. Both must pass for the CI workflow to succeed. The separately
+named **Check Windows RDP test harness (offline)** job only checks the tools;
+its green result alone is not a live RDP compatibility result.
+
+To rerun the same live test manually, in **Actions**, select
+**Windows-only RDP compatibility** and choose **Run workflow**:
 
 1. Select the branch containing the code to test.
 2. Select **windows-2022** (the default) or **windows-2025**.
@@ -22,7 +31,10 @@ In **Actions**, select **Windows-only RDP compatibility** and choose **Run workf
 
 No test target needs to be provisioned or prepared. The workflow starts a fresh
 local test server for each mode and cleans up its process and temporary
-certificate trust afterward. It is manual-only and is not a release gate.
+certificate trust afterward. Automatic and manual runs share the same workflow
+implementation at the tested commit; CI does not substitute self-tests for the
+live connection. Release-job dependencies are unchanged: a live-test failure
+fails CI, but does not currently block the separate release job from publishing.
 
 These runner labels select Windows Server images, not an exact reproduction of
 a Windows 11 workstation. See GitHub's
@@ -105,7 +117,7 @@ server displays only generated fixture colors, not a user's desktop. Review
 artifacts before sharing and avoid adding raw packets or unrestricted logs to
 the artifact directory while investigating a failure.
 
-Regular CI separately compiles and self-tests the client harness on Windows
-without a graphical desktop or live connection. Those checks catch harness
-regressions but do not establish Microsoft RDP compatibility. A live render,
-input, and stability pass is the evidence supplied by this manual workflow.
+Regular CI also compiles and self-tests the client harness in an explicitly
+offline job. Those checks catch harness regressions but do not establish
+Microsoft RDP compatibility. Only the separate live jobs' render, input,
+heartbeat, and stability passes provide that evidence.

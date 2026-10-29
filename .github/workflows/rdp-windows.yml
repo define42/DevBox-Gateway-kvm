@@ -3,6 +3,16 @@ name: Windows-only RDP compatibility
 # Production Go RDP/AVC code and Microsoft's client run on the same Windows VM.
 # No external gateways, KVM, credentials, GitHub environment, or secrets needed.
 on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Windows runner image (windows-2022 or windows-2025)
+        type: string
+        default: windows-2022
+      mode:
+        description: Local RDP graphics mode(s) (both, h264, or bitmap)
+        type: string
+        default: both
   workflow_dispatch:
     inputs:
       runner:
@@ -21,7 +31,9 @@ permissions:
 
 jobs:
   smoke:
-    runs-on: ${{ inputs.runner }}
+    name: Live Microsoft RDP (${{ matrix.mode }})
+    # A reusable-workflow caller cannot select a self-hosted or arbitrary runner.
+    runs-on: ${{ inputs.runner == 'windows-2025' && 'windows-2025' || 'windows-2022' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -30,14 +42,24 @@ jobs:
     env:
       CGO_ENABLED: '0'
     steps:
+      - name: Validate test inputs
+        shell: pwsh
+        env:
+          TEST_RUNNER: ${{ inputs.runner }}
+          TEST_MODE: ${{ inputs.mode }}
+        run: |
+          if ($env:TEST_RUNNER -cnotin @('windows-2022', 'windows-2025') -or
+              $env:TEST_MODE -cnotin @('both', 'h264', 'bitmap')) {
+            throw 'Unsupported Windows runner or RDP graphics mode.'
+          }
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Test local server
-        run: go test ./scripts/rdp-windows/server
+      - name: Test live workflow wiring and local server
+        run: go test ./scripts/rdp-windows/...
       - name: Compile and test Microsoft client and orchestration
         shell: pwsh
         run: ./scripts/rdp-windows/Test.ps1

@@ -240,11 +240,11 @@ worker standard error. A reported Microsoft client error `0x1304` is still under
 investigation and is not fixed merely by the credential-profile change.
 
 For a self-contained Microsoft-client rendering and keyboard check, see
-[Windows-only RDP compatibility CI](docs/windows-rdp-ci.md). The manual workflow
-builds our Go RDP test server from the selected commit and runs it alongside the
-Microsoft client on one Windows runner, comparing H.264 and bitmap without KVM,
+[Windows-only RDP compatibility CI](docs/windows-rdp-ci.md). CI automatically
+builds our Go RDP test server and connects Microsoft's client to its generated
+test picture on Windows, checking H.264 and bitmap without KVM,
 external gateways, or credentials to configure. It tests the protocol, not VM
-boot or gateway authentication. The separate
+boot or gateway authentication; manual runs remain available. The separate
 [gateway compatibility workflow](docs/windows-rdp-gateway-ci.md) covers the full
 path against predeployed, isolated Linux/KVM test gateways.
 
