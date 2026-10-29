@@ -63,12 +63,14 @@ manually focused desktop page.
 
 The live harness requires an interactive graphical desktop and fails if one is
 unavailable; it does not skip rendering checks or substitute an offline test.
-The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40926575376)
+The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40928606998)
 passed temporary certificate installation/removal, the interactive desktop
 capture probe, and actual Microsoft ActiveX control activation in both modes.
-Both clients reported a connection, then disconnected before a verified picture
-or logon-complete event: bitmap reported `4868` (`0x1304`), and H.264 reported
-`3334` (`0x0D06`), each with extended reason `0`.
+Both clients reported connection and logon-complete events, confirming receipt
+of the new logon notification. They still disconnected before a verified picture:
+bitmap reported `4868` (`0x1304`) after about 505 ms, and H.264 reported `3334`
+(`0x0D06`) after about 46 ms, each with extended reason `0`. Microsoft's error
+descriptions identify protocol errors but do not identify the offending packet.
 **Live rendering, input, and stability validation remain pending.** Local script
 tests and cross-compilation do not prove that these Windows failures are resolved.
 
@@ -132,22 +134,35 @@ Each mode uploads test evidence as an Actions artifact retained for **7 days**:
 - PNG screenshots of the rendered client content and pixel-check evidence.
 
 `server.json` records build metadata, `actualEncoder` (`software` for H.264 or
-`bitmap`), frames sent, input transitions, and session duration. Its `completed`
+`bitmap`), `sessionBitsPerPixel`, frames sent, input transitions, and session
+duration. Its `completed`
 outcome represents only the server's checks. Overall success additionally
 requires the Microsoft client to pass rendering, input, and stability checks;
 the server sending frames is not proof that Windows displayed them.
 `framesSent` counts complete successful frame writes. A zero value does not
 exclude a disconnect while the first frame is being written.
 
-Following the run above, the production server sends a Save Session Info plain
+The production server sends a Save Session Info plain
 logon notification after the initial Font Map, before graphics can be written.
 Display reactivation does not repeat the logon notification. Its uncompressed
 Share Data length field also follows Microsoft's server wire examples for
 [Granted Control](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/d5624241-aa4d-465a-b66d-698b19d0d826)
 and [Plain Notify](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/daf019f8-13c6-4781-9fd9-5395509b2efb).
-Regression tests cover the notification ordering and packet lengths. A new live
-Windows run is still needed to establish whether these changes resolve either
-disconnect; the existing evidence does not establish a single cause for both.
+Regression tests cover the notification ordering and packet lengths. These
+changes did not resolve the disconnects in the run above.
+
+The next correction selects the session color depth from Client Core Data
+before Demand Active and keeps the advertised depth throughout the session.
+Previously the server advertised 24 bpp, then replaced its output depth with the
+client's Confirm Active preference, which could be 32 bpp. That client field is
+a preference, not confirmation that the server's selected depth has changed;
+see Microsoft's [Bitmap Capability Set](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/76670547-e35c-4b95-a242-5729a21b83f6).
+GFX is enabled only for 32-bpp sessions, consistent with
+[xrdp's fix for Microsoft client failures at lower depths](https://github.com/neutrinolabs/xrdp/commit/d23d147dc775dbee9c8fe678d4549e9937cbce06).
+Tests cover differing client/server preferences and display reactivation. A new
+Windows run must still establish whether this mismatch caused either failure.
+The report snapshots graphics readiness again at session exit so a disconnect
+before the first frame tick does not leave that field stale.
 
 If the server reports `client_not_connected` and there are no client events,
 check `progress.json` before investigating protocol negotiation. The earlier

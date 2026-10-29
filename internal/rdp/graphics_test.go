@@ -603,8 +603,10 @@ func graphicsConnectFixture(graphics bool, names []string) []byte {
 	core := make([]byte, 146)
 	put16(core, 0, 0xc001)
 	put16(core, 2, len(core))
+	put16(core, 140, 24) // highColorDepth
 	if graphics {
-		put16(core, 144, 0x100)
+		put16(core, 142, 8)     // RNS_UD_32BPP_SUPPORT
+		put16(core, 144, 0x102) // SUPPORT_DYNVC_GFX_PROTOCOL | WANT_32BPP_SESSION
 	}
 	network := make([]byte, 8+12*len(names))
 	put16(network, 0, 0xc003)

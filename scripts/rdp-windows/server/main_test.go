@@ -309,7 +309,8 @@ func TestReportJSONContract(t *testing.T) {
 			result := report{
 				Version: 1, Mode: mode, ActualEncoder: actualEncoder, Outcome: "failed",
 				StartedAt: started, EndedAt: started.Add(35 * time.Second), SessionSeconds: 35,
-				FramesSent: 70, InputTransitions: 1, GraphicsReady: mode == "h264",
+				SessionBitsPerPixel: 32,
+				FramesSent:          70, InputTransitions: 1, GraphicsReady: mode == "h264",
 				Application: buildinfo.Info{Version: "test-build", Commit: "test-commit", GoVersion: "go1.26.0"},
 			}
 			finishSession(&result, result.InputTransitions, 35*time.Second, io.EOF)
@@ -328,7 +329,8 @@ func TestReportJSONContract(t *testing.T) {
 			for key, want := range map[string]any{
 				"version": float64(1), "mode": mode, "actualEncoder": actualEncoder, "outcome": "completed",
 				"framesSent": float64(70), "inputTransitions": float64(1), "sessionSeconds": float64(35),
-				"graphicsReady": mode == "h264", "stage": "session", "reason": "protocol_activity_and_peer_close_observed",
+				"sessionBitsPerPixel": float64(32),
+				"graphicsReady":       mode == "h264", "stage": "session", "reason": "protocol_activity_and_peer_close_observed",
 				"startedAt": "2026-10-29T14:00:00Z", "endedAt": "2026-10-29T14:00:35Z",
 				"outstandingAcks": float64(0), "ackMs": float64(0),
 			} {
@@ -378,7 +380,7 @@ func TestRunRejectsNonRDPConnection(t *testing.T) {
 	select {
 	case result := <-results:
 		if result.Outcome != "failed" || result.Reason != "handshake_failed" || result.FramesSent != 0 ||
-			result.InputTransitions != 0 || result.EndedAt.Before(result.StartedAt) {
+			result.InputTransitions != 0 || result.SessionBitsPerPixel != 0 || result.EndedAt.Before(result.StartedAt) {
 			t.Fatalf("unexpected report: %+v", result)
 		}
 	case <-time.After(5 * time.Second):

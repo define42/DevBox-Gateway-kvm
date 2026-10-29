@@ -55,21 +55,22 @@ type readiness struct {
 }
 
 type report struct {
-	Version          int            `json:"version"`
-	Mode             string         `json:"mode"`
-	ActualEncoder    string         `json:"actualEncoder"`
-	Outcome          string         `json:"outcome"`
-	Stage            string         `json:"stage"`
-	Reason           string         `json:"reason"`
-	StartedAt        time.Time      `json:"startedAt"`
-	EndedAt          time.Time      `json:"endedAt"`
-	SessionSeconds   float64        `json:"sessionSeconds"`
-	FramesSent       uint64         `json:"framesSent"`
-	InputTransitions uint64         `json:"inputTransitions"`
-	GraphicsReady    bool           `json:"graphicsReady"`
-	OutstandingACKs  uint32         `json:"outstandingAcks"`
-	ACKMilliseconds  float64        `json:"ackMs"`
-	Application      buildinfo.Info `json:"application"`
+	Version             int            `json:"version"`
+	Mode                string         `json:"mode"`
+	ActualEncoder       string         `json:"actualEncoder"`
+	Outcome             string         `json:"outcome"`
+	Stage               string         `json:"stage"`
+	Reason              string         `json:"reason"`
+	StartedAt           time.Time      `json:"startedAt"`
+	EndedAt             time.Time      `json:"endedAt"`
+	SessionSeconds      float64        `json:"sessionSeconds"`
+	SessionBitsPerPixel int            `json:"sessionBitsPerPixel"`
+	FramesSent          uint64         `json:"framesSent"`
+	InputTransitions    uint64         `json:"inputTransitions"`
+	GraphicsReady       bool           `json:"graphicsReady"`
+	OutstandingACKs     uint32         `json:"outstandingAcks"`
+	ACKMilliseconds     float64        `json:"ackMs"`
+	Application         buildinfo.Info `json:"application"`
 }
 
 func main() { os.Exit(command(os.Args[1:])) }
@@ -164,6 +165,7 @@ func run(config configuration) (result report) {
 
 		return result
 	}
+	result.SessionBitsPerPixel = session.BitsPerPixel
 	width, height := session.Size()
 	if width != fixtureWidth || height != fixtureHeight {
 		result.Stage, result.Reason = "activation", "unexpected_geometry"
@@ -328,6 +330,7 @@ func runSession(ctx context.Context, mode string, session *rdp.Session, result *
 		<-readDone
 		result.InputTransitions = state.transitions.Load()
 		result.SessionSeconds = time.Since(started).Seconds()
+		result.GraphicsReady = session.GraphicsReady()
 		stats := session.GraphicsStats()
 		result.OutstandingACKs = stats.OutstandingACKs
 		result.ACKMilliseconds = float64(stats.ACKTurnaround) / float64(time.Millisecond)

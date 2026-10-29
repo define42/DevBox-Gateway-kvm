@@ -56,7 +56,7 @@ func checkConnectResponseEncoding(t *testing.T, packet []byte) {
 
 func TestDemandActiveBitmapRequirements(t *testing.T) {
 	t.Parallel()
-	session := &Session{Width: 1024, Height: 768}
+	session := &Session{Width: 1024, Height: 768, BitsPerPixel: 24}
 	checkDemandActiveBitmap(t, session.demandActive())
 }
 
@@ -78,7 +78,7 @@ func checkDemandActiveBitmap(t *testing.T, packet []byte) {
 
 func TestDemandActiveMandatoryCapabilities(t *testing.T) {
 	t.Parallel()
-	session := &Session{Width: 1024, Height: 768}
+	session := &Session{Width: 1024, Height: 768, BitsPerPixel: 24}
 	capabilities := demandActiveCapabilities(t, session.demandActive())
 	for _, kind := range []uint16{1, 2, 3, 8, 13, 20} {
 		if _, exists := capabilities[kind]; !exists {

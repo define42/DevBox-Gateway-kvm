@@ -31,7 +31,9 @@ const (
 // other goroutines write. Writes are serialized; reads must have one owner.
 type Session struct {
 	// Width and Height retain the initial negotiated size. Use Size for live geometry.
-	Width, Height          int
+	Width, Height int
+	// BitsPerPixel is selected from Client Core Data before Demand Active and
+	// remains fixed for the session, including display reactivation.
 	BitsPerPixel           int
 	conn                   net.Conn
 	writeMu                sync.Mutex
@@ -141,6 +143,7 @@ func Accept(conn net.Conn, config *tls.Config, width, height int, options ...Acc
 	if err != nil {
 		return nil, err
 	}
+	s.BitsPerPixel = client.bitsPerPixel
 	version := s.offerRelativePointer(opts.relativePointer, client.version)
 	if err := s.writeMCS(connectResponse(requested, client.channels, version)); err != nil {
 		return nil, err
@@ -754,6 +757,7 @@ func takeBER(p []byte, tag byte) (value, rest []byte, err error) {
 type clientSettings struct {
 	version        uint32
 	width, height  int
+	bitsPerPixel   int
 	channels       int
 	dynamicChannel uint16
 	audioChannel   uint16
@@ -826,18 +830,12 @@ func parseConnectInitialDetails(p []byte) (clientSettings, error) {
 		payload := blocks[4:size]
 		switch typ {
 		case 0xc001:
-			if core || len(payload) < 128 {
+			if core {
 				return settings, errors.New("rdp: invalid GCC core data")
 			}
-			if len(payload) >= 212 && binary.LittleEndian.Uint32(payload[208:212]) != 1 {
-				return settings, errors.New("rdp: client core TLS negotiation mismatch")
+			if err := settings.parseCore(payload); err != nil {
+				return settings, err
 			}
-			if len(payload) >= 142 {
-				settings.graphics = binary.LittleEndian.Uint16(payload[140:142])&0x100 != 0
-			}
-			settings.version = binary.LittleEndian.Uint32(payload[:4])
-			settings.width = int(binary.LittleEndian.Uint16(payload[4:6]))
-			settings.height = int(binary.LittleEndian.Uint16(payload[6:8]))
 			core = true
 		case 0xc003:
 			if network || len(payload) < 4 {
@@ -865,6 +863,85 @@ func parseConnectInitialDetails(p []byte) (clientSettings, error) {
 	settings.channels = channels
 
 	return settings, nil
+}
+
+func (c *clientSettings) parseCore(core []byte) error {
+	depth, err := clientColorDepth(core)
+	if err != nil {
+		return err
+	}
+	if len(core) >= 212 && binary.LittleEndian.Uint32(core[208:212]) != 1 {
+		return errors.New("rdp: client core TLS negotiation mismatch")
+	}
+	c.bitsPerPixel = depth
+	c.version = binary.LittleEndian.Uint32(core[:4])
+	c.width = int(binary.LittleEndian.Uint16(core[4:6]))
+	c.height = int(binary.LittleEndian.Uint16(core[6:8]))
+	if len(core) >= 142 {
+		// mstsc can advertise GFX at lower depths, but requires a
+		// 32-bpp session when the graphics channel is activated.
+		c.graphics = depth == 32 && binary.LittleEndian.Uint16(core[140:142])&0x100 != 0
+	}
+
+	return nil
+}
+
+// clientColorDepth selects the session depth from CS_CORE before Demand Active.
+// Later core fields supersede earlier ones (MS-RDPBCGR 2.2.1.3.2); a 32-bpp
+// request additionally requires both WANT_32BPP_SESSION and its support bit.
+func clientColorDepth(core []byte) (int, error) {
+	if len(core) < 128 {
+		return 0, errors.New("rdp: truncated GCC core color depth")
+	}
+	switch len(core) {
+	case 129, 131, 133, 134, 135, 137, 139, 141:
+		return 0, errors.New("rdp: truncated optional GCC core field")
+	}
+	// Keep the existing default when the base core omits a usable depth value.
+	depth := 24
+	legacy := binary.LittleEndian.Uint16(core[8:10])
+	if len(core) >= 130 {
+		legacy = binary.LittleEndian.Uint16(core[128:130])
+	}
+	if legacy != 0 || len(core) >= 130 {
+		switch legacy {
+		case 0xca00:
+			depth = 4
+		case 0xca01:
+			depth = 8
+		case 0xca02:
+			depth = 15
+		case 0xca03:
+			depth = 16
+		case 0xca04:
+			depth = 24
+		default:
+			depth = 0
+		}
+	}
+	if len(core) >= 138 {
+		depth = int(binary.LittleEndian.Uint16(core[136:138]))
+	}
+	var supported uint16
+	if len(core) >= 140 {
+		supported = binary.LittleEndian.Uint16(core[138:140])
+	}
+	if len(core) >= 142 && binary.LittleEndian.Uint16(core[140:142])&2 != 0 && supported&8 != 0 {
+		return 32, nil
+	}
+	if depth == 16 || depth == 24 {
+		return depth, nil
+	}
+	// The bitmap encoder supports RGB565 and true color. Use a supported
+	// fallback when an older or unsupported preferred format was requested.
+	if supported&1 != 0 {
+		return 24, nil
+	}
+	if supported&2 != 0 {
+		return 16, nil
+	}
+
+	return 0, fmt.Errorf("rdp: unsupported client color depth %d", depth)
 }
 
 func ber(tag byte, body []byte) []byte {
@@ -955,7 +1032,7 @@ func (s *Session) demandActive() []byte {
 	put16(general, 4, 0x200)
 	general[18], general[19] = 1, 1
 	bitmap := make([]byte, 24)
-	put16(bitmap, 0, 24)
+	put16(bitmap, 0, s.BitsPerPixel)
 	put16(bitmap, 2, 1)
 	put16(bitmap, 4, 1)
 	put16(bitmap, 6, 1)
@@ -1049,15 +1126,10 @@ func (s *Session) confirmActiveDepth(p []byte, update bool) error {
 				return errors.New("rdp: invalid bitmap capability")
 			}
 			bitmap = true
-			bpp := int(binary.LittleEndian.Uint16(p[off+4 : off+6]))
-			if bpp != 16 && bpp != 24 && bpp != 32 {
-				return fmt.Errorf("rdp: unsupported client color depth %d", bpp)
-			}
-			if update {
-				s.BitsPerPixel = bpp
-			} else if s.BitsPerPixel != bpp {
-				return errors.New("rdp: color depth changed during reactivation")
-			}
+			// The client's preferredBitsPerPixel describes its original
+			// request; it need not echo the server's chosen session depth.
+			// Keep the depth already advertised in Demand Active, including
+			// during reactivation (MS-RDPBCGR 2.2.7.1.2).
 		}
 		if kind == 8 {
 			if pointerSeen || n < 8 || n == 9 {

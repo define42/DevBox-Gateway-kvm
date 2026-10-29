@@ -483,12 +483,12 @@ func TestConfirmActiveBounds(t *testing.T) {
 	put16(p, 26, 2)
 	put16(p, 28, 28)
 	put16(p, 30, 24)
-	s := &Session{}
+	s := &Session{BitsPerPixel: 24}
 	if err := s.confirmActive(p); err != nil {
 		t.Fatal(err)
 	}
 	if s.BitsPerPixel != 24 {
-		t.Fatal("did not negotiate bitmap depth")
+		t.Fatal("changed selected bitmap depth")
 	}
 	for i := range p {
 		if err := s.confirmActive(p[:i]); err == nil {
@@ -501,8 +501,8 @@ func TestConfirmActiveBounds(t *testing.T) {
 	}
 	put16(p, 28, 28)
 	put16(p, 30, 8)
-	if err := s.confirmActive(p); err == nil {
-		t.Fatal("accepted unsupported palette depth")
+	if err := s.confirmActive(p); err != nil || s.BitsPerPixel != 24 {
+		t.Fatalf("client preference changed the selected session depth: %v", err)
 	}
 }
 
