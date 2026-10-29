@@ -12,7 +12,6 @@ import (
 	"io"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -343,40 +342,4 @@ func validRDPBackendAddress(address string) bool {
 		len(address) <= maxAbstractUnixSocketNameLen &&
 		address[0] == '@' &&
 		!strings.ContainsRune(address, '\x00')
-}
-
-type proxyConn struct{ net.Conn }
-
-func (c proxyConn) Read(b []byte) (int, error) {
-	_ = c.SetReadDeadline(time.Now().Add(5 * time.Minute))
-
-	return c.Conn.Read(b)
-}
-
-func (c proxyConn) Write(b []byte) (int, error) {
-	_ = c.SetWriteDeadline(time.Now().Add(30 * time.Second))
-
-	return c.Conn.Write(b)
-}
-
-func proxyRDP(front, backend *tls.Conn) error {
-	var once sync.Once
-	var firstError error
-	closeBoth := func(err error) {
-		once.Do(func() {
-			firstError = err
-			_ = front.NetConn().Close()
-			_ = backend.NetConn().Close()
-		})
-	}
-	var copies sync.WaitGroup
-	copies.Go(func() {
-		_, err := io.Copy(proxyConn{Conn: backend}, proxyConn{Conn: front})
-		closeBoth(err)
-	})
-	_, err := io.Copy(proxyConn{Conn: front}, proxyConn{Conn: backend})
-	closeBoth(err)
-	copies.Wait()
-
-	return firstError
 }

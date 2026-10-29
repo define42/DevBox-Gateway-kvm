@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -183,6 +184,104 @@ func TestRDPDiagnosticPasswordAndSession(t *testing.T) {
 			} {
 				if strings.Contains(string(encoded), secret) {
 					t.Fatal("RDP diagnostic events contain private connection data")
+				}
+			}
+		})
+	}
+}
+
+func TestRDPDiagnosticProxyFirstCloseTLS(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name, side string
+		graceful   bool
+	}{
+		{name: "client close notify", side: "front", graceful: true},
+		{name: "client raw close", side: "front"},
+		{name: "backend close notify", side: "backend", graceful: true},
+		{name: "backend raw close", side: "backend"},
+		{name: "revoked session", side: "revoke"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			endBackend := make(chan struct{})
+			var endOnce sync.Once
+			stopBackend := func() { endOnce.Do(func() { close(endBackend) }) }
+			const payload = "private-desktop-payload"
+			endpoint := startTestBackend(t, func(conn net.Conn) bool {
+				if !passwordBackendHandshake(conn, nil) {
+					return false
+				}
+				if err := writePacket(conn, []byte(payload)); err != nil {
+					return false
+				}
+				<-endBackend
+				if test.graceful && test.side == "backend" {
+					_ = conn.Close()
+				}
+
+				return false // The fixture closes the raw socket on return.
+			})
+			// Unblock the fixture before its cleanup waits for the backend loop.
+			t.Cleanup(stopBackend)
+			s, _, cert, raw, _ := startGatewayForTest(t, endpoint)
+			key, _, _ := s.store.session(raw, "127.0.0.1")
+			token, err := s.store.grant(key, "mine")
+			if err != nil {
+				t.Fatal(err)
+			}
+			front := dialFrontRDP(t, s, cert, token)
+			defer front.NetConn().Close()
+			if err := passwordClientHandshake(front, "alice", "rdp-password"); err != nil {
+				t.Fatal(err)
+			}
+			// Receiving backend data ensures authentication and both TLS hops
+			// completed before the endpoint under test terminates the session.
+			data := make([]byte, len(payload))
+			if _, err := io.ReadFull(front, data); err != nil || string(data) != payload {
+				t.Fatalf("relay payload = %q, error = %v", data, err)
+			}
+			switch test.side {
+			case "front":
+				if test.graceful {
+					_ = front.Close()
+				} else {
+					_ = front.NetConn().Close()
+				}
+			case "backend":
+				stopBackend()
+			case "revoke":
+				s.store.revoke(key)
+			}
+			events := awaitRDPDiagnosticCompletion(t, s)
+			last := events[len(events)-1]
+			if last.Stage != "session_proxy" || last.Outcome != "closed" || last.Error != "" {
+				t.Fatalf("unexpected session completion: %+v", last)
+			}
+			if test.side == "revoke" {
+				// Revocation closes both sockets; either blocked read may be
+				// observed first. This field is not a causal peer attribution.
+				if last.ProxyOperation != "front_read" && last.ProxyOperation != "backend_read" {
+					t.Fatalf("revocation operation = %q", last.ProxyOperation)
+				}
+			} else if last.ProxyOperation != test.side+"_read" {
+				t.Fatalf("first proxy operation = %q, want %s_read", last.ProxyOperation, test.side)
+			}
+			if last.ProxyError == "" || (test.graceful && last.ProxyError != "peer_eof") {
+				t.Fatalf("unexpected proxy error category: %+v", last)
+			}
+			for _, event := range events[:len(events)-1] {
+				if event.ProxyOperation != "" || event.ProxyError != "" {
+					t.Fatalf("proxy result appeared before completion: %+v", event)
+				}
+			}
+			encoded, err := json.Marshal(events)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, secret := range []string{payload, "rdp-password", token, endpoint.Address, "127.0.0.1"} {
+				if strings.Contains(string(encoded), secret) {
+					t.Fatal("proxy diagnostics exposed private connection data")
 				}
 			}
 		})

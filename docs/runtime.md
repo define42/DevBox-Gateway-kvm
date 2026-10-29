@@ -633,6 +633,16 @@ empty username or password, an unsupported smart-card PIN, and invalid security
 headers, lengths, or packet framing. The reason does not contain submitted
 values, raw flags, or packet lengths.
 
+A terminal `session_proxy` event can also contain `proxyOperation` and
+`proxyError`. `proxyOperation` is one of `front_read`, `front_write`,
+`backend_read`, or `backend_write`; `front` is the RDP client and `backend` is the
+VM. It records the first failing I/O observed by the relay, not necessarily the
+endpoint that initiated disconnection. Cancellation and simultaneous failures
+can make either operation win. `proxyError` is one of `peer_eof`,
+`unexpected_eof`, `connection_closed`, `connection_reset`,
+`connection_aborted`, `broken_pipe`, `short_write`, `timeout`, `canceled`, or
+`transport_error`. These fixed values contain no raw error text or addresses.
+
 The log is a rolling in-memory buffer of the last 512 events, not 512 complete
 attempts. It resets when `devbox-kvm` restarts, so download the report
 immediately after reproducing the problem. Its application block identifies the

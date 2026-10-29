@@ -215,8 +215,8 @@ func TestAdminDiagnosticsSchemaAndPrivacy(t *testing.T) {
 		checkDiagnosticJSONFields(t, event,
 			[]string{"timestamp", "attemptId", "stage", "outcome", "message"},
 			[]string{
-				"timestamp", "attemptId", "stage", "outcome", "message", "error", "reason", "vmId",
-				"requestedProtocols", "selectedProtocol", "tlsVersion", "cipherSuite",
+				"timestamp", "attemptId", "stage", "outcome", "message", "error", "reason", "proxyOperation",
+				"proxyError", "vmId", "requestedProtocols", "selectedProtocol", "tlsVersion", "cipherSuite",
 			})
 	}
 	for _, private := range []string{

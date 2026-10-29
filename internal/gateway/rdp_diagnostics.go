@@ -24,6 +24,8 @@ type rdpDiagnosticEvent struct {
 	Message            string    `json:"message"`
 	Error              string    `json:"error,omitempty"`
 	Reason             string    `json:"reason,omitempty"`
+	ProxyOperation     string    `json:"proxyOperation,omitempty"`
+	ProxyError         string    `json:"proxyError,omitempty"`
 	VMID               string    `json:"vmId,omitempty"`
 	RequestedProtocols *uint32   `json:"requestedProtocols,omitempty"`
 	SelectedProtocol   *uint32   `json:"selectedProtocol,omitempty"`
@@ -74,6 +76,8 @@ func (a *rdpDiagnosticAttempt) stage(stage string) {
 	a.event.Message = message
 	a.event.Error = ""
 	a.event.Reason = ""
+	a.event.ProxyOperation = ""
+	a.event.ProxyError = ""
 	a.emit()
 }
 
@@ -84,6 +88,8 @@ func (a *rdpDiagnosticAttempt) record(outcome string) {
 	a.event.Stage, _ = rdpDiagnosticStage(a.event.Stage)
 	a.event.Error = ""
 	a.event.Reason = ""
+	a.event.ProxyOperation = ""
+	a.event.ProxyError = ""
 	switch outcome {
 	case "authenticated":
 		a.event.Outcome = "authenticated"
@@ -102,6 +108,11 @@ func (a *rdpDiagnosticAttempt) finish(err error) {
 	if stage, _ := rdpDiagnosticStage(a.event.Stage); stage == "unknown" {
 		a.event.Stage = stage
 	}
+	a.event.ProxyOperation = ""
+	a.event.ProxyError = ""
+	if a.event.Stage == "session_proxy" {
+		a.event.ProxyOperation, a.event.ProxyError = rdpProxyDiagnostic(err)
+	}
 	if err == nil || (a.event.Stage == "session_proxy" && rdpDiagnosticNormalClose(err)) {
 		a.event.Outcome = "closed"
 		a.event.Message = "The RDP connection closed."
@@ -114,6 +125,53 @@ func (a *rdpDiagnosticAttempt) finish(err error) {
 		a.event.Reason = rdpClientInfoReason(err)
 	}
 	a.emit()
+}
+
+func rdpProxyDiagnostic(err error) (operation, category string) {
+	var proxyError *rdpProxyError
+	if !errors.As(err, &proxyError) || proxyError == nil || !validRDPProxyOperation(proxyError.operation) {
+		return "", ""
+	}
+
+	return proxyError.operation, classifyRDPProxyError(proxyError.err)
+}
+
+func validRDPProxyOperation(operation string) bool {
+	switch operation {
+	case "front_read", "front_write", "backend_read", "backend_write":
+		return true
+	default:
+		return false
+	}
+}
+
+func classifyRDPProxyError(err error) string {
+	switch {
+	case errors.Is(err, io.EOF):
+		return "peer_eof"
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		return "unexpected_eof"
+	case errors.Is(err, net.ErrClosed), errors.Is(err, io.ErrClosedPipe):
+		return "connection_closed"
+	case errors.Is(err, syscall.ECONNRESET):
+		return "connection_reset"
+	case errors.Is(err, syscall.ECONNABORTED):
+		return "connection_aborted"
+	case errors.Is(err, syscall.EPIPE):
+		return "broken_pipe"
+	case errors.Is(err, io.ErrShortWrite):
+		return "short_write"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	}
+	var netError net.Error
+	if errors.As(err, &netError) && netError.Timeout() {
+		return "timeout"
+	}
+
+	return "transport_error"
 }
 
 func (a *rdpDiagnosticAttempt) emit() {
@@ -256,7 +314,7 @@ func rdpDiagnosticError(err error) string {
 	case errors.Is(err, syscall.ECONNRESET), errors.Is(err, syscall.ECONNABORTED):
 		return "connection reset"
 	case errors.Is(err, io.EOF), errors.Is(err, io.ErrUnexpectedEOF),
-		errors.Is(err, net.ErrClosed), errors.Is(err, syscall.EPIPE):
+		errors.Is(err, net.ErrClosed), errors.Is(err, io.ErrClosedPipe), errors.Is(err, syscall.EPIPE):
 		return "connection closed"
 	}
 	var netError net.Error
@@ -271,6 +329,7 @@ func rdpDiagnosticNormalClose(err error) bool {
 	return errors.Is(err, io.EOF) ||
 		errors.Is(err, io.ErrUnexpectedEOF) ||
 		errors.Is(err, net.ErrClosed) ||
+		errors.Is(err, io.ErrClosedPipe) ||
 		errors.Is(err, syscall.ECONNRESET) ||
 		errors.Is(err, syscall.ECONNABORTED) ||
 		errors.Is(err, syscall.EPIPE)

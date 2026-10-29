@@ -197,6 +197,13 @@ attempt IDs. Use `/perf?download=1` to save the report, or
 `/perf?vm=<id>&download=1` for one owned desktop. See
 [performance diagnostics](performance.md) for collection and interpretation.
 
+The report's gateway `rdpLoginEvents` can add `proxyOperation` and `proxyError`
+to a terminal `session_proxy` event. `front` operations refer to the RDP client
+and `backend` operations to the VM. The operation is the first failing I/O the
+relay observed, not proof of which endpoint initiated closure; cancellation and
+simultaneous failures can select either side. The error is a fixed sanitized
+category, and neither field includes raw error text or endpoint addresses.
+
 Its additive `pipeline` object reports virtio transfer/flush work, framebuffer
 capture and colour conversion, outstanding graphics ACKs, and ACK-blocked time.
 Optional `GATEWAY_VM_PROFILING=true` adds private Unix-socket CPU profiling for

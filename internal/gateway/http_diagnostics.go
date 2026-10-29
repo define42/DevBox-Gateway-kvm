@@ -45,6 +45,10 @@ func (s *Server) adminDiagnostics(w http.ResponseWriter, r *http.Request) {
 			"Authenticated means gateway password validation succeeded, not that a desktop was displayed. " +
 				"session_proxy means the gateway is relaying subsequent activation/session traffic; it does not " +
 				"inspect that traffic. closed is a transport result, not proof of successful desktop activation.",
+			"A terminal session_proxy event can include proxyOperation and proxyError. proxyOperation identifies " +
+				"the first failing relay I/O observed: front is the RDP client and backend is the VM. It is not proof " +
+				"of which endpoint initiated closure because cancellation and simultaneous failures can select either " +
+				"operation. proxyError is a fixed category, never raw error text.",
 			"rdpWorkers contains cached VM-side terminal RDP session diagnostics for at most 64 VMs in ID order. " +
 				"Each worker retains its last four ended sessions across idle samples and reconnects, until eviction " +
 				"or worker restart. Wait at least five seconds after reproducing a failure before downloading. " +

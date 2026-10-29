@@ -150,6 +150,10 @@ func performanceReportNotes() []string {
 			"Failures before a grant is identified are visible only in the administrator diagnostic download. " +
 			"The rolling log holds at most 512 events across all connections and resets on gateway restart. " +
 			"Credentials, routing tokens, client addresses, raw packets and raw error text are never included.",
+		"A terminal session_proxy event can include proxyOperation and proxyError. proxyOperation identifies the " +
+			"first failing I/O observed by the relay: front is the RDP client and backend is the VM. It does not " +
+			"prove which endpoint initiated closure because cancellation and simultaneous failures can select either " +
+			"operation. proxyError is a fixed category and never contains raw error text.",
 		"Client Info validation failures include a fixed reason code, such as empty_password or " +
 			"unsupported_security_flags. A failure at client_info_validation is a rejection before the " +
 			"password authenticator is called, not evidence that a directory password check failed.",

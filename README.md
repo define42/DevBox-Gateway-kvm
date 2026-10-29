@@ -206,6 +206,12 @@ distinguishes empty credentials, an unsupported smart-card PIN, and invalid
 security headers or packet framing. These reasons never contain submitted
 values, raw flags, or packet lengths.
 
+A terminal `session_proxy` event can include `proxyOperation` and `proxyError`.
+The operation is the first failing I/O observed by the relay: `front` is the RDP
+client and `backend` is the VM. It does not prove which endpoint initiated the
+disconnect because cancellation or simultaneous failures can select either
+operation. The error is a fixed category; neither field contains raw error text.
+
 The report identifies the running `devbox-kvm` version and includes commit and
 build-date metadata when the binary contains it; unversioned development builds
 report `devel`. When worker diagnostics are available, the administrator report
