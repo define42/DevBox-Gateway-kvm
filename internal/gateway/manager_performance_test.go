@@ -328,12 +328,13 @@ func TestManagerPerformanceOwnershipAndLaunchIsolation(t *testing.T) {
 func TestManagerPerformanceConfiguration(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
-		name   string
-		state  string
-		run    bool
-		sample bool
-		exited bool
-		want   string
+		name       string
+		state      string
+		run        bool
+		sample     bool
+		exited     bool
+		bitmapOnly bool
+		want       string
 	}{
 		{name: "stopped", state: "stopped", want: "stopped"},
 		{name: "creating", state: "creating", want: "starting"},
@@ -341,6 +342,15 @@ func TestManagerPerformanceConfiguration(t *testing.T) {
 		{name: "unavailable", state: "running", run: true, want: "unavailable"},
 		{name: "live", state: "running", run: true, sample: true, want: "live"},
 		{name: "exited", state: "running", run: true, sample: true, exited: true, want: "stopped"},
+		{name: "bitmap stopped", bitmapOnly: true, state: "stopped", want: "stopped"},
+		{name: "bitmap creating", bitmapOnly: true, state: "creating", want: "starting"},
+		{name: "bitmap starting", bitmapOnly: true, state: "starting", run: true, want: "starting"},
+		{name: "bitmap unavailable", bitmapOnly: true, state: "running", run: true, want: "unavailable"},
+		{name: "bitmap live", bitmapOnly: true, state: "running", run: true, sample: true, want: "live"},
+		{
+			name: "bitmap exited", bitmapOnly: true, state: "running", run: true, sample: true,
+			exited: true, want: "stopped",
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -358,14 +368,18 @@ func TestManagerPerformanceConfiguration(t *testing.T) {
 			}
 			m := &Manager{
 				ctx: t.Context(), vms: map[string]*managedVM{record.ID: v},
-				config: ManagerConfig{CPUs: 2, MemoryMiB: 4096},
+				config: ManagerConfig{CPUs: 2, MemoryMiB: 4096, RDPBitmapOnly: test.bitmapOnly},
 			}
 			got, err := m.Performance(t.Context(), "alice", record.ID)
 			if err != nil || got.State != test.want {
 				t.Fatalf("performance state = %+v, %v; want %s", got, err, test.want)
 			}
+			wantEncoder := "software"
+			if test.bitmapOnly {
+				wantEncoder = "bitmap"
+			}
 			if got.VCPUs != 2 || got.GuestMemoryBytes != 4<<30 ||
-				got.RequestedEncoder != "software" || got.RDPProfile != "smooth" {
+				got.RequestedEncoder != wantEncoder || got.RDPProfile != "smooth" {
 				t.Fatalf("configuration missing or replaced by observed backend: %+v", got)
 			}
 			if test.want == "live" && got.Encoder != "software" {

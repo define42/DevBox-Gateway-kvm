@@ -37,6 +37,9 @@ func TestServeDefaultWorkerConfiguration(t *testing.T) {
 	if options.manager.VMProfiling {
 		t.Fatal("VM profiling must be disabled by default")
 	}
+	if options.manager.RDPBitmapOnly {
+		t.Fatal("RDP bitmap-only mode must be disabled by default")
+	}
 	if options.manager.MemoryOverheadMiB != 512 || options.manager.CgroupRoot != "" {
 		t.Fatal("unexpected default worker memory isolation configuration")
 	}
@@ -63,7 +66,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 	clearServeEnvironment(t)
 	for key, value := range map[string]string{
 		"DATA_ROOT_DIR": "/srv/desktops", "BASE_IMAGE": "/srv/images/desktop.qcow2",
-		"H264_QP":     "28",
+		"H264_QP": "28", "GATEWAY_RDP_BITMAP_ONLY": "true",
 		"VM_KEYBOARD": "dk", "VM_VCPU_COUNT": "6",
 		"VM_MEMORY_MIB":        "8192",
 		"VM_MEMORY_BUDGET_MIB": "32768", "MAX_VDI_PER_USER": "5", "MAX_RUNNING_VMS": "8", "MAX_CONCURRENT_CREATIONS": "3",
@@ -93,7 +96,7 @@ func TestServeEnvironmentConfiguration(t *testing.T) {
 			MemoryOverheadMiB: 1024, CgroupRoot: "/sys/fs/cgroup/devbox/workers",
 			DataDir: "/srv/desktops", BaseImage: "/srv/images/desktop.qcow2",
 			Keyboard: "dk",
-			H264QP:   &qp, NetworkPolicy: "internet",
+			H264QP:   &qp, RDPBitmapOnly: true, NetworkPolicy: "internet",
 			CPUs: 6, MemoryMiB: 8192, MemoryBudgetMiB: 32768, MaxVMsPerUser: 5, MaxRunning: 8, MaxCreations: 3,
 			MaxDiskBytes: 750 << 30, MaxImageUploadBytes: 40 << 30,
 			StartTimeout: 50 * time.Second, StopTimeout: 25 * time.Second,
@@ -126,12 +129,14 @@ func TestServeEnvironmentEnablesBooleanSettings(t *testing.T) {
 	t.Setenv("LDAP_BASE_DN", "dc=example,dc=com")
 	t.Setenv("LDAP_INSECURE_LOOPBACK", "true")
 	t.Setenv("ACME_ENABLE", "true")
+	t.Setenv("GATEWAY_RDP_BITMAP_ONLY", "true")
 	t.Setenv("GATEWAY_VM_PROFILING", "true")
 	options, err := readServeOptions(nil, io.Discard)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !options.ldap.AllowInsecure || !options.certificates.ACME || !options.manager.VMProfiling {
+	if !options.ldap.AllowInsecure || !options.certificates.ACME || !options.manager.RDPBitmapOnly ||
+		!options.manager.VMProfiling {
 		t.Fatalf("boolean environment settings not applied: %#v", options)
 	}
 }
@@ -147,8 +152,9 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		"IMAGE_UPLOAD_MAX_BYTES": "42949672960", "IMAGE_UPLOAD_TIMEOUT": "45m", "ADMIN_GROUP": "admins",
 		"MAX_CONCURRENT_CONNECTIONS": "64", "MAX_HANDSHAKES": "48", "MAX_CONNECTIONS_PER_IP": "24",
 		"MAX_HANDSHAKES_PER_IP": "6", "CONNECTION_RATE_LIMIT": "100", "CONNECTION_RATE_LIMIT_PER_IP": "12",
-		"HANDSHAKE_TIMEOUT":    "15s",
-		"GATEWAY_VM_PROFILING": "true",
+		"HANDSHAKE_TIMEOUT":       "15s",
+		"GATEWAY_RDP_BITMAP_ONLY": "true",
+		"GATEWAY_VM_PROFILING":    "true",
 	} {
 		t.Setenv(key, value)
 	}
@@ -159,7 +165,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		"-image-upload-limit=10737418240", "-image-upload-timeout=20m", "-ldap-admin-group=",
 		"-max-connections=80", "-max-handshakes=40", "-max-connections-per-ip=20", "-max-handshakes-per-ip=5",
 		"-connection-rate-limit=120", "-connection-rate-limit-per-ip=10", "-handshake-timeout=12s",
-		"-vm-profiling=false",
+		"-rdp-bitmap-only=false", "-vm-profiling=false",
 	}, io.Discard)
 	if err != nil {
 		t.Fatal(err)
@@ -168,7 +174,7 @@ func TestServeFlagsOverrideEnvironment(t *testing.T) {
 		t.Fatalf("string overrides not applied: %#v", options)
 	}
 	if options.manager.CPUs != 3 || options.manager.MemoryBudgetMiB != 0 || options.certificates.ACME ||
-		options.manager.VMProfiling {
+		options.manager.RDPBitmapOnly || options.manager.VMProfiling {
 		t.Fatalf("integer/boolean overrides not applied: %#v", options)
 	}
 	if options.manager.MaxImageUploadBytes != 10<<30 || options.gateway.UploadTimeout != 20*time.Minute {
@@ -258,9 +264,10 @@ func TestServeHelpDocumentsEnvironment(t *testing.T) {
 	}
 	for _, text := range []string{
 		"-h264-qp", "min 0, max 51", "lower = higher quality/more bandwidth", "higher = more compression",
+		"-rdp-bitmap-only", "bitmap output for compatibility diagnosis",
 	} {
 		if !strings.Contains(output.String(), text) {
-			t.Errorf("help omits H264_QP description %q", text)
+			t.Errorf("help omits configuration text %q", text)
 		}
 	}
 	for _, key := range config.NewSettings().Keys() {
@@ -313,6 +320,70 @@ func TestServeH264QPConfiguration(t *testing.T) {
 				t.Fatalf("QP = %v, want %d", options.manager.H264QP, test.want)
 			}
 		})
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeBitmapOnlyStillValidatesH264QP(t *testing.T) {
+	clearServeEnvironment(t)
+	t.Setenv(config.GATEWAY_RDP_BITMAP_ONLY, "true")
+	t.Setenv(config.H264_QP, "52")
+	_, err := readServeOptions([]string{"-auth-file=local.json"}, io.Discard)
+	if !errors.Is(err, errCommandUsage) || !strings.Contains(err.Error(), config.H264_QP) {
+		t.Fatalf("invalid bitmap-only QP error = %v, want named command usage error", err)
+	}
+}
+
+//nolint:paralleltest // clearServeEnvironment changes the process environment.
+func TestServeRDPBitmapOnlyConfiguration(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		env  string
+		args []string
+		want bool
+	}{
+		{name: "default"},
+		{name: "environment enables", env: "true", want: true},
+		{name: "flag enables over environment", env: "false", args: []string{"-rdp-bitmap-only"}, want: true},
+		{name: "flag disables over environment", env: "true", args: []string{"-rdp-bitmap-only=false"}},
+		{name: "malformed environment uses default", env: "invalid"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			clearServeEnvironment(t)
+			if test.env != "" {
+				t.Setenv(config.GATEWAY_RDP_BITMAP_ONLY, test.env)
+			}
+			options, err := readServeOptions(
+				append([]string{"-auth-file=local.json"}, test.args...),
+				io.Discard,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if options.manager.RDPBitmapOnly != test.want {
+				t.Fatalf("RDPBitmapOnly = %t, want %t", options.manager.RDPBitmapOnly, test.want)
+			}
+		})
+	}
+}
+
+func TestServeRDPBitmapOnlyDeploymentForwarding(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		path string
+		want string
+	}{
+		{path: "compose.yaml", want: `GATEWAY_RDP_BITMAP_ONLY: "${GATEWAY_RDP_BITMAP_ONLY-false}"`},
+		{path: ".env.example", want: "GATEWAY_RDP_BITMAP_ONLY=false"},
+	} {
+		data, err := os.ReadFile(test.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(data, []byte(test.want)) {
+			t.Errorf("%s does not forward the bitmap-only default", test.path)
+		}
 	}
 }
 

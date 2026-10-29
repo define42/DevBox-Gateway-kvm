@@ -23,6 +23,7 @@ func TestNewSettingsDefaults(t *testing.T) {
 		config.VM_NETWORK_POLICY:          "internet",
 		config.VM_NETWORK_ALLOW_CIDRS:     "",
 		config.H264_QP:                    "20",
+		config.GATEWAY_RDP_BITMAP_ONLY:    "false",
 		config.GATEWAY_VM_PROFILING:       "false",
 		config.VM_KEYBOARD:                "us",
 		config.VM_VCPU_COUNT:              "2",
@@ -96,6 +97,7 @@ func TestNewSettingsEnvironmentOverrides(t *testing.T) {
 	t.Setenv(config.VM_VCPU_COUNT, "\t6 ")
 	t.Setenv(config.IMAGE_UPLOAD_MAX_BYTES, " 42949672960 ")
 	t.Setenv(config.ACME_ENABLE, " TRUE ")
+	t.Setenv(config.GATEWAY_RDP_BITMAP_ONLY, " TRUE ")
 	t.Setenv(config.VM_START_TIMEOUT, " 1m15s ")
 	settings := config.NewSettings()
 	if got := settings.String(config.DATA_ROOT_DIR); got != "/srv/desktops" {
@@ -109,6 +111,9 @@ func TestNewSettingsEnvironmentOverrides(t *testing.T) {
 	}
 	if !settings.Bool(config.ACME_ENABLE) {
 		t.Error("ACME must be enabled")
+	}
+	if !settings.Bool(config.GATEWAY_RDP_BITMAP_ONLY) {
+		t.Error("RDP bitmap-only mode must be enabled")
 	}
 	if got := settings.Duration(config.VM_START_TIMEOUT); got != 75*time.Second {
 		t.Errorf("start timeout = %s, want 1m15s", got)
@@ -134,6 +139,7 @@ func TestNewSettingsInvalidOverridesRetainDefaults(t *testing.T) {
 			t.Setenv(config.VM_VCPU_COUNT, tt.value)
 			t.Setenv(config.IMAGE_UPLOAD_MAX_BYTES, tt.value)
 			t.Setenv(config.ACME_ENABLE, tt.value)
+			t.Setenv(config.GATEWAY_RDP_BITMAP_ONLY, tt.value)
 			t.Setenv(config.VM_START_TIMEOUT, tt.value)
 			settings := config.NewSettings()
 			if got := settings.Int(config.VM_VCPU_COUNT); got != 2 {
@@ -144,6 +150,9 @@ func TestNewSettingsInvalidOverridesRetainDefaults(t *testing.T) {
 			}
 			if settings.Bool(config.ACME_ENABLE) {
 				t.Error("invalid ACME override must retain false")
+			}
+			if settings.Bool(config.GATEWAY_RDP_BITMAP_ONLY) {
+				t.Error("invalid bitmap-only override must retain false")
 			}
 			if got := settings.Duration(config.VM_START_TIMEOUT); got != 30*time.Second {
 				t.Errorf("start timeout = %s, want default 30s", got)

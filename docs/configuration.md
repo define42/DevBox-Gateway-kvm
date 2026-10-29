@@ -56,6 +56,7 @@ path selected by `GATEWAY_STORAGE_PATH`, which defaults to
 | `VM_NETWORK_POLICY` | `internet` | `-vm-network-policy` | Managed IPv4 TCP/UDP access: `internet` permits public destinations, while `allowlist` permits only explicit CIDRs. Visible host interface subnets, private and special ranges require an exception. DHCP/DNS remain available; see [networking](runtime.md#networking) for routed/NAT LAN limits. |
 | `VM_NETWORK_ALLOW_CIDRS` | Empty | `-vm-network-allow-cidrs` | Up to 64 comma-separated canonical IPv4 CIDRs allowed in addition to the policy. No `/0` or IPv6. Applies to newly started workers; host alias access requires `127.0.0.1/32`. See [networking](runtime.md#networking). |
 | `H264_QP` | `20` | `-h264-qp` | H.264 quantization parameter, minimum `0`, maximum `51` (inclusive). Lower values improve quality and increase traffic; higher values compress more and reduce quality. Applies when a managed VM starts. |
+| `GATEWAY_RDP_BITMAP_ONLY` | `false` | `-rdp-bitmap-only` | Diagnostic opt-in that forces newly started managed VM workers to use bitmap RDP output instead of H.264. |
 | `GATEWAY_VM_PROFILING` | `false` | `-vm-profiling` | Enable private Unix sockets for bounded administrator CPU profiles. Compose defaults to `true`; no public profiling port is opened. |
 | `VM_KEYBOARD` | `us` | `-keyboard` | Keyboard layout provisioned in new guests. |
 | `VM_VCPU_COUNT` | `2` | `-cpus` | vCPUs per desktop, from 1 to 64. |
@@ -87,6 +88,20 @@ supported quality; AVC420 still uses chroma subsampling, so it does not promise 
 guaranteed Mbps limit. Set `H264_QP=28` in Compose's `.env`, or run
 `H264_QP=28 make docker`. Recreate/restart the gateway and start new VM processes
 to apply the change; reconnecting RDP does not apply it.
+
+`GATEWAY_RDP_BITMAP_ONLY=true` is a controlled compatibility diagnostic, not the
+normal graphics default. It omits H.264 from newly started managed workers while
+leaving gateway authentication, TLS, audio, and client-driven resizing unchanged.
+`H264_QP` is still parsed and validated at gateway startup but is unused by those
+bitmap-only workers.
+
+To run the diagnostic, set the variable to `true`, recreate or restart the
+gateway, and start the affected desktop so it receives a new worker process.
+Restarting the gateway interrupts running VMs; reconnecting to an existing worker
+is insufficient. Download a fresh RDP file, reproduce once, then download the
+performance report and verify that `requestedEncoder` is `bitmap`. To roll back,
+set the variable to `false`, recreate or restart the gateway, and start a new
+worker for the desktop. The normal report value is `software`.
 
 Every build uses the bundled Go codec with cgo disabled. No codec build selector
 or native codec SDK is needed.

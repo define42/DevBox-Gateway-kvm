@@ -93,6 +93,9 @@ func (m *Manager) Performance(ctx context.Context, owner, id string) (VMPerforma
 	result.VCPUs = m.config.CPUs
 	// Retain the read-only API fields for clients that display the graphics policy.
 	result.RequestedEncoder = "software"
+	if m.config.RDPBitmapOnly {
+		result.RequestedEncoder = "bitmap"
+	}
 	result.RDPProfile = "smooth"
 
 	return result, nil

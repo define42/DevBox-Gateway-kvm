@@ -179,6 +179,9 @@ xfreerdp /path/to/desktop.rdp
 
 Use an H.264-capable client for AVC420 graphics. See the [runtime guide](docs/runtime.md)
 for client setup and `make freerdp` if your installed client lacks that support.
+Operators can temporarily force newly started workers to bitmap output with
+`GATEWAY_RDP_BITMAP_ONLY=true` for a controlled compatibility test; see the
+[configuration and rollback procedure](docs/configuration.md#storage-and-desktops).
 Managed desktops enable stereo sound playback over RDP by default. Enable local
 sound in your client; microphone redirection is not supported.
 RDP access is available only through the authenticated gateway and its downloaded

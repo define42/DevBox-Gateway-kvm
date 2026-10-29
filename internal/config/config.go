@@ -21,6 +21,7 @@ const (
 	VM_NETWORK_POLICY          = "VM_NETWORK_POLICY"
 	VM_NETWORK_ALLOW_CIDRS     = "VM_NETWORK_ALLOW_CIDRS"
 	H264_QP                    = "H264_QP"
+	GATEWAY_RDP_BITMAP_ONLY    = "GATEWAY_RDP_BITMAP_ONLY"
 	GATEWAY_VM_PROFILING       = "GATEWAY_VM_PROFILING"
 	VM_KEYBOARD                = "VM_KEYBOARD"
 	VM_VCPU_COUNT              = "VM_VCPU_COUNT"
@@ -121,6 +122,8 @@ func NewSettings() *Settings {
 		"empty denies LAN/host access", "")
 	s.SetInt(H264_QP, "H.264 quantizer: min 0, max 51; lower = higher quality/more bandwidth, "+
 		"higher = more compression", 20)
+	s.SetBool(GATEWAY_RDP_BITMAP_ONLY,
+		"Force managed RDP consoles to bitmap output for compatibility diagnosis", false)
 	s.SetBool(GATEWAY_VM_PROFILING, "Enable private, on-demand VM worker CPU profiling sockets", false)
 	s.SetString(VM_KEYBOARD, "Guest keyboard layout", "us")
 	s.SetInt(VM_VCPU_COUNT, "vCPUs per desktop", 2)

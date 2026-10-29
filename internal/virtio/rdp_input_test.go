@@ -145,7 +145,13 @@ func joinRDPInputTestChannels(t *testing.T, conn net.Conn, channels ...string) {
 
 func joinRDPInputTestChannelsWithVersion(t *testing.T, conn net.Conn, version uint32, channels ...string) []byte {
 	t.Helper()
-	writeRDPInputMCS(t, conn, rdpInputConnectInitialVersion(version, channels...))
+
+	return joinRDPInputTestChannelsWithInitial(t, conn, rdpInputConnectInitialVersion(version, channels...), channels...)
+}
+
+func joinRDPInputTestChannelsWithInitial(t *testing.T, conn net.Conn, initial []byte, channels ...string) []byte {
+	t.Helper()
+	writeRDPInputMCS(t, conn, initial)
 	if response := readRDPInputMCS(t, conn); len(response) < 2 || response[0] != 0x7f || response[1] != 0x66 {
 		t.Fatalf("expected MCS Connect Response, got %x", response)
 	}
@@ -238,12 +244,23 @@ func rdpInputUnicodePacket(codes ...uint16) []byte {
 }
 
 func rdpInputConnectInitialVersion(version uint32, channels ...string) []byte {
-	core := make([]byte, 132)
+	return rdpInputConnectInitialWithGraphics(version, false, channels...)
+}
+
+func rdpInputConnectInitialWithGraphics(version uint32, graphics bool, channels ...string) []byte {
+	coreSize := 132
+	if graphics {
+		coreSize = 146
+	}
+	core := make([]byte, coreSize)
 	rdpInputPut16(core, 0, 0xc001)
 	rdpInputPut16(core, 2, len(core))
 	binary.LittleEndian.PutUint32(core[4:8], version)
 	rdpInputPut16(core, 8, 800)
 	rdpInputPut16(core, 10, 600)
+	if graphics {
+		rdpInputPut16(core, 144, 0x100) // RNS_UD_CS_SUPPORT_DYNVC_GFX_PROTOCOL
+	}
 	if len(channels) != 0 {
 		network := make([]byte, 8+12*len(channels))
 		rdpInputPut16(network, 0, 0xc003)

@@ -36,6 +36,7 @@ const defaultMaxCreations = 2
 type ManagerConfig struct {
 	DataDir, BaseImage                         string
 	H264QP                                     *int // Nil selects QP 20; explicit 0 is valid.
+	RDPBitmapOnly                              bool // Opt out of H.264 graphics; preserve TLS, input, audio and resizing.
 	Keyboard                                   string
 	VMProfiling                                bool // Opt-in private per-worker CPU profiling sockets.
 	CPUs, MemoryMiB, MaxVMsPerUser, MaxRunning int
@@ -696,10 +697,11 @@ func (m *Manager) startProcess(v *managedVM) (*managedProcess, error) {
 		"-net-policy", m.config.NetworkPolicy, "-net-allow-cidrs", m.config.NetworkAllowCIDRs,
 		"-rdp-fd", "3",
 		"-rdp-cert", filepath.Join(dir, "rdp.crt"), "-rdp-key", filepath.Join(dir, "rdp.key"),
-		"-rdp-h264",
-		"-rdp-h264-qp", fmt.Sprint(*m.config.H264QP),
-		"-audio", "rdp",
 	}
+	if !m.config.RDPBitmapOnly {
+		args = append(args, "-rdp-h264", "-rdp-h264-qp", fmt.Sprint(*m.config.H264QP))
+	}
+	args = append(args, "-audio", "rdp")
 	cmd := exec.Command(m.workerBinary, args...) //nolint:gosec // Current executable; validated VM paths, no shell.
 	cmd.Env = workersandbox.Environment(os.Environ())
 	profiling := m.prepareProfiling(dir)

@@ -270,6 +270,14 @@ Mbps cap, and even QP `0` retains AVC420 chroma subsampling. Restart the gateway
 and start new VM processes to apply a change; see the
 [configuration reference](configuration.md#storage-and-desktops).
 
+For a controlled client-compatibility test, `GATEWAY_RDP_BITMAP_ONLY=true` (or
+`serve -rdp-bitmap-only`) forces newly started workers to use bitmap output. It
+does not weaken RDP authentication or TLS and does not disable audio or resizing.
+The experiment requires a gateway restart, which interrupts running VMs, and a
+new worker process; a reconnect alone does not apply it. Follow the
+[diagnostic and rollback procedure](configuration.md#storage-and-desktops) and
+confirm `requestedEncoder` is `bitmap` in the downloaded performance report.
+
 Four continuously changing AVC420 sessions target at most 120 encoded frames
 per second at the normal rate, rising to 240 if all four are actively dragging.
 These are workload caps, not measured throughput or guarantees of session density;

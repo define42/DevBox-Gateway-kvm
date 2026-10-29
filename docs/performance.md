@@ -64,7 +64,7 @@ backend errors fail the request instead of returning a misleading partial report
 | --- | --- |
 | `state`, `sampledAt` | Telemetry availability and timestamp. Only `live` represents fresh running-worker data; `stale` retains old values, not current measurements. |
 | `vcpus`, `guestMemoryBytes` | Configured VM resources, not utilization. |
-| `requestedEncoder` | Fixed compatibility label `software` for the bundled Go H.264 encoder. This is not a configuration option. |
+| `requestedEncoder` | Worker graphics configuration: `software` normally, or `bitmap` when bitmap-only compatibility diagnosis is enabled. This is not the currently active client path; see `encoder`. |
 | `rdpProfile` | Fixed compatibility label `smooth`: 30 FPS normally, rising to 60 during left-button dragging when client feedback allows it. This is not a configuration option. |
 | `encoder`, `connections` | Active RDP backend and viewer count. `software` is the bundled pure Go H.264 encoder, `bitmap` is the bitmap path, `mixed` means viewers use different backends. An empty encoder means no active encoder. |
 | `cpuPercent` | Worker CPU including guest execution and encoding; 100% is one host CPU. It is not normalized by `vcpus`. |

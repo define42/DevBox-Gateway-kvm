@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -562,12 +563,17 @@ func TestManagerHelperProcess(t *testing.T) { //nolint:paralleltest // Runs a st
 			os.Exit(2)
 		}
 		args["-rdp-h264-qp"] = strconv.Itoa(boot.RDPH264QP)
+		args["-rdp-h264"] = strconv.FormatBool(boot.RDPH264)
 
 		break
 	}
 	dir := filepath.Dir(args["-d"])
 	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-h264-qp"), []byte(args["-rdp-h264-qp"]), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "write helper QP:", err)
+		os.Exit(2)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "helper.rdp-h264"), []byte(args["-rdp-h264"]), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, "write helper H.264 mode:", err)
 		os.Exit(2)
 	}
 	signals := make(chan os.Signal, 4)
@@ -698,19 +704,24 @@ func managerHelperListen(args map[string]string, behavior string) error {
 func TestManagerH264QPWorkerConfiguration(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {
-		name string
-		qp   *int
-		want int
+		name       string
+		qp         *int
+		want       int
+		bitmapOnly bool
 	}{
 		{name: "default", want: 20},
 		{name: "minimum", qp: new(0), want: 0},
 		{name: "maximum", qp: new(51), want: 51},
 		{name: "custom", qp: new(28), want: 28},
+		{name: "bitmap default", bitmapOnly: true, want: 20},
+		{name: "bitmap custom QP omitted", bitmapOnly: true, qp: new(28), want: 20},
+		{name: "bitmap zero QP omitted", bitmapOnly: true, qp: new(0), want: 20},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			config := managerTestConfig(t)
 			config.H264QP = test.qp
+			config.RDPBitmapOnly = test.bitmapOnly
 			m, err := NewManager(config)
 			if err != nil {
 				t.Fatal(err)
@@ -740,6 +751,32 @@ func TestManagerH264QPWorkerConfiguration(t *testing.T) {
 			}
 			if string(qp) != strconv.Itoa(test.want) {
 				t.Fatalf("child QP = %q, want %d", qp, test.want)
+			}
+			h264, err := os.ReadFile(filepath.Join(m.directory(vm.ID), "helper.rdp-h264"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(h264) != strconv.FormatBool(!test.bitmapOnly) {
+				t.Fatalf("child H.264 mode = %q, bitmapOnly=%t", h264, test.bitmapOnly)
+			}
+			v, err := m.lookup(vm.Owner, vm.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			args := v.view.Load().run.cmd.Args
+			for _, flag := range []string{"-rdp-h264", "-rdp-h264-qp"} {
+				if slices.Contains(args, flag) == test.bitmapOnly {
+					t.Fatalf("worker flag %s presence does not match bitmapOnly=%t: %v", flag, test.bitmapOnly, args)
+				}
+			}
+			for flag, want := range map[string]string{
+				"-rdp-fd": "3", "-rdp-cert": filepath.Join(m.directory(vm.ID), "rdp.crt"),
+				"-rdp-key": filepath.Join(m.directory(vm.ID), "rdp.key"), "-audio": "rdp", "-net": "user-isolated",
+			} {
+				index := slices.Index(args, flag)
+				if index < 0 || index+1 >= len(args) || args[index+1] != want {
+					t.Fatalf("worker option %s missing or changed: %v", flag, args)
+				}
 			}
 		})
 	}

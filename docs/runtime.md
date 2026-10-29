@@ -64,8 +64,10 @@ automatically.
 The inherited `-rdp-fd` and `-telemetry-fd` descriptors and the worker's RDP
 tuning flags are internal gateway interfaces, not standalone access modes.
 Configure managed desktop H.264 quality with the gateway's `H264_QP` setting.
-The software encoder is built in and display pacing is automatic. No unsafe
-public-RDP override is provided.
+The software encoder is built in and display pacing is automatic. The gateway's
+`GATEWAY_RDP_BITMAP_ONLY` setting is a diagnostic opt-in for new workers; it does
+not expose a public RDP listener or alter authentication. No unsafe public-RDP
+override is provided.
 
 Guests larger than 3.25 GiB use separate low and high RAM regions, reserving PCI
 address space below 4 GiB. The requested `-m` value is RAM; the device address
@@ -512,6 +514,14 @@ precludes a promise of lossless RGB. QP is not a guaranteed Mbps cap.
 The gateway passes the value to each worker with `-rdp-h264-qp`. Changing it
 requires restarting the gateway and starting new VM processes; reconnecting
 RDP or rebooting within the guest does not update the worker's setting.
+
+For client compatibility diagnosis, set `GATEWAY_RDP_BITMAP_ONLY=true` (or pass
+`serve -rdp-bitmap-only`) to start managed workers without H.264. Bitmap-only
+mode retains TLS, password validation, audio, and live single-monitor resizing.
+It also continues to validate `H264_QP`, although the value is unused. Follow the
+[configuration procedure](configuration.md#storage-and-desktops) to restart the
+gateway, start a new worker, verify `requestedEncoder` is `bitmap`, and roll back;
+restarting the gateway interrupts running VMs.
 
 ### FreeRDP build and cursor troubleshooting
 

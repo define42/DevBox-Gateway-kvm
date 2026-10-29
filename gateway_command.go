@@ -146,6 +146,7 @@ func bindServeFlags(flags *flag.FlagSet, s *config.Settings, options *serveOptio
 	stringFlag(&options.manager.NetworkPolicy, "vm-network-policy", config.VM_NETWORK_POLICY)
 	stringFlag(&options.manager.NetworkAllowCIDRs, "vm-network-allow-cidrs", config.VM_NETWORK_ALLOW_CIDRS)
 	options.manager.H264QP = flags.Int("h264-qp", s.Int(config.H264_QP), description(config.H264_QP))
+	boolFlag(&options.manager.RDPBitmapOnly, "rdp-bitmap-only", config.GATEWAY_RDP_BITMAP_ONLY)
 	boolFlag(&options.manager.VMProfiling, "vm-profiling", config.GATEWAY_VM_PROFILING)
 	stringFlag(&options.manager.Keyboard, "keyboard", config.VM_KEYBOARD)
 	intFlag(&options.manager.CPUs, "cpus", config.VM_VCPU_COUNT)
