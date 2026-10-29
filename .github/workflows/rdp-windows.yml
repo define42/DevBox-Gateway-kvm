@@ -71,6 +71,8 @@ jobs:
         env:
           RDP_TEST_MODE: ${{ matrix.mode }}
           RDP_TEST_OUTPUT: ${{ runner.temp }}/rdp-local-results
+          # Temporary localhost trust is allowed only on this disposable hosted VM.
+          RDP_TEST_ALLOW_MACHINE_TRUST: '1'
         run: ./scripts/rdp-windows/RunLocal.ps1
       - name: Upload localhost test evidence
         if: always()

@@ -1,5 +1,65 @@
 Set-StrictMode -Version Latest
 
+function Write-LocalProgress([string] $OutputPath, [string] $Stage) {
+    $path = Join-Path $OutputPath 'progress.json'
+    $temporaryPath = $path + '.tmp'
+    @{
+        schema = 1; stage = $Stage; timestamp = [datetime]::UtcNow.ToString('o')
+    } | ConvertTo-Json | Set-Content -LiteralPath $temporaryPath -Encoding utf8
+    [IO.File]::Move($temporaryPath, $path, $true)
+    Write-Host ('Windows-only RDP stage: ' + $Stage)
+}
+
+function Write-LocalCleanupProgress([string] $OutputPath, [string] $Stage, $Errors) {
+    # Diagnostics must never prevent cleanup of a process or owned certificate.
+    try { Write-LocalProgress $OutputPath $Stage }
+    catch { $Errors.Add('progress_write_failed') }
+}
+
+function Invoke-LocalBoundedProcess($Launch, [int] $TimeoutMilliseconds = 20000) {
+    $process = $null
+    try {
+        $process = [Diagnostics.Process]::Start($Launch)
+        if (-not $process.WaitForExit($TimeoutMilliseconds)) { throw 'fixture_certificate_timeout' }
+        return $process.ExitCode
+    } finally {
+        # Kill and await the child BEFORE the caller can start trust cleanup.
+        try { Stop-LocalProcess $process }
+        catch { throw 'fixture_certificate_child_cleanup_failed' }
+    }
+}
+
+function Invoke-LocalCertificateTrust([string] $Action, [string] $StatePath) {
+    $launch = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'pwsh.exe'))
+    $launch.UseShellExecute = $false
+    foreach ($argument in @('-NoLogo', '-NoProfile', '-NonInteractive', '-File',
+        (Join-Path $PSScriptRoot 'CertificateTrust.ps1'), '-Action', $Action, '-StatePath', $StatePath)) {
+        [void]$launch.ArgumentList.Add($argument)
+    }
+    $exitCode = Invoke-LocalBoundedProcess $launch
+    $result = Get-Content -Raw -LiteralPath (Join-Path $StatePath ('trust-' + $Action + '.json')) | ConvertFrom-Json -AsHashtable
+    if ($exitCode -ne 0 -or $result.outcome -cne 'passed') {
+        if ($result.reason -cin @('fixture_trust_not_authorized', 'fixture_trust_requires_administrator',
+            'invalid_fixture_certificate', 'fixture_certificate_already_present', 'fixture_certificate_install_failed',
+            'fixture_certificate_receipt_mismatch', 'fixture_certificate_cleanup_failed')) { throw $result.reason }
+        throw 'fixture_certificate_operation_failed'
+    }
+}
+
+function Clear-LocalCertificateTrust([string] $StatePath, [bool] $HelperStopped, $Errors) {
+    if (-not $HelperStopped) {
+        # An installer whose exit is unconfirmed could still perform Add. Keep
+        # the journal and certificate and fail; do not race it with Remove.
+        $Errors.Add('certificate_child_cleanup_failed')
+        return $false
+    }
+    if ([IO.File]::Exists((Join-Path $StatePath 'trust-receipt.json'))) {
+        try { Invoke-LocalCertificateTrust 'Remove' $StatePath }
+        catch { $Errors.Add('certificate_cleanup_failed'); return $false }
+    }
+    return $true
+}
+
 function Assert-LocalReady($Ready, [string] $Mode) {
     if ($Ready.mode -cne $Mode -or ($Ready.port -isnot [long] -and $Ready.port -isnot [int]) -or
         $Ready.port -lt 1 -or $Ready.port -gt 65535 -or

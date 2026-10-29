@@ -28,10 +28,11 @@ type workflowJob struct {
 
 //nolint:tagliatelle // GitHub Actions uses kebab-case keys in its workflow schema.
 type workflowStep struct {
-	Uses            string `yaml:"uses"`
-	Run             string `yaml:"run"`
-	If              string `yaml:"if"`
-	ContinueOnError any    `yaml:"continue-on-error"`
+	Uses            string            `yaml:"uses"`
+	Run             string            `yaml:"run"`
+	If              string            `yaml:"if"`
+	ContinueOnError any               `yaml:"continue-on-error"`
+	Env             map[string]string `yaml:"env"`
 }
 
 func readWorkflow(t *testing.T, name string) workflow {
@@ -85,6 +86,9 @@ func TestLiveMicrosoftRDPWorkflowRunsClientAndRetainsEvidence(t *testing.T) {
 		for _, step := range job.Steps {
 			if strings.TrimSpace(step.Run) == "./scripts/rdp-windows/RunLocal.ps1" {
 				liveSteps++
+				if step.Env["RDP_TEST_ALLOW_MACHINE_TRUST"] != "1" {
+					t.Errorf("%s: the live fixture must explicitly opt in to temporary hosted-runner certificate trust", id)
+				}
 				if job.If != "" || (job.ContinueOnError != nil && job.ContinueOnError != false) ||
 					step.If != "" || (step.ContinueOnError != nil && step.ContinueOnError != false) {
 					t.Errorf("%s: the real Microsoft-client step must not be skipped or allowed to fail", id)

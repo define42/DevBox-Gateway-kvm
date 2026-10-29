@@ -72,10 +72,21 @@ possible follow-up, not something this workflow provisions automatically.
 
 The test server listens only on `127.0.0.1`, using a dynamically allocated port.
 Each run generates a temporary self-signed localhost TLS certificate. The
-orchestrator imports only its public certificate into the current user's trusted
-root store for the duration of the test, then removes it during cleanup.
-Certificate verification remains enabled; certificate warnings are not accepted
-as a test workaround.
+orchestrator imports only its public certificate into `LocalMachine\Root` for
+the duration of the test, then removes it during cleanup. This operation requires
+Windows, `GITHUB_ACTIONS=true`, `RUNNER_ENVIRONMENT=github-hosted`, an elevated
+Administrator token, and the workflow's explicit
+`RDP_TEST_ALLOW_MACHINE_TRUST=1` opt-in. The helper refuses other environments;
+it does not request elevation or change certificate policy. GitHub documents
+the hosted-runner marker in its
+[variables reference](https://docs.github.com/en/actions/reference/workflows-and-actions/variables).
+
+Import and removal each run in a child PowerShell process with a 20-second
+deadline and up to 5 seconds to wait for a terminated child. An ownership journal
+is written after verifying that the certificate is absent and before import,
+so cleanup can remove it even if import times out after adding it. Cleanup
+requires the matching journal and exact public certificate; it never removes a
+preexisting certificate. Certificate verification remains enabled throughout.
 
 The fixture uses dummy test credentials, not LDAP credentials. Its purpose is to
 exercise the RDP protocol and display/input paths; it is **not an authentication
@@ -97,7 +108,9 @@ test.
 
 Each mode uploads test evidence as an Actions artifact retained for **7 days**:
 
-- `result.json`: overall stage and outcome.
+- `result.json`: overall stage and outcome, plus `cleanupErrors` if cleanup fails.
+- `progress.json`: the latest stage, written atomically before each stage starts,
+  so evidence is available even if the job is cancelled before producing a result.
 - `server.json`: local server diagnostics and graphics-mode evidence.
 - `client-events.json`: Microsoft client events, version metadata, and numeric
   disconnect reasons.
@@ -110,6 +123,17 @@ Each mode uploads test evidence as an Actions artifact retained for **7 days**:
 outcome represents only the server's checks. Overall success additionally
 requires the Microsoft client to pass rendering, input, and stability checks;
 the server sending frames is not proof that Windows displayed them.
+
+If the server reports `client_not_connected` and there are no client events,
+check `progress.json` before investigating protocol negotiation. The earlier
+`CurrentUser\Root` import could wait for a Windows certificate consent dialog,
+preventing the Microsoft client from starting. That is the likely cause of the
+initial hosted-runner timeout; it is consistent with the
+[documented native Windows behavior reported to .NET](https://github.com/dotnet/runtime/issues/24160).
+The guarded machine-store import avoids that user consent path, and the child
+deadlines prevent trust setup from hanging the whole test. Native Windows
+verification of this fix is still pending; passing local tests does not prove
+that the live Microsoft client rendered successfully.
 
 Temporary private keys, credentials, downloaded/generated profiles, arbitrary
 Windows event messages, and memory dumps are not artifact inputs. The local
