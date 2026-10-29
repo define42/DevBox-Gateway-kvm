@@ -370,7 +370,23 @@ func (a *activation) finalize(data []byte) (bool, error) {
 			return false, errors.New("invalid Font List")
 		}
 		if binary.LittleEndian.Uint16(data[22:24])&2 != 0 {
-			return true, s.WriteDataPDU(0x28, []byte{0, 0, 0, 0, 3, 0, 4, 0})
+			if err := s.WriteDataPDU(0x28, []byte{0, 0, 0, 0, 3, 0, 4, 0}); err != nil {
+				return false, err
+			}
+			if !a.reactivation {
+				// MS-RDPBCGR 3.3.5.10.1: notify the client that logon has
+				// completed before exposing the session to frame writers.
+				// Authentication remains the caller's responsibility; the
+				// plain notification contains no credentials or user identity.
+				// A display reactivation is not a new logon.
+				notify := make([]byte, 4+576)
+				binary.LittleEndian.PutUint32(notify, 2) // INFOTYPE_LOGON_PLAINNOTIFY
+				if err := s.WriteDataPDU(0x26, notify); err != nil {
+					return false, err
+				}
+			}
+
+			return true, nil
 		}
 	case 0x2b: // Optional persistent bitmap cache key list.
 	case 0x1c: // Input is permitted after Confirm Active.
@@ -474,7 +490,9 @@ func (s *Session) WriteDataPDU(pduType byte, payload []byte) error {
 	put16(data, 4, serverUser)
 	binary.LittleEndian.PutUint32(data[6:10], shareID)
 	data[11] = 1
-	put16(data, 12, len(data)-6)
+	// Match the Windows server wire examples in MS-RDPBCGR: their
+	// uncompressedLength includes the complete Share Data header and body.
+	put16(data, 12, len(data))
 	data[14] = pduType
 	copy(data[18:], payload)
 

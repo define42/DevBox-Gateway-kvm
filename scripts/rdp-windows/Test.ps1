@@ -188,19 +188,39 @@ try {
 } finally { $client.Dispose() }
 
 # Check event redaction without needing Windows event logs or saving raw XML.
+$eventFixtureXML = @(
+    '<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event"><EventData><Data Name="DisconnectReason">4868</Data><Data Name="ErrorCode">0x0</Data><Data Name="ServerName">private.example</Data><Data Name="UserName">123456</Data><Data Name="ErrorText">sensitive message</Data></EventData></Event>',
+    '<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event"><UserData><EventXML xmlns="Event_NS"><Reason>4868</Reason><ErrorCode> 0x0 </ErrorCode><ServerName>private.example</ServerName><UserName>123456</UserName><ErrorText>sensitive message</ErrorText></EventXML></UserData></Event>',
+    '<Event><EventData><Data>3334</Data></EventData></Event>',
+    '<Event><System/><RenderingInfo><Message>sensitive message</Message><ErrorCode>0xdeadbeef</ErrorCode></RenderingInfo></Event>',
+    '<Event><EventData>',
+    '<Event><EventData><ComplexData><Data Name="reason">3334</Data><Data Name="errorCode">0x80004005</Data><Data Name="ErrorText">private.example</Data></ComplexData></EventData></Event>'
+)
 function Get-WinEvent {
     param($FilterHashtable, $MaxEvents, $ErrorAction)
-    $record = [pscustomobject]@{ Id = 1026; TimeCreated = [datetime]::UtcNow }
-    $record | Add-Member ScriptMethod ToXml { '<Event><EventData><Data Name="DisconnectReason">4868</Data><Data Name="ErrorCode">0x0</Data><Data Name="ServerName">private.example</Data><Data Name="ErrorText">sensitive message</Data></EventData></Event>' }
-    return $record
+    for ($index = 0; $index -lt $eventFixtureXML.Count; $index++) {
+        $record = [pscustomobject]@{ Id = 1026 + $index; TimeCreated = [datetime]::UtcNow; Payload = $eventFixtureXML[$index] }
+        $record | Add-Member ScriptMethod ToXml { return $this.Payload }
+        $record
+    }
 }
 $eventOutput = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
 try {
     Export-TestEvents ([datetime]::UtcNow.AddMinutes(-1)) $eventOutput
     $serialized = Get-Content -Raw -LiteralPath $eventOutput
-    Assert-True (-not $serialized.Contains('private.example') -and -not $serialized.Contains('sensitive message')) 'redacted Windows event data'
-    $saved = ConvertFrom-Json $serialized
-    Assert-True ($saved.Count -eq 2 -and $saved[0].codes.DisconnectReason -eq '4868') 'numeric disconnect reason retained'
+    foreach ($privateValue in @('private.example', 'sensitive message', '123456', '0xdeadbeef')) {
+        Assert-True (-not $serialized.Contains($privateValue)) 'redacted Windows event data and rendering metadata'
+    }
+    $saved = ConvertFrom-Json -AsHashtable $serialized
+    Assert-True ($saved.Count -eq 2 * $eventFixtureXML.Count) 'all records from both Windows logs retained'
+    foreach ($offset in @(0, $eventFixtureXML.Count)) {
+        Assert-True ($saved[$offset].codes.DisconnectReason -eq '4868' -and $saved[$offset].codes.ErrorCode -eq '0x0') 'named EventData reason retained'
+        Assert-True ($saved[$offset + 1].codes.Reason -eq '4868' -and $saved[$offset + 1].codes.ErrorCode -eq '0x0') 'namespaced UserData reason retained'
+        Assert-True ($saved[$offset + 2].codes.Count -eq 0) 'unnamed Data is not guessed'
+        Assert-True ($saved[$offset + 3].codes.Count -eq 0) 'missing event payload does not abort export'
+        Assert-True ($saved[$offset + 4].outcome -eq 'record_unavailable') 'malformed record marked independently'
+        Assert-True ($saved[$offset + 5].codes.reason -eq '3334' -and $saved[$offset + 5].codes.errorCode -eq '0x80004005') 'later nested EventData with lowercase labels retained'
+    }
 } finally {
     Remove-Item Function:Get-WinEvent
     Remove-Item -LiteralPath $eventOutput -ErrorAction SilentlyContinue

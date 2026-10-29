@@ -45,6 +45,7 @@ func TestAcceptCompleteSession(t *testing.T) {
 	secured := negotiateSessionFixture(t, client, clientTLS)
 	joinChannelsFixture(t, secured)
 	activateSessionFixture(t, secured)
+	readLogonNotificationFixture(t, secured)
 	completed := <-accepted
 	if completed.err != nil {
 		t.Fatal(completed.err)
@@ -651,6 +652,7 @@ func TestAcceptRelativePointerNegotiation(t *testing.T) {
 			}
 			joinChannelsFixture(t, secured, settings)
 			activateSessionFixture(t, secured, test.flags)
+			readLogonNotificationFixture(t, secured)
 			completed := <-accepted
 			if completed.err != nil {
 				t.Fatal(completed.err)

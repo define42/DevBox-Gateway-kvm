@@ -220,6 +220,24 @@ namespace DevBox.RdpSmoke
         }
     }
 
+    internal static class ClientDiagnostics
+    {
+        internal static string LocalDisconnectDescription(bool localFixture, Func<string> describe)
+        {
+            // Only the generated loopback fixture may retain Microsoft's error
+            // description. External gateway reports keep numeric codes only.
+            if (!localFixture) return null;
+            try
+            {
+                string description = describe();
+                if (String.IsNullOrWhiteSpace(description)) return null;
+                description = description.Trim();
+                return description.Substring(0, Math.Min(description.Length, 1024));
+            }
+            catch { return null; } // Preserve the original disconnect evidence.
+        }
+    }
+
     internal sealed class RdpControlClass
     {
         internal readonly string Name;
@@ -522,9 +540,13 @@ namespace DevBox.RdpSmoke
         {
             int? extended = null;
             try { dynamic client = ocx; extended = (int)client.ExtendedDisconnectReason; } catch { }
-            report.Add("connection", finishing ? "closed" : "failed", finishing ? "intentional_disconnect" : "unexpected_disconnect",
-                new { disconnectReason = reason, extendedDisconnectReason = extended });
-            if (!finishing) Fail("connection", "unexpected_disconnect", null);
+            string description = ClientDiagnostics.LocalDisconnectDescription(localFixture && extended.HasValue, delegate {
+                dynamic client = ocx;
+                return (string)client.GetErrorDescription(unchecked((uint)reason), unchecked((uint)extended.Value));
+            });
+            var details = new { disconnectReason = reason, extendedDisconnectReason = extended, description = description };
+            if (finishing) report.Add("connection", "closed", "intentional_disconnect", details);
+            else Fail("connection", "unexpected_disconnect", details);
         }
 
         internal void Fail(string stage, string reason, object details)
@@ -715,6 +737,14 @@ namespace DevBox.RdpSmoke
         private static int SelfTest()
         {
             ControlSelectionTest();
+            bool externalDescriptionRead = false;
+            Check(ClientDiagnostics.LocalDisconnectDescription(false, delegate { externalDescriptionRead = true; return "private description"; }) == null);
+            Check(!externalDescriptionRead);
+            Check(ClientDiagnostics.LocalDisconnectDescription(true, delegate { return " fixture failure "; }) == "fixture failure");
+            Check(ClientDiagnostics.LocalDisconnectDescription(true, delegate { return new string('x', 2048); }).Length == 1024);
+            Check(ClientDiagnostics.LocalDisconnectDescription(true, delegate { return null; }) == null);
+            Check(ClientDiagnostics.LocalDisconnectDescription(true, delegate { return " \r\n "; }) == null);
+            Check(ClientDiagnostics.LocalDisconnectDescription(true, delegate { throw new Exception("description unavailable"); }) == null);
             string token = new string('a', 64);
             string valid = "full address:s:example.invalid:3390\r\nusername:s:test-user\r\nloadbalanceinfo:s:" + token + "\r\n" +
                 "screen mode id:i:2\r\nuse multimon:i:0\r\nsession bpp:i:32\r\nauthentication level:i:2\r\n" +

@@ -99,20 +99,37 @@ function Export-TestEvents([datetime] $Since, [string] $OutputPath) {
                       'Microsoft-Windows-TerminalServices-ClientActiveXCore/Operational')) {
         try {
             $records = Get-WinEvent -FilterHashtable @{ LogName = $log; StartTime = $Since } -MaxEvents 100 -ErrorAction Stop
-            foreach ($record in $records) {
+        } catch {
+            $events += @{ log = $log; outcome = 'unavailable_or_empty' }
+            continue
+        }
+        foreach ($record in $records) {
+            try {
                 $numeric = @{}
                 $xml = [xml]$record.ToXml()
-                foreach ($field in @($xml.Event.EventData.Data)) {
+                # Windows events may use named EventData fields or a provider's
+                # namespaced UserData tree. DOM traversal avoids PowerShell's
+                # XML property adaptation (a text-only Data can become a string)
+                # and does not assume that EventData exists under StrictMode.
+                $fields = $xml.SelectNodes("/*[local-name()='Event']/*[local-name()='EventData' or local-name()='UserData']//*[not(*)]")
+                foreach ($field in $fields) {
+                    $name = if ($field.LocalName -eq 'Data') { $field.GetAttribute('Name') } else { $field.LocalName }
+                    $value = $field.InnerText.Trim()
                     # Export only numeric reason/error fields, never formatted
                     # messages, addresses, usernames, or arbitrary event data.
-                    if ($field.Name -match '(?i)(reason|error|code)' -and
-                        $field.InnerText -match '^(0x[0-9a-fA-F]+|-?[0-9]+)$') {
-                        $numeric[$field.Name] = $field.InnerText
+                    # Unnamed Data values cannot safely be assigned a meaning.
+                    if ($name -match '(?i)(reason|error|code)' -and
+                        $value -match '^(0x[0-9a-fA-F]+|-?[0-9]+)$') {
+                        $numeric[$name] = $value
                     }
                 }
                 $events += @{ log = $log; id = $record.Id; timestamp = $record.TimeCreated.ToUniversalTime().ToString('o'); codes = $numeric }
+            } catch {
+                # One malformed or unavailable record must not discard later
+                # records from the same log or masquerade as a missing channel.
+                $events += @{ log = $log; outcome = 'record_unavailable' }
             }
-        } catch { $events += @{ log = $log; outcome = 'unavailable_or_empty' } }
+        }
     }
     ConvertTo-Json -InputObject @($events) -Depth 6 | Set-Content -LiteralPath $OutputPath -Encoding utf8
 }

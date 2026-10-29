@@ -63,12 +63,14 @@ manually focused desktop page.
 
 The live harness requires an interactive graphical desktop and fails if one is
 unavailable; it does not skip rendering checks or substitute an offline test.
-The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40924132859)
-passed temporary certificate installation/removal and the interactive desktop
-capture probe in both modes. It then failed to locate the Microsoft ActiveX
-control, before making an RDP connection. **Live RDP connection and rendering
-validation remain pending.** Local script tests, cross-compilation, and a working
-desktop do not prove that the Microsoft client connected or rendered successfully.
+The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40926575376)
+passed temporary certificate installation/removal, the interactive desktop
+capture probe, and actual Microsoft ActiveX control activation in both modes.
+Both clients reported a connection, then disconnected before a verified picture
+or logon-complete event: bitmap reported `4868` (`0x1304`), and H.264 reported
+`3334` (`0x0D06`), each with extended reason `0`.
+**Live rendering, input, and stability validation remain pending.** Local script
+tests and cross-compilation do not prove that these Windows failures are resolved.
 
 `Test.ps1` runs two client checks before the live test. `--self-test` checks the
 profile parser and fixture pixel logic. On Windows, `--check-control` initializes
@@ -121,9 +123,12 @@ Each mode uploads test evidence as an Actions artifact retained for **7 days**:
   so evidence is available even if the job is cancelled before producing a result.
 - `server.json`: local server diagnostics and graphics-mode evidence.
 - `client-events.json`: Microsoft client events, version metadata, attempted
-  control class IDs, numeric activation HRESULTs, and disconnect reasons.
+  control class IDs, numeric activation HRESULTs, and disconnect reasons. For
+  the generated loopback fixture only, a disconnect also includes Microsoft's
+  `GetErrorDescription` result when available, limited to 1024 characters.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
-  numeric error/reason fields.
+  numeric error/reason fields from either `EventData` or `UserData`. A malformed
+  record is marked individually so later records can still be exported.
 - PNG screenshots of the rendered client content and pixel-check evidence.
 
 `server.json` records build metadata, `actualEncoder` (`software` for H.264 or
@@ -131,6 +136,18 @@ Each mode uploads test evidence as an Actions artifact retained for **7 days**:
 outcome represents only the server's checks. Overall success additionally
 requires the Microsoft client to pass rendering, input, and stability checks;
 the server sending frames is not proof that Windows displayed them.
+`framesSent` counts complete successful frame writes. A zero value does not
+exclude a disconnect while the first frame is being written.
+
+Following the run above, the production server sends a Save Session Info plain
+logon notification after the initial Font Map, before graphics can be written.
+Display reactivation does not repeat the logon notification. Its uncompressed
+Share Data length field also follows Microsoft's server wire examples for
+[Granted Control](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/d5624241-aa4d-465a-b66d-698b19d0d826)
+and [Plain Notify](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/daf019f8-13c6-4781-9fd9-5395509b2efb).
+Regression tests cover the notification ordering and packet lengths. A new live
+Windows run is still needed to establish whether these changes resolve either
+disconnect; the existing evidence does not establish a single cause for both.
 
 If the server reports `client_not_connected` and there are no client events,
 check `progress.json` before investigating protocol negotiation. The earlier
