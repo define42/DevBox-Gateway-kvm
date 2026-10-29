@@ -245,10 +245,13 @@ namespace DevBox.RdpSmoke
             // An active top-level form does not establish that the hosted
             // ActiveX child has keyboard focus. Verify it before injection.
             if (!focus()) throw new SmokeFailure("infrastructure", "rdp_control_not_focused");
-            // SendKeys takes WM_KEYDOWN-style lParams, not raw scan codes.
-            // F8 is scan code 0x42; key-up sets previous/transition state.
-            // https://learn.microsoft.com/windows/win32/termserv/imsrdpclientnonscriptable-sendkeys
-            int status = send(2, new short[] { 0, -1 }, new[] { 0x00420001, unchecked((int)0xC0420001) });
+            // Use raw scan codes, as Microsoft's RDCMan SendKeys caller does:
+            // it passes MapVirtualKey(..., MAPVK_VK_TO_VSC) unchanged for both
+            // edges. The reference page's WM_KEYDOWN-lParam wording is
+            // misleading here: 0x00420001 puts Escape (0x01) in the low byte.
+            // F8 is scan code 0x42; the separate VARIANT_BOOL array marks key-up.
+            // https://learn.microsoft.com/sysinternals/downloads/rdcman
+            int status = send(2, new short[] { 0, -1 }, new[] { 0x42, 0x42 });
             if (status < 0) throw new COMException("RDP SendKeys failed.", status);
             // Preserve nonnegative statuses too. Only the changed remote
             // picture can establish that the key reached the server.
@@ -485,6 +488,7 @@ namespace DevBox.RdpSmoke
                             keyAt = now;
                             report.Add("input", "progress", "f8_submitted", new {
                                 hresult = inputStatus, controlFocused = true,
+                                keyEncoding = "scan_code",
                                 method = "IMsRdpClientNonScriptable.SendKeys" });
                         }
                         if (initialLayout < 0 && now - connectAt > 45)
@@ -844,11 +848,12 @@ namespace DevBox.RdpSmoke
                     Check(keyUp[0] == 0 && keyUp[1] == -1); // Native VARIANT_FALSE/VARIANT_TRUE.
                     for (int i = 0; i < count; i++)
                     {
-                        uint data = unchecked((uint)keyData[i]);
-                        Check((data & 0xffff) == 1 && ((data >> 16) & 0xff) == 0x42);
-                        Check((data & 0x3f000000) == 0); // No extended-key, reserved, or ALT-context bits.
-                        Check((data >> 30) == (i == 0 ? 0u : 3u));
+                        // Native SendKeys consumes the scan code itself, with
+                        // release in keyUp. Reject the old LPARAM encoding,
+                        // whose low byte 0x01 identifies Escape instead of F8.
+                        Check((keyData[i] & 0xff) == 0x42 && (keyData[i] & ~0xff) == 0);
                     }
+                    Check(keyData[0] == keyData[1]);
                     sent = true;
                     return 0;
                 });

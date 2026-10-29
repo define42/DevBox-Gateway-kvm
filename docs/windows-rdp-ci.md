@@ -63,17 +63,18 @@ manually focused desktop page.
 
 The live harness requires an interactive graphical desktop and fails if one is
 unavailable; it does not skip rendering checks or substitute an offline test.
-The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40934733654)
+The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40937321486)
 passed temporary certificate installation/removal, the interactive desktop
 capture probe, and actual Microsoft ActiveX control activation in both modes.
-Both clients reported connection and logon-complete events at 32 bpp. H.264
-passed the rendered-picture check, with 23 software-encoded frames and client
-acknowledgements. It then failed the F8 round trip: the fixture recorded no input
-transition before the client's 10-second input timeout. Bitmap still reported
-`4868` (`0x1304`) with extended reason `0` during its first frame, about 508 ms
-after activation. **Bitmap rendering, keyboard input, and 30-second stability
-validation remain pending.** H.264's picture check is a live rendering result,
-but neither job passed the complete test.
+Both clients reported connection and logon-complete events at 32 bpp and passed
+the rendered-picture check. Each server sent 22 frames; the H.264 client also
+acknowledged its graphics frames. Neither mode reported a protocol disconnect.
+Both then failed the F8 round trip after the client's 10-second input timeout.
+`SendKeys` returned `S_OK` with client focus verified, and each server decoded
+one key-down and 52 key-up events, but no F8 transition. These counts establish
+keyboard activity without identifying the received key. **Keyboard input and
+30-second stability validation remain pending.** Both picture checks are live
+rendering results, but neither job passed the complete test.
 
 `Test.ps1` runs two client checks before the live test. `--self-test` checks the
 profile parser, fixture pixel logic, and keyboard submission contract. On Windows, `--check-control` initializes
@@ -162,8 +163,8 @@ see Microsoft's [Bitmap Capability Set](https://learn.microsoft.com/en-us/opensp
 GFX is enabled only for 32-bpp sessions, consistent with
 [xrdp's fix for Microsoft client failures at lower depths](https://github.com/neutrinolabs/xrdp/commit/d23d147dc775dbee9c8fe678d4549e9937cbce06).
 Tests cover differing client/server preferences and display reactivation. The
-run above confirms that H.264 rendering proceeds with this correction, while
-the bitmap failure remains.
+earlier [color-depth correction run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40934733654)
+confirmed H.264 rendering, while bitmap still failed with `0x1304`.
 The report snapshots graphics readiness again at session exit so a disconnect
 before the first frame tick does not leave that field stale.
 
@@ -172,14 +173,25 @@ structure within the [16,383-byte protocol limit](https://learn.microsoft.com/en
 Previously a 64 × 64 rectangle at 32 bpp produced 16,432 MCS bytes including
 headers. Dirty-tile tracking still uses 64 × 64 tiles; oversized tiles are sent
 as smaller row strips. Tests check independent wire lengths, pixel coverage,
-and retry after a partially sent tile. Windows must still confirm whether this
-correction resolves `0x1304`.
+and retry after a partially sent tile. The latest Windows run above confirms
+bitmap rendering with this correction and no longer reports `0x1304`.
 
 Before submitting F8, the harness explicitly focuses the hosted RDP control and
 records the numeric `SendKeys` HRESULT in `f8_submitted`. This event records API
 submission only; `fixture_changed` remains the evidence of remote delivery.
-Focus and return-value checks address unverified harness behavior, and the
-next Windows run must establish whether they resolve the input timeout.
+The latest run confirms focus and successful API submission, but still times
+out waiting for the F8 response; those checks alone did not resolve the failure.
+The harness now submits the raw F8 scan code `0x42` for both press and release,
+with the release state in the separate key-up array. Previously it supplied
+`WM_KEYDOWN`-style values `0x00420001` and `0xC0420001`. The correction follows
+the inspected `SendKeys` caller in Microsoft's
+[RDCMan 3.22](https://learn.microsoft.com/en-us/sysinternals/downloads/rdcman) binary
+and the raw-code usage in
+[1Remote's client](https://github.com/1Remote/1Remote/blob/f1cfdd1fc518c236e5bd339d3f0b74452f8f9303/Ui/View/Host/ProtocolHosts/AxMsRdpClient09Host.xaml.cs),
+whose [wrapper](https://github.com/1Remote/1Remote/blob/f1cfdd1fc518c236e5bd339d3f0b74452f8f9303/Ui/Utils/RdpFile/MsRdpClientNonScriptableWrapper.cs)
+passes those values unchanged. This differs from the `lParam` description in
+the API reference. A new Windows run must verify the resulting F8 round trip;
+the rendering, input, and stability requirements remain unchanged.
 
 If the server reports `client_not_connected` and there are no client events,
 check `progress.json` before investigating protocol negotiation. The earlier
