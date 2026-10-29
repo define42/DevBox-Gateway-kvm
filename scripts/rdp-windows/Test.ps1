@@ -210,5 +210,7 @@ if ($IsWindows) {
     & (Join-Path $PSScriptRoot 'Build.ps1')
     & (Join-Path $env:RUNNER_TEMP 'rdp-client.exe') --self-test
     if ($LASTEXITCODE -ne 0) { throw 'Client parser/pixel self-tests failed.' }
+    & (Join-Path $env:RUNNER_TEMP 'rdp-client.exe') --check-control
+    if ($LASTEXITCODE -ne 0) { throw 'Microsoft RDP ActiveX component preflight failed.' }
 }
 Write-Host 'RDP Windows orchestration tests passed.'

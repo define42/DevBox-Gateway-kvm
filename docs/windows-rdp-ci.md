@@ -1,5 +1,7 @@
 # Windows-only RDP compatibility CI
 
+**Live Windows validation is still pending.**
+
 The [Windows-only RDP workflow](../.github/workflows/rdp-windows.yml)
 runs automatically as part of [CI](../.github/workflows/ci.yml), and can also be
 started manually. It runs both our Go RDP test server and Microsoft's RDP ActiveX
@@ -61,12 +63,18 @@ manually focused desktop page.
 
 The live harness requires an interactive graphical desktop and fails if one is
 unavailable; it does not skip rendering checks or substitute an offline test.
-**Hosted Windows graphical execution has not yet been validated by a live run.**
-Local script tests and cross-compilation do not prove that the Microsoft client
-connected or rendered successfully. A first-run desktop/environment failure
-must be distinguished from an RDP protocol failure. If the hosted runner cannot
-provide the required session, a dedicated interactive Windows runner is a
-possible follow-up, not something this workflow provisions automatically.
+The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40924132859)
+passed temporary certificate installation/removal and the interactive desktop
+capture probe in both modes. It then failed to locate the Microsoft ActiveX
+control, before making an RDP connection. **Live RDP connection and rendering
+validation remain pending.** Local script tests, cross-compilation, and a working
+desktop do not prove that the Microsoft client connected or rendered successfully.
+
+`Test.ps1` runs two client checks before the live test. `--self-test` checks the
+profile parser and fixture pixel logic. On Windows, `--check-control` initializes
+and disposes the real Microsoft ActiveX control without calling `Connect` or
+using credentials. This component check catches activation failures earlier;
+both it and the full live connection test must pass.
 
 ## Scope and security
 
@@ -112,8 +120,8 @@ Each mode uploads test evidence as an Actions artifact retained for **7 days**:
 - `progress.json`: the latest stage, written atomically before each stage starts,
   so evidence is available even if the job is cancelled before producing a result.
 - `server.json`: local server diagnostics and graphics-mode evidence.
-- `client-events.json`: Microsoft client events, version metadata, and numeric
-  disconnect reasons.
+- `client-events.json`: Microsoft client events, version metadata, attempted
+  control class IDs, numeric activation HRESULTs, and disconnect reasons.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
   numeric error/reason fields.
 - PNG screenshots of the rendered client content and pixel-check evidence.
@@ -131,9 +139,18 @@ preventing the Microsoft client from starting. That is the likely cause of the
 initial hosted-runner timeout; it is consistent with the
 [documented native Windows behavior reported to .NET](https://github.com/dotnet/runtime/issues/24160).
 The guarded machine-store import avoids that user consent path, and the child
-deadlines prevent trust setup from hanging the whole test. Native Windows
-verification of this fix is still pending; passing local tests does not prove
-that the live Microsoft client rendered successfully.
+deadlines prevent trust setup from hanging the whole test. The October 29 run
+linked above confirms that this setup and cleanup now complete on Windows.
+
+If client events report `microsoft_rdp_control_unavailable`, the client has not
+yet reached the RDP server. The earlier discovery code treated COM class names
+as registered ProgIDs. The harness now attempts actual `AxHost` activation using
+Microsoft's documented class IDs for
+[MsRdpClient10NotSafeForScripting](https://learn.microsoft.com/en-us/windows/win32/termserv/imsrdpclient10),
+then [versions 9 and 8](https://learn.microsoft.com/en-us/windows/win32/termserv/imsrdpclient8).
+It falls back only for `REGDB_E_CLASSNOTREG`; other activation errors fail the
+check. Class IDs and numeric HRESULTs distinguish missing registration from
+other activation failures without exporting raw exception messages.
 
 Temporary private keys, credentials, downloaded/generated profiles, arbitrary
 Windows event messages, and memory dumps are not artifact inputs. The local
@@ -141,7 +158,7 @@ server displays only generated fixture colors, not a user's desktop. Review
 artifacts before sharing and avoid adding raw packets or unrestricted logs to
 the artifact directory while investigating a failure.
 
-Regular CI also compiles and self-tests the client harness in an explicitly
-offline job. Those checks catch harness regressions but do not establish
-Microsoft RDP compatibility. Only the separate live jobs' render, input,
-heartbeat, and stability passes provide that evidence.
+Regular CI also compiles, self-tests, and checks control activation in the
+explicitly offline harness job. Those checks make no RDP connection and do not
+establish Microsoft RDP compatibility. Only the separate live jobs' render,
+input, heartbeat, and stability passes provide that evidence.

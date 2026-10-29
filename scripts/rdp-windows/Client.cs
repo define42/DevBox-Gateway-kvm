@@ -220,10 +220,82 @@ namespace DevBox.RdpSmoke
         }
     }
 
+    internal sealed class RdpControlClass
+    {
+        internal readonly string Name;
+        internal readonly Guid Clsid;
+        internal RdpControlClass(string name, string clsid) { Name = name; Clsid = new Guid(clsid); }
+    }
+
+    internal static class RdpControls
+    {
+        internal const int ClassNotRegistered = unchecked((int)0x80040154);
+        // These are coclass IDs, not ProgIDs. The coclass names alone do not
+        // resolve through Type.GetTypeFromProgID on the hosted Windows images.
+        // https://learn.microsoft.com/windows/win32/termserv/imsrdpclient10
+        // https://learn.microsoft.com/windows/win32/termserv/imsrdpclient8
+        private static readonly RdpControlClass[] Classes = {
+            new RdpControlClass("MsRdpClient10NotSafeForScripting", "A0C63C30-F08D-4AB4-907C-34905D770C7D"),
+            new RdpControlClass("MsRdpClient9NotSafeForScripting", "8B918B82-7985-4C24-89DF-C33AD2BBFBCD"),
+            new RdpControlClass("MsRdpClient8NotSafeForScripting", "A3BC03A0-041D-42E3-AD22-882B7865C9C5")
+        };
+
+        internal static T Activate<T>(Func<RdpControlClass, T> activate, Report report)
+        {
+            foreach (RdpControlClass candidate in Classes)
+            {
+                if (report != null) report.Add("infrastructure", "progress", "microsoft_rdp_control_activation",
+                    new { controlClass = candidate.Name, clsid = candidate.Clsid.ToString() });
+                T result;
+                try { result = activate(candidate); }
+                catch (Exception error)
+                {
+                    int hresult = error.GetBaseException().HResult;
+                    if (report != null) report.Add("infrastructure", "progress", "microsoft_rdp_control_activation_error",
+                        new { controlClass = candidate.Name, clsid = candidate.Clsid.ToString(), hresult = hresult });
+                    // Only a missing class permits fallback. Do not conceal a
+                    // broken installed control by trying an older version.
+                    if (hresult != ClassNotRegistered) throw;
+                    continue;
+                }
+                if (report != null) report.Add("infrastructure", "passed", "microsoft_rdp_control_activated",
+                    new { controlClass = candidate.Name, clsid = candidate.Clsid.ToString() });
+                return result;
+            }
+            throw new SmokeFailure("infrastructure", "microsoft_rdp_control_unavailable");
+        }
+    }
+
     internal sealed class RdpHost : AxHost
     {
-        internal RdpHost(Guid clsid) : base(clsid.ToString()) { }
+        internal readonly RdpControlClass ControlClass;
+        private RdpHost(RdpControlClass controlClass) : base(controlClass.Clsid.ToString()) { ControlClass = controlClass; }
         internal object Client { get { return GetOcx(); } }
+
+        internal static RdpHost Attach(Control parent, Report report)
+        {
+            return RdpControls.Activate(delegate(RdpControlClass candidate) {
+                var host = new RdpHost(candidate);
+                try
+                {
+                    ((ISupportInitialize)host).BeginInit();
+                    host.Dock = DockStyle.Fill;
+                    parent.Controls.Add(host);
+                    ((ISupportInitialize)host).EndInit();
+                    host.CreateControl();
+                    // Getting a Type from a CLSID does not prove activation.
+                    // Require the actual hosted COM object before accepting it.
+                    if (host.Client == null) throw new SmokeFailure("infrastructure", "microsoft_rdp_control_not_created");
+                    return host;
+                }
+                catch
+                {
+                    parent.Controls.Remove(host);
+                    host.Dispose();
+                    throw;
+                }
+            }, report);
+        }
     }
 
     internal sealed class SmokeWindow : Form
@@ -281,22 +353,8 @@ namespace DevBox.RdpSmoke
                     throw new SmokeFailure("infrastructure", "screen_capture_probe_failed");
             }
             report.Add("infrastructure", "passed", null, new { desktopWidth = 1024, desktopHeight = 768 });
-            string progID = null;
-            Type type = null;
-            foreach (int version in new[] { 10, 9, 8 })
-            {
-                string candidate = "MsRdpClient" + version + "NotSafeForScripting";
-                type = Type.GetTypeFromProgID(candidate, false);
-                if (type != null) { progID = candidate; break; }
-            }
-            if (type == null) throw new SmokeFailure("infrastructure", "microsoft_rdp_control_unavailable");
+            host = RdpHost.Attach(this, report);
             started = true;
-            host = new RdpHost(type.GUID);
-            ((ISupportInitialize)host).BeginInit();
-            host.Dock = DockStyle.Fill;
-            Controls.Add(host);
-            ((ISupportInitialize)host).EndInit();
-            host.CreateControl();
             ocx = host.Client;
             Subscribe(2, new Action(delegate { report.Add("connection", "progress", "connected_event", null); }));
             Subscribe(3, new Action(delegate { report.Add("connection", "progress", "login_complete_event", null); }));
@@ -341,7 +399,8 @@ namespace DevBox.RdpSmoke
             nonscript.SetPromptForCredentials(false);
             nonscript.SetClearTextPassword(password);
             password = null;
-            report.Add("client", "configured", null, new { progId = progID,
+            report.Add("client", "configured", null, new { controlClass = host.ControlClass.Name,
+                clsid = host.ControlClass.Clsid.ToString(),
                 colorDepth = profile.ColorDepth,
                 authenticationLevel = profile.AuthenticationLevel, credSsp = profile.CredSsp,
                 audioMode = profile.AudioMode, credentialPromptOverride = true, localFixture = localFixture });
@@ -597,6 +656,7 @@ namespace DevBox.RdpSmoke
             try
             {
                 if (args.Length == 1 && args[0] == "--self-test") return SelfTest();
+                if (args.Length == 1 && args[0] == "--check-control") return CheckControl();
                 if (args.Length != 0) throw new SmokeFailure("configuration", "unexpected_arguments");
                 string output = Environment.GetEnvironmentVariable("RDP_SMOKE_OUTPUT");
                 if (String.IsNullOrWhiteSpace(output)) throw new SmokeFailure("configuration", "output_directory_required");
@@ -654,6 +714,7 @@ namespace DevBox.RdpSmoke
 
         private static int SelfTest()
         {
+            ControlSelectionTest();
             string token = new string('a', 64);
             string valid = "full address:s:example.invalid:3390\r\nusername:s:test-user\r\nloadbalanceinfo:s:" + token + "\r\n" +
                 "screen mode id:i:2\r\nuse multimon:i:0\r\nsession bpp:i:32\r\nauthentication level:i:2\r\n" +
@@ -709,6 +770,86 @@ namespace DevBox.RdpSmoke
             Check(Fixture.Match(new[] { Fixture.Colors[0], Fixture.Colors[0], Fixture.Colors[0], Fixture.Colors[0] }) == -1);
             Console.WriteLine("client self-tests: passed");
             return 0;
+        }
+
+        private static int CheckControl()
+        {
+            // Exercise the same AxHost path as the live test without connecting,
+            // accepting credentials, or changing trust. Parser tests cannot tell
+            // whether this Windows image can create Microsoft's actual control.
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
+            Exception failure = null;
+            bool activated = false;
+            using (var watchdog = new System.Threading.Timer(delegate {
+                Console.WriteLine("Microsoft RDP control preflight: failed (activation_timeout)");
+                Environment.Exit(2);
+            }, null, 30000, System.Threading.Timeout.Infinite))
+            using (var window = new Form())
+            {
+                window.Text = "DevBox Microsoft RDP component check";
+                window.ClientSize = new Size(480, 320);
+                window.Shown += delegate {
+                    try
+                    {
+                        RdpHost host = RdpHost.Attach(window, null);
+                        activated = true;
+                        Console.WriteLine("Microsoft RDP control preflight: passed (" + host.ControlClass.Name + ")");
+                    }
+                    catch (Exception error) { failure = error; }
+                    finally { window.BeginInvoke(new Action(window.Close)); }
+                };
+                Application.Run(window);
+            }
+            if (failure == null && activated) return 0;
+            if (failure == null) failure = new SmokeFailure("infrastructure", "microsoft_rdp_control_not_created");
+            var known = failure as SmokeFailure;
+            Console.WriteLine("Microsoft RDP control preflight: failed (" +
+                (known == null ? "activation_failed" : known.Reason) + ", HRESULT 0x" +
+                failure.GetBaseException().HResult.ToString("X8", CultureInfo.InvariantCulture) + ")");
+            return 1;
+        }
+
+        private static void ControlSelectionTest()
+        {
+            Guid[] expected = { new Guid("A0C63C30-F08D-4AB4-907C-34905D770C7D"),
+                new Guid("8B918B82-7985-4C24-89DF-C33AD2BBFBCD"), new Guid("A3BC03A0-041D-42E3-AD22-882B7865C9C5") };
+            // A fake activator exercises all availability combinations without
+            // requiring COM; --check-control separately tests actual activation.
+            for (int available = 0; available < expected.Length; available++)
+            {
+                int attempts = 0;
+                Guid selected = RdpControls.Activate(delegate(RdpControlClass candidate) {
+                    int index = attempts++;
+                    Check(candidate.Clsid == expected[index]);
+                    if (index != available) throw new COMException("unregistered", RdpControls.ClassNotRegistered);
+                    return candidate.Clsid;
+                }, null);
+                Check(selected == expected[available] && attempts == available + 1);
+            }
+            int missingAttempts = 0;
+            bool unavailable = false;
+            try
+            {
+                RdpControls.Activate<int>(delegate(RdpControlClass candidate) {
+                    Check(candidate.Clsid == expected[missingAttempts++]);
+                    throw new COMException("unregistered", RdpControls.ClassNotRegistered);
+                }, null);
+            }
+            catch (SmokeFailure error) { unavailable = error.Reason == "microsoft_rdp_control_unavailable"; }
+            Check(unavailable && missingAttempts == expected.Length);
+            int failedAttempts = 0;
+            bool propagated = false;
+            try
+            {
+                RdpControls.Activate<int>(delegate(RdpControlClass candidate) {
+                    failedAttempts++;
+                    throw new COMException("failed", unchecked((int)0x80004005));
+                }, null);
+            }
+            catch (COMException error) { propagated = error.HResult == unchecked((int)0x80004005); }
+            Check(propagated && failedAttempts == 1);
         }
 
         private static void Check(bool condition)
