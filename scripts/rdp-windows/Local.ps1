@@ -66,6 +66,34 @@ function Assert-LocalReady($Ready, [string] $Mode) {
         $Ready.address -cne ('127.0.0.1:' + $Ready.port)) { throw 'invalid_local_endpoint' }
 }
 
+function Test-LocalReadinessPending([Exception] $Exception) {
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        # MoveFileEx can publish the new name before closing its DELETE handle.
+        # HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) is 0x80070020.
+        if ($cause -is [IO.FileNotFoundException] -or
+            ($cause -is [IO.IOException] -and $cause.HResult -eq -2147024864)) { return $true }
+    }
+    return $false
+}
+
+function Wait-LocalReady([string] $Path, $Server, [int] $TimeoutMilliseconds = 20000) {
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    while ($true) {
+        $text = $null
+        try { $text = [IO.File]::ReadAllText($Path) }
+        catch {
+            if (-not (Test-LocalReadinessPending $_.Exception)) { throw }
+        }
+        # Parse outside the retry block: publication is atomic, so invalid JSON
+        # is a fixture failure, not an indication that it is still starting.
+        if ($null -ne $text) { return ($text | ConvertFrom-Json -AsHashtable -ErrorAction Stop) }
+        if ($Server.HasExited) { throw 'server_start_failed' }
+        if ($timer.Elapsed.TotalMilliseconds -ge $TimeoutMilliseconds) { throw 'server_ready_timeout' }
+        Start-Sleep -Milliseconds 100
+        $Server.Refresh()
+    }
+}
+
 function New-LocalProfile($Ready) {
     # The parser uses the shipped profile schema, but this token is a dummy and
     # is NOT transmitted: Client.cs local mode preserves the default RDP cookie.

@@ -77,6 +77,47 @@ foreach ($change in @(
 Assert-Rejected { Assert-TestProfile ($profile + "`nfull address:s:gateway.test:8443") $origin 'testuser' } 'duplicate profile field'
 Assert-TestProfile ($profile.Replace('gateway.test:8443', '[::1]:8443')) (Get-TestOrigin 'https://[::1]:8443') 'testuser'
 
+& {
+    $sharing = [IO.IOException]::new('sharing violation fixture', -2147024864)
+    Assert-True (Test-LocalReadinessPending $sharing) 'readiness sharing violation retried'
+    Assert-True (Test-LocalReadinessPending ([Exception]::new('wrapper', $sharing))) 'wrapped sharing violation retried'
+    Assert-True (Test-LocalReadinessPending ([IO.FileNotFoundException]::new())) 'missing readiness retried'
+    foreach ($failure in @([UnauthorizedAccessException]::new(), [IO.IOException]::new(),
+                          [IO.DirectoryNotFoundException]::new(), [FormatException]::new())) {
+        Assert-True (-not (Test-LocalReadinessPending $failure)) 'permanent readiness failures are not retried'
+    }
+    $directory = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
+    [void][IO.Directory]::CreateDirectory($directory)
+    $path = Join-Path $directory 'ready.json'
+    $server = [pscustomobject]@{
+        HasExited = $false; Refreshes = 0; Path = $path
+        Publication = '{"address":"127.0.0.1:54321","port":54321,"mode":"bitmap"}'
+    }
+    $server | Add-Member ScriptMethod Refresh {
+        $this.Refreshes++
+        if ($null -ne $this.Publication) { [IO.File]::WriteAllText($this.Path, $this.Publication) }
+    }
+    try {
+        $published = Wait-LocalReady $path $server 1000
+        Assert-True ($published.port -eq 54321 -and $server.Refreshes -eq 1) 'readiness is read after transient absence'
+        $server.Publication = $null
+        [IO.File]::WriteAllText($path, '{invalid JSON')
+        Assert-Rejected { Wait-LocalReady $path $server 1000 | Out-Null } 'invalid readiness JSON fails immediately'
+        Assert-True ($server.Refreshes -eq 1) 'invalid JSON is never retried'
+        [IO.File]::Delete($path)
+        $reason = $null
+        try { Wait-LocalReady $path $server 0 | Out-Null } catch { $reason = $_.Exception.Message }
+        Assert-True ($reason -ceq 'server_ready_timeout') 'readiness retry obeys deadline'
+        $server.HasExited = $true
+        $reason = $null
+        try { Wait-LocalReady $path $server 1000 | Out-Null } catch { $reason = $_.Exception.Message }
+        Assert-True ($reason -ceq 'server_start_failed') 'readiness retry detects server exit'
+    } finally {
+        [IO.File]::Delete($path)
+        [IO.Directory]::Delete($directory)
+    }
+}
+
 $ready = @{ address = '127.0.0.1:54321'; port = 54321; mode = 'bitmap' }
 Assert-LocalReady $ready 'bitmap'
 $localProfile = New-LocalProfile $ready

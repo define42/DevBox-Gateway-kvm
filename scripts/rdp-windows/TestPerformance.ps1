@@ -93,6 +93,17 @@ $h264Server.performance = $benchmarkServer.performance.Clone()
 $h264Server.performance.encodeMs = $serverTiming
 $h264Server.performance.convertMs = $serverTiming
 Assert-PerformanceEvidence $h264Server $benchmarkEvents $benchmarkClient $processReport 'h264'
+# Windows clock granularity can produce zero-duration phases. Populated zero
+# samples remain valid; unavailable measurements must still fail validation.
+$zeroTiming = @{ count = 60; samples = 60; truncated = $false; average = 0.0; p50 = 0.0; p95 = 0.0; maximum = 0.0 }
+$h264Server.performance.encodeMs = $zeroTiming
+$h264Server.performance.convertMs = $zeroTiming
+Assert-PerformanceEvidence $h264Server $benchmarkEvents $benchmarkClient $processReport 'h264'
+foreach ($field in @('encodeMs', 'convertMs')) {
+    $h264Server.performance[$field] = $null
+    Assert-Rejected { Assert-PerformanceEvidence $h264Server $benchmarkEvents $benchmarkClient $processReport 'h264' } 'unavailable encoder timing rejected'
+    $h264Server.performance[$field] = $zeroTiming
+}
 
 $performanceDirectory = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
 $previousSummary = $env:GITHUB_STEP_SUMMARY

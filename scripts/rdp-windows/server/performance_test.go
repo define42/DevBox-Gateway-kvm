@@ -80,6 +80,17 @@ func TestPerformanceEncoderSettings(t *testing.T) {
 	if writer.graphics == nil || writer.graphics.Threads() != 4 || writer.bitmap != nil {
 		t.Fatal("performance must use the four-slice software H.264 encoder")
 	}
+	if !writer.graphics.MeasurementsEnabled() {
+		t.Fatal("performance must enable separate conversion and encoding measurements")
+	}
+	smoke, err := newFrameWriter("h264", &rdp.Session{BitsPerPixel: 32})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer smoke.close()
+	if smoke.graphics.MeasurementsEnabled() {
+		t.Fatal("smoke must preserve disabled encoder measurements")
+	}
 	// Encoding a complete workload image catches geometry and encoder setup
 	// mismatches before the Windows client is involved.
 	frame := image.NewRGBA(image.Rect(0, 0, 1920, 1080))
@@ -89,8 +100,10 @@ func TestPerformanceEncoderSettings(t *testing.T) {
 		t.Fatalf("1080p frame encode failed: bytes=%d, error=%v", len(packet), err)
 	}
 	stats := writer.graphics.LastStats()
-	if stats.Conversion <= 0 || stats.Encoding <= 0 {
-		t.Fatal("performance must enable separate conversion and encoding measurements")
+	// A fast phase can finish within one Windows clock tick. Configuration,
+	// rather than a positive elapsed time, establishes whether timing is enabled.
+	if stats.Conversion < 0 || stats.Encoding < 0 {
+		t.Fatalf("negative encoder measurements: %+v", stats)
 	}
 }
 
@@ -99,6 +112,11 @@ func TestPerformanceTimingStatistics(t *testing.T) {
 	var samples timingSamples
 	if samples.report() != nil {
 		t.Fatal("unavailable timings must be null")
+	}
+	var zero timingSamples
+	zero.add(0)
+	if got := zero.report(); got == nil || *got != (timingReport{Count: 1, Samples: 1}) {
+		t.Fatalf("zero-duration sample must remain available: %+v", got)
 	}
 	for _, duration := range []time.Duration{
 		20 * time.Millisecond, 5 * time.Millisecond, 15 * time.Millisecond, 10 * time.Millisecond,

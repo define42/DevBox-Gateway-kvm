@@ -57,6 +57,8 @@ five-second warmup. Server service-time and transport aggregates include the
 session startup and warmup where specified; process samples span the
 orchestrator's sampling window. Do not combine these into a single latency or
 assume their rate denominators are identical.
+Short server operations can measure zero within one platform clock tick;
+a populated zero-duration summary differs from an unavailable (`null`) timing.
 
 The server's `skippedTicks` counts explicit skips caused by output suppression
 or pending acknowledgements. It does not count ticks discarded while encoding

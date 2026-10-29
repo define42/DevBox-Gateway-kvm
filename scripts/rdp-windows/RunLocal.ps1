@@ -49,14 +49,7 @@ try {
     $server = [Diagnostics.Process]::Start($launch)
     if ($null -ne $performance) { Measure-LocalProcess $performance $server 'server' }
     $readyPath = Join-Path $statePath 'ready.json'
-    $deadline = [datetime]::UtcNow.AddSeconds(20)
-    while (-not (Test-Path -LiteralPath $readyPath)) {
-        if ($server.HasExited) { throw 'server_start_failed' }
-        if ([datetime]::UtcNow -gt $deadline) { throw 'server_ready_timeout' }
-        Start-Sleep -Milliseconds 100
-        $server.Refresh()
-    }
-    $ready = Get-Content -Raw -LiteralPath $readyPath | ConvertFrom-Json -AsHashtable
+    $ready = Wait-LocalReady $readyPath $server
     Assert-LocalReady $ready $env:RDP_TEST_MODE
     if ($workload -ceq 'performance') { Assert-PerformanceReady $ready $env:RDP_TEST_MODE }
 

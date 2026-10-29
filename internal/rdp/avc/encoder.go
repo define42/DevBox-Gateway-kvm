@@ -130,13 +130,19 @@ func (e *Encoder) FrameRate() int { return e.frameRate }
 // QP reports the configured quantizer.
 func (e *Encoder) QP() int { return e.qp }
 
+// MeasurementsEnabled reports whether frame conversion and encoding are timed.
+// An enabled measurement can still be zero at the platform's clock resolution.
+func (e *Encoder) MeasurementsEnabled() bool { return e.measure }
+
 // Backend always reports BackendSoftware, the bundled pure Go implementation.
 func (e *Encoder) Backend() Backend { return BackendSoftware }
 
 // LastStats returns measurements for the most recent encode or preparation call.
 // Preparation records Conversion, including exact damage tracking; EncodePrepared
 // records Encoding. Measurements are zero when Options.Measure is false; that
-// path does not read the clock.
+// path does not read the clock. Enabled measurements may also be zero when the
+// operation completes within one clock tick; use MeasurementsEnabled to
+// distinguish that case from disabled measurements.
 func (e *Encoder) LastStats() EncodeStats { return e.stats }
 
 // Encode scales img to the session dimensions and encodes it. Force requests an

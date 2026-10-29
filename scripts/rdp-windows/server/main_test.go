@@ -15,6 +15,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"syscall"
 	"testing"
@@ -422,13 +423,40 @@ func awaitReadiness(t *testing.T, stateDir string) readiness {
 
 			return ready
 		}
-		if !errors.Is(err, os.ErrNotExist) {
+		if !readinessReadPending(err) {
 			t.Fatal(err)
 		}
 		select {
 		case <-timeout.C:
 			t.Fatal("fixture did not become ready")
 		case <-ticker.C:
+		}
+	}
+}
+
+func readinessReadPending(err error) bool {
+	// Windows can expose the renamed file before MoveFileEx closes its DELETE
+	// handle. Retry only that sharing violation within awaitReadiness's deadline;
+	// malformed JSON and other I/O errors still fail immediately.
+	return errors.Is(err, os.ErrNotExist) ||
+		(runtime.GOOS == "windows" && errors.Is(err, syscall.Errno(32))) // ERROR_SHARING_VIOLATION
+}
+
+func TestReadinessReadPending(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"missing", os.ErrNotExist, true},
+		{"sharing", &os.PathError{Op: "open", Path: "ready.json", Err: syscall.Errno(32)}, runtime.GOOS == "windows"},
+		{"permission", os.ErrPermission, false},
+		{"other_io", io.ErrUnexpectedEOF, false},
+		{"success", nil, false},
+	} {
+		if got := readinessReadPending(test.err); got != test.want {
+			t.Errorf("%s: retry=%v, want %v", test.name, got, test.want)
 		}
 	}
 }
