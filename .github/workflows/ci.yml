@@ -212,6 +212,16 @@ jobs:
       runner: windows-2022
       mode: both
 
+  rdp-performance:
+    name: Microsoft RDP performance baseline
+    permissions:
+      contents: read
+    # Separate from compatibility: measure the same commit without timing gates.
+    uses: ./.github/workflows/rdp-windows-performance.yml
+    with:
+      runner: windows-2022
+      mode: both
+
   release-check:
     name: Check release configuration
     runs-on: ubuntu-24.04

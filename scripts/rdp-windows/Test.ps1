@@ -12,7 +12,8 @@ function Assert-Rejected([scriptblock] $Action, [string] $Label) {
 }
 
 foreach ($file in @('Build.ps1', 'Gateway.ps1', 'Run.ps1', 'Local.ps1', 'RunLocal.ps1', 'Test.ps1',
-                    'CertificateTrust.ps1', 'TestCertificateTrust.ps1', 'TestLocalProcess.ps1')) {
+                    'CertificateTrust.ps1', 'TestCertificateTrust.ps1', 'TestLocalProcess.ps1',
+                    'Performance.ps1', 'TestPerformance.ps1')) {
     $tokens = $null
     $errors = $null
     $null = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $file), [ref]$tokens, [ref]$errors)
@@ -21,6 +22,7 @@ foreach ($file in @('Build.ps1', 'Gateway.ps1', 'Run.ps1', 'Local.ps1', 'RunLoca
 
 . (Join-Path $PSScriptRoot 'TestCertificateTrust.ps1')
 . (Join-Path $PSScriptRoot 'TestLocalProcess.ps1')
+. (Join-Path $PSScriptRoot 'TestPerformance.ps1')
 
 # Re-running with stale output must not overwrite previous evidence, even in
 # failure cleanup. This check never starts a server or changes certificate trust.

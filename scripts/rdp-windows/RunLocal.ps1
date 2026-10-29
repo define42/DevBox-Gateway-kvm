@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Gateway.ps1') # Reuse sanitized Windows event export only.
 . (Join-Path $PSScriptRoot 'Local.ps1')
 . (Join-Path $PSScriptRoot 'CertificateTrust.ps1')
+. (Join-Path $PSScriptRoot 'Performance.ps1')
 
 $stage = 'configuration'
 $reason = $null
@@ -12,6 +13,8 @@ $client = $null
 $trustHelperStopped = $true
 $cleanupErrors = [Collections.Generic.List[string]]::new()
 $statePath = $null
+$workload = 'smoke'
+$performance = $null
 $outputPath = $env:RDP_TEST_OUTPUT
 if ([string]::IsNullOrWhiteSpace($outputPath)) { throw 'RDP_TEST_OUTPUT is required.' }
 [void][IO.Directory]::CreateDirectory($outputPath)
@@ -21,6 +24,8 @@ if (@(Get-ChildItem -LiteralPath $outputPath -Force).Count -ne 0) { throw 'outpu
 
 try {
     Write-LocalProgress $outputPath $stage
+    $workload = Get-LocalWorkload $env:RDP_TEST_WORKLOAD
+    if ($workload -ceq 'performance') { $performance = New-ProcessPerformance }
     if (-not $IsWindows -or $env:RDP_TEST_MODE -cnotin @('bitmap', 'h264') -or
         [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'invalid_local_configuration' }
     Assert-FixtureTrustEnvironment
@@ -37,7 +42,12 @@ try {
     foreach ($argument in @('-mode', $env:RDP_TEST_MODE, '-state-dir', $statePath, '-output', $outputPath, '-timeout', '150s')) {
         [void]$launch.ArgumentList.Add($argument)
     }
+    if ($workload -ceq 'performance') {
+        [void]$launch.ArgumentList.Add('-workload')
+        [void]$launch.ArgumentList.Add('performance')
+    }
     $server = [Diagnostics.Process]::Start($launch)
+    if ($null -ne $performance) { Measure-LocalProcess $performance $server 'server' }
     $readyPath = Join-Path $statePath 'ready.json'
     $deadline = [datetime]::UtcNow.AddSeconds(20)
     while (-not (Test-Path -LiteralPath $readyPath)) {
@@ -48,6 +58,7 @@ try {
     }
     $ready = Get-Content -Raw -LiteralPath $readyPath | ConvertFrom-Json -AsHashtable
     Assert-LocalReady $ready $env:RDP_TEST_MODE
+    if ($workload -ceq 'performance') { Assert-PerformanceReady $ready $env:RDP_TEST_MODE }
 
     $stage = 'temporary_certificate_trust'
     Write-LocalProgress $outputPath $stage
@@ -64,7 +75,12 @@ try {
     $launch.Environment['RDP_SMOKE_OUTPUT'] = $outputPath
     $launch.Environment['RDP_SMOKE_DURATION_SECONDS'] = '30'
     $launch.Environment['RDP_SMOKE_LOCAL'] = '1'
+    $launch.Environment['RDP_SMOKE_WORKLOAD'] = $workload
     $client = [Diagnostics.Process]::Start($launch)
+    if ($null -ne $performance) {
+        Measure-LocalProcess $performance $server 'server'
+        Measure-LocalProcess $performance $client 'client'
+    }
     $deadline = [datetime]::UtcNow.AddSeconds(130)
     while (-not $client.HasExited) {
         if ([datetime]::UtcNow -gt $deadline) { throw 'client_timeout' }
@@ -72,6 +88,10 @@ try {
         Start-Sleep -Milliseconds 250
         $client.Refresh()
         $server.Refresh()
+        if ($null -ne $performance) {
+            Measure-LocalProcess $performance $server 'server'
+            Measure-LocalProcess $performance $client 'client'
+        }
     }
     $client.WaitForExit()
     if ($client.ExitCode -ne 0) { throw 'client_failed' }
@@ -84,7 +104,12 @@ try {
     Write-LocalProgress $outputPath $stage
     $serverReport = Get-Content -Raw -LiteralPath (Join-Path $outputPath 'server.json') | ConvertFrom-Json -AsHashtable
     $clientReport = Get-Content -Raw -LiteralPath (Join-Path $outputPath 'client-events.json') | ConvertFrom-Json -AsHashtable
-    Assert-LocalEvidence $serverReport $clientReport $env:RDP_TEST_MODE
+    if ($workload -ceq 'performance') {
+        $clientPerformance = Get-Content -Raw -LiteralPath (Join-Path $outputPath 'client-performance.json') | ConvertFrom-Json -AsHashtable
+        Assert-PerformanceEvidence $serverReport $clientReport $clientPerformance (Get-ProcessPerformanceReport $performance) $env:RDP_TEST_MODE
+    } else {
+        Assert-LocalEvidence $serverReport $clientReport $env:RDP_TEST_MODE
+    }
     $outcome = 'passed'
 } catch {
     $reason = 'operation_failed'
@@ -93,7 +118,8 @@ try {
         'fixture_certificate_already_present', 'fixture_trust_not_authorized', 'fixture_trust_requires_administrator',
         'fixture_certificate_timeout', 'fixture_certificate_install_failed', 'fixture_certificate_operation_failed',
         'fixture_certificate_child_cleanup_failed', 'client_timeout', 'client_failed', 'server_failed',
-        'server_completion_timeout', 'server_evidence_failed', 'client_evidence_failed', 'client_duration_failed')
+        'server_completion_timeout', 'server_evidence_failed', 'client_evidence_failed', 'client_duration_failed',
+        'invalid_performance_endpoint', 'benchmark_evidence_failed')
     if ($_.Exception.Message -cin $allowed) { $reason = $_.Exception.Message }
     if ($reason -eq 'fixture_certificate_child_cleanup_failed') { $trustHelperStopped = $false }
     Write-Host ('Windows-only RDP test failed at stage: ' + $stage + ' (' + $reason + ')')
@@ -127,12 +153,23 @@ try {
         $outcome = 'failed'
         if ($null -eq $reason) { $reason = $cleanupErrors[0] }
     }
+    if ($null -ne $performance) {
+        try { Write-PerformanceArtifacts $outputPath $performance $env:RDP_TEST_MODE $outcome $reason }
+        catch {
+            $outcome = 'failed'
+            if ($null -eq $reason) { $reason = 'performance_report_failed' }
+        }
+    }
     @{
         schema = 1; testKind = 'windows-local-rdp'; outcome = $outcome; stage = $stage; reason = $reason
-        mode = $env:RDP_TEST_MODE; startedAt = $started.ToString('o'); finishedAt = [datetime]::UtcNow.ToString('o')
+        mode = $env:RDP_TEST_MODE; workload = $workload; startedAt = $started.ToString('o'); finishedAt = [datetime]::UtcNow.ToString('o')
         harnessCommit = $env:GITHUB_SHA; testsKVM = $false; testsGatewayAuthentication = $false
         cleanupErrors = @($cleanupErrors.ToArray())
     } | ConvertTo-Json | Set-Content (Join-Path $outputPath 'result.json') -Encoding utf8
 }
 if ($outcome -ne 'passed') { exit 1 }
-Write-Host 'Windows-only RDP rendering, F8 input, 30-second session, and actual encoder checks passed.'
+if ($workload -ceq 'performance') {
+    Write-Host 'Windows-only RDP performance baseline collected; no throughput or latency thresholds applied.'
+} else {
+    Write-Host 'Windows-only RDP rendering, F8 input, 30-second session, and actual encoder checks passed.'
+}

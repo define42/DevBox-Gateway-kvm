@@ -197,6 +197,12 @@ attempt IDs. Use `/perf?download=1` to save the report, or
 `/perf?vm=<id>&download=1` for one owned desktop. See
 [performance diagnostics](performance.md) for collection and interpretation.
 
+For repeatable RDP measurements independent of a guest VM, CI also runs a
+[Windows performance benchmark](windows-rdp-performance.md) with a generated
+1080p scrolling desktop and Microsoft's RDP client. It reports a baseline for
+the protocol and encoders; use this panel to investigate your deployed VM,
+guest workload, and network.
+
 The report's gateway `rdpLoginEvents` can add `proxyOperation` and `proxyError`
 to a terminal `session_proxy` event. `front` operations refer to the RDP client
 and `backend` operations to the VM. The operation is the first failing I/O the

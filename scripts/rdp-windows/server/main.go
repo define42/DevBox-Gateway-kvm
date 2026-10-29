@@ -35,7 +35,6 @@ import (
 const (
 	fixtureWidth    = 1024
 	fixtureHeight   = 768
-	frameInterval   = 500 * time.Millisecond
 	minimumSession  = 30 * time.Second
 	graphicsTimeout = 20 * time.Second
 	f8Keysym        = 0xffc5
@@ -44,35 +43,44 @@ const (
 var errConfiguration = errors.New("invalid fixture configuration")
 
 type configuration struct {
-	mode, stateDir, output string
-	timeout                time.Duration
+	mode, workload, stateDir, output string
+	timeout                          time.Duration
 }
 
 type readiness struct {
-	Address string `json:"address"`
-	Port    int    `json:"port"`
-	Mode    string `json:"mode"`
+	Address   string `json:"address"`
+	Port      int    `json:"port"`
+	Mode      string `json:"mode"`
+	Workload  string `json:"workload"`
+	Width     int    `json:"width"`
+	Height    int    `json:"height"`
+	TargetFPS int    `json:"targetFps"`
 }
 
 type report struct {
-	Version             int            `json:"version"`
-	Mode                string         `json:"mode"`
-	ActualEncoder       string         `json:"actualEncoder"`
-	Outcome             string         `json:"outcome"`
-	Stage               string         `json:"stage"`
-	Reason              string         `json:"reason"`
-	StartedAt           time.Time      `json:"startedAt"`
-	EndedAt             time.Time      `json:"endedAt"`
-	SessionSeconds      float64        `json:"sessionSeconds"`
-	SessionBitsPerPixel int            `json:"sessionBitsPerPixel"`
-	FramesSent          uint64         `json:"framesSent"`
-	InputTransitions    uint64         `json:"inputTransitions"`
-	KeyDownEvents       uint64         `json:"keyDownEvents"`
-	KeyUpEvents         uint64         `json:"keyUpEvents"`
-	GraphicsReady       bool           `json:"graphicsReady"`
-	OutstandingACKs     uint32         `json:"outstandingAcks"`
-	ACKMilliseconds     float64        `json:"ackMs"`
-	Application         buildinfo.Info `json:"application"`
+	Version             int                `json:"version"`
+	Mode                string             `json:"mode"`
+	ActualEncoder       string             `json:"actualEncoder"`
+	Outcome             string             `json:"outcome"`
+	Stage               string             `json:"stage"`
+	Reason              string             `json:"reason"`
+	StartedAt           time.Time          `json:"startedAt"`
+	EndedAt             time.Time          `json:"endedAt"`
+	SessionSeconds      float64            `json:"sessionSeconds"`
+	SessionBitsPerPixel int                `json:"sessionBitsPerPixel"`
+	FramesSent          uint64             `json:"framesSent"`
+	InputTransitions    uint64             `json:"inputTransitions"`
+	KeyDownEvents       uint64             `json:"keyDownEvents"`
+	KeyUpEvents         uint64             `json:"keyUpEvents"`
+	GraphicsReady       bool               `json:"graphicsReady"`
+	OutstandingACKs     uint32             `json:"outstandingAcks"`
+	ACKMilliseconds     float64            `json:"ackMs"`
+	Application         buildinfo.Info     `json:"application"`
+	Workload            string             `json:"workload"`
+	Width               int                `json:"width"`
+	Height              int                `json:"height"`
+	TargetFPS           int                `json:"targetFps"`
+	Performance         *performanceReport `json:"performance,omitempty"`
 }
 
 func main() { os.Exit(command(os.Args[1:])) }
@@ -103,6 +111,7 @@ func parseConfiguration(args []string) (configuration, error) {
 	flags := flag.NewFlagSet("rdp-loopback-fixture", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	flags.StringVar(&config.mode, "mode", "", "bitmap or h264")
+	flags.StringVar(&config.workload, "workload", "smoke", "smoke or performance")
 	flags.StringVar(&config.stateDir, "state-dir", "", "fresh private temporary directory")
 	flags.StringVar(&config.output, "output", "", "fresh artifact directory")
 	flags.DurationVar(&config.timeout, "timeout", 150*time.Second, "overall fixture deadline")
@@ -110,6 +119,7 @@ func parseConfiguration(args []string) (configuration, error) {
 		return config, errConfiguration
 	}
 	if flags.NArg() != 0 || (config.mode != "bitmap" && config.mode != "h264") ||
+		(config.workload != "smoke" && config.workload != "performance") ||
 		config.stateDir == "" || config.output == "" || config.timeout < 45*time.Second || config.timeout > 10*time.Minute {
 		return config, errConfiguration
 	}
@@ -118,9 +128,11 @@ func parseConfiguration(args []string) (configuration, error) {
 }
 
 func run(config configuration) (result report) {
+	workload := fixtureWorkload(config.workload)
 	result = report{
 		Version: 1, Mode: config.mode, Outcome: "failed", Stage: "startup",
 		Reason: "startup_failed", StartedAt: time.Now().UTC(), Application: buildinfo.Current(),
+		Workload: workload.name, Width: workload.width, Height: workload.height, TargetFPS: workload.fps,
 	}
 	defer func() { result.EndedAt = time.Now().UTC() }()
 	ctx, cancel := context.WithTimeout(context.Background(), config.timeout)
@@ -157,10 +169,23 @@ func run(config configuration) (result report) {
 		return result
 	}
 	_ = listener.Close() // Exactly one connection; never accept a second client.
+	if workload.name == "performance" {
+		counted := &countedConnection{Conn: conn}
+		conn = counted
+		transportStarted := time.Now()
+		result.Performance = &performanceReport{Scope: "session_including_warmup"}
+		defer func() {
+			result.Performance.TransportSeconds = time.Since(transportStarted).Seconds()
+			result.Performance.SentBytes = counted.sent.Load()
+			result.Performance.ReceivedBytes = counted.received.Load()
+			result.Performance.SentMbps = byteRateMbps(result.Performance.SentBytes, result.Performance.TransportSeconds)
+			result.Performance.ReceivedMbps = byteRateMbps(result.Performance.ReceivedBytes, result.Performance.TransportSeconds)
+		}()
+	}
 	defer conn.Close()
 	stopConnection := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stopConnection()
-	session, err := rdp.Accept(conn, configTLS, fixtureWidth, fixtureHeight,
+	session, err := rdp.Accept(conn, configTLS, workload.width, workload.height,
 		rdp.WithDiagnosticStage(func(stage string) { result.Stage = stage }))
 	if err != nil {
 		result.Reason = "handshake_failed"
@@ -169,7 +194,7 @@ func run(config configuration) (result report) {
 	}
 	result.SessionBitsPerPixel = session.BitsPerPixel
 	width, height := session.Size()
-	if width != fixtureWidth || height != fixtureHeight {
+	if width != workload.width || height != workload.height {
 		result.Stage, result.Reason = "activation", "unexpected_geometry"
 
 		return result
@@ -218,8 +243,11 @@ func publishReadiness(config configuration, certificate []byte, port int) error 
 		return err
 	}
 
+	workload := fixtureWorkload(config.workload)
+
 	return writeJSON(filepath.Join(config.stateDir, "ready.json"), readiness{
 		Address: net.JoinHostPort("127.0.0.1", fmt.Sprint(port)), Port: port, Mode: config.mode,
+		Workload: workload.name, Width: workload.width, Height: workload.height, TargetFPS: workload.fps,
 	})
 }
 
@@ -330,6 +358,11 @@ func (state *inputState) control(packet []byte) {
 
 func runSession(ctx context.Context, mode string, session *rdp.Session, result *report) {
 	started := time.Now()
+	workload := fixtureWorkload(result.Workload)
+	var measurements *performanceMeasurements
+	if workload.name == "performance" {
+		measurements = &performanceMeasurements{}
+	}
 	state := &inputState{}
 	readErrors := make(chan error, 1)
 	readDone := make(chan struct{})
@@ -348,6 +381,9 @@ func runSession(ctx context.Context, mode string, session *rdp.Session, result *
 		stats := session.GraphicsStats()
 		result.OutstandingACKs = stats.OutstandingACKs
 		result.ACKMilliseconds = float64(stats.ACKTurnaround) / float64(time.Millisecond)
+		if measurements != nil {
+			measurements.finish(result)
+		}
 	}()
 	result.Stage, result.Reason = "graphics", "graphics_not_negotiated"
 	if mode == "h264" {
@@ -356,16 +392,17 @@ func runSession(ctx context.Context, mode string, session *rdp.Session, result *
 			return
 		}
 	}
-	writer, err := newFrameWriter(mode, session)
+	writer, err := newWorkloadFrameWriter(mode, session, workload)
 	if err != nil {
 		result.Reason = "encoder_initialization_failed"
 
 		return
 	}
 	defer writer.close()
-	ticker := time.NewTicker(frameInterval)
+	writer.measurements = measurements
+	ticker := time.NewTicker(time.Second / time.Duration(workload.fps))
 	defer ticker.Stop()
-	frame := image.NewRGBA(image.Rect(0, 0, fixtureWidth, fixtureHeight))
+	frame := image.NewRGBA(image.Rect(0, 0, workload.width, workload.height))
 	var sequence uint64
 	for {
 		select {
@@ -388,10 +425,22 @@ func runSession(ctx context.Context, mode string, session *rdp.Session, result *
 		}
 		result.GraphicsReady = session.GraphicsReady()
 		if state.suppressed.Load() || (mode == "h264" && !session.GraphicsCanSend()) {
+			if measurements != nil {
+				measurements.skippedTicks++
+			}
+
 			continue
 		}
-		paintFrame(frame, state.transitions.Load()%2, sequence)
+		frameStarted := time.Now()
+		if workload.name == "performance" {
+			paintPerformanceFrame(frame, state.transitions.Load(), sequence)
+		} else {
+			paintFrame(frame, state.transitions.Load()%2, sequence)
+		}
 		sent, err := writer.write(frame, state.refresh.Swap(false))
+		if measurements != nil {
+			measurements.frame.add(time.Since(frameStarted))
+		}
 		if err != nil {
 			finishOrTimeout(ctx, result, state.transitions.Load(), time.Since(started), err)
 
@@ -438,20 +487,25 @@ func finishSession(result *report, transitions uint64, duration time.Duration, e
 }
 
 type frameWriter struct {
-	session  *rdp.Session
-	bitmap   *rdp.BitmapEncoder
-	graphics *avc.Encoder
-	retry    bool
+	session      *rdp.Session
+	bitmap       *rdp.BitmapEncoder
+	graphics     *avc.Encoder
+	retry        bool
+	measurements *performanceMeasurements
 }
 
 func newFrameWriter(mode string, session *rdp.Session) (*frameWriter, error) {
+	return newWorkloadFrameWriter(mode, session, fixtureWorkload("smoke"))
+}
+
+func newWorkloadFrameWriter(mode string, session *rdp.Session, workload workloadSpec) (*frameWriter, error) {
 	writer := &frameWriter{session: session}
 	var err error
 	if mode == "h264" {
-		writer.graphics, err = avc.NewEncoderWithOptions(fixtureWidth, fixtureHeight,
-			avc.Options{Threads: 1, FrameRate: 2})
+		writer.graphics, err = avc.NewEncoderWithOptions(workload.width, workload.height,
+			avc.Options{Threads: workload.slices, FrameRate: workload.fps, Measure: workload.name == "performance"})
 	} else {
-		writer.bitmap, err = rdp.NewBitmapEncoder(fixtureWidth, fixtureHeight, session.BitsPerPixel)
+		writer.bitmap, err = rdp.NewBitmapEncoder(workload.width, workload.height, session.BitsPerPixel)
 	}
 
 	return writer, err
@@ -474,23 +528,41 @@ func (writer *frameWriter) name() string {
 func (writer *frameWriter) write(frame *image.RGBA, force bool) (bool, error) {
 	if writer.graphics != nil {
 		data, err := writer.graphics.Encode(frame, force || writer.retry)
+		if writer.measurements != nil {
+			stats := writer.graphics.LastStats()
+			writer.measurements.convert.add(stats.Conversion)
+			writer.measurements.encode.add(stats.Encoding)
+		}
 		if err != nil || len(data) == 0 {
 			return false, err
 		}
+		writeStarted := time.Now()
 		sent, err := writer.session.WriteAVC420(data)
+		if writer.measurements != nil {
+			writer.measurements.write.add(time.Since(writeStarted))
+		}
 		writer.retry = !sent || err != nil
 
 		return sent, err
 	}
 	sent := false
+	var writeDuration time.Duration
+	packingStarted := time.Now()
 	err := writer.bitmap.WriteFrame(frame, force, func(data []byte) error {
-		if err := writer.session.WriteDataPDU(2, data); err != nil {
+		started := time.Now()
+		err := writer.session.WriteDataPDU(2, data)
+		writeDuration += time.Since(started)
+		if err != nil {
 			return err
 		}
 		sent = true
 
 		return nil
 	})
+	if writer.measurements != nil {
+		writer.measurements.write.add(writeDuration)
+		writer.measurements.bitmapPacking.add(max(0, time.Since(packingStarted)-writeDuration))
+	}
 
 	return sent, err
 }

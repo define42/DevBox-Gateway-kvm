@@ -1,6 +1,9 @@
 # Windows-only RDP compatibility CI
 
-**Live Windows validation is still pending.**
+The [October 29 compatibility run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40938912570)
+passed with Microsoft's client. The separate
+[performance benchmark](windows-rdp-performance.md) still needs its first live
+Windows baseline; compatibility success does not establish desktop throughput.
 
 The [Windows-only RDP workflow](../.github/workflows/rdp-windows.yml)
 runs automatically as part of [CI](../.github/workflows/ci.yml), and can also be
@@ -63,18 +66,12 @@ manually focused desktop page.
 
 The live harness requires an interactive graphical desktop and fails if one is
 unavailable; it does not skip rendering checks or substitute an offline test.
-The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40937321486)
-passed temporary certificate installation/removal, the interactive desktop
-capture probe, and actual Microsoft ActiveX control activation in both modes.
-Both clients reported connection and logon-complete events at 32 bpp and passed
-the rendered-picture check. Each server sent 22 frames; the H.264 client also
-acknowledged its graphics frames. Neither mode reported a protocol disconnect.
-Both then failed the F8 round trip after the client's 10-second input timeout.
-`SendKeys` returned `S_OK` with client focus verified, and each server decoded
-one key-down and 52 key-up events, but no F8 transition. These counts establish
-keyboard activity without identifying the received key. **Keyboard input and
-30-second stability validation remain pending.** Both picture checks are live
-rendering results, but neither job passed the complete test.
+The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40938912570)
+passed the complete compatibility test in both modes, including rendering,
+F8 input, the changing heartbeat, session duration, and cleanup. This fixture
+deliberately sends only two frames per second at 1024 × 768. Use the separate
+[1080p performance baseline](windows-rdp-performance.md) to measure scrolling,
+visible progress, input response times, and resource use under continuous load.
 
 `Test.ps1` runs two client checks before the live test. `--self-test` checks the
 profile parser, fixture pixel logic, and keyboard submission contract. On Windows, `--check-control` initializes
@@ -179,8 +176,9 @@ bitmap rendering with this correction and no longer reports `0x1304`.
 Before submitting F8, the harness explicitly focuses the hosted RDP control and
 records the numeric `SendKeys` HRESULT in `f8_submitted`. This event records API
 submission only; `fixture_changed` remains the evidence of remote delivery.
-The latest run confirms focus and successful API submission, but still times
-out waiting for the F8 response; those checks alone did not resolve the failure.
+The [earlier run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40937321486)
+confirmed focus and successful API submission, but still timed out waiting for
+the F8 response; those checks alone did not resolve the failure.
 The harness now submits the raw F8 scan code `0x42` for both press and release,
 with the release state in the separate key-up array. Previously it supplied
 `WM_KEYDOWN`-style values `0x00420001` and `0xC0420001`. The correction follows
@@ -190,8 +188,8 @@ and the raw-code usage in
 [1Remote's client](https://github.com/1Remote/1Remote/blob/f1cfdd1fc518c236e5bd339d3f0b74452f8f9303/Ui/View/Host/ProtocolHosts/AxMsRdpClient09Host.xaml.cs),
 whose [wrapper](https://github.com/1Remote/1Remote/blob/f1cfdd1fc518c236e5bd339d3f0b74452f8f9303/Ui/Utils/RdpFile/MsRdpClientNonScriptableWrapper.cs)
 passes those values unchanged. This differs from the `lParam` description in
-the API reference. A new Windows run must verify the resulting F8 round trip;
-the rendering, input, and stability requirements remain unchanged.
+the API reference. The successful compatibility run above verifies the resulting
+F8 round trip with the rendering, input, and stability requirements intact.
 
 If the server reports `client_not_connected` and there are no client events,
 check `progress.json` before investigating protocol negotiation. The earlier

@@ -1,0 +1,86 @@
+name: Windows-only RDP performance baseline
+
+# Measure the production Go RDP/AVC code with Microsoft's real client on one
+# disposable Windows runner. Functional evidence is required; timing values are
+# recorded as a baseline rather than compared with unstable hosted-runner limits.
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Windows runner image (windows-2022 or windows-2025)
+        type: string
+        default: windows-2022
+      mode:
+        description: Local RDP graphics mode(s) (both, h264, or bitmap)
+        type: string
+        default: both
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Windows runner image
+        type: choice
+        options: [windows-2022, windows-2025]
+        default: windows-2022
+      mode:
+        description: Local RDP graphics mode(s)
+        type: choice
+        options: [both, h264, bitmap]
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Microsoft RDP 1080p baseline (${{ matrix.mode }})
+    runs-on: ${{ inputs.runner == 'windows-2025' && 'windows-2025' || 'windows-2022' }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: ${{ fromJSON(inputs.mode == 'both' && '["h264","bitmap"]' || inputs.mode == 'h264' && '["h264"]' || '["bitmap"]') }}
+    env:
+      CGO_ENABLED: '0'
+    steps:
+      - name: Validate benchmark inputs
+        shell: pwsh
+        env:
+          TEST_RUNNER: ${{ inputs.runner }}
+          TEST_MODE: ${{ inputs.mode }}
+        run: |
+          if ($env:TEST_RUNNER -cnotin @('windows-2022', 'windows-2025') -or
+              $env:TEST_MODE -cnotin @('both', 'h264', 'bitmap')) {
+            throw 'Unsupported Windows runner or RDP graphics mode.'
+          }
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Test benchmark fixture and workflow wiring
+        run: go test ./scripts/rdp-windows/...
+      - name: Compile and test Microsoft client and orchestration
+        shell: pwsh
+        run: ./scripts/rdp-windows/Test.ps1
+      - name: Build local production-protocol test server
+        shell: pwsh
+        run: go build -o "$env:RUNNER_TEMP/rdp-server.exe" ./scripts/rdp-windows/server
+      - name: Measure 1080p scrolling, input latency, and process resources
+        shell: pwsh
+        env:
+          RDP_TEST_MODE: ${{ matrix.mode }}
+          RDP_TEST_WORKLOAD: performance
+          RDP_TEST_OUTPUT: ${{ runner.temp }}/rdp-performance-results
+          RDP_TEST_ALLOW_MACHINE_TRUST: '1'
+        run: ./scripts/rdp-windows/RunLocal.ps1
+      - name: Upload performance baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-rdp-performance-${{ inputs.runner }}-${{ matrix.mode }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/rdp-performance-results/*.json
+            ${{ runner.temp }}/rdp-performance-results/*.png
+          retention-days: 7
+          if-no-files-found: warn

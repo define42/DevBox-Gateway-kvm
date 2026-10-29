@@ -200,6 +200,182 @@ namespace DevBox.RdpSmoke
         }
     }
 
+    internal struct PerformanceMarker
+    {
+        internal int Sequence;
+        internal byte InputEpoch;
+
+        internal static bool TryRead(Bitmap image, out PerformanceMarker marker)
+        {
+            marker = new PerformanceMarker();
+            if (image.Width < 640 || image.Height < 360) return false;
+            ulong bits = 0;
+            for (int bit = 0; bit < 40; bit++)
+            {
+                int x = (64 + bit * 32 + 16) * image.Width / 1920;
+                int normal = Sample(image, x, 32 * image.Height / 1080);
+                int inverse = Sample(image, x, 72 * image.Height / 1080);
+                if (normal < 0 || inverse < 0 || normal == inverse) return false;
+                bits |= (ulong)normal << bit;
+            }
+            int sequence = (int)(bits & 0xffffff);
+            byte epoch = (byte)(bits >> 24);
+            byte checksum = (byte)(sequence ^ (sequence >> 8) ^ (sequence >> 16) ^ epoch ^ 0xa5);
+            if ((byte)(bits >> 32) != checksum) return false;
+            marker.Sequence = sequence;
+            marker.InputEpoch = epoch;
+            return true;
+        }
+
+        private static int Sample(Bitmap image, int x, int y)
+        {
+            int sum = 0;
+            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++)
+            {
+                Color pixel = image.GetPixel(x + dx, y + dy);
+                if (Math.Abs(pixel.R - pixel.G) > 40 || Math.Abs(pixel.R - pixel.B) > 40) return -1;
+                sum += pixel.R + pixel.G + pixel.B;
+            }
+            int mean = sum / 27;
+            return mean <= 64 ? 0 : mean >= 192 ? 1 : -1;
+        }
+    }
+
+    internal sealed class MeasurementSeries
+    {
+        // The 30-second experiment has about 1,875 captures. Keep all expected
+        // samples, but fail explicitly rather than silently truncate a bad loop.
+        private readonly List<double> values = new List<double>();
+        internal int Count { get { return values.Count; } }
+        internal void Add(double value)
+        {
+            if (Double.IsNaN(value) || Double.IsInfinity(value) || value < 0 || values.Count >= 32768)
+                throw new SmokeFailure("benchmark", "invalid_measurement");
+            values.Add(value);
+        }
+        internal double[] Values() { return values.ToArray(); }
+        internal object Summary()
+        {
+            if (values.Count == 0) return null;
+            double[] sorted = values.ToArray();
+            Array.Sort(sorted);
+            double total = 0;
+            foreach (double value in sorted) total += value;
+            return new { count = sorted.Length, average = total / sorted.Length,
+                p50 = sorted[(int)Math.Ceiling(sorted.Length * 0.50) - 1],
+                p95 = sorted[(int)Math.Ceiling(sorted.Length * 0.95) - 1], max = sorted[sorted.Length - 1] };
+        }
+    }
+
+    internal sealed class PerformanceMeasurement
+    {
+        internal const int WarmupSeconds = 5;
+        internal const int MeasurementSeconds = 30;
+        internal readonly MeasurementSeries InputLatency = new MeasurementSeries();
+        internal readonly MeasurementSeries Capture = new MeasurementSeries();
+        internal readonly MeasurementSeries SampleInterval = new MeasurementSeries();
+        internal double FirstValidAt = -1, StartedAt = -1, LastFrameAt = -1;
+        internal int Samples, ValidSamples, InvalidSamples, VisibleUpdates, SequenceGaps, StallEpisodes;
+        internal int ProbesSent, ResponsesReceived;
+        internal double MaxGapMs;
+        private int lastSequence = -1;
+        private byte currentEpoch, expectedEpoch;
+        private bool pending, gapStalled;
+        private double sentAt, previousCaptureStart = -1;
+
+        internal bool Measuring { get { return StartedAt >= 0; } }
+        internal bool Pending { get { return pending; } }
+        internal double Elapsed(double now) { return Measuring ? Math.Max(0, now - StartedAt) : 0; }
+
+        internal void Observe(bool valid, PerformanceMarker marker, double captureStart, double now)
+        {
+            if (valid && lastSequence >= 0 && marker.Sequence < lastSequence) valid = false;
+            if (valid && FirstValidAt < 0) FirstValidAt = now;
+            if (!Measuring)
+            {
+                if (!valid || now - FirstValidAt < WarmupSeconds) return;
+                StartedAt = LastFrameAt = now;
+                lastSequence = marker.Sequence;
+                currentEpoch = marker.InputEpoch;
+            }
+            Samples++;
+            Capture.Add((now - captureStart) * 1000);
+            if (previousCaptureStart >= 0) SampleInterval.Add((captureStart - previousCaptureStart) * 1000);
+            previousCaptureStart = captureStart;
+            if (!valid) { InvalidSamples++; TrackGap(now); return; }
+            ValidSamples++;
+            if (marker.Sequence > lastSequence)
+            {
+                TrackGap(now);
+                SequenceGaps += marker.Sequence - lastSequence - 1;
+                VisibleUpdates++;
+                lastSequence = marker.Sequence;
+                LastFrameAt = now;
+                gapStalled = false;
+            }
+            else TrackGap(now);
+            if (pending && marker.InputEpoch == expectedEpoch)
+            {
+                InputLatency.Add((now - sentAt) * 1000);
+                ResponsesReceived++;
+                pending = false;
+                currentEpoch = marker.InputEpoch;
+            }
+            else if (marker.InputEpoch != currentEpoch)
+                throw new SmokeFailure("benchmark", "unexpected_input_epoch");
+        }
+
+        private void TrackGap(double now)
+        {
+            double gap = (now - LastFrameAt) * 1000;
+            MaxGapMs = Math.Max(MaxGapMs, gap);
+            if (gap >= 250 && !gapStalled) { StallEpisodes++; gapStalled = true; }
+        }
+
+        internal bool ShouldProbe(double now)
+        {
+            return Measuring && !pending && ProbesSent < 6 && Elapsed(now) < MeasurementSeconds &&
+                Elapsed(now) >= ProbesSent * 5;
+        }
+
+        internal void ProbeSent(double now)
+        {
+            if (!ShouldProbe(now)) throw new SmokeFailure("benchmark", "overlapping_input_probe");
+            expectedEpoch = (byte)((currentEpoch + 1) & 255);
+            sentAt = now;
+            pending = true;
+            ProbesSent++;
+        }
+
+        internal bool ProbeTimedOut(double now) { return pending && now - sentAt > 10; }
+        internal bool Complete(double now)
+        {
+            return Elapsed(now) >= MeasurementSeconds && VisibleUpdates > 0 && ResponsesReceived >= 3 &&
+                ResponsesReceived == ProbesSent && !pending && now - LastFrameAt <= 5;
+        }
+
+        internal object Report(string outcome, string reason, Size captureSize, double now)
+        {
+            double elapsed = Elapsed(now);
+            return new { version = 1, workload = "performance", outcome = outcome, reason = reason,
+                measurementComplete = outcome == "passed" && Complete(now), warmupSeconds = WarmupSeconds,
+                measurementSeconds = elapsed, sourceWidth = 1920, sourceHeight = 1080,
+                captureWidth = captureSize.Width, captureHeight = captureSize.Height,
+                requestedCaptureIntervalMs = 16, sampleCount = Samples, validSamples = ValidSamples,
+                invalidSamples = InvalidSamples, visibleUpdates = VisibleUpdates,
+                sampledUpdatesPerSecond = elapsed > 0 ? (double?)VisibleUpdates / elapsed : null,
+                unobservedSequenceNumbers = SequenceGaps,
+                maxVisibleGapMs = Measuring ? (double?)Math.Max(MaxGapMs, (now - LastFrameAt) * 1000) : null,
+                stallEpisodes = StallEpisodes, inputProbesSent = ProbesSent, inputResponsesReceived = ResponsesReceived,
+                inputLatencyMs = InputLatency.Summary(), captureMs = Capture.Summary(), sampleIntervalMs = SampleInterval.Summary(),
+                inputLatencySamplesMs = InputLatency.Values(),
+                notes = new[] { "Visible updates are sampled screen progress, not exact presentation FPS. Sequence gaps are unobserved frames, not proof of dropped frames.",
+                    "Input latency includes server frame scheduling, RDP, client rendering, and capture sampling. It is not pure network RTT.",
+                    "Stall episodes count observed gaps of at least 250 ms. Client capture and smart sizing add measurement overhead.",
+                    "CPU and memory are measured separately by the orchestrator; this loopback test does not exercise KVM or a WAN." } };
+        }
+    }
+
     internal sealed class Report
     {
         private readonly string path;
@@ -344,6 +520,8 @@ namespace DevBox.RdpSmoke
         private readonly string output;
         private readonly int duration;
         private readonly bool localFixture;
+        private readonly bool performance;
+        private readonly PerformanceMeasurement measurement = new PerformanceMeasurement();
         private readonly Report report;
         private readonly HeartbeatMonitor heartbeat = new HeartbeatMonitor();
         private readonly Stopwatch clock = Stopwatch.StartNew();
@@ -357,26 +535,34 @@ namespace DevBox.RdpSmoke
         private bool started, inputConfirmed, finishing;
         internal int Result = 1;
 
-        internal SmokeWindow(Profile profile, string password, string output, int duration, Report report, bool localFixture)
+        internal SmokeWindow(Profile profile, string password, string output, int duration, Report report, bool localFixture, bool performance)
         {
             this.profile = profile; this.password = password; this.output = output;
             this.duration = duration; this.report = report;
             this.localFixture = localFixture;
+            this.performance = performance;
             AutoScaleMode = AutoScaleMode.None;
-            ClientSize = new Size(1024, 768);
+            ClientSize = performance ? PerformanceCaptureSize(Screen.PrimaryScreen.Bounds.Size) : new Size(1024, 768);
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
             Location = Screen.PrimaryScreen.Bounds.Location;
             TopMost = true;
-            Text = "DevBox RDP compatibility smoke test";
+            Text = performance ? "DevBox RDP performance baseline" : "DevBox RDP compatibility smoke test";
             BackColor = Color.Magenta;
             Paint += delegate(object sender, PaintEventArgs e) {
                 if (!started) e.Graphics.FillRectangle(Brushes.Cyan, 0, 0, ClientSize.Width / 2, ClientSize.Height);
             };
-            poll.Interval = 250;
+            poll.Interval = performance ? 16 : 250;
             poll.Tick += Poll;
             Shown += delegate { Activate(); poll.Start(); };
             FormClosing += delegate { if (!finishing) Fail("client", "window_closed", null); };
+        }
+
+        internal static Size PerformanceCaptureSize(Size available)
+        {
+            int scale = Math.Min(120, Math.Min(available.Width / 16, available.Height / 9));
+            if (scale < 40) throw new SmokeFailure("infrastructure", "desktop_too_small");
+            return new Size(scale * 16, scale * 9);
         }
 
         private void StartClient()
@@ -391,7 +577,7 @@ namespace DevBox.RdpSmoke
                     !Fixture.Near(samples[2], Color.Cyan, 5) || !Fixture.Near(samples[3], Color.Magenta, 5))
                     throw new SmokeFailure("infrastructure", "screen_capture_probe_failed");
             }
-            report.Add("infrastructure", "passed", null, new { desktopWidth = 1024, desktopHeight = 768 });
+            report.Add("infrastructure", "passed", null, new { desktopWidth = ClientSize.Width, desktopHeight = ClientSize.Height });
             host = RdpHost.Attach(this, report);
             started = true;
             ocx = host.Client;
@@ -405,8 +591,8 @@ namespace DevBox.RdpSmoke
             dynamic advanced = client.AdvancedSettings8;
             client.Server = profile.Server;
             client.UserName = profile.UserName;
-            client.DesktopWidth = 1024;
-            client.DesktopHeight = 768;
+            client.DesktopWidth = performance ? 1920 : 1024;
+            client.DesktopHeight = performance ? 1080 : 768;
             client.ColorDepth = profile.ColorDepth;
             client.FullScreen = false;
             client.ConnectingText = "Connecting to the isolated test desktop";
@@ -422,7 +608,7 @@ namespace DevBox.RdpSmoke
             advanced.RedirectClipboard = profile.RedirectClipboard;
             advanced.AudioRedirectionMode = (uint)profile.AudioMode;
             advanced.AudioCaptureRedirectionMode = profile.CaptureAudio;
-            advanced.SmartSizing = false;
+            advanced.SmartSizing = performance;
             advanced.GrabFocusOnConnect = true;
             advanced.overallConnectionTimeout = 45;
             advanced.singleConnectionTimeout = 45;
@@ -443,7 +629,8 @@ namespace DevBox.RdpSmoke
                 clsid = host.ControlClass.Clsid.ToString(),
                 colorDepth = profile.ColorDepth,
                 authenticationLevel = profile.AuthenticationLevel, credSsp = profile.CredSsp,
-                audioMode = profile.AudioMode, credentialPromptOverride = true, localFixture = localFixture });
+                audioMode = profile.AudioMode, credentialPromptOverride = true, localFixture = localFixture,
+                workload = performance ? "performance" : "smoke", smartSizing = performance });
             connectAt = clock.Elapsed.TotalSeconds;
             client.Connect();
         }
@@ -468,8 +655,14 @@ namespace DevBox.RdpSmoke
                 double now = clock.Elapsed.TotalSeconds;
                 dynamic client = ocx;
                 int connected = (int)client.Connected;
+                double captureStart = clock.Elapsed.TotalSeconds;
                 using (Bitmap image = CaptureContent())
                 {
+                    if (performance)
+                    {
+                        PollPerformance(image, connected, captureStart, clock.Elapsed.TotalSeconds);
+                        return;
+                    }
                     int layout = Fixture.Match(Fixture.Samples(image));
                     if (initialLayout < 0)
                     {
@@ -530,6 +723,59 @@ namespace DevBox.RdpSmoke
             catch (Exception error) { Fail("client", "operation_failed", new { hresult = error.HResult }); }
         }
 
+        private void PollPerformance(Bitmap image, int connected, double captureStart, double now)
+        {
+            PerformanceMarker marker;
+            bool valid = PerformanceMarker.TryRead(image, out marker);
+            if (connected != 1)
+            {
+                if (measurement.FirstValidAt >= 0) Fail("connection", "connection_state_lost", null);
+                else if (now - connectAt > 45) Fail("render", "fixture_not_visible", null);
+                return;
+            }
+            bool first = measurement.FirstValidAt < 0 && valid;
+            bool measuring = measurement.Measuring;
+            measurement.Observe(valid, marker, captureStart, now);
+            if (first)
+            {
+                Save(image, "before-input.png", false);
+                report.Add("render", "passed", "fixture_visible", new { workload = "performance", sequence = marker.Sequence });
+            }
+            if (!measurement.Measuring)
+            {
+                if (now - connectAt > 45) Fail("render", "fixture_not_visible", null);
+                return;
+            }
+            if (!measuring) report.Add("benchmark", "progress", "measurement_started", new {
+                warmupSeconds = PerformanceMeasurement.WarmupSeconds, requiredSeconds = PerformanceMeasurement.MeasurementSeconds });
+            if (valid && measurement.ShouldProbe(clock.Elapsed.TotalSeconds))
+            {
+                var keys = (INonScriptable3)ocx;
+                double submittedAt = clock.Elapsed.TotalSeconds;
+                measurement.ProbeSent(submittedAt);
+                int status = RdpKeyboard.SendF8(FocusClient, keys.SendKeys);
+                report.Add("input", "progress", "benchmark_f8_submitted", new {
+                    probe = measurement.ProbesSent, hresult = status, keyEncoding = "scan_code" });
+            }
+            if (measurement.ProbeTimedOut(now)) { Fail("input", "benchmark_input_timeout", null); return; }
+            if (measurement.Elapsed(now) >= PerformanceMeasurement.MeasurementSeconds && !measurement.Pending)
+            {
+                if (!measurement.Complete(now)) { Fail("benchmark", "insufficient_observations", null); return; }
+                SavePerformance("passed", "performance_measurement_completed", now);
+                Save(image, "terminal.png", !valid);
+                report.Add("benchmark", "passed", "performance_measurement_completed", new {
+                    measurementSeconds = measurement.Elapsed(now), inputResponsesReceived = measurement.ResponsesReceived,
+                    visibleUpdates = measurement.VisibleUpdates });
+                Finish(0);
+            }
+        }
+
+        private void SavePerformance(string outcome, string reason, double now)
+        {
+            File.WriteAllText(Path.Combine(output, "client-performance.json"),
+                new JavaScriptSerializer().Serialize(measurement.Report(outcome, reason, ClientSize, now)));
+        }
+
         private bool FocusClient()
         {
             Activate();
@@ -588,6 +834,11 @@ namespace DevBox.RdpSmoke
         {
             if (finishing) return;
             report.Add(stage, "failed", reason, details);
+            if (performance)
+            {
+                try { SavePerformance("failed", reason, clock.Elapsed.TotalSeconds); }
+                catch { report.Add("artifact", "unavailable", "performance_report_failed", null); }
+            }
             try
             {
                 using (Bitmap image = CaptureContent()) Save(image, "terminal.png", Fixture.Match(Fixture.Samples(image)) < 0);
@@ -738,6 +989,12 @@ namespace DevBox.RdpSmoke
                     throw new SmokeFailure("configuration", "invalid_local_fixture_mode");
                 bool localFixture = localMode == "1";
                 if (localFixture) profile.RequireLoopback();
+                string workload = Environment.GetEnvironmentVariable("RDP_SMOKE_WORKLOAD");
+                if (workload != null && workload != "smoke" && workload != "performance")
+                    throw new SmokeFailure("configuration", "invalid_workload");
+                bool performance = workload == "performance";
+                if (performance && (!localFixture || duration != PerformanceMeasurement.MeasurementSeconds))
+                    throw new SmokeFailure("configuration", "performance_requires_local_fixture");
                 Native.RequireInteractiveDesktop();
                 Native.SetProcessDPIAware();
                 Application.EnableVisualStyles();
@@ -749,7 +1006,7 @@ namespace DevBox.RdpSmoke
                     try { report.Add("infrastructure", "failed", "client_watchdog_timeout", null); } catch { }
                     Environment.Exit(2);
                 }, null, (duration + 90) * 1000, System.Threading.Timeout.Infinite))
-                using (var window = new SmokeWindow(profile, password, output, duration, report, localFixture))
+                using (var window = new SmokeWindow(profile, password, output, duration, report, localFixture, performance))
                 {
                     password = null;
                     Application.Run(window);
@@ -774,6 +1031,7 @@ namespace DevBox.RdpSmoke
         {
             ControlSelectionTest();
             KeyboardInjectionTest();
+            PerformanceTest();
             bool externalDescriptionRead = false;
             Check(ClientDiagnostics.LocalDisconnectDescription(false, delegate { externalDescriptionRead = true; return "private description"; }) == null);
             Check(!externalDescriptionRead);
@@ -837,6 +1095,95 @@ namespace DevBox.RdpSmoke
             Check(Fixture.Match(new[] { Fixture.Colors[0], Fixture.Colors[0], Fixture.Colors[0], Fixture.Colors[0] }) == -1);
             Console.WriteLine("client self-tests: passed");
             return 0;
+        }
+
+        private static void PerformanceTest()
+        {
+            Check(SmokeWindow.PerformanceCaptureSize(new Size(1024, 768)) == new Size(1024, 576));
+            Check(SmokeWindow.PerformanceCaptureSize(new Size(1920, 1080)) == new Size(1920, 1080));
+            bool rejected = false;
+            try { SmokeWindow.PerformanceCaptureSize(new Size(600, 400)); }
+            catch (SmokeFailure) { rejected = true; }
+            Check(rejected);
+            // Independent golden packet: sequence 0x123456, epoch 7,
+            // checksum 0x12 ^ 0x34 ^ 0x56 ^ 7 ^ 0xa5 = 0xd2.
+            foreach (Size size in new[] { new Size(1920, 1080), new Size(1024, 576), new Size(640, 360) })
+            {
+                using (var image = new Bitmap(size.Width, size.Height))
+                using (Graphics graphics = Graphics.FromImage(image))
+                {
+                    graphics.Clear(Color.Gray);
+                    PaintPerformanceMarker(graphics, size, 0xd207123456UL);
+                    PerformanceMarker marker;
+                    Check(PerformanceMarker.TryRead(image, out marker) && marker.Sequence == 0x123456 && marker.InputEpoch == 7);
+                    PaintPerformanceMarker(graphics, size, 0xd307123456UL); // Complement is valid, checksum is not.
+                    Check(!PerformanceMarker.TryRead(image, out marker));
+                    graphics.Clear(Color.Black);
+                    Check(!PerformanceMarker.TryRead(image, out marker));
+                    PaintPerformanceMarker(graphics, size, 0xd207123456UL);
+                    graphics.FillRectangle(Brushes.Lime, 64 * size.Width / 1920, 16 * size.Height / 1080,
+                        32 * size.Width / 1920, 32 * size.Height / 1080);
+                    Check(!PerformanceMarker.TryRead(image, out marker));
+                }
+            }
+            var series = new MeasurementSeries();
+            Check(series.Summary() == null);
+            foreach (double value in new[] { 100.0, 3, 1, 4, 2 }) series.Add(value);
+            var json = new JavaScriptSerializer();
+            var summary = json.Deserialize<Dictionary<string, object>>(json.Serialize(series.Summary()));
+            Check(Convert.ToDouble(summary["average"], CultureInfo.InvariantCulture) == 22 &&
+                Convert.ToDouble(summary["p50"], CultureInfo.InvariantCulture) == 3 &&
+                Convert.ToDouble(summary["p95"], CultureInfo.InvariantCulture) == 100);
+            foreach (double invalid in new[] { Double.NaN, Double.PositiveInfinity, -1.0 })
+            {
+                rejected = false;
+                try { series.Add(invalid); } catch (SmokeFailure) { rejected = true; }
+                Check(rejected);
+            }
+            var measurement = new PerformanceMeasurement();
+            measurement.Observe(true, new PerformanceMarker { Sequence = 10 }, 0.99, 1);
+            measurement.Observe(false, new PerformanceMarker(), 5.99, 6);
+            Check(!measurement.Measuring);
+            measurement.Observe(true, new PerformanceMarker { Sequence = 11 }, 5.999, 6);
+            Check(measurement.Measuring && measurement.Samples == 1 && measurement.ShouldProbe(6));
+            measurement.ProbeSent(6.01);
+            Check(!measurement.ShouldProbe(11) && !measurement.Complete(36));
+            measurement.Observe(true, new PerformanceMarker { Sequence = 12, InputEpoch = 1 }, 6.03, 6.04);
+            Check(measurement.ResponsesReceived == 1 && Math.Abs(measurement.InputLatency.Values()[0] - 30) < 0.001);
+            Check(!measurement.ShouldProbe(10) && measurement.ShouldProbe(11));
+            measurement.ProbeSent(11);
+            measurement.Observe(true, new PerformanceMarker { Sequence = 14, InputEpoch = 2 }, 11.09, 11.1);
+            Check(measurement.SequenceGaps == 1 && measurement.StallEpisodes == 1);
+            measurement.ProbeSent(16);
+            Check(measurement.ProbeTimedOut(26.01));
+            measurement.Observe(true, new PerformanceMarker { Sequence = 15, InputEpoch = 3 }, 16.09, 16.1);
+            measurement.Observe(true, new PerformanceMarker { Sequence = 16, InputEpoch = 3 }, 35.99, 36);
+            Check(measurement.Complete(36) && !measurement.ShouldProbe(36) && measurement.ResponsesReceived == 3);
+            measurement.Observe(true, new PerformanceMarker { Sequence = 15, InputEpoch = 3 }, 36.01, 36.02);
+            Check(measurement.InvalidSamples == 1 && measurement.VisibleUpdates == 4);
+            rejected = false;
+            try { measurement.Observe(true, new PerformanceMarker { Sequence = 17, InputEpoch = 4 }, 36.03, 36.04); }
+            catch (SmokeFailure) { rejected = true; }
+            Check(rejected);
+            var failed = json.Deserialize<Dictionary<string, object>>(json.Serialize(
+                new PerformanceMeasurement().Report("failed", "test", new Size(1024, 576), 0)));
+            Check((bool)failed["measurementComplete"] == false && failed["inputLatencyMs"] == null &&
+                failed["sampledUpdatesPerSecond"] == null);
+        }
+
+        private static void PaintPerformanceMarker(Graphics graphics, Size size, ulong packet)
+        {
+            for (int bit = 0; bit < 40; bit++)
+                for (int row = 0; row < 2; row++)
+                {
+                    bool white = ((packet >> bit) & 1) != 0;
+                    if (row == 1) white = !white;
+                    int x = (64 + bit * 32) * size.Width / 1920;
+                    int right = (96 + bit * 32) * size.Width / 1920;
+                    int y = (16 + row * 40) * size.Height / 1080;
+                    int bottom = (48 + row * 40) * size.Height / 1080;
+                    graphics.FillRectangle(white ? Brushes.White : Brushes.Black, x, y, right - x, bottom - y);
+                }
         }
 
         private static void KeyboardInjectionTest()

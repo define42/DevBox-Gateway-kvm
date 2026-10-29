@@ -103,3 +103,47 @@ func TestLiveMicrosoftRDPWorkflowRunsClientAndRetainsEvidence(t *testing.T) {
 		t.Errorf("want one live client step and one always-upload step, got %d and %d", liveSteps, evidenceSteps)
 	}
 }
+
+func TestCIRunsSeparateRDPPerformanceBaseline(t *testing.T) {
+	t.Parallel()
+	ci := readWorkflow(t, "ci.yml")
+	var callers int
+	for id, job := range ci.Jobs {
+		if job.Uses != "./.github/workflows/rdp-windows-performance.yml" {
+			continue
+		}
+		callers++
+		if job.With["mode"] != "both" || job.With["runner"] != "windows-2022" ||
+			job.If != "" || job.Secrets != nil || (job.ContinueOnError != nil && job.ContinueOnError != false) {
+			t.Errorf("%s: baseline must exercise both real client modes without secrets or allowed failures", id)
+		}
+	}
+	if callers != 1 {
+		t.Fatalf("want one separate benchmark workflow call, got %d", callers)
+	}
+	benchmark := readWorkflow(t, "rdp-windows-performance.yml")
+	for _, trigger := range []string{"workflow_call", "workflow_dispatch"} {
+		if _, ok := benchmark.On[trigger]; !ok {
+			t.Errorf("missing %s trigger", trigger)
+		}
+	}
+	var measurements, artifacts int
+	for id, job := range benchmark.Jobs {
+		for _, step := range job.Steps {
+			if strings.TrimSpace(step.Run) == "./scripts/rdp-windows/RunLocal.ps1" {
+				measurements++
+				if step.Env["RDP_TEST_WORKLOAD"] != "performance" || step.Env["RDP_TEST_ALLOW_MACHINE_TRUST"] != "1" ||
+					step.If != "" || job.If != "" || (step.ContinueOnError != nil && step.ContinueOnError != false) ||
+					(job.ContinueOnError != nil && job.ContinueOnError != false) {
+					t.Errorf("%s: benchmark must explicitly run the performance workload and enforce valid evidence", id)
+				}
+			}
+			if strings.HasPrefix(step.Uses, "actions/upload-artifact@") && step.If == "always()" {
+				artifacts++
+			}
+		}
+	}
+	if measurements != 1 || artifacts != 1 {
+		t.Errorf("want one benchmark invocation and one always-upload step, got %d and %d", measurements, artifacts)
+	}
+}
