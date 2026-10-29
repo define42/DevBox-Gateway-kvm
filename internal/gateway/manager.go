@@ -759,7 +759,7 @@ func (m *Manager) waitStarted(ctx context.Context, run *managedProcess) error {
 			return fmt.Errorf("desktop process exited during startup: %w", errors.Join(run.err, ErrStartupFailed))
 		case <-tick.C:
 			probeCtx, cancelProbe := context.WithTimeout(ctx, time.Second)
-			conn, err := dialRDPBackend(probeCtx, run.endpoint)
+			conn, err := dialRDPBackend(probeCtx, run.endpoint, protocolTLS)
 			cancelProbe()
 			if err == nil {
 				_ = conn.NetConn().Close()

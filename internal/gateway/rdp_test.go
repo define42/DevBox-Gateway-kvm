@@ -24,6 +24,16 @@ func startEchoBackend(t *testing.T) Endpoint {
 
 func startTestBackend(t *testing.T, beforeCopy func(net.Conn) bool) Endpoint {
 	t.Helper()
+
+	return startTestBackendWithProtocolCheck(t, func(protocols uint32) bool {
+		return protocols == protocolTLS
+	}, beforeCopy)
+}
+
+func startTestBackendWithProtocolCheck(
+	t *testing.T, checkProtocols func(uint32) bool, beforeCopy func(net.Conn) bool,
+) Endpoint {
+	t.Helper()
 	certificate, certPEM, _, _ := testTLSIdentity(t, "backend.test")
 	address := "@devbox-kvm-rdp-test-" + rand.Text()
 	ln, err := net.Listen("unix", address)
@@ -47,7 +57,7 @@ func startTestBackend(t *testing.T, beforeCopy func(net.Conn) bool) Endpoint {
 			return
 		}
 		token, protocols, err := parseConnectionRequest(packet)
-		if err != nil || token != "" || protocols != protocolTLS {
+		if err != nil || token != "" || checkProtocols == nil || !checkProtocols(protocols) {
 			t.Error("backend received a forwarded token or invalid fresh negotiation")
 
 			return
@@ -155,12 +165,20 @@ func startGatewayWithAuthenticator(
 
 func dialFrontRDP(t *testing.T, s *Server, certPEM []byte, token string) *tls.Conn {
 	t.Helper()
+
+	return dialFrontRDPWithProtocols(t, s, certPEM, token, protocolTLS)
+}
+
+func dialFrontRDPWithProtocols(
+	t *testing.T, s *Server, certPEM []byte, token string, protocols uint32,
+) *tls.Conn {
+	t.Helper()
 	raw, err := net.DialTimeout("tcp", s.Addr().String(), time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_ = raw.SetDeadline(time.Now().Add(3 * time.Second))
-	if err := writePacket(raw, connectionRequest(token)); err != nil {
+	if err := writePacket(raw, connectionRequestWithProtocols(token, protocols)); err != nil {
 		raw.Close()
 		t.Fatal(err)
 	}
@@ -183,6 +201,35 @@ func dialFrontRDP(t *testing.T, s *Server, certPEM []byte, token string) *tls.Co
 	t.Cleanup(func() { _ = raw.Close() })
 
 	return secure
+}
+
+func TestGatewayPreservesFrontendRequestedProtocols(t *testing.T) {
+	t.Parallel()
+	observed := make(chan uint32, 1)
+	endpoint := startTestBackendWithProtocolCheck(t, func(protocols uint32) bool {
+		observed <- protocols
+
+		return true
+	}, nil)
+	s, _, certPEM, raw, _ := startGatewayForTest(t, endpoint)
+	key, _, ok := s.store.session(raw, "127.0.0.1")
+	if !ok {
+		t.Fatal("missing browser session")
+	}
+	token, err := s.store.grant(key, "mine")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const requested = protocolTLS | 0x00000002 | 0x00000008
+	_ = dialFrontRDPWithProtocols(t, s, certPEM, token, requested)
+	select {
+	case got := <-observed:
+		if got != requested {
+			t.Fatalf("backend requestedProtocols = %#x, want frontend mask %#x", got, requested)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("backend did not receive RDP negotiation")
+	}
 }
 
 func TestGatewayMultiplexesHTTPSAndRDPAndLogoutClosesProxy(t *testing.T) {
@@ -334,6 +381,7 @@ func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 		{name: "empty abstract socket", wantInvalid: true},
 		{name: "embedded NUL", wantInvalid: true},
 		{name: "overlong abstract socket", wantInvalid: true},
+		{name: "negotiation without TLS", wantInvalid: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -360,9 +408,13 @@ func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 			case "overlong abstract socket":
 				endpoint.Address = "@" + strings.Repeat("x", maxAbstractUnixSocketNameLen)
 			}
+			protocols := uint32(protocolTLS)
+			if test.name == "negotiation without TLS" {
+				protocols = 0x00000002
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
-			conn, err := dialRDPBackend(ctx, endpoint)
+			conn, err := dialRDPBackend(ctx, endpoint, protocols)
 			if test.name != "valid" {
 				if err == nil {
 					conn.NetConn().Close()

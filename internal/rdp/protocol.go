@@ -840,7 +840,8 @@ func connectResponse(requested uint32, channels int, version uint32) []byte {
 	conference := []byte{0x14, 0x76, 0x0a, 1, 1, 0, 1, 0xc0, 0, 'M', 'c', 'D', 'n'}
 	conference = append(appendPERLength(conference, len(userData)), userData...)
 	gcc := append(appendPERLength([]byte{0, 5, 0, 0x14, 0x7c, 0, 1}, len(conference)), conference...)
-	params := []byte{2, 1, 34, 2, 1, 2, 2, 1, 0, 2, 1, 1, 2, 1, 0, 2, 1, 1, 2, 2, 0xff, 0xff, 2, 1, 2}
+	// BER INTEGERs are signed: maxMCSPDUsize (65528) needs a leading zero.
+	params := []byte{2, 1, 34, 2, 1, 2, 2, 1, 0, 2, 1, 1, 2, 1, 0, 2, 1, 1, 2, 3, 0, 0xff, 0xf8, 2, 1, 2}
 	body := []byte{0x0a, 1, 0, 2, 1, 0}
 	body = append(body, ber(0x30, params)...)
 	body = append(body, ber(4, gcc)...)
@@ -900,6 +901,16 @@ func (s *Session) demandActive() []byte {
 	put16(bitmap, 10, height)
 	put16(bitmap, 14, 1)
 	put16(bitmap, 16, 1)
+	put16(bitmap, 20, 1) // multipleRectangleSupport is mandatory (MS-RDPBCGR 2.2.7.1.2).
+	// The Order capability is mandatory even for a bitmap-only server. Leave
+	// orderSupport empty so no unsupported primary drawing orders are offered.
+	order := make([]byte, 84)
+	put16(order, 20, 1)        // desktopSaveXGranularity
+	put16(order, 22, 20)       // desktopSaveYGranularity
+	put16(order, 26, 1)        // ORD_LEVEL_1_ORDERS
+	put16(order, 30, 2)        // NEGOTIATEORDERSUPPORT
+	channel := make([]byte, 8) // VCCAPS_NO_COMPR
+	binary.LittleEndian.PutUint32(channel[4:], 1600)
 	input := make([]byte, 84)
 	put16(input, 0, 0x0031)
 	if s.relativePointerOffered {
@@ -907,18 +918,21 @@ func (s *Session) demandActive() []byte {
 	}
 	binary.LittleEndian.PutUint32(input[8:12], 4)
 	binary.LittleEndian.PutUint32(input[16:20], 12)
-	capabilities := make([]byte, 0, 180)
-	for _, c := range []struct {
+	sets := [...]struct {
 		kind int
 		data []byte
 	}{
 		{1, general},
 		{2, bitmap},
+		{3, order},
 		{8, []byte{1, 0, pointerCacheEntries, 0, pointerCacheEntries, 0}},
 		{13, input},
 		{14, []byte{1, 0, 0, 0}},
 		{9, []byte{0xea, 3, 0, 0}},
-	} {
+		{20, channel},
+	}
+	capabilities := make([]byte, 0, 280)
+	for _, c := range sets {
 		header := make([]byte, 4)
 		put16(header, 0, c.kind)
 		put16(header, 2, len(c.data)+4)
@@ -934,7 +948,7 @@ func (s *Session) demandActive() []byte {
 	put16(p, 12, len(capabilities)+4)
 	copy(p[14:], description)
 	off := 14 + len(description)
-	put16(p, off, 6)
+	put16(p, off, len(sets))
 	copy(p[off+4:], capabilities)
 
 	return p

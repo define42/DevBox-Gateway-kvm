@@ -117,6 +117,7 @@ func joinChannelsFixture(t *testing.T, secured net.Conn, input ...relativeInputF
 	if len(response) < 2 || response[0] != 0x7f || response[1] != 0x66 {
 		t.Fatalf("expected MCS Connect Response, got %x", response)
 	}
+	checkConnectResponseEncoding(t, response)
 	core := bytes.Index(response, []byte{1, 12, 12, 0})
 	if core < 0 || core+8 > len(response) || binary.LittleEndian.Uint32(response[core+4:]) != settings.serverVersion {
 		t.Fatalf("incorrect server core version: %x", response)
@@ -144,6 +145,7 @@ func joinChannelsFixture(t *testing.T, secured net.Conn, input ...relativeInputF
 	if kind, err := shareType(demand); err != nil || kind != 1 {
 		t.Fatalf("expected Demand Active, got %x, %v", demand, err)
 	}
+	checkDemandActiveBitmap(t, demand)
 	const description = "devbox-kvm\x00"
 	if len(demand) < 14+len(description)+4 || int(binary.LittleEndian.Uint16(demand[10:12])) != len(description) {
 		t.Fatalf("invalid Demand Active source descriptor length: %x", demand)

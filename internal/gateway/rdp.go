@@ -67,7 +67,9 @@ func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
 	if err != nil {
 		return
 	}
-	backend, err := dialRDPBackend(setupCtx, endpoint)
+	// The backend echoes this mask in Server Core Data; it must match the
+	// frontend request even though both hops select only TLS.
+	backend, err := dialRDPBackend(setupCtx, endpoint, protocols)
 	if err != nil {
 		return
 	}
@@ -197,12 +199,17 @@ func connectionConfirm(kind byte) []byte {
 }
 
 func connectionRequest(token string) []byte {
+	return connectionRequestWithProtocols(token, protocolTLS)
+}
+
+func connectionRequestWithProtocols(token string, protocols uint32) []byte {
 	packet := []byte{3, 0, 0, 0, 0, 0xe0, 0, 0, 0, 0, 0}
 	if token != "" {
 		packet = append(packet, token...)
 		packet = append(packet, '\r', '\n')
 	}
-	packet = append(packet, 1, 0, 8, 0, 1, 0, 0, 0)
+	packet = append(packet, 1, 0, 8, 0, 0, 0, 0, 0)
+	binary.LittleEndian.PutUint32(packet[len(packet)-4:], protocols)
 	binary.BigEndian.PutUint16(packet[2:4], uint16(len(packet)))
 	packet[4] = byte(len(packet) - 5)
 
@@ -224,9 +231,12 @@ func writePacket(w io.Writer, packet []byte) error {
 	return nil
 }
 
-func dialRDPBackend(ctx context.Context, endpoint Endpoint) (*tls.Conn, error) {
+func dialRDPBackend(ctx context.Context, endpoint Endpoint, protocols uint32) (*tls.Conn, error) {
 	if !validRDPBackendAddress(endpoint.Address) || endpoint.ServerName == "" {
 		return nil, fmt.Errorf("%w: backend must have an abstract Unix address and TLS server name", ErrInvalid)
+	}
+	if protocols&protocolTLS == 0 {
+		return nil, fmt.Errorf("%w: backend RDP negotiation must include TLS", ErrInvalid)
 	}
 	roots := x509.NewCertPool()
 	block, _ := pem.Decode(endpoint.CertificatePEM)
@@ -266,7 +276,7 @@ func dialRDPBackend(ctx context.Context, endpoint Endpoint) (*tls.Conn, error) {
 		deadline = minTime(deadline, parent)
 	}
 	_ = raw.SetDeadline(deadline)
-	if err := writePacket(raw, connectionRequest("")); err != nil {
+	if err := writePacket(raw, connectionRequestWithProtocols("", protocols)); err != nil {
 		return nil, err
 	}
 	response, err := readConnectionPacket(raw)
