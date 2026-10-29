@@ -408,7 +408,7 @@ func TestBackendTLSRequiresCertificateAndServerName(t *testing.T) {
 			case "overlong abstract socket":
 				endpoint.Address = "@" + strings.Repeat("x", maxAbstractUnixSocketNameLen)
 			}
-			protocols := uint32(protocolTLS)
+			protocols := protocolTLS
 			if test.name == "negotiation without TLS" {
 				protocols = 0x00000002
 			}
