@@ -10,6 +10,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -22,6 +23,110 @@ func (rdpTimeoutError) Timeout() bool   { return true }
 func (rdpTimeoutError) Temporary() bool { return true }
 
 var errRDPTestSecret = errors.New("private credential identity and packet")
+
+type rdpDiagnosticTestError struct {
+	reason string
+	err    error
+}
+
+func (e rdpDiagnosticTestError) Error() string               { return "private credential identity and packet" }
+func (e rdpDiagnosticTestError) Unwrap() error               { return e.err }
+func (e rdpDiagnosticTestError) RDPDiagnosticReason() string { return e.reason }
+
+func TestRDPSessionTransportClosureClassification(t *testing.T) {
+	t.Parallel()
+
+	for name, test := range map[string]struct {
+		err      error
+		category string
+	}{
+		"EOF":            {io.EOF, "peer_closed"},
+		"unexpected EOF": {io.ErrUnexpectedEOF, "peer_closed"},
+		"closed":         {net.ErrClosed, "connection_closed"},
+		"closed pipe":    {io.ErrClosedPipe, "connection_closed"},
+		"broken pipe":    {syscall.EPIPE, "connection_closed"},
+		"reset":          {syscall.ECONNRESET, "connection_closed"},
+		"aborted":        {syscall.ECONNABORTED, "connection_closed"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			collector := New()
+			err := fmt.Errorf("private credential: %w", &net.OpError{Op: "write", Net: "tcp", Err: test.err})
+			collector.RecordRDPSession("frame_write", err, time.Millisecond)
+			event := collector.Snapshot().RDPSessions[0]
+			if event.Outcome != "closed" || event.Error != test.category || event.Reason != "" {
+				t.Fatalf("transport closure misclassified: %+v", event)
+			}
+		})
+	}
+}
+
+func TestRDPSessionReasonSanitization(t *testing.T) {
+	t.Parallel()
+
+	for _, reason := range []string{
+		"dvc_caps_state", "dvc_caps_length", "dvc_caps_header", "dvc_caps_version", "private packet", "",
+	} {
+		t.Run(reason, func(t *testing.T) {
+			t.Parallel()
+			collector := New()
+			err := fmt.Errorf("private credential: %w", rdpDiagnosticTestError{reason: reason, err: errRDPTestSecret})
+			collector.RecordRDPSession("dynamic_channels", err, time.Millisecond)
+			snapshot := collector.Snapshot()
+			if err := snapshot.Validate(); err != nil {
+				t.Fatal(err)
+			}
+			want := reason
+			if reason == "private packet" {
+				want = ""
+			}
+			if snapshot.RDPSessions[0].Reason != want {
+				t.Fatalf("reason = %q, want %q", snapshot.RDPSessions[0].Reason, want)
+			}
+			data, err := json.Marshal(snapshot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, secret := range []string{"private", "credential", "identity", "packet"} {
+				if strings.Contains(string(data), secret) {
+					t.Fatalf("diagnostic leaked %q: %s", secret, data)
+				}
+			}
+			if want == "" && strings.Contains(string(data), `"reason"`) {
+				t.Fatalf("empty reason not omitted: %s", data)
+			}
+			snapshot.RDPSessions[0].Reason = "mutated"
+			if collector.Snapshot().RDPSessions[0].Reason != want {
+				t.Fatal("snapshot reason aliases retained history")
+			}
+		})
+	}
+}
+
+func TestRDPSessionReasonRequiresProtocolFailure(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		stage string
+		err   error
+	}{
+		{"frame_write", errRDPTestSecret},
+		{"dynamic_channels", io.EOF},
+		{"dynamic_channels", syscall.EPIPE},
+		{"dynamic_channels", context.DeadlineExceeded},
+	} {
+		collector := New()
+		collector.RecordRDPSession(test.stage,
+			rdpDiagnosticTestError{reason: "dvc_caps_version", err: test.err}, time.Millisecond)
+		snapshot := collector.Snapshot()
+		if snapshot.RDPSessions[0].Reason != "" {
+			t.Fatalf("reason accepted for non-protocol result: %+v", snapshot.RDPSessions[0])
+		}
+		if err := snapshot.Validate(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
 
 func TestRDPSessionClassificationRetentionAndCopy(t *testing.T) {
 	t.Parallel()
@@ -115,6 +220,15 @@ func TestRDPSessionValidation(t *testing.T) {
 		{"unknown stage", changed(func(event *RDPSessionEvent) { event.Stage = "<script>" })},
 		{"unknown outcome", changed(func(event *RDPSessionEvent) { event.Outcome = "partial" })},
 		{"unknown error", changed(func(event *RDPSessionEvent) { event.Error = "raw error" })},
+		{"unknown reason", changed(func(event *RDPSessionEvent) { event.Reason = "private packet" })},
+		{"reason wrong stage", changed(func(event *RDPSessionEvent) { event.Reason = "dvc_caps_version" })},
+		{"reason with closure", changed(func(event *RDPSessionEvent) {
+			event.Stage, event.Outcome, event.Error = "dynamic_channels", "closed", "peer_closed"
+			event.Reason = "dvc_caps_version"
+		})},
+		{"reason with timeout", changed(func(event *RDPSessionEvent) {
+			event.Stage, event.Error, event.Reason = "dynamic_channels", "timeout", "dvc_caps_version"
+		})},
 		{"closed failure", changed(func(event *RDPSessionEvent) {
 			event.Outcome, event.Error = "closed", "timeout"
 		})},
@@ -200,6 +314,28 @@ func TestRDPSessionsMonotonicAfter(t *testing.T) {
 	}
 }
 
+func TestRDPSessionsMonotonicReason(t *testing.T) {
+	t.Parallel()
+
+	event := RDPSessionEvent{
+		Sequence: 1, Timestamp: time.Now().UTC(), Stage: "dynamic_channels",
+		Outcome: "failed", Error: "protocol_or_internal_error", Reason: "dvc_caps_version", DurationMs: 1,
+	}
+	for _, reason := range []string{"", "dvc_caps_header", "dvc_caps_version"} {
+		changed := event
+		changed.Reason = reason
+		got := RDPSessionsMonotonicAfter([]RDPSessionEvent{event}, []RDPSessionEvent{changed})
+		if got != (reason == event.Reason) {
+			t.Fatalf("reason mutation %q accepted = %v", reason, got)
+		}
+	}
+	previous := event
+	previous.Reason = ""
+	if RDPSessionsMonotonicAfter([]RDPSessionEvent{previous}, []RDPSessionEvent{event}) {
+		t.Fatal("accepted reason added to an existing terminal event")
+	}
+}
+
 func TestRDPSessionConcurrentRecordAndSnapshot(t *testing.T) {
 	t.Parallel()
 
@@ -271,7 +407,7 @@ func TestRDPSessionHeartbeatAndWorstCasePacket(t *testing.T) {
 		worst.RDPSessions = append(worst.RDPSessions, RDPSessionEvent{
 			Sequence:  math.MaxUint64 - uint64(maxRDPSessionEvents-1-index),
 			Timestamp: time.Date(9999, 12, 31, 23, 59, 59, 999_999_999, time.UTC),
-			Stage:     "activation_confirm_active", Outcome: "failed", Error: "protocol_or_internal_error",
+			Stage:     "dynamic_channels", Outcome: "failed", Error: "protocol_or_internal_error", Reason: "dvc_caps_version",
 			DurationMs: float64(math.MaxInt64) / float64(time.Millisecond),
 		})
 	}

@@ -157,7 +157,9 @@ func performanceReportNotes() []string {
 			"desktop activation. Wait at least five seconds after a failure for the next cached sample. " +
 			"Entries survive disconnects and idle samples but reset on worker restart. sequence is worker-local, " +
 			"not a gateway attemptId; correlate by VM and UTC timestamp. Only fixed stages and sanitized error " +
-			"categories are included. An absent field can mean no recorded attempts or an older worker; " +
+			"categories are included, with an optional fixed reason for dynamic-channel capability rejection. " +
+			"frame_write can mean the client closed while a frame was being sent, not an encoding failure. " +
+			"An absent field can mean no recorded attempts or an older worker; " +
 			"deploy the update and restart the affected VM to enable instrumentation.",
 	}
 }

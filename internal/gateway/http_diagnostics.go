@@ -52,7 +52,9 @@ func (s *Server) adminDiagnostics(w http.ResponseWriter, r *http.Request) {
 				"or an older worker without instrumentation.",
 			"Worker session sequence numbers are local to that VM process, not gateway attemptIds. Correlate " +
 				"using VM ID and UTC timestamps. stage is the last operation reached; transport closure does not " +
-				"identify a malformed packet. error contains only a fixed category, never raw error text.",
+				"identify a malformed packet. frame_write can mean the client closed while a frame was being sent, " +
+				"not an encoding failure. error contains only a fixed category, never raw error text. An optional " +
+				"reason identifies a fixed dynamic-channel capability rejection check, never packet contents.",
 			"Deploy the updated gateway and restart affected VM workers to enable new worker instrumentation. " +
 				"Downloading diagnostics does not restart anything or collect worker console output.",
 			"No passwords, usernames, routing tokens, client IPs, private backend addresses, raw packets or " +

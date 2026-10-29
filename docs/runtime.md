@@ -650,7 +650,15 @@ collection; an individual VM is `live`, `stale`, `unavailable`, `stopped`, or
 The corresponding `VMPerformance.rdpSessions` value contains at most the four
 latest terminal sessions from that VM worker. Each record has a worker-local
 `sequence`, UTC `timestamp`, last `stage`, `outcome`, sanitized `error`, and
-`durationMs`. A new terminal session evicts the oldest record, and all records
+`durationMs`. An optional fixed `reason` distinguishes dynamic-channel capability
+state, length, header, and version rejection checks (`dvc_caps_state`,
+`dvc_caps_length`, `dvc_caps_header`, and `dvc_caps_version`). Reasons contain no
+raw packet fields or error text. Transport resets and broken pipes are classified
+as closure, not protocol failures; a `frame_write` stage can simply mean the
+client closed while a frame was being sent. It does not establish that encoding
+failed or identify which endpoint caused the disconnect.
+
+A new terminal session evicts the oldest record, and all records
 disappear when the worker restarts. These sequence values are not gateway attempt
 IDs and cannot be used to join the two event streams.
 

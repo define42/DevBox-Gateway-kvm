@@ -188,7 +188,10 @@ label, CPU/RSS, frame and payload rates, RDP bandwidth and transfer totals, and
 encoding/write/ACK timings. Each current worker can also expose its four latest
 terminal RDP session records as `VMPerformance.rdpSessions`. A record contains a
 worker-local `sequence`, UTC `timestamp`, last `stage`, `outcome`, sanitized
-`error`, and `durationMs`; it remains in memory until one of the next sessions
+`error`, and `durationMs`, plus an optional fixed `reason` for dynamic-channel
+capability rejection checks. Reasons contain no submitted values or raw error
+text. A `frame_write` stage may be a transport closure during transmission rather
+than an encoding failure. Each record remains in memory until one of the next sessions
 evicts it or that worker restarts. Worker sequence values are not gateway RDP
 attempt IDs. Use `/perf?download=1` to save the report, or
 `/perf?vm=<id>&download=1` for one owned desktop. See

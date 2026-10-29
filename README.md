@@ -213,6 +213,11 @@ also includes cached `rdpWorkers.vms[].sessions` snapshots. The same history is
 exposed to an owner as `VMPerformance.rdpSessions`. Each worker keeps only its
 four most recent terminal RDP sessions, with a worker-local sequence, UTC
 timestamp, last stage, outcome, sanitized error, and duration in milliseconds.
+An optional fixed `reason` identifies a dynamic-channel capability rejection
+check (`dvc_caps_state`, `dvc_caps_length`, `dvc_caps_header`, or
+`dvc_caps_version`), without packet contents or peer-controlled text. A
+`frame_write` stage can indicate a client closing during transmission; it does
+not by itself prove an encoding failure.
 These records remain only until bounded eviction or worker restart; their
 sequence values are not gateway attempt IDs. Wait at least five seconds after
 reproducing a failure so the next worker heartbeat can update the cache.

@@ -9,6 +9,22 @@ import (
 
 const dynamicTransportBatchSize = 16 << 10
 
+// These fixed reasons can be exported without exposing peer packet contents.
+type dynamicCapabilityError string
+
+const (
+	errDynamicCapabilityState   dynamicCapabilityError = "dvc_caps_state"
+	errDynamicCapabilityLength  dynamicCapabilityError = "dvc_caps_length"
+	errDynamicCapabilityHeader  dynamicCapabilityError = "dvc_caps_header"
+	errDynamicCapabilityVersion dynamicCapabilityError = "dvc_caps_version"
+)
+
+func (e dynamicCapabilityError) Error() string {
+	return "rdp: invalid dynamic channel capability response: " + string(e)
+}
+
+func (e dynamicCapabilityError) RDPDiagnosticReason() string { return string(e) }
+
 type dynamicEndpoint struct {
 	phase byte // 0 disabled, 1 requested, 2 opening, 3 open, 4 closed
 	data  fragmentBuffer
@@ -100,19 +116,7 @@ func (s *Session) readDynamic(data []byte) error {
 	header := data[0]
 	command := header >> 4
 	if command == 5 {
-		if d.phase != 1 || len(data) != 4 || header != 0x50 || binary.LittleEndian.Uint16(data[2:]) != 1 {
-			return errors.New("rdp: invalid dynamic channel capability response")
-		}
-		d.phase = 2
-		for _, id := range []uint32{graphicsChannelID, displayChannelID} {
-			if d.endpoint(id).phase == 1 {
-				if err := s.openDynamic(id); err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
+		return s.readDynamicCapabilities(data)
 	}
 	id, payload, err := readDynamicInteger(data[1:], header&3)
 	if err != nil {
@@ -185,6 +189,39 @@ func (s *Session) readDynamic(data []byte) error {
 		return s.writeStatic(d.channel, []byte{0x40, byte(id)})
 	default:
 		return errors.New("rdp: unsupported dynamic channel command")
+	}
+
+	return nil
+}
+
+// readDynamicCapabilities handles Cmd=5 with dynamic.mu held by the reader.
+func (s *Session) readDynamicCapabilities(data []byte) error {
+	d := s.dynamic
+	if d.phase != 1 {
+		return errDynamicCapabilityState
+	}
+	if len(data) != 4 {
+		return errDynamicCapabilityLength
+	}
+	// MS-RDPEDYC 2.2.1.2 / Appendix A <7>: Windows leaves Sp (bits 2-3)
+	// uninitialized. Ignore only those unused bits, not cbId or Pad.
+	if data[0]&3 != 0 || data[1] != 0 {
+		return errDynamicCapabilityHeader
+	}
+	version := binary.LittleEndian.Uint16(data[2:])
+	if version < 1 || version > 3 {
+		return errDynamicCapabilityVersion
+	}
+	// MS-RDPEDYC 3.2.3.1: clients report their highest supported version,
+	// not necessarily the version we offered. We still advertise and use
+	// only v1; a higher client version does not enable priorities/compression.
+	d.phase = 2
+	for _, id := range []uint32{graphicsChannelID, displayChannelID} {
+		if d.endpoint(id).phase == 1 {
+			if err := s.openDynamic(id); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

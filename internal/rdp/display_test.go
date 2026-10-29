@@ -67,7 +67,7 @@ func TestDynamicChannelsInterleaveFragments(t *testing.T) {
 	t.Parallel()
 	caps := graphicsCapsFixture(graphicsVersion81, 0x10)
 	traffic := bytes.Join([][]byte{
-		graphicsInputFixture([]byte{0x50, 0, 1, 0}),
+		graphicsInputFixture([]byte{0x5c, 0, 3, 0}), // Windows-style capabilities.
 		graphicsInputFixture([]byte{0x10, 1, 0, 0, 0, 0}),
 		graphicsInputFixture([]byte{0x10, 2, 0, 0, 0, 0}),
 		graphicsInputFixture(append([]byte{0x20, 1, byte(len(caps))}, caps[:10]...)),

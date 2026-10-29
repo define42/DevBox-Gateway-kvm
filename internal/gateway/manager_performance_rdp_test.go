@@ -89,6 +89,44 @@ func TestProcessPerformanceRejectsRDPHistoryMutation(t *testing.T) {
 	}
 }
 
+func TestProcessPerformanceRDPSessionReasonIngress(t *testing.T) {
+	t.Parallel()
+
+	p := &processPerformance{}
+	now := time.Now().UTC()
+	first := performanceTestSample()
+	event := performanceRDPSession(1, now)
+	event.Stage, event.Outcome, event.Error = "dynamic_channels", "failed", "protocol_or_internal_error"
+	event.Reason = "dvc_caps_version"
+	first.RDPSessions = []telemetry.RDPSessionEvent{event}
+	if !p.decode(performanceTestJSON(t, first), now) {
+		t.Fatal("allowlisted failure reason rejected")
+	}
+	got := p.snapshot(now)
+	if len(got.RDPSessions) != 1 || got.RDPSessions[0].Reason != event.Reason {
+		t.Fatalf("failure reason lost: %+v", got.RDPSessions)
+	}
+	got.RDPSessions[0].Reason = "mutated"
+	if p.snapshot(now).RDPSessions[0].Reason != event.Reason {
+		t.Fatal("snapshot reason aliases retained telemetry")
+	}
+	for _, reason := range []string{"private packet", "dvc_caps_header", ""} {
+		sample := first
+		sample.Sequence, sample.ElapsedSeconds = 2, 6
+		sample.RDPSessions = cloneRDPSessionEvents(first.RDPSessions)
+		sample.RDPSessions[0].Reason = reason
+		if p.decode(performanceTestJSON(t, sample), now.Add(5*time.Second)) {
+			t.Fatalf("accepted invalid/rewritten reason %q", reason)
+		}
+	}
+	bad := first
+	bad.RDPSessions = cloneRDPSessionEvents(first.RDPSessions)
+	bad.RDPSessions[0].Reason = "private packet"
+	if new(processPerformance).decode(performanceTestJSON(t, bad), now) {
+		t.Fatal("raw reason accepted on first sample")
+	}
+}
+
 func TestManagerPerformanceRDPSessionOwnershipAndLaunchLifetime(t *testing.T) {
 	t.Parallel()
 

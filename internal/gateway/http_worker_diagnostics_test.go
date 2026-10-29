@@ -83,6 +83,8 @@ func TestHTTPWorkerDiagnosticsSchemaAndOwnerScope(t *testing.T) {
 	s, base, user, _ := webFixture(t)
 	now := time.Now().UTC()
 	event := performanceRDPSession(1, now)
+	event.Stage, event.Outcome, event.Error = "dynamic_channels", "failed", "protocol_or_internal_error"
+	event.Reason = "dvc_caps_version"
 	backend := &workerDiagnosticTestBackend{
 		perfReportTestBackend: &perfReportTestBackend{
 			webBackend: base,
@@ -105,7 +107,8 @@ func TestHTTPWorkerDiagnosticsSchemaAndOwnerScope(t *testing.T) {
 	}
 	w := webRequest(s, http.MethodGet, "/admin/diagnostics", admin, nil)
 	report := decodeAdminDiagnosticReport(t, w)
-	if len(report.RDPWorkers.VMs) != 1 || len(report.RDPWorkers.VMs[0].Sessions) != 1 {
+	if len(report.RDPWorkers.VMs) != 1 || len(report.RDPWorkers.VMs[0].Sessions) != 1 ||
+		report.RDPWorkers.VMs[0].Sessions[0].Reason != event.Reason {
 		t.Fatalf("worker diagnostics omitted: %+v", report.RDPWorkers)
 	}
 	checkWorkerDiagnosticJSON(t, w.Body.Bytes())
@@ -113,7 +116,8 @@ func TestHTTPWorkerDiagnosticsSchemaAndOwnerScope(t *testing.T) {
 		ownerResponse := webRequest(s, http.MethodGet, "/perf?owner=bob", raw, nil)
 		ownerReport := decodePerfReport(t, ownerResponse)
 		if len(ownerReport.VMs) != 1 || ownerReport.VMs[0].ID != "mine" ||
-			len(ownerReport.VMs[0].Performance.RDPSessions) != 1 || backend.calls != 1 {
+			len(ownerReport.VMs[0].Performance.RDPSessions) != 1 ||
+			ownerReport.VMs[0].Performance.RDPSessions[0].Reason != event.Reason || backend.calls != 1 {
 			t.Fatalf("owner scope/worker history incorrect: %+v, cross-owner calls %d", ownerReport, backend.calls)
 		}
 		if strings.Contains(ownerResponse.Body.String(), "foreign-admin-only-vm") ||
@@ -140,5 +144,5 @@ func checkWorkerDiagnosticJSON(t *testing.T, data []byte) {
 	if err := json.Unmarshal(vm["sessions"], &sessions); err != nil {
 		t.Fatal(err)
 	}
-	checkPerfJSONKeys(t, sessions[0], "sequence", "timestamp", "stage", "outcome", "error", "durationMs")
+	checkPerfJSONKeys(t, sessions[0], "sequence", "timestamp", "stage", "outcome", "error", "reason", "durationMs")
 }

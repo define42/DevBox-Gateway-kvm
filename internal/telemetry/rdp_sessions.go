@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"syscall"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type RDPSessionEvent struct {
 	Stage      string    `json:"stage"`
 	Outcome    string    `json:"outcome"`
 	Error      string    `json:"error,omitempty"`
+	Reason     string    `json:"reason,omitempty"`
 	DurationMs float64   `json:"durationMs"`
 }
 
@@ -31,6 +33,7 @@ func (c *Collector) RecordRDPSession(stage string, err error, duration time.Dura
 		return
 	}
 	outcome, category := classifyRDPSessionError(err)
+	reason := rdpSessionReason(stage, outcome, category, err)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.rdpSequence == math.MaxUint64 {
@@ -43,7 +46,7 @@ func (c *Collector) RecordRDPSession(stage string, err error, duration time.Dura
 	}
 	event := RDPSessionEvent{
 		Sequence: c.rdpSequence, Timestamp: timestamp, Stage: stage,
-		Outcome: outcome, Error: category, DurationMs: float64(duration) / float64(time.Millisecond),
+		Outcome: outcome, Error: category, Reason: reason, DurationMs: float64(duration) / float64(time.Millisecond),
 	}
 	if len(c.rdpSessions) == maxRDPSessionEvents {
 		copy(c.rdpSessions, c.rdpSessions[1:])
@@ -58,9 +61,10 @@ func classifyRDPSessionError(err error) (outcome, category string) {
 	switch {
 	case err == nil:
 		return "closed", ""
-	case errors.Is(err, io.EOF):
+	case errors.Is(err, io.EOF), errors.Is(err, io.ErrUnexpectedEOF):
 		return "closed", "peer_closed"
-	case errors.Is(err, net.ErrClosed):
+	case errors.Is(err, net.ErrClosed), errors.Is(err, io.ErrClosedPipe),
+		errors.Is(err, syscall.EPIPE), errors.Is(err, syscall.ECONNRESET), errors.Is(err, syscall.ECONNABORTED):
 		return "closed", "connection_closed"
 	case errors.Is(err, context.DeadlineExceeded):
 		return "failed", "timeout"
@@ -71,6 +75,34 @@ func classifyRDPSessionError(err error) (outcome, category string) {
 	}
 
 	return "failed", "protocol_or_internal_error"
+}
+
+func rdpSessionReason(stage, outcome, category string, err error) string {
+	var diagnostic interface{ RDPDiagnosticReason() string }
+	if !errors.As(err, &diagnostic) {
+		return ""
+	}
+	reason := diagnostic.RDPDiagnosticReason()
+	if !validRDPSessionReason(stage, outcome, category, reason) {
+		return ""
+	}
+
+	return reason
+}
+
+func validRDPSessionReason(stage, outcome, category, reason string) bool {
+	if reason == "" {
+		return true
+	}
+	if stage != "dynamic_channels" || outcome != "failed" || category != "protocol_or_internal_error" {
+		return false
+	}
+	switch reason {
+	case "dvc_caps_state", "dvc_caps_length", "dvc_caps_header", "dvc_caps_version":
+		return true
+	default:
+		return false
+	}
 }
 
 func validRDPSessionStage(stage string) bool {
@@ -93,7 +125,8 @@ func validateRDPSessions(events []RDPSessionEvent) error {
 	for index, event := range events {
 		if event.Sequence == 0 || event.Timestamp.IsZero() || !validRDPSessionStage(event.Stage) ||
 			!finiteNonnegative(event.DurationMs) || event.DurationMs > float64(math.MaxInt64)/float64(time.Millisecond) ||
-			!validRDPSessionResult(event.Outcome, event.Error) {
+			!validRDPSessionResult(event.Outcome, event.Error) ||
+			!validRDPSessionReason(event.Stage, event.Outcome, event.Error, event.Reason) {
 			return ErrSnapshot
 		}
 		_, offset := event.Timestamp.Zone()
@@ -157,5 +190,5 @@ func RDPSessionsMonotonicAfter(previous, current []RDPSessionEvent) bool {
 func sameRDPSessionEvent(left, right RDPSessionEvent) bool {
 	return left.Sequence == right.Sequence && left.Timestamp.Equal(right.Timestamp) &&
 		left.Stage == right.Stage && left.Outcome == right.Outcome && left.Error == right.Error &&
-		left.DurationMs == right.DurationMs
+		left.Reason == right.Reason && left.DurationMs == right.DurationMs
 }
