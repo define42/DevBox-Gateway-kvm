@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/define42/DevBox-Gateway-kvm/internal/buildinfo"
 	directory "github.com/go-ldap/ldap/v3"
 )
 
@@ -23,6 +24,7 @@ import (
 var webAssets embed.FS
 
 type pageData struct {
+	ApplicationVersion                 string
 	User, CSRF, Message                string
 	RequiredGroup, BaseImage, MemoryGB string
 	CPUs, MemoryMiB                    int
@@ -37,6 +39,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /{$}", s.dashboard)
 	mux.HandleFunc("GET /perf", s.perf)
 	mux.HandleFunc("GET /admin", s.adminPage)
+	mux.HandleFunc("GET /admin/diagnostics", s.adminDiagnostics)
 	mux.HandleFunc("POST /admin/images", s.uploadImage)
 	mux.HandleFunc("POST /admin/images/{id}/delete", s.deleteImage)
 	mux.HandleFunc("POST /admin/vms/{id}/{action}", s.adminVMAction)
@@ -190,6 +193,7 @@ func sameAuthority(a, b string) bool {
 }
 
 func (s *Server) render(w http.ResponseWriter, status int, file string, data pageData) {
+	data.ApplicationVersion = buildinfo.Current().Version
 	data.RequiredGroup = s.config.RequiredGroup
 	if dn, err := directory.ParseDN(data.RequiredGroup); err == nil &&
 		len(dn.RDNs) > 0 && len(dn.RDNs[0].Attributes) > 0 {

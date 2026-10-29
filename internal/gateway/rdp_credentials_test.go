@@ -3,9 +3,12 @@ package gateway
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"net"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -126,6 +129,128 @@ func passwordBackendHandshake(conn net.Conn, received *atomic.Bool) bool {
 	}
 
 	return true
+}
+
+func rdpCredentialTLSPair(t *testing.T) (*tls.Conn, *tls.Conn) {
+	t.Helper()
+	certificate, certificatePEM, _, _ := testTLSIdentity(t, "trace.test")
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(certificatePEM) {
+		t.Fatal("could not trust trace test certificate")
+	}
+	serverRaw, clientRaw := net.Pipe()
+	server := tls.Server(serverRaw, &tls.Config{
+		Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12,
+	})
+	client := tls.Client(clientRaw, &tls.Config{
+		RootCAs: roots, ServerName: "trace.test", MinVersion: tls.VersionTLS12,
+	})
+	t.Cleanup(func() {
+		_ = server.NetConn().Close()
+		_ = client.NetConn().Close()
+	})
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	serverDone := make(chan error, 1)
+	go func() { serverDone <- server.HandshakeContext(ctx) }()
+	clientErr := client.HandshakeContext(ctx)
+	serverErr := <-serverDone
+	if clientErr != nil || serverErr != nil {
+		t.Fatalf("trace test TLS handshake: client=%v server=%v", clientErr, serverErr)
+	}
+
+	return server, client
+}
+
+func TestVerifyRDPClientTraceStages(t *testing.T) {
+	t.Parallel()
+	front, client := rdpCredentialTLSPair(t)
+	backendServer, backend := rdpCredentialTLSPair(t)
+	var stages []string
+	verified := make(chan error, 1)
+	go func() {
+		verified <- verifyRDPClientWithTrace(t.Context(), front, backend,
+			func(_ context.Context, credentials rdpCredentials) error {
+				if credentials != (rdpCredentials{Username: "alice", Password: "rdp-password"}) {
+					return ErrAuthentication
+				}
+
+				return nil
+			}, func(stage string) { stages = append(stages, stage) })
+	}()
+	backendDone := make(chan bool, 1)
+	go func() { backendDone <- passwordBackendHandshake(backendServer, nil) }()
+	clientDone := make(chan error, 1)
+	go func() { clientDone <- passwordClientHandshake(client, "alice", "rdp-password") }()
+	if err := <-clientDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-verified; err != nil {
+		t.Fatal(err)
+	}
+	if !<-backendDone {
+		t.Fatal("backend did not complete traced handshake")
+	}
+	want := []string{
+		rdpStageClientMCSConnect,
+		rdpStageBackendMCSConnect,
+		rdpStageClientMCSResponse,
+		rdpStageClientErectDomain,
+		rdpStageClientAttachUser,
+		rdpStageBackendAttachUser,
+		rdpStageClientAttachConfirm,
+		rdpStageClientChannelJoinOrInfo,
+		rdpStageBackendChannelJoin,
+		rdpStageClientChannelConfirm,
+		rdpStageClientChannelJoinOrInfo,
+		rdpStageBackendChannelJoin,
+		rdpStageClientChannelConfirm,
+		rdpStageClientChannelJoinOrInfo,
+		rdpStageClientInfoValidation,
+		rdpStageCredentialAuthentication,
+		rdpStageBackendClientInfo,
+	}
+	if !slices.Equal(stages, want) {
+		t.Fatalf("handshake stages = %q, want %q", stages, want)
+	}
+}
+
+func TestVerifyRDPClientTraceStopsAtFailure(t *testing.T) {
+	t.Parallel()
+	front, client := rdpCredentialTLSPair(t)
+	backendServer, backend := rdpCredentialTLSPair(t)
+	var stages []string
+	verified := make(chan error, 1)
+	go func() {
+		verified <- verifyRDPClientWithTrace(t.Context(), front, backend,
+			func(context.Context, rdpCredentials) error { return nil },
+			func(stage string) { stages = append(stages, stage) })
+	}()
+	clientDone := make(chan error, 1)
+	go func() { clientDone <- writePacket(client, mcsPacket([]byte{0x7f, 0x65, 0})) }()
+	backendDone := make(chan error, 1)
+	go func() {
+		gate := rdpHandshake{remaining: 256 << 10}
+		if _, _, err := gate.read(backendServer); err != nil {
+			backendDone <- err
+
+			return
+		}
+		backendDone <- writePacket(backendServer, mcsPacket([]byte{0x7f, 0x65, 0}))
+	}()
+	if err := <-clientDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-backendDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-verified; !errors.Is(err, ErrAuthentication) {
+		t.Fatalf("invalid backend response error = %v, want authentication failure", err)
+	}
+	want := []string{rdpStageClientMCSConnect, rdpStageBackendMCSConnect}
+	if !slices.Equal(stages, want) {
+		t.Fatalf("failed handshake stages = %q, want %q", stages, want)
+	}
 }
 
 func TestAuthenticatedClientInfoRejectsFailedAuthentication(t *testing.T) {

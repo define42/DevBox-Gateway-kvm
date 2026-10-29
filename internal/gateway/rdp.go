@@ -24,81 +24,109 @@ const (
 )
 
 func (s *Server) handleRDP(ctx context.Context, raw net.Conn) {
+	attempt := s.rdpDiagnostics.begin()
+	err := s.handleRDPAttempt(ctx, raw, attempt)
+	attempt.finish(err)
+}
+
+func (s *Server) handleRDPAttempt(ctx context.Context, raw net.Conn, attempt *rdpDiagnosticAttempt) error {
 	stop := context.AfterFunc(ctx, func() { _ = raw.Close() })
 	defer stop()
+	attempt.stage("connection_request")
 	packet, err := readConnectionPacket(raw)
 	if err != nil {
-		return
+		return err
 	}
+	attempt.stage("negotiation_request")
 	token, protocols, err := parseConnectionRequest(packet)
 	if err != nil {
-		return
+		return err
 	}
+	attempt.event.RequestedProtocols = &protocols
+	attempt.stage("security_negotiation")
 	if protocols&protocolTLS == 0 {
 		_ = writePacket(raw, connectionConfirm(3))
 
-		return
+		return ErrInvalid
 	}
+	selectedProtocol := protocolTLS
+	attempt.event.SelectedProtocol = &selectedProtocol
+	attempt.stage("negotiation_response")
 	if err := writePacket(raw, connectionConfirm(2)); err != nil {
-		return
+		return err
 	}
 	frontConfig := s.tls.Clone()
 	frontConfig.NextProtos = nil
 	front := tls.Server(raw, frontConfig)
+	attempt.stage("frontend_tls")
 	if err := front.HandshakeContext(ctx); err != nil {
-		return
+		return err
 	}
+	state := front.ConnectionState()
+	attempt.event.TLSVersion = tls.VersionName(state.Version)
+	attempt.event.CipherSuite = tls.CipherSuiteName(state.CipherSuite)
+	attempt.stage("frontend_server_name")
 	publicHost, _, _ := net.SplitHostPort(s.config.PublicAddress)
-	if name := front.ConnectionState().ServerName; name != "" && !strings.EqualFold(name, publicHost) {
-		return
+	if name := state.ServerName; name != "" && !strings.EqualFold(name, publicHost) {
+		return ErrAuthentication
 	}
 	ip := clientIP(raw.RemoteAddr().String())
+	attempt.stage("routing_grant")
 	connCtx, owner, vm, release, ok := s.store.pendingGrant(ctx, token, ip)
 	if !ok {
-		return
+		return ErrAuthentication
 	}
 	defer release()
+	attempt.owner = owner
+	attempt.event.VMID = vm
 	stopSession := context.AfterFunc(connCtx, func() { _ = raw.Close() })
 	defer stopSession()
 	setupCtx, cancelSetup := context.WithTimeout(connCtx, 10*time.Second)
 	defer cancelSetup()
 	// Backend.RDP checks ownership on the selected VM without listing unrelated desktops.
+	attempt.stage("backend_lookup")
 	endpoint, err := s.config.Backend.RDP(setupCtx, owner, vm)
 	if err != nil {
-		return
+		return err
 	}
 	// The backend echoes this mask in Server Core Data; it must match the
 	// frontend request even though both hops select only TLS.
+	attempt.stage("backend_tls")
 	backend, err := dialRDPBackend(setupCtx, endpoint, protocols)
 	if err != nil {
-		return
+		return err
 	}
 	defer backend.NetConn().Close()
 	stopBackend := context.AfterFunc(connCtx, func() { _ = backend.NetConn().Close() })
 	defer stopBackend()
 	if connCtx.Err() != nil {
-		return
+		return connCtx.Err()
 	}
 	authenticate := func(authCtx context.Context, credentials rdpCredentials) error {
 		if err := s.authenticateRDP(authCtx, ip, owner, credentials); err != nil {
 			return err
 		}
+		attempt.stage("routing_grant_claim")
 		if !s.store.claimGrant(token, ip) {
 			return ErrAuthentication
 		}
+		attempt.stage("connection_admission")
 		if !s.promoteConnection(trackedConnection(raw)) {
 			return ErrAuthentication
 		}
 
 		return nil
 	}
-	if err := verifyRDPClient(setupCtx, front, backend, authenticate); err != nil {
-		return
+	if err := verifyRDPClientWithTrace(setupCtx, front, backend, authenticate, attempt.stage); err != nil {
+		return err
 	}
+	attempt.record("authenticated")
 	cancelSetup()
 	_ = front.SetDeadline(time.Time{})
 	_ = backend.SetDeadline(time.Time{})
-	proxyRDP(front, backend)
+	attempt.stage("session_proxy")
+
+	return proxyRDP(front, backend)
 }
 
 // authenticateRDP validates credentials afresh with the web login authenticator,
@@ -331,12 +359,24 @@ func (c proxyConn) Write(b []byte) (int, error) {
 	return c.Conn.Write(b)
 }
 
-func proxyRDP(front, backend *tls.Conn) {
+func proxyRDP(front, backend *tls.Conn) error {
 	var once sync.Once
-	closeBoth := func() { once.Do(func() { _ = front.NetConn().Close(); _ = backend.NetConn().Close() }) }
+	var firstError error
+	closeBoth := func(err error) {
+		once.Do(func() {
+			firstError = err
+			_ = front.NetConn().Close()
+			_ = backend.NetConn().Close()
+		})
+	}
 	var copies sync.WaitGroup
-	copies.Go(func() { _, _ = io.Copy(proxyConn{Conn: backend}, proxyConn{Conn: front}); closeBoth() })
-	_, _ = io.Copy(proxyConn{Conn: front}, proxyConn{Conn: backend})
-	closeBoth()
+	copies.Go(func() {
+		_, err := io.Copy(proxyConn{Conn: backend}, proxyConn{Conn: front})
+		closeBoth(err)
+	})
+	_, err := io.Copy(proxyConn{Conn: front}, proxyConn{Conn: backend})
+	closeBoth(err)
 	copies.Wait()
+
+	return firstError
 }

@@ -12,6 +12,11 @@ builds:
   - amd64
   flags:
   - -trimpath
+  ldflags:
+  - -s -w
+  - -X github.com/define42/DevBox-Gateway-kvm/internal/buildinfo.releaseVersion={{ .Version }}
+  - -X github.com/define42/DevBox-Gateway-kvm/internal/buildinfo.releaseCommit={{ .FullCommit }}
+  - -X github.com/define42/DevBox-Gateway-kvm/internal/buildinfo.releaseBuildDate={{ .Date }}
 
 # Native packages are the only distributable binaries. The Linux override
 # suppresses both archives and standalone binary uploads.

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/define42/DevBox-Gateway-kvm/internal/buildinfo"
 	"github.com/define42/DevBox-Gateway-kvm/internal/telemetry"
 )
 
@@ -25,6 +26,8 @@ type performanceReport struct {
 	Truncated             bool                  `json:"truncated"`
 	VMs                   []performanceReportVM `json:"vms"`
 	Notes                 []string              `json:"notes"`
+	Application           buildinfo.Info        `json:"application"`
+	RDPLoginEvents        []rdpDiagnosticEvent  `json:"rdpLoginEvents"`
 }
 
 type performanceReportVM struct {
@@ -62,6 +65,7 @@ func (s *Server) performanceReport(ctx context.Context, owner, id string) (perfo
 	report := performanceReport{
 		Version: 1, Scope: "current-user", SampleIntervalSeconds: telemetry.Interval.Seconds(),
 		VMs: []performanceReportVM{}, Notes: performanceReportNotes(),
+		Application: buildinfo.Current(), RDPLoginEvents: s.rdpDiagnostics.snapshot(owner, id, false),
 	}
 	vms, err := s.config.Backend.List(ctx, owner)
 	if err != nil {
@@ -140,5 +144,11 @@ func performanceReportNotes() []string {
 			"delays. It cannot prove a root cause on its own. Optional administrator CPU profiling is separate " +
 			"and never starts when this endpoint is read.",
 		"Reports include at most 64 VMs in ID order. If truncated is true, request /perf?vm=<id> for another VM.",
+		"application describes the running gateway binary, not the report schema version or an installed file. " +
+			"Development builds report devel; commit/build metadata is included when available.",
+		"rdpLoginEvents contains recent gateway RDP negotiation/login stages attributable to your routing grant. " +
+			"Failures before a grant is identified are visible only in the administrator diagnostic download. " +
+			"The rolling log holds at most 512 events across all connections and resets on gateway restart. " +
+			"Credentials, routing tokens, client addresses, raw packets and raw error text are never included.",
 	}
 }

@@ -616,6 +616,28 @@ replaying disconnected audio. Microphone capture is unsupported.
 
 ## Diagnostics and compatibility checks
 
+### Gateway RDP diagnostic downloads
+
+Reproduce a failed RDP connection, then select **Download diagnostics** on the
+Admin page. The administrator report includes every retained recent connection
+event across users, including attempts that fail before routing identifies a
+user or VM. Each event has a UTC timestamp, per-process attempt ID, protocol
+stage and outcome, plus a sanitized error category on failure; raw error text
+and credentials are not recorded.
+
+The log is a rolling in-memory buffer of the last 512 events, not 512 complete
+attempts. It resets when `devbox-kvm` restarts, so download the report
+immediately after reproducing the problem. Its application block identifies the
+running version and Go toolchain and includes commit and build-date metadata
+when embedded in the binary. An unversioned source build reports `devel` rather
+than guessing a release from the checkout.
+
+The user dashboard continues to download `/perf?download=1`, which is scoped to
+the signed-in owner's VMs and attributable RDP events; administrators do not get
+the pre-routing, all-user log through `/perf`. An `authenticated` outcome means
+the gateway accepted the supplied credentials. It does not establish that RDP
+activation completed or that the client displayed the guest desktop.
+
 `devbox-kvm probe` reports host KVM capabilities and supported CPUID information.
 For device debugging, set these environment variables to any nonempty value:
 

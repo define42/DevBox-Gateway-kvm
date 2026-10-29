@@ -189,6 +189,23 @@ workers that exceed `VM_STOP_TIMEOUT` (30 seconds by default). Saved desktops
 remain on disk and can be started again. The development LDAP service stays
 running until you run `make ldap-stop`.
 
+### RDP diagnostics
+
+After reproducing an RDP connection failure, an administrator can select
+**Download diagnostics** on the Admin page. The report contains UTC timestamps,
+connection stages, and sanitized error categories for all retained recent RDP
+events, including failures that occur before a routing grant identifies a user
+or VM. The rolling log keeps the last 512 events in process memory, resets when
+the gateway restarts, and is most useful when downloaded immediately after the
+failure.
+
+The report identifies the running `devbox-kvm` version and includes commit and
+build-date metadata when the binary contains it; unversioned development builds
+report `devel`. The **Download diagnostics** action on **My DevBoxes** remains
+owner-scoped through `/perf` and does not expose other users' attempts. An
+`authenticated` RDP event means gateway credential validation succeeded; it
+does not prove that the guest desktop was displayed.
+
 ### Build and run locally in Docker
 
 Docker and Compose remain available for local development builds; releases

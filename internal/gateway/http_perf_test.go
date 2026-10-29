@@ -172,7 +172,8 @@ func TestPerfSchemaPrivacyAndDownload(t *testing.T) {
 				t.Fatalf("snapshot fields changed: %+v", got.VMs)
 			}
 			root := checkPerfJSONKeys(t, w.Body.Bytes(),
-				"version", "generatedAt", "sampleIntervalSeconds", "scope", "truncated", "vms", "notes")
+				"version", "generatedAt", "sampleIntervalSeconds", "scope", "truncated", "vms", "notes",
+				"application", "rdpLoginEvents")
 			var entries []json.RawMessage
 			if err := json.Unmarshal(root["vms"], &entries); err != nil {
 				t.Fatal(err)

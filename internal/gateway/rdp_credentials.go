@@ -17,11 +17,33 @@ type rdpCredentials struct {
 	Domain   string
 }
 
-// verifyRDPClient relays only the MCS establishment messages that precede Client
-// Info. Credentials arrive inside TLS and must authenticate before Client Info
-// or desktop traffic reaches the backend. The backend never receives the password.
-func verifyRDPClient(
+// RDP handshake stages are fixed diagnostic labels. They must never contain
+// packet, credential, address, or error data.
+const (
+	rdpStageClientMCSConnect        = "client_mcs_connect"
+	rdpStageBackendMCSConnect       = "backend_mcs_connect"
+	rdpStageClientMCSResponse       = "client_mcs_response"
+	rdpStageClientErectDomain       = "client_erect_domain"
+	rdpStageClientAttachUser        = "client_attach_user"
+	rdpStageBackendAttachUser       = "backend_attach_user"
+	rdpStageClientAttachConfirm     = "client_attach_confirm"
+	rdpStageClientChannelJoinOrInfo = "client_channel_join_or_info"
+	rdpStageBackendChannelJoin      = "backend_channel_join"
+	rdpStageClientChannelConfirm    = "client_channel_confirm"
+	rdpStageClientInfoValidation    = "client_info_validation"
+	//nolint:gosec // Fixed diagnostic label, not a credential or authentication secret.
+	rdpStageCredentialAuthentication = "credential_authentication"
+	rdpStageBackendClientInfo        = "backend_client_info"
+)
+
+// verifyRDPClientWithTrace relays only the MCS establishment messages that
+// precede Client Info. Credentials arrive inside TLS and must authenticate
+// before Client Info or desktop traffic reaches the backend. The backend never
+// receives the password. Trace reports only fixed, non-sensitive stage names,
+// immediately before the operation which can fail there.
+func verifyRDPClientWithTrace(
 	ctx context.Context, front, backend *tls.Conn, authenticate func(context.Context, rdpCredentials) error,
+	trace func(stage string),
 ) error {
 	if authenticate == nil {
 		return ErrAuthentication
@@ -37,7 +59,7 @@ func verifyRDPClient(
 		_ = backend.NetConn().Close()
 	})
 	defer stop()
-	gate := rdpHandshake{front: front, backend: backend, remaining: 256 << 10}
+	gate := rdpHandshake{front: front, backend: backend, remaining: 256 << 10, trace: trace}
 	if err := gate.connect(); err != nil {
 		return err
 	}
@@ -46,18 +68,22 @@ func verifyRDPClient(
 	}
 	joined := make(map[uint16]bool)
 	for packets := 0; packets < 34; packets++ {
+		gate.stage(rdpStageClientChannelJoinOrInfo)
 		packet, mcs, err := gate.read(front)
 		if err != nil {
 			return err
 		}
 		if mcs[0] == 0x64 {
+			gate.stage(rdpStageClientInfoValidation)
 			if !joined[1001] || !joined[1003] {
 				return ErrAuthentication
 			}
-			sanitized, err := authenticatedClientInfo(ctx, mcs, authenticate)
+			sanitized, err := authenticatedClientInfoWithTrace(ctx, mcs, authenticate, trace)
 			if err != nil {
 				return err
 			}
+
+			gate.stage(rdpStageBackendClientInfo)
 
 			return writePacket(backend, sanitized)
 		}
@@ -69,6 +95,7 @@ func verifyRDPClient(
 			return ErrAuthentication
 		}
 		joined[channel] = true
+		gate.stage(rdpStageBackendChannelJoin)
 		if err := writePacket(backend, packet); err != nil {
 			return err
 		}
@@ -81,6 +108,7 @@ func verifyRDPClient(
 		if !bytes.Equal(body, want) {
 			return ErrAuthentication
 		}
+		gate.stage(rdpStageClientChannelConfirm)
 		if err := writePacket(front, reply); err != nil {
 			return err
 		}
@@ -92,6 +120,13 @@ func verifyRDPClient(
 func authenticatedClientInfo(
 	ctx context.Context, mcs []byte, authenticate func(context.Context, rdpCredentials) error,
 ) ([]byte, error) {
+	return authenticatedClientInfoWithTrace(ctx, mcs, authenticate, nil)
+}
+
+func authenticatedClientInfoWithTrace(
+	ctx context.Context, mcs []byte, authenticate func(context.Context, rdpCredentials) error,
+	trace func(stage string),
+) ([]byte, error) {
 	credentials, sanitized, err := parseClientInfo(mcs)
 	if err != nil {
 		return nil, err
@@ -99,6 +134,7 @@ func authenticatedClientInfo(
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	traceRDPStage(trace, rdpStageCredentialAuthentication)
 	if err := authenticate(ctx, credentials); err != nil {
 		return nil, ErrAuthentication
 	}
@@ -112,7 +148,16 @@ func authenticatedClientInfo(
 type rdpHandshake struct {
 	front, backend io.ReadWriter
 	remaining      int
+	trace          func(stage string)
 }
+
+func traceRDPStage(trace func(stage string), stage string) {
+	if trace != nil {
+		trace(stage)
+	}
+}
+
+func (g *rdpHandshake) stage(stage string) { traceRDPStage(g.trace, stage) }
 
 func (g *rdpHandshake) read(r io.Reader) ([]byte, []byte, error) {
 	var header [4]byte
@@ -137,6 +182,7 @@ func (g *rdpHandshake) read(r io.Reader) ([]byte, []byte, error) {
 }
 
 func (g *rdpHandshake) connect() error {
+	g.stage(rdpStageClientMCSConnect)
 	request, body, err := g.read(g.front)
 	if err != nil {
 		return err
@@ -144,6 +190,7 @@ func (g *rdpHandshake) connect() error {
 	if !validMCSConnect(body, 0x65) {
 		return ErrAuthentication
 	}
+	g.stage(rdpStageBackendMCSConnect)
 	if err := writePacket(g.backend, request); err != nil {
 		return err
 	}
@@ -154,6 +201,8 @@ func (g *rdpHandshake) connect() error {
 	if !validMCSConnect(body, 0x66) {
 		return ErrAuthentication
 	}
+
+	g.stage(rdpStageClientMCSResponse)
 
 	return writePacket(g.front, reply)
 }
@@ -179,7 +228,12 @@ func validMCSConnect(mcs []byte, kind byte) bool {
 }
 
 func (g *rdpHandshake) attach() error {
-	for _, want := range [][]byte{{4, 1, 0, 1, 0}, {0x28}} {
+	for index, want := range [][]byte{{4, 1, 0, 1, 0}, {0x28}} {
+		if index == 0 {
+			g.stage(rdpStageClientErectDomain)
+		} else {
+			g.stage(rdpStageClientAttachUser)
+		}
 		request, body, err := g.read(g.front)
 		if err != nil {
 			return err
@@ -191,6 +245,7 @@ func (g *rdpHandshake) attach() error {
 			return err
 		}
 	}
+	g.stage(rdpStageBackendAttachUser)
 	reply, body, err := g.read(g.backend)
 	if err != nil {
 		return err
@@ -198,6 +253,8 @@ func (g *rdpHandshake) attach() error {
 	if !bytes.Equal(body, []byte{0x2e, 0, 0, 0}) {
 		return ErrAuthentication
 	}
+
+	g.stage(rdpStageClientAttachConfirm)
 
 	return writePacket(g.front, reply)
 }

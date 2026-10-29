@@ -21,18 +21,19 @@ import (
 
 // Server serves HTTPS and TLS-protected RDP on one TCP listener.
 type Server struct {
-	config      Config
-	tls         *tls.Config
-	store       sessionStore
-	authSlots   chan struct{}
-	served      atomic.Bool
-	uploading   atomic.Bool
-	mu          sync.Mutex
-	listener    net.Listener
-	connections map[*trackedConn]struct{}
-	admission   connectionAdmission
-	requests    sync.WaitGroup
-	draining    bool
+	config         Config
+	tls            *tls.Config
+	store          sessionStore
+	rdpDiagnostics rdpDiagnosticLog
+	authSlots      chan struct{}
+	served         atomic.Bool
+	uploading      atomic.Bool
+	mu             sync.Mutex
+	listener       net.Listener
+	connections    map[*trackedConn]struct{}
+	admission      connectionAdmission
+	requests       sync.WaitGroup
+	draining       bool
 }
 
 // New validates configuration and loads the HTTPS/RDP certificate.
