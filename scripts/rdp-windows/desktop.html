@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>devbox-kvm Windows RDP test desktop</title>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { font: 16px sans-serif; }
+    #quadrants {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 0;
+    }
+    .quadrant { position: relative; min-width: 0; min-height: 0; }
+    .label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 4px 6px;
+      color: white;
+      background: black;
+    }
+    #status {
+      position: fixed;
+      bottom: 8px;
+      left: 8px;
+      margin: 0;
+      padding: 4px 6px;
+      color: white;
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <!-- Keep labels away from the four quarter-screen sample points. -->
+  <main id="quadrants" aria-label="RDP rendering and keyboard test">
+    <div class="quadrant" id="top-left"><span class="label">Top left</span></div>
+    <div class="quadrant" id="top-right"><span class="label">Top right</span></div>
+    <div class="quadrant" id="bottom-left"><span class="label">Bottom left</span></div>
+    <div class="quadrant" id="bottom-right"><span class="label">Bottom right</span></div>
+  </main>
+  <p id="status" role="status"></p>
+  <script>
+    "use strict";
+    (() => {
+      const quadrants = ["top-left", "top-right", "bottom-left", "bottom-right"]
+        .map((id) => document.getElementById(id));
+      const patterns = [
+        ["rgb(220, 40, 40)", "rgb(40, 200, 60)", "rgb(40, 80, 220)", "rgb(220, 190, 40)"],
+        ["rgb(40, 80, 220)", "rgb(220, 190, 40)", "rgb(220, 40, 40)", "rgb(40, 200, 60)"],
+      ];
+      let state = 0;
+      function render() {
+        quadrants.forEach((quadrant, index) => {
+          quadrant.style.backgroundColor = patterns[state][index];
+        });
+        document.getElementById("status").textContent =
+          "devbox-kvm RDP CI · state " + state + " · F8 switches the colors";
+        document.body.dataset.state = String(state);
+      }
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "F8") return;
+        event.preventDefault();
+        if (event.repeat) return;
+        state = 1 - state;
+        render();
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

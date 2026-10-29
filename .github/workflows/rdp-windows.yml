@@ -1,0 +1,62 @@
+name: Windows-only RDP compatibility
+
+# Production Go RDP/AVC code and Microsoft's client run on the same Windows VM.
+# No external gateways, KVM, credentials, GitHub environment, or secrets needed.
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Windows runner image
+        type: choice
+        options: [windows-2022, windows-2025]
+        default: windows-2022
+      mode:
+        description: Local RDP graphics mode(s)
+        type: choice
+        options: [both, h264, bitmap]
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: ${{ fromJSON(inputs.mode == 'both' && '["h264","bitmap"]' || inputs.mode == 'h264' && '["h264"]' || '["bitmap"]') }}
+    env:
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Test local server
+        run: go test ./scripts/rdp-windows/server
+      - name: Compile and test Microsoft client and orchestration
+        shell: pwsh
+        run: ./scripts/rdp-windows/Test.ps1
+      - name: Build local production-protocol test server
+        shell: pwsh
+        run: go build -o "$env:RUNNER_TEMP/rdp-server.exe" ./scripts/rdp-windows/server
+      - name: Verify localhost rendering, input, and session stability
+        shell: pwsh
+        env:
+          RDP_TEST_MODE: ${{ matrix.mode }}
+          RDP_TEST_OUTPUT: ${{ runner.temp }}/rdp-local-results
+        run: ./scripts/rdp-windows/RunLocal.ps1
+      - name: Upload localhost test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-only-rdp-${{ inputs.runner }}-${{ matrix.mode }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/rdp-local-results/*.json
+            ${{ runner.temp }}/rdp-local-results/*.png
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,0 +1,93 @@
+name: Windows RDP gateway compatibility
+
+# Deliberately not a PR or release gate. These tests contact dedicated, already
+# deployed Linux gateways; checking out a commit does not deploy that commit.
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Windows client image (not the Linux/KVM server)
+        type: choice
+        options: [windows-2022, windows-2025]
+        default: windows-2022
+      mode:
+        description: Preconfigured test target(s)
+        type: choice
+        options: [both, h264, bitmap]
+        default: both
+      confirm_isolated_target:
+        description: Targets and accounts are dedicated to testing, not production
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+# A new download revokes a previous grant for the same account and VM.
+concurrency:
+  group: windows-rdp-compatibility
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 10
+    steps:
+      - name: Require a trusted branch and explicit test-target confirmation
+        shell: pwsh
+        env:
+          TEST_REF: ${{ github.ref }}
+          TEST_CONFIRMED: ${{ inputs.confirm_isolated_target }}
+        run: |
+          if ($env:TEST_REF -ne 'refs/heads/main' -or $env:TEST_CONFIRMED -ne 'true') {
+            throw 'Run from main and confirm that the targets are isolated test systems.'
+          }
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test orchestration, profile parsing, and pixel checks without credentials
+        shell: pwsh
+        run: ./scripts/rdp-windows/Test.ps1
+      - name: Test guest fixture
+        run: node --test scripts/rdp-windows/desktop.test.cjs
+
+  smoke:
+    needs: validate
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 10
+    environment: rdp-compatibility
+    strategy:
+      fail-fast: false
+      # Serialize to avoid overlapping input when targets accidentally share a VM.
+      max-parallel: 1
+      matrix:
+        mode: ${{ fromJSON(inputs.mode == 'both' && '["h264","bitmap"]' || inputs.mode == 'h264' && '["h264"]' || '["bitmap"]') }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build Microsoft client harness
+        shell: pwsh
+        run: ./scripts/rdp-windows/Build.ps1
+      - name: Verify rendered desktop and keyboard round trip
+        shell: pwsh
+        env:
+          RDP_TEST_URL: ${{ matrix.mode == 'h264' && vars.RDP_TEST_H264_URL || vars.RDP_TEST_BITMAP_URL }}
+          RDP_TEST_VM_ID: ${{ matrix.mode == 'h264' && vars.RDP_TEST_H264_VM_ID || vars.RDP_TEST_BITMAP_VM_ID }}
+          RDP_TEST_USERNAME: ${{ secrets.RDP_TEST_USERNAME }}
+          RDP_TEST_PASSWORD: ${{ secrets.RDP_TEST_PASSWORD }}
+          RDP_TEST_MODE: ${{ matrix.mode }}
+          RDP_TEST_OUTPUT: ${{ runner.temp }}/rdp-results
+        run: ./scripts/rdp-windows/Run.ps1
+      - name: Upload test-only screenshots and sanitized diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-rdp-${{ inputs.runner }}-${{ matrix.mode }}-${{ github.run_attempt }}
+          # Never upload the temporary profile, browser cookies, or process dumps.
+          path: |
+            ${{ runner.temp }}/rdp-results/*.json
+            ${{ runner.temp }}/rdp-results/*.png
+          retention-days: 7
+          if-no-files-found: warn
