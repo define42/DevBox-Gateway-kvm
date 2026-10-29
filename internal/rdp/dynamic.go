@@ -156,7 +156,7 @@ func (s *Session) readDynamic(data []byte) error {
 		g.mu.Lock()
 		defer g.mu.Unlock()
 		if !g.closed {
-			return s.readGraphics(message)
+			return withDiagnosticStage(diagnosticStageGraphics, s.readGraphics(message))
 		}
 	case 4: // DYNVC_CLOSE
 		if len(payload) != 0 {

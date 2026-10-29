@@ -33,6 +33,15 @@ const (
 	rdpResizeDelay   = 150 * time.Millisecond
 	rdpH264Slices    = 4
 	rdpBaseFrameRate = 30
+
+	rdpStageNegotiation = "negotiation"
+	rdpStageAudio       = "audio"
+	rdpStageDisplay     = "display_control"
+	rdpStageGraphics    = "graphics"
+	rdpStagePointer     = "pointer"
+	rdpStageSessionRead = "session_read"
+	rdpStageFrameWrite  = "frame_write"
+	rdpStageAudioWrite  = "audio_write"
 )
 
 var (
@@ -42,6 +51,62 @@ var (
 	errRDPGatewayParent   = errors.New("rdp: gateway parent identity changed")
 	errRDPPeerIdentity    = errors.New("rdp: connection peer is not the gateway")
 )
+
+type rdpBackendStageError struct {
+	stage string
+	err   error
+}
+
+func (e *rdpBackendStageError) Error() string { return e.err.Error() }
+func (e *rdpBackendStageError) Unwrap() error { return e.err }
+
+func withRDPBackendStage(stage string, err error) error {
+	if err == nil {
+		return nil
+	}
+	var staged *rdpBackendStageError
+	if errors.As(err, &staged) {
+		return err
+	}
+
+	return &rdpBackendStageError{stage: stage, err: err}
+}
+
+func rdpBackendStage(err error, fallback string) string {
+	var staged *rdpBackendStageError
+	if errors.As(err, &staged) {
+		return staged.stage
+	}
+	if stage, ok := rdp.DiagnosticStage(err); ok {
+		return stage
+	}
+
+	return fallback
+}
+
+type rdpBackendTrace struct{ stage string }
+
+func (t *rdpBackendTrace) observe(stage string) { t.stage = stage }
+
+func rdpFrameStage(graphics bool) string {
+	if graphics {
+		return rdpStageGraphics
+	}
+
+	return rdpStageFrameWrite
+}
+
+func rdpFrameTerminalError(session *rdp.Session, err error) error {
+	return withRDPBackendStage(rdpFrameStage(session.GraphicsReady()), err)
+}
+
+func rdpOriginatingError(readErr, writerErr error) error {
+	if writerErr != nil && (errors.Is(readErr, io.EOF) || errors.Is(readErr, net.ErrClosed)) {
+		return writerErr
+	}
+
+	return readErr
+}
 
 // RDPConfig selects the gateway listener, identity, server certificate, H.264
 // AVC420 graphics, and audio playback.
@@ -367,6 +432,8 @@ func rdpPeerCredentials(conn *net.UnixConn) (*unix.Ucred, error) {
 }
 
 func (d *RDPDisplay) handleConn(conn net.Conn) {
+	started := time.Now()
+	trace := rdpBackendTrace{stage: rdpStageNegotiation}
 	defer d.wg.Done()
 	defer func() {
 		_ = conn.Close()
@@ -375,47 +442,55 @@ func (d *RDPDisplay) handleConn(conn net.Conn) {
 		d.connMu.Unlock()
 	}()
 
-	if err := d.serveConn(conn); err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
+	err := d.serveConn(conn, &trace)
+	stage := rdpBackendStage(err, trace.stage)
+	d.telemetry.RecordRDPSession(stage, err, time.Since(started))
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
 		log.Printf("rdp: client %s: %v", conn.RemoteAddr(), err)
 	}
 }
 
-func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
+func (d *RDPDisplay) serveConn(conn net.Conn, trace *rdpBackendTrace) (serveErr error) {
 	conn = trackRDPBandwidth(conn, d.telemetry)
 	input, _, _ := d.inputSnapshot()
 	relativePointer := supportsRelativePointer(input)
-	var options []rdp.AcceptOption
+	options := []rdp.AcceptOption{rdp.WithDiagnosticStage(trace.observe)}
 	if relativePointer {
 		options = append(options, rdp.WithRelativePointer())
 	}
 	session, err := rdp.Accept(conn, d.tls, 1024, 768, options...)
 	if err != nil {
-		return err
+		return withRDPBackendStage(trace.stage, err)
 	}
 	defer session.Close()
 	withAudio := false
+	trace.observe(rdpStageAudio)
 	if d.audio != nil {
 		withAudio, err = session.EnableAudio()
 		if err != nil {
-			return err
+			return withRDPBackendStage(rdpStageAudio, err)
 		}
 	}
+	trace.observe(rdpStageDisplay)
 	if _, err := session.BeginDisplayControl(); err != nil {
-		return err
+		return withRDPBackendStage(rdpStageDisplay, err)
 	}
 
+	trace.observe(rdpStageGraphics)
 	if d.h264 {
 		if _, err := session.BeginGraphics(); err != nil {
-			return err
+			return withRDPBackendStage(rdpStageGraphics, err)
 		}
 	}
 	d.addResizeViewer(session)
 	defer d.removeResizeViewer(session)
 
 	// Software cursors remain in the image until the GPU supplies a shape.
+	trace.observe(rdpStagePointer)
 	if err := session.WritePointer(nil, 0, 0); err != nil {
-		return err
+		return withRDPBackendStage(rdpStagePointer, err)
 	}
+	trace.observe(rdpStageSessionRead)
 
 	interaction := newRDPInteraction()
 	decoder := rdp.InputDecoder{AllowRelativePointer: session.RelativePointerSupported()}
@@ -424,24 +499,26 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 	stop := make(chan struct{})
 	writerDone := make(chan error, 2)
 	writers := 1
+	completedWriters := 0
 	var suppressed atomic.Bool
 	go func() {
-		writerDone <- d.writeFrames(conn, session, stop, refresh, &suppressed, interaction)
+		err := d.writeFrames(conn, session, stop, refresh, &suppressed, interaction)
+		writerDone <- rdpFrameTerminalError(session, err)
 		_ = session.Close()
 	}()
 	if withAudio {
 		writers++
 		go func() {
-			writerDone <- d.writeAudio(session, stop)
+			writerDone <- withRDPBackendStage(rdpStageAudioWrite, d.writeAudio(session, stop))
 			_ = session.Close()
 		}()
 	}
 	defer func() {
 		close(stop)
 		_ = session.Close()
-		for range writers {
+		for ; completedWriters < writers; completedWriters++ {
 			writerErr := <-writerDone
-			if writerErr != nil && (serveErr == nil || errors.Is(serveErr, io.EOF) || errors.Is(serveErr, net.ErrClosed)) {
+			if writerErr != nil && serveErr == nil {
 				serveErr = writerErr
 			}
 		}
@@ -451,7 +528,16 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 	for {
 		data, fastPath, err := session.ReadPacket()
 		if err != nil {
-			return err
+			readErr := withRDPBackendStage(rdpBackendStage(err, rdpStageSessionRead), err)
+			select {
+			case writerErr := <-writerDone:
+				completedWriters++
+
+				return rdpOriginatingError(readErr, writerErr)
+			default:
+			}
+
+			return readErr
 		}
 		if !fastPath && len(data) >= 18 && binary.LittleEndian.Uint16(data[2:])&15 == 7 {
 			switch data[14] {
@@ -472,7 +558,7 @@ func (d *RDPDisplay) serveConn(conn net.Conn) (serveErr error) {
 
 		events, err := decoder.Decode(data, fastPath)
 		if err != nil {
-			return err
+			return withRDPBackendStage(rdpStageSessionRead, err)
 		}
 		if !relativePointerLogged && slices.ContainsFunc(events, func(event rdp.InputEvent) bool {
 			return event.Kind == rdp.InputRelativePointer
@@ -566,12 +652,12 @@ func (d *RDPDisplay) writeFrames(
 	for {
 		if resizeReady && session.DisplayReady() {
 			if err := d.resizeClient(session, pending); err != nil {
-				return err
+				return withRDPBackendStage(rdpStageDisplay, err)
 			}
 			resizeReady = false
 		}
 		if err := writer.updateSize(); err != nil {
-			return err
+			return withRDPBackendStage(rdpStageFrameWrite, err)
 		}
 		if writer.updateGraphics(conn) {
 			writer.force = true
@@ -586,7 +672,7 @@ func (d *RDPDisplay) writeFrames(
 			d.readyOnce.Do(func() { close(d.ready) })
 			_, guestWidth, guestHeight := d.inputSnapshot()
 			if err := writer.updatePointer(cursor, guestWidth, guestHeight); err != nil {
-				return err
+				return withRDPBackendStage(rdpStagePointer, err)
 			}
 		}
 		changed, published := d.frameChanged(writer.sequence, writer.force)
@@ -597,7 +683,7 @@ func (d *RDPDisplay) writeFrames(
 		if pendingFrame && !ackBlocked {
 			paced, err = writer.writeWhenReady(d.framebuffer, timer)
 			if err != nil {
-				return err
+				return withRDPBackendStage(rdpFrameStage(writer.graphics), err)
 			}
 		}
 		if writer.stats.telemetry != nil {

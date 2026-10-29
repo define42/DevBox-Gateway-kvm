@@ -153,5 +153,11 @@ func performanceReportNotes() []string {
 		"Client Info validation failures include a fixed reason code, such as empty_password or " +
 			"unsupported_security_flags. A failure at client_info_validation is a rejection before the " +
 			"password authenticator is called, not evidence that a directory password check failed.",
+		"performance.rdpSessions retains the worker's last four ended RDP sessions, including failures before " +
+			"desktop activation. Wait at least five seconds after a failure for the next cached sample. " +
+			"Entries survive disconnects and idle samples but reset on worker restart. sequence is worker-local, " +
+			"not a gateway attemptId; correlate by VM and UTC timestamp. Only fixed stages and sanitized error " +
+			"categories are included. An absent field can mean no recorded attempts or an older worker; " +
+			"deploy the update and restart the affected VM to enable instrumentation.",
 	}
 }

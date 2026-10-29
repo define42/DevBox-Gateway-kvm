@@ -55,6 +55,7 @@ type queuedPacket struct {
 
 type acceptOptions struct {
 	relativePointer bool
+	diagnosticStage func(string)
 }
 
 // AcceptOption configures optional capabilities advertised during activation.
@@ -64,6 +65,13 @@ type AcceptOption func(*acceptOptions)
 // Callers must have an input sink that can consume relative pointer events.
 func WithRelativePointer() AcceptOption {
 	return func(options *acceptOptions) { options.relativePointer = true }
+}
+
+// WithDiagnosticStage observes fixed, non-sensitive backend handshake stages.
+// It is intended for bounded operational telemetry. The callback is invoked
+// synchronously by Accept and never receives packet or error data.
+func WithDiagnosticStage(observe func(string)) AcceptOption {
+	return func(options *acceptOptions) { options.diagnosticStage = observe }
 }
 
 // RelativePointerSupported reports whether both peers negotiated relative input.
@@ -84,6 +92,7 @@ func Accept(conn net.Conn, config *tls.Config, width, height int, options ...Acc
 			option(&opts)
 		}
 	}
+	observeDiagnosticStage(opts.diagnosticStage, diagnosticStageNegotiation)
 	if err := conn.SetDeadline(time.Now().Add(15 * time.Second)); err != nil {
 		return nil, err
 	}
@@ -117,11 +126,13 @@ func Accept(conn net.Conn, config *tls.Config, width, height int, options ...Acc
 	if requested&1 == 0 {
 		return nil, errors.New("rdp: client must support TLS security")
 	}
+	observeDiagnosticStage(opts.diagnosticStage, diagnosticStageTLS)
 	secured := tls.Server(conn, config)
 	if err := secured.Handshake(); err != nil {
 		return nil, fmt.Errorf("rdp TLS: %w", err)
 	}
 	s := &Session{Width: width, Height: height, BitsPerPixel: 24, conn: secured}
+	observeDiagnosticStage(opts.diagnosticStage, diagnosticStageMCSConnect)
 	mcs, err := readMCS(secured)
 	if err != nil {
 		return nil, err
@@ -141,7 +152,7 @@ func Accept(conn net.Conn, config *tls.Config, width, height int, options ...Acc
 	}
 	s.storeSize(s.Width, s.Height)
 	s.audio = &audioState{channel: client.audioChannel}
-	if err := s.activate(client.channels); err != nil {
+	if err := s.activate(client.channels, opts.diagnosticStage); err != nil {
 		return nil, fmt.Errorf("rdp activation: %w", err)
 	}
 	if err := conn.SetDeadline(time.Time{}); err != nil {
@@ -169,12 +180,35 @@ type activation struct {
 	channels                                       int
 	erected, attached, info, confirmed, controlled bool
 	reactivation                                   bool
+	observe                                        func(string)
 }
 
-func (s *Session) activate(channels int) error {
+func (a *activation) stage(value string) {
+	if a.observe != nil {
+		a.observe(value)
+	}
+}
+
+func (a *activation) nextStage() string {
+	switch {
+	case !a.erected:
+		return diagnosticStageActivationErectDomain
+	case !a.attached:
+		return diagnosticStageActivationAttachUser
+	case !a.info:
+		return diagnosticStageActivationChannelJoin
+	case !a.confirmed:
+		return diagnosticStageActivationConfirmActive
+	default:
+		return diagnosticStageActivationFinalize
+	}
+}
+
+func (s *Session) activate(channels int, observe func(string)) error {
 	s.joined = make(map[uint16]bool)
-	state := activation{session: s, channels: channels}
+	state := activation{session: s, channels: channels, observe: observe}
 	for packets := 0; packets < 256; packets++ {
+		state.stage(state.nextStage())
 		packet, fast, err := readTransport(s.conn)
 		if err != nil {
 			return err
@@ -261,6 +295,7 @@ func (a *activation) handle(mcs []byte) (bool, error) {
 func (a *activation) globalData(data []byte) (bool, error) {
 	s := a.session
 	if !a.info {
+		a.stage(diagnosticStageActivationClientInfo)
 		if err := validateClientInfo(data); err != nil {
 			return false, err
 		}
@@ -271,9 +306,12 @@ func (a *activation) globalData(data []byte) (bool, error) {
 		}
 		a.info = true
 		license := []byte{0x80, 0, 0, 0, 0xff, 3, 16, 0, 7, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0}
+		a.stage(diagnosticStageActivationLicense)
 		if err := s.writeGlobal(license); err != nil {
 			return false, err
 		}
+
+		a.stage(diagnosticStageActivationDemandActive)
 
 		return false, s.writeGlobal(s.demandActive())
 	}
@@ -282,6 +320,7 @@ func (a *activation) globalData(data []byte) (bool, error) {
 		return false, err
 	}
 	if kind == 3 {
+		a.stage(diagnosticStageActivationConfirmActive)
 		if a.confirmed {
 			return false, errors.New("duplicate Confirm Active")
 		}
@@ -295,7 +334,11 @@ func (a *activation) globalData(data []byte) (bool, error) {
 
 		return false, s.WriteDataPDU(0x14, []byte{4, 0, 0, 0, 0, 0, 0, 0})
 	}
-	if !a.confirmed || kind != 7 || len(data) < 18 || data[15] != 0 {
+	if !a.confirmed {
+		return false, errors.New("unexpected activation Share Data")
+	}
+	a.stage(diagnosticStageActivationFinalize)
+	if kind != 7 || len(data) < 18 || data[15] != 0 {
 		return false, errors.New("unexpected activation Share Data")
 	}
 
@@ -362,7 +405,7 @@ func (s *Session) ReadPacket() ([]byte, bool, error) {
 		}
 		packet, fast, err := readTransport(s.conn)
 		if err != nil {
-			return packet, fast, err
+			return packet, fast, withDiagnosticStage(diagnosticStageSessionRead, err)
 		}
 		if fast {
 			if s.DisplayReady() {
@@ -376,42 +419,44 @@ func (s *Session) ReadPacket() ([]byte, bool, error) {
 		}
 		mcs, err := unwrapX224(packet)
 		if err != nil {
-			return nil, false, err
+			return nil, false, withDiagnosticStage(diagnosticStageSessionRead, err)
 		}
 		if len(mcs) > 0 && mcs[0]>>2 == 8 {
-			return nil, false, io.EOF
+			return nil, false, withDiagnosticStage(diagnosticStageSessionRead, io.EOF)
 		}
 		channel, data, err := parseSendData(mcs)
 		if err != nil {
-			return nil, false, err
+			return nil, false, withDiagnosticStage(diagnosticStageSessionRead, err)
 		}
 		if channel != globalChannel {
 			if channel < 1004 || !s.joined[channel] {
-				return nil, false, errors.New("rdp: data on unknown static channel")
+				return nil, false, withDiagnosticStage(
+					diagnosticStageSessionRead, errors.New("rdp: data on unknown static channel"),
+				)
 			}
 
 			if err := s.readAudioChannel(channel, data); err != nil {
-				return nil, false, err
+				return nil, false, withDiagnosticStage(diagnosticStageAudio, err)
 			}
 			if err := s.readDynamicChannel(channel, data); err != nil {
-				return nil, false, err
+				return nil, false, withDiagnosticStage(diagnosticStageDynamicChannels, err)
 			}
 
 			continue
 		}
 		if handled, err := s.readReactivation(data); handled || err != nil {
 			if err != nil {
-				return nil, false, err
+				return nil, false, withDiagnosticStage(diagnosticStageDisplayControl, err)
 			}
 
 			continue
 		}
 		kind, err := shareType(data)
 		if err != nil {
-			return nil, false, err
+			return nil, false, withDiagnosticStage(diagnosticStageSessionRead, err)
 		}
 		if kind == 6 {
-			return nil, false, io.EOF
+			return nil, false, withDiagnosticStage(diagnosticStageSessionRead, io.EOF)
 		}
 
 		return data, false, nil

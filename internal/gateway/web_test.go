@@ -458,24 +458,34 @@ func TestDownloadedTokenSingleUseIPBoundAndLogoutRevocable(t *testing.T) {
 		t.Fatal("no routing token")
 	}
 	token, _, _ := strings.Cut(rest, "\r\n")
-	if !strings.Contains(w.Body.String(), "username:s:alice\r\n") ||
-		!strings.Contains(w.Body.String(), "prompt for credentials:i:1\r\n") ||
-		!strings.Contains(w.Body.String(), "prompt for credentials on client:i:1\r\n") {
-		t.Fatal("RDP file must contain the login name and request credentials")
+	body := w.Body.String()
+	settings := make(map[string]string)
+	for _, line := range strings.Split(strings.TrimSuffix(body, "\r\n"), "\r\n") {
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) != 3 {
+			t.Fatalf("invalid RDP setting %q", line)
+		}
+		if _, exists := settings[parts[0]]; exists {
+			t.Fatalf("duplicate RDP setting %q", parts[0])
+		}
+		settings[parts[0]] = parts[1] + ":" + parts[2]
 	}
-	if strings.Contains(
-		w.Body.String(),
-		"password",
-	) ||
-		!strings.Contains(
-			w.Body.String(),
-			"enablecredsspsupport:i:0",
-		) ||
-		!strings.Contains(
-			w.Body.String(),
-			"full address:s:gateway.test:443",
-		) {
-		t.Fatal("invalid RDP file")
+	wantSettings := map[string]string{
+		"full address":                     "s:gateway.test:443",
+		"username":                         "s:alice",
+		"authentication level":             "i:2",
+		"enablecredsspsupport":             "i:1",
+		"negotiate security layer":         "i:1",
+		"prompt for credentials":           "i:1",
+		"prompt for credentials on client": "i:1",
+	}
+	for name, want := range wantSettings {
+		if got := settings[name]; got != want {
+			t.Errorf("RDP setting %q = %q, want %q", name, got, want)
+		}
+	}
+	if strings.Contains(body, "password") || strings.Contains(body, "public mode:") {
+		t.Fatal("RDP file must not contain a password or public-mode setting")
 	}
 	if _, _, _, _, ok := s.store.pendingGrant(context.Background(), token, "127.0.0.2"); ok {
 		t.Fatal("different IP consumed token")

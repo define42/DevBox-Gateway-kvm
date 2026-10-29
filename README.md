@@ -161,7 +161,9 @@ for directory configuration and group membership.
    Linux and cloud-init may still be starting.
 4. Select **RDP**, then open the downloaded file in your client within two minutes.
    The file includes your LDAP login name. Enter your current gateway password
-   when the RDP client prompts for credentials.
+   when the RDP client prompts for credentials. The profile leaves client-side
+   CredSSP support enabled so Microsoft Remote Desktop can collect credentials,
+   but the gateway selects TLS and does not implement server-side NLA.
 5. At the Linux graphical login, enter the username and password used to sign
    in to the gateway when you created the VM.
 
@@ -206,10 +208,22 @@ values, raw flags, or packet lengths.
 
 The report identifies the running `devbox-kvm` version and includes commit and
 build-date metadata when the binary contains it; unversioned development builds
-report `devel`. The **Download diagnostics** action on **My DevBoxes** remains
-owner-scoped through `/perf` and does not expose other users' attempts. An
-`authenticated` RDP event means gateway credential validation succeeded; it
-does not prove that the guest desktop was displayed.
+report `devel`. When worker diagnostics are available, the administrator report
+also includes cached `rdpWorkers.vms[].sessions` snapshots. The same history is
+exposed to an owner as `VMPerformance.rdpSessions`. Each worker keeps only its
+four most recent terminal RDP sessions, with a worker-local sequence, UTC
+timestamp, last stage, outcome, sanitized error, and duration in milliseconds.
+These records remain only until bounded eviction or worker restart; their
+sequence values are not gateway attempt IDs. Wait at least five seconds after
+reproducing a failure so the next worker heartbeat can update the cache.
+
+The **Download diagnostics** action on **My DevBoxes** remains owner-scoped
+through `/perf` and does not expose other users' attempts. An `authenticated` RDP
+event means gateway credential validation succeeded; it does not prove that the
+guest desktop was displayed. After upgrading this instrumentation, redeploy the
+gateway and restart each affected VM worker. The export does not collect raw
+worker standard error. A reported Microsoft client error `0x1304` is still under
+investigation and is not fixed merely by the credential-profile change.
 
 ### Build and run locally in Docker
 
@@ -351,11 +365,12 @@ This is currently a **single-host application**. VM processes run under the
 same host account, with a separate Landlock filesystem/IPC domain and seccomp
 filter for each managed worker. Host users must still be trusted. Managed guest
 networking restricts private ranges and visible host interface subnets; see the
-[worker sandbox](docs/worker-sandbox.md) and [network policy](docs/runtime.md#networking). The RDP
-implementation uses TLS and does not support NLA, clipboard/drive redirection,
-or multiple monitors. Graphics use a 2D virtio-gpu framebuffer; host GPU
-acceleration and guest 3D command processing are not supported. Audio supports
-playback only, not microphone capture.
+[worker sandbox](docs/worker-sandbox.md) and [network policy](docs/runtime.md#networking). The
+downloaded RDP profile lets the client advertise CredSSP, but the gateway selects
+TLS and does not implement server-side NLA. It also does not support
+clipboard/drive redirection or multiple monitors. Graphics use a 2D virtio-gpu
+framebuffer; host GPU acceleration and guest 3D command processing are not
+supported. Audio supports playback only, not microphone capture.
 
 The migrated DevBox workflow includes authentication, provisioning, RDP access,
 and administrator image/VM management. The former application's libvirt, Splunk,

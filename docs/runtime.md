@@ -372,8 +372,11 @@ The executable may be called `xfreerdp3`. Enter your current gateway password
 when prompted, then sign in to Linux using the guest account. Download a fresh
 file when reconnecting. The gateway checks the routing grant, account credentials,
 and VM ownership before granting console access; see the
-[gateway authentication flow](gateway.md). NLA/CredSSP is unsupported; use TLS
-as configured in the downloaded file.
+[gateway authentication flow](gateway.md). The file enables client-side CredSSP
+support so the client can use its normal credential prompt, while retaining
+`authentication level:i:2` for gateway certificate authentication. The client
+may advertise CredSSP, but the gateway does not implement server-side NLA and
+selects TLS; credentials then arrive in the TLS-protected Client Info packet.
 
 Each managed VM exposes only a private Unix socket, not a TCP listener. The
 backend verifies the connecting gateway process using kernel peer credentials.
@@ -637,11 +640,37 @@ running version and Go toolchain and includes commit and build-date metadata
 when embedded in the binary. An unversioned source build reports `devel` rather
 than guessing a release from the checkout.
 
+When cached worker telemetry is available, the administrator download also
+contains an `rdpWorkers` object with `state`, `truncated`, and `vms`. Each VM entry
+reports its `vmId`, availability state, optional `sampledAt`, and `sessions`.
+`state` distinguishes `available`, `unavailable`, and `unsupported` for the
+collection; an individual VM is `live`, `stale`, `unavailable`, `stopped`, or
+`starting`.
+
+The corresponding `VMPerformance.rdpSessions` value contains at most the four
+latest terminal sessions from that VM worker. Each record has a worker-local
+`sequence`, UTC `timestamp`, last `stage`, `outcome`, sanitized `error`, and
+`durationMs`. A new terminal session evicts the oldest record, and all records
+disappear when the worker restarts. These sequence values are not gateway attempt
+IDs and cannot be used to join the two event streams.
+
 The user dashboard continues to download `/perf?download=1`, which is scoped to
 the signed-in owner's VMs and attributable RDP events; administrators do not get
 the pre-routing, all-user log through `/perf`. An `authenticated` outcome means
 the gateway accepted the supplied credentials. It does not establish that RDP
 activation completed or that the client displayed the guest desktop.
+
+Worker telemetry reaches the gateway on the existing five-second heartbeat and
+the export reads that cache without contacting VM processes. Wait at least five
+seconds after reproducing a failure before downloading diagnostics. Redeploy the
+gateway and restart each affected VM after installing worker-session
+instrumentation; an old, still-running worker cannot report the new records. No
+session records can therefore mean an older worker or simply no completed RDP
+attempts. The export does not collect raw worker standard output or error.
+
+The credential-profile change addresses Microsoft client prompting only. A
+later client error `0x1304` remains under investigation and must not be treated
+as fixed by an `authenticated` event.
 
 `devbox-kvm probe` reports host KVM capabilities and supported CPUID information.
 For device debugging, set these environment variables to any nonempty value:
@@ -652,8 +681,9 @@ For device debugging, set these environment variables to any nonempty value:
 | `DEVBOX_KVM_TRACE_MMIO` | Unhandled guest MMIO accesses. |
 
 These trace variables are intended for direct developer boots. Gateway-managed
-workers discard standard output and standard error; use the gateway performance
-view and diagnostics download for managed desktops.
+workers discard standard output and standard error; gateway diagnostics contain
+only structured, sanitized records. Use the gateway performance view and
+diagnostics download for managed desktops.
 
 Virtio queue kicks complete inside KVM (ioeventfd), so they no longer appear as
 MMIO exits. Guests that enable MSI-X receive one interrupt vector per queue

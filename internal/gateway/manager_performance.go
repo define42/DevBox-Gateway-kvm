@@ -23,26 +23,27 @@ const performanceStaleAfter = 3 * telemetry.Interval
 // PayloadBytes excludes transport overhead; Network includes RDP transport bytes.
 // All rates use the measured sample interval.
 type VMPerformance struct {
-	State                 string                 `json:"state"`
-	SampledAt             *time.Time             `json:"sampledAt"`
-	SampleIntervalSeconds *float64               `json:"sampleIntervalSeconds"`
-	CPUPercent            *float64               `json:"cpuPercent"`
-	ResidentBytes         *uint64                `json:"residentBytes"`
-	GuestMemoryBytes      uint64                 `json:"guestMemoryBytes"`
-	VCPUs                 int                    `json:"vcpus"`
-	RequestedEncoder      string                 `json:"requestedEncoder"`
-	RDPProfile            string                 `json:"rdpProfile"`
-	Connections           uint32                 `json:"connections"`
-	Encoder               string                 `json:"encoder"`
-	FramesSent            uint64                 `json:"framesSent"`
-	FramesPerSecond       *float64               `json:"framesPerSecond"`
-	PayloadBytes          uint64                 `json:"payloadBytes"`
-	PayloadBytesPerSecond *float64               `json:"payloadBytesPerSecond"`
-	EncodeMs              *float64               `json:"encodeMs"`
-	WriteMs               *float64               `json:"writeMs"`
-	ACKMs                 *float64               `json:"ackMs"`
-	Pipeline              *VMPipelinePerformance `json:"pipeline"`
-	Network               *VMNetworkPerformance  `json:"network"`
+	State                 string                      `json:"state"`
+	SampledAt             *time.Time                  `json:"sampledAt"`
+	SampleIntervalSeconds *float64                    `json:"sampleIntervalSeconds"`
+	CPUPercent            *float64                    `json:"cpuPercent"`
+	ResidentBytes         *uint64                     `json:"residentBytes"`
+	GuestMemoryBytes      uint64                      `json:"guestMemoryBytes"`
+	VCPUs                 int                         `json:"vcpus"`
+	RequestedEncoder      string                      `json:"requestedEncoder"`
+	RDPProfile            string                      `json:"rdpProfile"`
+	Connections           uint32                      `json:"connections"`
+	Encoder               string                      `json:"encoder"`
+	FramesSent            uint64                      `json:"framesSent"`
+	FramesPerSecond       *float64                    `json:"framesPerSecond"`
+	PayloadBytes          uint64                      `json:"payloadBytes"`
+	PayloadBytesPerSecond *float64                    `json:"payloadBytesPerSecond"`
+	EncodeMs              *float64                    `json:"encodeMs"`
+	WriteMs               *float64                    `json:"writeMs"`
+	ACKMs                 *float64                    `json:"ackMs"`
+	Pipeline              *VMPipelinePerformance      `json:"pipeline"`
+	Network               *VMNetworkPerformance       `json:"network"`
+	RDPSessions           []telemetry.RDPSessionEvent `json:"rdpSessions,omitempty"`
 }
 
 // PerformanceBackend optionally supplies private in-memory worker telemetry.
@@ -216,7 +217,8 @@ func performanceAdvances(previous, current telemetry.Snapshot) bool {
 	if current.CPUSeconds != nil && previous.CPUSeconds != nil && *current.CPUSeconds < *previous.CPUSeconds {
 		return false
 	}
-	if !current.Pipeline.MonotonicAfter(previous.Pipeline) || !networkAdvances(previous.Network, current.Network) {
+	if !current.Pipeline.MonotonicAfter(previous.Pipeline) || !networkAdvances(previous.Network, current.Network) ||
+		!telemetry.RDPSessionsMonotonicAfter(previous.RDPSessions, current.RDPSessions) {
 		return false
 	}
 
@@ -236,6 +238,7 @@ func (p *processPerformance) snapshot(now time.Time) VMPerformance {
 		State: "live", SampledAt: &received, Connections: current.Connections,
 		Encoder: current.Encoder, FramesSent: current.FramesSent, PayloadBytes: current.PayloadBytes,
 		Pipeline: pipelinePerformance(previous, current), Network: networkPerformance(previous, current),
+		RDPSessions: cloneRDPSessionEvents(current.RDPSessions),
 	}
 	if now.Sub(received) > performanceStaleAfter {
 		result.State = "stale"

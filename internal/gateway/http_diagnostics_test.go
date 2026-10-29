@@ -100,7 +100,8 @@ func TestAdminDiagnosticsAuthorizationAndDownload(t *testing.T) {
 			if report.Version != 1 || report.Scope != "administrator" || len(report.Notes) == 0 ||
 				report.Application.Version == "" || report.Application.GoVersion == "" ||
 				report.GeneratedAt.Before(before) || report.GeneratedAt.After(after) ||
-				len(report.RDPLoginEvents) != 1 {
+				len(report.RDPLoginEvents) != 1 || report.RDPWorkers.State != "unsupported" ||
+				report.RDPWorkers.VMs == nil || len(report.RDPWorkers.VMs) != 0 {
 				t.Fatalf("invalid administrator report: %+v", report)
 			}
 			disposition := w.Header().Get("Content-Disposition")
@@ -202,7 +203,7 @@ func TestAdminDiagnosticsSchemaAndPrivacy(t *testing.T) {
 		t.Fatalf("diagnostic event metadata changed: %+v", report.RDPLoginEvents)
 	}
 	root := checkPerfJSONKeys(t, w.Body.Bytes(),
-		"version", "generatedAt", "scope", "application", "rdpLoginEvents", "notes")
+		"version", "generatedAt", "scope", "application", "rdpLoginEvents", "rdpWorkers", "notes")
 	checkDiagnosticJSONFields(t, root["application"],
 		[]string{"version", "goVersion"},
 		[]string{"version", "commit", "buildDate", "goVersion", "modified"})

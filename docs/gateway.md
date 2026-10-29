@@ -185,8 +185,13 @@ required.
 The authenticated `GET /perf` endpoint exports an owner-scoped JSON report for
 diagnosis, with the active encoder, configured vCPUs, a fixed pacing
 label, CPU/RSS, frame and payload rates, RDP bandwidth and transfer totals, and
-encoding/write/ACK timings. Use `/perf?download=1` to save it, or `/perf?vm=<id>&download=1` for one
-owned desktop. See
+encoding/write/ACK timings. Each current worker can also expose its four latest
+terminal RDP session records as `VMPerformance.rdpSessions`. A record contains a
+worker-local `sequence`, UTC `timestamp`, last `stage`, `outcome`, sanitized
+`error`, and `durationMs`; it remains in memory until one of the next sessions
+evicts it or that worker restarts. Worker sequence values are not gateway RDP
+attempt IDs. Use `/perf?download=1` to save the report, or
+`/perf?vm=<id>&download=1` for one owned desktop. See
 [performance diagnostics](performance.md) for collection and interpretation.
 
 Its additive `pipeline` object reports virtio transfer/flush work, framebuffer
@@ -230,12 +235,18 @@ The gateway checks ownership again when connecting and pins the private VM
 server's certificate. Even administrators can download RDP files only for their
 own VMs.
 
-Use TLS in the RDP client; NLA/CredSSP is not supported. Clients must send the
-entered password in the TLS-protected Client Info packet. The guest console accepts
-one RDP connection at a time. Managed VMs enable H.264, with bitmap fallback for
-clients without AVC420 support. AVC420 pacing is fixed at 30 FPS, rising to 60
-during left-button dragging when client feedback allows it. The boost ends on
-release or after 150 ms without drag movement. Bitmap fallback stays at 30 FPS.
+The downloaded profile sets `enablecredsspsupport:i:1`, allowing the client to
+advertise CredSSP and use its normal credential prompt. The gateway does not
+implement server-side NLA: protocol negotiation selects TLS, and the client sends
+the entered password in the TLS-protected Client Info packet. The profile retains
+`authentication level:i:2` so the client continues to authenticate the gateway's
+certificate; it contains neither a password nor a `public mode` setting.
+
+The guest console accepts one RDP connection at a time. Managed VMs enable H.264,
+with bitmap fallback for clients without AVC420 support. AVC420 pacing is fixed
+at 30 FPS, rising to 60 during left-button dragging when client feedback allows
+it. The boost ends on release or after 150 ms without drag movement. Bitmap
+fallback stays at 30 FPS.
 Display H.264 encoding uses four slices; the codec can use fewer for very small
 pictures. The cap is applied before copying the framebuffer for encoding,
 converting colors, and invoking the full-picture H.264 codec.
@@ -645,7 +656,10 @@ a compromised host account or a privileged host administrator.
 
 Managed worker standard output and error are discarded rather than written to
 persistent per-VM logs, so guest-controlled output cannot fill the state disk.
-Use the performance panel and gateway diagnostics for host-side troubleshooting.
+The diagnostic export contains only structured, sanitized worker records, not
+raw standard error. Use the performance panel and gateway diagnostics for
+host-side troubleshooting. After deploying diagnostic changes, restart affected
+VMs so their workers run the new binary.
 
 Managed VMs use `-net user-isolated`. They retain IPv4 DHCP/DNS and default to
 public internet TCP/UDP destinations. Visible host interface subnets, loopback,

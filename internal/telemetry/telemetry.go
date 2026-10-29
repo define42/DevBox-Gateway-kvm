@@ -42,6 +42,7 @@ type Snapshot struct {
 	ACKNanos       uint64            `json:"ackNanos"`
 	Pipeline       *PipelineSnapshot `json:"pipeline,omitempty"`
 	Network        *NetworkSnapshot  `json:"network,omitempty"`
+	RDPSessions    []RDPSessionEvent `json:"rdpSessions,omitempty"`
 }
 
 // Validate checks the fixed schema's value domain, not cumulative ordering.
@@ -71,6 +72,9 @@ func (s Snapshot) Validate() error {
 	if err := s.Pipeline.Validate(); err != nil {
 		return err
 	}
+	if err := validateRDPSessions(s.RDPSessions); err != nil {
+		return err
+	}
 	if s.Pipeline != nil && (s.Pipeline.OutstandingACKs > 2*s.Connections ||
 		(s.Connections != 1 && (s.Pipeline.SourceWidth != 0 || s.Pipeline.SourceHeight != 0 ||
 			s.Pipeline.OutputWidth != 0 || s.Pipeline.OutputHeight != 0))) {
@@ -86,7 +90,8 @@ func finiteNonnegative(value float64) bool {
 
 // Collector outlives individual displays and RDP connections, including guest
 // firmware resets. Work counters are atomic and never perform I/O; membership
-// and ACK-wait transitions share a short lock with heartbeat observation.
+// terminal-session history and ACK-wait transitions share a short lock with
+// heartbeat observation.
 type Collector struct {
 	start         time.Time
 	sequence      atomic.Uint64
@@ -98,10 +103,12 @@ type Collector struct {
 	writeCount    atomic.Uint64
 	sentBytes     atomic.Uint64
 	receivedBytes atomic.Uint64
-	mu            sync.Mutex // Membership and ACK waits only; never held over I/O.
+	mu            sync.Mutex // Membership, terminal sessions and ACK waits; never held over I/O.
 	connections   map[*Connection]struct{}
 	pipeline      pipelineCounters
 	ackBlocked    uint64 // Completed ACK wait intervals, protected by mu.
+	rdpSequence   uint64
+	rdpSessions   []RDPSessionEvent
 }
 
 func New() *Collector {
@@ -139,6 +146,7 @@ func (c *Collector) Snapshot() Snapshot {
 	c.mu.Lock()
 	snapshot.Pipeline = c.pipeline.snapshot()
 	snapshot.Pipeline.ACKBlockedNanos = c.ackBlocked
+	snapshot.RDPSessions = append([]RDPSessionEvent(nil), c.rdpSessions...)
 	now := time.Now()
 	snapshot.Connections = uint32(len(c.connections))
 	for connection := range c.connections {
