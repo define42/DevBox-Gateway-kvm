@@ -15,7 +15,8 @@ const bitmapTileSize = 64
 
 // BitmapEncoder scales the console into a fixed session desktop and sends only
 // changed tiles. Each update contains one uncompressed, bottom-up bitmap, as
-// specified by MS-RDPBCGR 2.2.9.1.1.3.1.2. Small tiles fit the MCS PER envelope.
+// specified by MS-RDPBCGR 2.2.9.1.1.3.1.2. Large tiles are sent as row strips
+// that keep the complete MCS Send Data PDU within its 16,383-byte limit.
 type BitmapEncoder struct {
 	width, height, bytesPerPixel int
 	pixels, previous             []byte
@@ -84,7 +85,7 @@ func (e *BitmapEncoder) WriteFrameDamage(
 		if !e.refresh && e.unchanged(e.pixels, left, top, width, height) {
 			continue
 		}
-		if err := send(e.tile(e.pixels, left, top, width, height)); err != nil {
+		if err := e.sendTile(left, top, width, height, send); err != nil {
 			return err
 		}
 	}
@@ -104,6 +105,20 @@ func (e *BitmapEncoder) WriteFrameDamage(
 		e.pending[index] = false
 	}
 	e.refresh = false
+
+	return nil
+}
+
+func (e *BitmapEncoder) sendTile(left, top, width, height int, send func([]byte) error) error {
+	stride := (width*e.bytesPerPixel + 3) &^ 3
+	// Include the Share Data (18 bytes) and bitmap update (22 bytes)
+	// headers, in addition to the MCS header reserved by maxUserData.
+	rows := (maxUserData - 18 - 22) / stride
+	for offset := 0; offset < height; offset += rows {
+		if err := send(e.tile(e.pixels, left, top+offset, width, min(rows, height-offset))); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

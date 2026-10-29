@@ -67,6 +67,8 @@ type report struct {
 	SessionBitsPerPixel int            `json:"sessionBitsPerPixel"`
 	FramesSent          uint64         `json:"framesSent"`
 	InputTransitions    uint64         `json:"inputTransitions"`
+	KeyDownEvents       uint64         `json:"keyDownEvents"`
+	KeyUpEvents         uint64         `json:"keyUpEvents"`
 	GraphicsReady       bool           `json:"graphicsReady"`
 	OutstandingACKs     uint32         `json:"outstandingAcks"`
 	ACKMilliseconds     float64        `json:"ackMs"`
@@ -259,13 +261,23 @@ func writeJSON(path string, value any) error {
 type inputState struct {
 	held        bool
 	transitions atomic.Uint64
+	keyDowns    atomic.Uint64
+	keyUps      atomic.Uint64
 	refresh     atomic.Bool
 	suppressed  atomic.Bool
 }
 
 func (state *inputState) apply(events []rdp.InputEvent) {
 	for _, event := range events {
-		if event.Kind != rdp.InputKey || event.Key != f8Keysym {
+		if event.Kind != rdp.InputKey {
+			continue
+		}
+		if event.Down {
+			state.keyDowns.Add(1)
+		} else {
+			state.keyUps.Add(1)
+		}
+		if event.Key != f8Keysym {
 			continue
 		}
 		if event.Down && !state.held {
@@ -329,6 +341,8 @@ func runSession(ctx context.Context, mode string, session *rdp.Session, result *
 		_ = session.Close()
 		<-readDone
 		result.InputTransitions = state.transitions.Load()
+		result.KeyDownEvents = state.keyDowns.Load()
+		result.KeyUpEvents = state.keyUps.Load()
 		result.SessionSeconds = time.Since(started).Seconds()
 		result.GraphicsReady = session.GraphicsReady()
 		stats := session.GraphicsStats()

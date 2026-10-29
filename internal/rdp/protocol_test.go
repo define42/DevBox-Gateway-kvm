@@ -588,6 +588,34 @@ func TestTPKTHandlesShortWrites(t *testing.T) {
 	}
 }
 
+func TestPERRejectsUnsupportedFragmentedLengths(t *testing.T) {
+	t.Parallel()
+	// 10xxxxxx starts the two-byte length form. 11xxxxxx instead marks
+	// fragmentation, which the RDP MCS size restriction avoids.
+	valid := append([]byte{0xbf, 0xff}, make([]byte, 16383)...)
+	if data, err := takePER(valid); err != nil || len(data) != 16383 {
+		t.Fatalf("maximum nonfragmented PER payload: length=%d error=%v", len(data), err)
+	}
+	for _, prefix := range []byte{0xc0, 0xc1, 0xff} {
+		packet := append([]byte{prefix, 0}, make([]byte, int(prefix&0x7f)<<8)...)
+		if _, err := takePER(packet); err == nil {
+			t.Fatalf("accepted fragmented PER prefix %02x as a two-byte length", prefix)
+		}
+	}
+}
+
+func TestSendDataRequestSizeLimit(t *testing.T) {
+	t.Parallel()
+	for _, size := range []int{16375, 16376} {
+		packet := appendPERLength([]byte{0x64, 0, 0, 3, 0xeb, 0x70}, size)
+		packet = append(packet, make([]byte, size)...)
+		_, _, err := parseSendData(packet)
+		if (err == nil) != (size == 16375) {
+			t.Fatalf("MCS size=%d, error=%v", len(packet), err)
+		}
+	}
+}
+
 func FuzzProtocolParsers(f *testing.F) {
 	f.Add([]byte{0x64, 0, 0, 3, 0xeb, 0x70, 1, 0})
 	f.Add([]byte{0x7f, 0x65, 0})

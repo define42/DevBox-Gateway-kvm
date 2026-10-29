@@ -63,19 +63,20 @@ manually focused desktop page.
 
 The live harness requires an interactive graphical desktop and fails if one is
 unavailable; it does not skip rendering checks or substitute an offline test.
-The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40928606998)
+The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40934733654)
 passed temporary certificate installation/removal, the interactive desktop
 capture probe, and actual Microsoft ActiveX control activation in both modes.
-Both clients reported connection and logon-complete events, confirming receipt
-of the new logon notification. They still disconnected before a verified picture:
-bitmap reported `4868` (`0x1304`) after about 505 ms, and H.264 reported `3334`
-(`0x0D06`) after about 46 ms, each with extended reason `0`. Microsoft's error
-descriptions identify protocol errors but do not identify the offending packet.
-**Live rendering, input, and stability validation remain pending.** Local script
-tests and cross-compilation do not prove that these Windows failures are resolved.
+Both clients reported connection and logon-complete events at 32 bpp. H.264
+passed the rendered-picture check, with 23 software-encoded frames and client
+acknowledgements. It then failed the F8 round trip: the fixture recorded no input
+transition before the client's 10-second input timeout. Bitmap still reported
+`4868` (`0x1304`) with extended reason `0` during its first frame, about 508 ms
+after activation. **Bitmap rendering, keyboard input, and 30-second stability
+validation remain pending.** H.264's picture check is a live rendering result,
+but neither job passed the complete test.
 
 `Test.ps1` runs two client checks before the live test. `--self-test` checks the
-profile parser and fixture pixel logic. On Windows, `--check-control` initializes
+profile parser, fixture pixel logic, and keyboard submission contract. On Windows, `--check-control` initializes
 and disposes the real Microsoft ActiveX control without calling `Connect` or
 using credentials. This component check catches activation failures earlier;
 both it and the full live connection test must pass.
@@ -135,9 +136,11 @@ Each mode uploads test evidence as an Actions artifact retained for **7 days**:
 
 `server.json` records build metadata, `actualEncoder` (`software` for H.264 or
 `bitmap`), `sessionBitsPerPixel`, frames sent, input transitions, and session
-duration. Its `completed`
-outcome represents only the server's checks. Overall success additionally
-requires the Microsoft client to pass rendering, input, and stability checks;
+duration. `keyDownEvents` and `keyUpEvents` count decoded keyboard events,
+including repeats and keys other than F8, without recording key values. They
+help distinguish missing keyboard delivery from a missing fixture transition.
+Its `completed` outcome represents only the server's checks. Overall success
+additionally requires the Microsoft client to pass rendering, input, and stability checks;
 the server sending frames is not proof that Windows displayed them.
 `framesSent` counts complete successful frame writes. A zero value does not
 exclude a disconnect while the first frame is being written.
@@ -148,10 +151,9 @@ Display reactivation does not repeat the logon notification. Its uncompressed
 Share Data length field also follows Microsoft's server wire examples for
 [Granted Control](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/d5624241-aa4d-465a-b66d-698b19d0d826)
 and [Plain Notify](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/daf019f8-13c6-4781-9fd9-5395509b2efb).
-Regression tests cover the notification ordering and packet lengths. These
-changes did not resolve the disconnects in the run above.
+Regression tests cover the notification ordering and packet lengths.
 
-The next correction selects the session color depth from Client Core Data
+The server selects the session color depth from Client Core Data
 before Demand Active and keeps the advertised depth throughout the session.
 Previously the server advertised 24 bpp, then replaced its output depth with the
 client's Confirm Active preference, which could be 32 bpp. That client field is
@@ -159,10 +161,25 @@ a preference, not confirmation that the server's selected depth has changed;
 see Microsoft's [Bitmap Capability Set](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/76670547-e35c-4b95-a242-5729a21b83f6).
 GFX is enabled only for 32-bpp sessions, consistent with
 [xrdp's fix for Microsoft client failures at lower depths](https://github.com/neutrinolabs/xrdp/commit/d23d147dc775dbee9c8fe678d4549e9937cbce06).
-Tests cover differing client/server preferences and display reactivation. A new
-Windows run must still establish whether this mismatch caused either failure.
+Tests cover differing client/server preferences and display reactivation. The
+run above confirms that H.264 rendering proceeds with this correction, while
+the bitmap failure remains.
 The report snapshots graphics readiness again at session exit so a disconnect
 before the first frame tick does not leave that field stale.
+
+Bitmap rectangles are now split when needed to keep the complete MCS Send Data
+structure within the [16,383-byte protocol limit](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/b61e1c76-5d7c-4285-b61a-b69f85e4a0e2).
+Previously a 64 × 64 rectangle at 32 bpp produced 16,432 MCS bytes including
+headers. Dirty-tile tracking still uses 64 × 64 tiles; oversized tiles are sent
+as smaller row strips. Tests check independent wire lengths, pixel coverage,
+and retry after a partially sent tile. Windows must still confirm whether this
+correction resolves `0x1304`.
+
+Before submitting F8, the harness explicitly focuses the hosted RDP control and
+records the numeric `SendKeys` HRESULT in `f8_submitted`. This event records API
+submission only; `fixture_changed` remains the evidence of remote delivery.
+Focus and return-value checks address unverified harness behavior, and the
+next Windows run must establish whether they resolve the input timeout.
 
 If the server reports `client_not_connected` and there are no client events,
 check `progress.json` before investigating protocol negotiation. The earlier

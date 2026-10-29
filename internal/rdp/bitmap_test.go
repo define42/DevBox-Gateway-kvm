@@ -41,7 +41,11 @@ func TestBitmapEncoderPixelLayout(t *testing.T) {
 
 				return nil
 			})
-			if err != nil || updates != 4 {
+			wantUpdates := 4
+			if depth == 32 {
+				wantUpdates = 5 // The full 64x64 tile needs two MCS-sized strips.
+			}
+			if err != nil || updates != wantUpdates {
 				t.Fatalf("updates=%d err=%v", updates, err)
 			}
 			for y := range 65 {
@@ -63,7 +67,7 @@ func TestBitmapEncoderPixelLayout(t *testing.T) {
 
 func decodeTestBitmap(t *testing.T, dst *image.RGBA, packet []byte, depth int) {
 	t.Helper()
-	if len(packet) < 22 || len(packet) >= 32767 || binary.LittleEndian.Uint16(packet) != 1 ||
+	if len(packet) < 22 || len(packet)+18+8 > 16383 || binary.LittleEndian.Uint16(packet) != 1 ||
 		binary.LittleEndian.Uint16(packet[2:]) != 1 {
 		t.Fatalf("invalid bitmap update header/length: %d", len(packet))
 	}

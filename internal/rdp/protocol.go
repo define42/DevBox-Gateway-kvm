@@ -19,11 +19,13 @@ import (
 )
 
 const (
-	clientUser             = 1001
-	serverUser             = 1002
-	globalChannel          = 1003
-	shareID                = 0x103ea
-	maxUserData            = 32767
+	clientUser    = 1001
+	serverUser    = 1002
+	globalChannel = 1003
+	shareID       = 0x103ea
+	// MS-RDPBCGR 2.2 limits the complete MCS Send Data PDU to 16,383
+	// bytes. Reserve its six fixed bytes and two-byte PER length.
+	maxUserData            = 16383 - 8
 	relativePointerVersion = 0x00080011
 )
 
@@ -694,7 +696,7 @@ func unwrapX224(p []byte) ([]byte, error) {
 }
 
 func parseSendData(p []byte) (uint16, []byte, error) {
-	if len(p) < 7 || p[0] != 0x64 || binary.BigEndian.Uint16(p[1:3]) != 0 || p[5] != 0x70 {
+	if len(p) < 7 || len(p) > maxUserData+8 || p[0] != 0x64 || binary.BigEndian.Uint16(p[1:3]) != 0 || p[5] != 0x70 {
 		return 0, nil, errors.New("rdp: invalid MCS Send Data Request")
 	}
 	data, err := takePER(p[6:])
@@ -710,6 +712,9 @@ func takePER(p []byte) ([]byte, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 	n, off := int(p[0]), 1
+	if n&0xc0 == 0xc0 {
+		return nil, errors.New("rdp: fragmented PER lengths are unsupported")
+	}
 	if n&0x80 != 0 {
 		if len(p) < 2 {
 			return nil, io.ErrUnexpectedEOF

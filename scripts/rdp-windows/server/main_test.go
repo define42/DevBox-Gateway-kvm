@@ -146,6 +146,11 @@ func TestF8InputTransitions(t *testing.T) {
 			t.Fatalf("packet %d: got %d transitions, want %d", index, got, want)
 		}
 	}
+	state.apply([]rdp.InputEvent{{Kind: rdp.InputPointer, Down: true}})
+	if state.keyDowns.Load() != 4 || state.keyUps.Load() != 2 {
+		t.Fatalf("decoded key counts must include repeats and F7, but exclude pointer input: down=%d up=%d",
+			state.keyDowns.Load(), state.keyUps.Load())
+	}
 }
 
 func TestControlPDUs(t *testing.T) {
@@ -207,9 +212,9 @@ func TestFixtureBitmapFraming(t *testing.T) {
 			}
 			frame := image.NewRGBA(image.Rect(0, 0, fixtureWidth, fixtureHeight))
 			paintFrame(frame, 0, 0)
-			tiles := 0
+			updates := 0
 			validate := func(packet []byte) error {
-				tiles++
+				updates++
 				if len(packet) < 22 || binary.LittleEndian.Uint16(packet) != 1 ||
 					binary.LittleEndian.Uint16(packet[2:]) != 1 ||
 					int(binary.LittleEndian.Uint16(packet[16:])) != depth ||
@@ -217,16 +222,23 @@ func TestFixtureBitmapFraming(t *testing.T) {
 					int(binary.LittleEndian.Uint16(packet[20:])) != len(packet)-22 {
 					t.Fatal("invalid fixture bitmap framing")
 				}
+				if len(packet)+18+8 > 16383 {
+					t.Fatal("fixture bitmap exceeds the MCS packet limit")
+				}
 
 				return nil
 			}
-			if err := encoder.WriteFrame(frame, false, validate); err != nil || tiles != 192 {
-				t.Fatalf("initial frame: %d tiles, %v", tiles, err)
+			updatesPerTile := 1
+			if depth == 32 {
+				updatesPerTile = 2
+			}
+			if err := encoder.WriteFrame(frame, false, validate); err != nil || updates != 192*updatesPerTile {
+				t.Fatalf("initial frame: %d updates, %v", updates, err)
 			}
 			paintFrame(frame, 0, 1)
-			tiles = 0
-			if err := encoder.WriteFrame(frame, false, validate); err != nil || tiles != 1 {
-				t.Fatalf("heartbeat: %d tiles, %v", tiles, err)
+			updates = 0
+			if err := encoder.WriteFrame(frame, false, validate); err != nil || updates != updatesPerTile {
+				t.Fatalf("heartbeat: %d updates, %v", updates, err)
 			}
 		})
 	}
@@ -311,6 +323,7 @@ func TestReportJSONContract(t *testing.T) {
 				StartedAt: started, EndedAt: started.Add(35 * time.Second), SessionSeconds: 35,
 				SessionBitsPerPixel: 32,
 				FramesSent:          70, InputTransitions: 1, GraphicsReady: mode == "h264",
+				KeyDownEvents: 1, KeyUpEvents: 1,
 				Application: buildinfo.Info{Version: "test-build", Commit: "test-commit", GoVersion: "go1.26.0"},
 			}
 			finishSession(&result, result.InputTransitions, 35*time.Second, io.EOF)
@@ -330,7 +343,8 @@ func TestReportJSONContract(t *testing.T) {
 				"version": float64(1), "mode": mode, "actualEncoder": actualEncoder, "outcome": "completed",
 				"framesSent": float64(70), "inputTransitions": float64(1), "sessionSeconds": float64(35),
 				"sessionBitsPerPixel": float64(32),
-				"graphicsReady":       mode == "h264", "stage": "session", "reason": "protocol_activity_and_peer_close_observed",
+				"keyDownEvents":       float64(1), "keyUpEvents": float64(1),
+				"graphicsReady": mode == "h264", "stage": "session", "reason": "protocol_activity_and_peer_close_observed",
 				"startedAt": "2026-10-29T14:00:00Z", "endedAt": "2026-10-29T14:00:35Z",
 				"outstandingAcks": float64(0), "ackMs": float64(0),
 			} {

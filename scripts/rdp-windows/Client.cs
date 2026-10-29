@@ -238,6 +238,24 @@ namespace DevBox.RdpSmoke
         }
     }
 
+    internal static class RdpKeyboard
+    {
+        internal static int SendF8(Func<bool> focus, Func<int, short[], int[], int> send)
+        {
+            // An active top-level form does not establish that the hosted
+            // ActiveX child has keyboard focus. Verify it before injection.
+            if (!focus()) throw new SmokeFailure("infrastructure", "rdp_control_not_focused");
+            // SendKeys takes WM_KEYDOWN-style lParams, not raw scan codes.
+            // F8 is scan code 0x42; key-up sets previous/transition state.
+            // https://learn.microsoft.com/windows/win32/termserv/imsrdpclientnonscriptable-sendkeys
+            int status = send(2, new short[] { 0, -1 }, new[] { 0x00420001, unchecked((int)0xC0420001) });
+            if (status < 0) throw new COMException("RDP SendKeys failed.", status);
+            // Preserve nonnegative statuses too. Only the changed remote
+            // picture can establish that the key reached the server.
+            return status;
+        }
+    }
+
     internal sealed class RdpControlClass
     {
         internal readonly string Name;
@@ -402,6 +420,7 @@ namespace DevBox.RdpSmoke
             advanced.AudioRedirectionMode = (uint)profile.AudioMode;
             advanced.AudioCaptureRedirectionMode = profile.CaptureAudio;
             advanced.SmartSizing = false;
+            advanced.GrabFocusOnConnect = true;
             advanced.overallConnectionTimeout = 45;
             advanced.singleConnectionTimeout = 45;
             // No local drive/printer/smart-card data is required by the fixture.
@@ -458,12 +477,15 @@ namespace DevBox.RdpSmoke
                             firstFrameAt = lastGoodAt = now;
                             Save(image, "before-input.png", false);
                             report.Add("render", "passed", "fixture_visible", new { layout = layout });
-                            // WM_KEYDOWN lParam: repeat=1, scan code=0x42 (F8).
-                            // Key-up also sets previous-state and transition bits.
                             var keys = (INonScriptable3)ocx;
-                            keys.SendKeys(2, new short[] { 0, -1 }, new[] { 0x00420001, unchecked((int)0xC0420001) });
+                            int inputStatus;
+                            try { inputStatus = RdpKeyboard.SendF8(FocusClient, keys.SendKeys); }
+                            catch (COMException error)
+                            { Fail("input", "sendkeys_failed", new { hresult = error.HResult }); return; }
                             keyAt = now;
-                            report.Add("input", "progress", "f8_sent", null);
+                            report.Add("input", "progress", "f8_submitted", new {
+                                hresult = inputStatus, controlFocused = true,
+                                method = "IMsRdpClientNonScriptable.SendKeys" });
                         }
                         if (initialLayout < 0 && now - connectAt > 45)
                             Fail("render", "fixture_not_visible", null);
@@ -502,6 +524,15 @@ namespace DevBox.RdpSmoke
             }
             catch (SmokeFailure error) { Fail(error.Stage, error.Reason, null); }
             catch (Exception error) { Fail("client", "operation_failed", new { hresult = error.HResult }); }
+        }
+
+        private bool FocusClient()
+        {
+            Activate();
+            host.Select();
+            host.Focus();
+            // Focus may be on a native child inside the AxHost window.
+            return host.ContainsFocus;
         }
 
         private Bitmap CaptureContent()
@@ -605,7 +636,8 @@ namespace DevBox.RdpSmoke
         void GetBinarySalt([MarshalAs(UnmanagedType.BStr)] out string value);
         void ResetPassword();
         void NotifyRedirectDeviceChange(UIntPtr wParam, IntPtr lParam);
-        void SendKeys(int count, [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] short[] keyUp,
+        [PreserveSig]
+        int SendKeys(int count, [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] short[] keyUp,
             [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] int[] keyData);
         void SetUIParentWindowHandle(IntPtr handle);
         void GetUIParentWindowHandle(out IntPtr handle);
@@ -737,6 +769,7 @@ namespace DevBox.RdpSmoke
         private static int SelfTest()
         {
             ControlSelectionTest();
+            KeyboardInjectionTest();
             bool externalDescriptionRead = false;
             Check(ClientDiagnostics.LocalDisconnectDescription(false, delegate { externalDescriptionRead = true; return "private description"; }) == null);
             Check(!externalDescriptionRead);
@@ -800,6 +833,49 @@ namespace DevBox.RdpSmoke
             Check(Fixture.Match(new[] { Fixture.Colors[0], Fixture.Colors[0], Fixture.Colors[0], Fixture.Colors[0] }) == -1);
             Console.WriteLine("client self-tests: passed");
             return 0;
+        }
+
+        private static void KeyboardInjectionTest()
+        {
+            bool focused = false, sent = false;
+            int status = RdpKeyboard.SendF8(delegate { focused = true; return true; },
+                delegate(int count, short[] keyUp, int[] keyData) {
+                    Check(focused && count == 2 && keyUp.Length == count && keyData.Length == count);
+                    Check(keyUp[0] == 0 && keyUp[1] == -1); // Native VARIANT_FALSE/VARIANT_TRUE.
+                    for (int i = 0; i < count; i++)
+                    {
+                        uint data = unchecked((uint)keyData[i]);
+                        Check((data & 0xffff) == 1 && ((data >> 16) & 0xff) == 0x42);
+                        Check((data & 0x3f000000) == 0); // No extended-key, reserved, or ALT-context bits.
+                        Check((data >> 30) == (i == 0 ? 0u : 3u));
+                    }
+                    sent = true;
+                    return 0;
+                });
+            Check(sent && status == 0);
+            sent = false;
+            bool rejected = false;
+            try
+            {
+                RdpKeyboard.SendF8(delegate { return false; }, delegate(int count, short[] keyUp, int[] keyData) {
+                    sent = true; return 0;
+                });
+            }
+            catch (SmokeFailure error)
+            { rejected = error.Stage == "infrastructure" && error.Reason == "rdp_control_not_focused"; }
+            Check(rejected && !sent);
+            int failure = unchecked((int)0x80004005);
+            rejected = false;
+            try
+            {
+                RdpKeyboard.SendF8(delegate { return true; }, delegate(int count, short[] keyUp, int[] keyData) { return failure; });
+            }
+            catch (COMException error) { rejected = error.HResult == failure; }
+            Check(rejected);
+            // S_FALSE must remain visible in diagnostics, not disappear through
+            // automatic HRESULT marshaling or imply remote input was received.
+            Check(RdpKeyboard.SendF8(delegate { return true; },
+                delegate(int count, short[] keyUp, int[] keyData) { return 1; }) == 1);
         }
 
         private static int CheckControl()

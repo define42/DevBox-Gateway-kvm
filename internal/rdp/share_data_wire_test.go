@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"image"
+	"image/color"
 	"testing"
 )
 
@@ -70,7 +71,9 @@ func TestWriteDataPDUWireLengthBoundaries(t *testing.T) {
 	}{
 		{"one_byte_per", 109, []byte{0x7f}},
 		{"two_byte_per", 110, []byte{0x80, 0x80}},
-		{"maximum_per", 32749, []byte{0xff, 0xff}},
+		// The full MCS structure is limited to 16,383 bytes, leaving 16,375
+		// for user data after its six-byte header and two-byte PER length.
+		{"maximum_mcs", 16357, []byte{0xbf, 0xf7}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -91,6 +94,106 @@ func TestWriteDataPDUWireLengthBoundaries(t *testing.T) {
 	}
 }
 
+func TestRDPWritersRejectOversizedMCS(t *testing.T) {
+	t.Parallel()
+	// MS-RDPBCGR 2.2 bounds the entire MCS Send Data structure, not just
+	// userData. These independent literals exercise one byte over that limit.
+	// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdpbcgr/b61e1c76-5d7c-4285-b61a-b69f85e4a0e2
+	t.Run("share_data", func(t *testing.T) {
+		t.Parallel()
+		conn := &transportBatchConn{}
+		session := &Session{conn: conn}
+		if err := session.WriteDataPDU(2, make([]byte, 16358)); err == nil || conn.output.Len() != 0 {
+			t.Fatal("oversized Share Data was accepted or partially written")
+		}
+	})
+	t.Run("channel", func(t *testing.T) {
+		t.Parallel()
+		conn := &transportBatchConn{}
+		session := &Session{conn: conn}
+		if err := session.writeChannel(1004, make([]byte, 16376)); err == nil || conn.output.Len() != 0 {
+			t.Fatal("oversized channel data was accepted or partially written")
+		}
+	})
+	t.Run("batched_channel", func(t *testing.T) {
+		t.Parallel()
+		prefix := []byte{0x12, 0x34}
+		got, err := appendChannelTPKTHeader(prefix, 1004, make([]byte, 8), 16368)
+		if err == nil || !bytes.Equal(got, prefix) {
+			t.Fatal("oversized batched channel data was accepted or changed the batch")
+		}
+	})
+}
+
+func TestWriteDataPDU32BitBitmapWire(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name       string
+		size       image.Point
+		rectangles []image.Rectangle
+	}{
+		{"full_tile", image.Pt(64, 64), []image.Rectangle{image.Rect(0, 0, 64, 63), image.Rect(0, 63, 64, 64)}},
+		{"edge_tiles", image.Pt(67, 65), []image.Rectangle{
+			image.Rect(0, 0, 64, 63), image.Rect(0, 63, 64, 64), image.Rect(64, 0, 67, 64),
+			image.Rect(0, 64, 64, 65), image.Rect(64, 64, 67, 65),
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			frame := image.NewRGBA(image.Rectangle{Max: test.size})
+			for y := range test.size.Y {
+				for x := range test.size.X {
+					frame.SetRGBA(x, y, color.RGBA{R: uint8(x * 3), G: uint8(y * 5), B: uint8(x ^ y), A: 255})
+				}
+			}
+			encoder, err := NewBitmapEncoder(test.size.X, test.size.Y, 32)
+			if err != nil {
+				t.Fatal(err)
+			}
+			conn := &transportBatchConn{}
+			session := &Session{conn: conn}
+			if err := encoder.WriteFrame(frame, true, func(payload []byte) error {
+				return session.WriteDataPDU(2, payload)
+			}); err != nil {
+				t.Fatal(err)
+			}
+			check32BitBitmapWire(t, conn.output.Bytes(), frame, test.rectangles)
+		})
+	}
+}
+
+func check32BitBitmapWire(t *testing.T, wire []byte, frame *image.RGBA, rectangles []image.Rectangle) {
+	t.Helper()
+	decoded := image.NewRGBA(frame.Rect)
+	for index, rect := range rectangles {
+		if len(wire) < 4 {
+			t.Fatalf("missing bitmap rectangle %d", index)
+		}
+		size := int(binary.BigEndian.Uint16(wire[2:4]))
+		if size > len(wire) {
+			t.Fatal("truncated bitmap TPKT")
+		}
+		data := decodeShareDataWire(t, wire[:size], 2)
+		bitmap := data[18:]
+		if len(bitmap) < 22 {
+			t.Fatal("truncated bitmap rectangle")
+		}
+		got := image.Rect(int(binary.LittleEndian.Uint16(bitmap[4:])), int(binary.LittleEndian.Uint16(bitmap[6:])),
+			int(binary.LittleEndian.Uint16(bitmap[8:]))+1, int(binary.LittleEndian.Uint16(bitmap[10:]))+1)
+		if got != rect {
+			t.Fatalf("rectangle %d = %v, want %v", index, got, rect)
+		}
+		decodeTestBitmap(t, decoded, bitmap, 32)
+		wire = wire[size:]
+	}
+	if len(wire) != 0 {
+		t.Fatal("unexpected duplicate bitmap rectangles")
+	}
+	if !bytes.Equal(decoded.Pix, frame.Pix) {
+		t.Fatal("split bitmap changed pixels, row order, or edge coverage")
+	}
+}
+
 // Decode the wire directly, without the production transport/PER/Share Data
 // readers, so matching encoder and decoder mistakes cannot hide length errors.
 func decodeShareDataWire(t *testing.T, wire []byte, pduType byte) []byte {
@@ -102,8 +205,14 @@ func decodeShareDataWire(t *testing.T, wire []byte, pduType byte) []byte {
 	if !bytes.Equal(wire[4:13], []byte{2, 0xf0, 0x80, 0x68, 0, 1, 3, 0xeb, 0x70}) {
 		t.Fatal("invalid X.224/MCS header, initiator or global channel")
 	}
+	if len(wire)-7 > 16383 {
+		t.Fatal("MCS Send Data exceeds the 16,383-byte RDP limit")
+	}
 	length, offset := int(wire[13]), 14
 	if length&0x80 != 0 {
+		if length&0xc0 != 0x80 {
+			t.Fatal("MCS user data uses a fragmented PER length determinant")
+		}
 		length, offset = (length&0x7f)<<8|int(wire[14]), 15
 	}
 	data := wire[offset:]

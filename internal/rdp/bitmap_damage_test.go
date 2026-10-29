@@ -97,14 +97,17 @@ func TestBitmapDamageRetainsFailedUpdates(t *testing.T) {
 
 		return nil
 	}
-	if err := encoder.WriteFrameDamage(img, []image.Rectangle{}, false, send); err != nil || updates != 4 {
+	if err := encoder.WriteFrameDamage(img, []image.Rectangle{}, false, send); err != nil || updates != 8 {
 		t.Fatalf("initial empty damage: %d updates, %v", updates, err)
 	}
 	img.SetRGBA(1, 1, color.RGBA{R: 255, A: 255})
+	img.SetRGBA(1, 63, color.RGBA{R: 255, G: 255, A: 255})
 	img.SetRGBA(100, 1, color.RGBA{G: 255, A: 255})
 	updates = 0
+	// Fail the second strip of the first tile, after its first 63 rows were
+	// delivered. A retry must resend both strips and all other dirty tiles.
 	failAfter = 1
-	regions := []image.Rectangle{image.Rect(1, 1, 2, 2), image.Rect(100, 1, 101, 2)}
+	regions := []image.Rectangle{image.Rect(1, 1, 2, 64), image.Rect(100, 1, 101, 2)}
 	err = encoder.WriteFrameDamage(img, regions, false, send)
 	if !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("send failure = %v", err)
@@ -113,10 +116,10 @@ func TestBitmapDamageRetainsFailedUpdates(t *testing.T) {
 	updates = 0
 	failAfter = -1
 	regions = []image.Rectangle{image.Rect(1, 100, 2, 101)}
-	if err := encoder.WriteFrameDamage(img, regions, false, send); err != nil || updates != 3 {
+	if err := encoder.WriteFrameDamage(img, regions, false, send); err != nil || updates != 6 {
 		t.Fatalf("retry with different damage: %d updates, %v", updates, err)
 	}
-	for _, pixel := range []image.Point{image.Pt(1, 1), image.Pt(100, 1), image.Pt(1, 100)} {
+	for _, pixel := range []image.Point{image.Pt(1, 1), image.Pt(1, 63), image.Pt(100, 1), image.Pt(1, 100)} {
 		if decoded.RGBAAt(pixel.X, pixel.Y) != img.RGBAAt(pixel.X, pixel.Y) {
 			t.Fatalf("retry lost damage at %v", pixel)
 		}
@@ -126,14 +129,14 @@ func TestBitmapDamageRetainsFailedUpdates(t *testing.T) {
 	if err := encoder.WriteFrameDamage(img, []image.Rectangle{}, false, send); err != nil || updates != 0 {
 		t.Fatal("empty damage scanned unrelated source pixels")
 	}
-	if err := encoder.WriteFrameDamage(img, []image.Rectangle{}, true, send); err != nil || updates != 4 ||
+	if err := encoder.WriteFrameDamage(img, []image.Rectangle{}, true, send); err != nil || updates != 8 ||
 		decoded.RGBAAt(100, 100) != img.RGBAAt(100, 100) {
 		t.Fatal("forced refresh omitted changes outside supplied damage")
 	}
 	resized := image.NewRGBA(image.Rect(-3, 5, 30, 54))
 	resized.SetRGBA(29, 53, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 	updates = 0
-	if err := encoder.WriteFrameDamage(resized, []image.Rectangle{}, false, send); err != nil || updates != 4 ||
+	if err := encoder.WriteFrameDamage(resized, []image.Rectangle{}, false, send); err != nil || updates != 8 ||
 		decoded.RGBAAt(127, 127) != resized.RGBAAt(29, 53) {
 		t.Fatal("source resize omitted complete reconstruction")
 	}
