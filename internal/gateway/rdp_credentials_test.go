@@ -65,6 +65,10 @@ func clientInfoFieldsPacket(fields [5]string, unicode bool, extra []byte) []byte
 }
 
 func passwordClientHandshake(conn net.Conn, username, password string) error {
+	return passwordClientHandshakePacket(conn, clientInfoPacket(username, password, true))
+}
+
+func passwordClientHandshakePacket(conn net.Conn, clientInfo []byte, channels ...uint16) error {
 	g := rdpHandshake{remaining: 256 << 10}
 	if err := writePacket(conn, mcsPacket([]byte{0x7f, 0x65, 0})); err != nil {
 		return err
@@ -80,7 +84,10 @@ func passwordClientHandshake(conn net.Conn, username, password string) error {
 	if _, _, err := g.read(conn); err != nil {
 		return err
 	}
-	for _, channel := range []uint16{1001, 1003} {
+	if channels == nil {
+		channels = []uint16{1001, 1003}
+	}
+	for _, channel := range channels {
 		body := []byte{0x38, 0, 0, byte(channel >> 8), byte(channel)}
 		if err := writePacket(conn, mcsPacket(body)); err != nil {
 			return err
@@ -90,7 +97,7 @@ func passwordClientHandshake(conn net.Conn, username, password string) error {
 		}
 	}
 
-	return writePacket(conn, clientInfoPacket(username, password, true))
+	return writePacket(conn, clientInfo)
 }
 
 func passwordBackendHandshake(conn net.Conn, received *atomic.Bool) bool {
@@ -122,6 +129,11 @@ func passwordBackendHandshake(conn net.Conn, received *atomic.Bool) bool {
 	}
 	_, body, err := g.read(conn)
 	if err != nil || len(body) < 7 || body[0] != 0x64 {
+		return false
+	}
+	info, err := clientInfoData(body)
+	if err != nil || binary.LittleEndian.Uint32(info[:4]) != 0x40 ||
+		binary.LittleEndian.Uint16(info[16:18]) != 0 {
 		return false
 	}
 	if received != nil {
@@ -364,7 +376,7 @@ func TestClientInfoRejectsMalformedFields(t *testing.T) {
 		name   string
 		mutate func([]byte)
 	}{
-		{name: "security mode", mutate: func(info []byte) { info[0] |= 0x8 }},
+		{name: "contradictory security PDU type", mutate: func(info []byte) { info[0] |= 0x80 }},
 		{name: "smart card PIN", mutate: func(info []byte) { info[10] |= 0x4 }},
 		{name: "odd UTF16 length", mutate: func(info []byte) { info[14]++ }},
 		{name: "oversized field", mutate: func(info []byte) { info[15] = 0xff }},

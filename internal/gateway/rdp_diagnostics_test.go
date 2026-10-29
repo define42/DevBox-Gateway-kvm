@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -205,6 +206,82 @@ func TestRDPDiagnosticErrorRedaction(t *testing.T) {
 	}
 	if strings.Contains(string(encoded), "password-secret") || strings.Contains(string(encoded), "raw certificate") {
 		t.Fatalf("event JSON exposed raw error text: %s", encoded)
+	}
+}
+
+func TestRDPClientInfoReasons(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		err    rdpClientInfoError
+		reason string
+	}{
+		{rdpClientInfoMissingChannels, "missing_required_channels"},
+		{rdpClientInfoMCSHeader, "invalid_mcs_header"},
+		{rdpClientInfoPacketLength, "invalid_packet_length"},
+		{rdpClientInfoSecurityFlags, "unsupported_security_flags"},
+		{rdpClientInfoSmartCardPIN, "smart_card_pin_not_supported"},
+		{rdpClientInfoFieldLength, "invalid_field_length"},
+		{rdpClientInfoFieldTerminator, "invalid_field_terminator"},
+		{rdpClientInfoCredentialEncoding, "invalid_credential_encoding"},
+		{rdpClientInfoCredentialLength, "credential_too_long"},
+		{rdpClientInfoEmptyUsername, "empty_username"},
+		{rdpClientInfoEmptyPassword, "empty_password"},
+	}
+	for _, test := range tests {
+		wrapped := fmt.Errorf("hostile raw credential and packet text: %w", test.err)
+		if got := rdpClientInfoReason(wrapped); got != test.reason {
+			t.Errorf("reason for %d = %q, want %q", test.err, got, test.reason)
+		}
+		if !errors.Is(wrapped, ErrAuthentication) {
+			t.Errorf("reason error %d does not unwrap to ErrAuthentication", test.err)
+		}
+		if got := rdpDiagnosticError(wrapped); got != "authentication failed" {
+			t.Errorf("diagnostic error for %d = %q", test.err, got)
+		}
+	}
+	if got := rdpClientInfoReason(rdpClientInfoError(255)); got != "" {
+		t.Errorf("unknown Client Info reason = %q, want empty", got)
+	}
+	if got := rdpClientInfoReason(fmt.Errorf("hostile unknown error: %w", io.ErrNoProgress)); got != "" {
+		t.Errorf("unrelated reason = %q, want empty", got)
+	}
+	if rdpClientInfoEmptyPassword.Error() != rdpClientInfoSmartCardPIN.Error() ||
+		strings.Contains(rdpClientInfoEmptyPassword.Error(), "password") {
+		t.Fatal("Client Info error text varies by reason or exposes a credential field")
+	}
+}
+
+func TestRDPClientInfoReasonJSONAndReset(t *testing.T) {
+	t.Parallel()
+
+	var log rdpDiagnosticLog
+	attempt := log.begin()
+	attempt.owner = "alice"
+	attempt.stage("client_info_validation")
+	attempt.finish(fmt.Errorf("hostile flags and credential bytes: %w", rdpClientInfoSmartCardPIN))
+	events := log.snapshot("alice", "", false)
+	if len(events) != 2 || events[0].Reason != "" || events[1].Error != "authentication failed" ||
+		events[1].Reason != "smart_card_pin_not_supported" {
+		t.Fatalf("Client Info diagnostic events = %#v", events)
+	}
+	encoded, err := json.Marshal(events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(encoded), `"reason":"smart_card_pin_not_supported"`) ||
+		strings.Contains(string(encoded), "hostile") || strings.Contains(string(encoded), "credential bytes") {
+		t.Fatalf("Client Info diagnostic JSON is missing or unsafe: %s", encoded)
+	}
+
+	attempt.stage("session_proxy")
+	attempt.record("authenticated")
+	attempt.finish(nil)
+	events = log.snapshot("alice", "", false)
+	for _, event := range events[len(events)-3:] {
+		if event.Reason != "" {
+			t.Fatalf("reason survived %q event: %#v", event.Outcome, event)
+		}
 	}
 }
 

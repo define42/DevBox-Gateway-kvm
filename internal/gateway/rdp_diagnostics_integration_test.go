@@ -2,10 +2,13 @@ package gateway
 
 import (
 	"bytes"
+	"context"
+	"encoding/binary"
 	"encoding/json"
 	"io"
 	"net"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -180,6 +183,135 @@ func TestRDPDiagnosticPasswordAndSession(t *testing.T) {
 			} {
 				if strings.Contains(string(encoded), secret) {
 					t.Fatal("RDP diagnostic events contain private connection data")
+				}
+			}
+		})
+	}
+}
+
+func TestRDPClientInfoCompatibilityAndDiagnosticReasons(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name, username, password string
+		security                 uint32
+		mutate                   func(info []byte)
+		channels                 []uint16
+		wantReason, wantStage    string
+		wantAuthCalls            int32
+		accepted                 bool
+	}{
+		{
+			name: "compatible flags", username: "alice", password: "rdp-password", security: 0xa5a58078,
+			wantStage: "session_proxy", wantAuthCalls: 1, accepted: true,
+		},
+		{
+			name: "compatible flags wrong password", username: "alice", password: "wrong-password", security: 0xa5a58078,
+			wantStage: "credential_authentication", wantAuthCalls: 1,
+		},
+		{
+			name: "empty username", password: "rdp-password", security: 0x40,
+			wantReason: "empty_username", wantStage: "client_info_validation",
+		},
+		{
+			name: "empty password", username: "alice", security: 0xa5a58078,
+			wantReason: "empty_password", wantStage: "client_info_validation",
+		},
+		{
+			name: "smart card PIN", username: "alice", password: "rdp-password", security: 0x40,
+			mutate:     func(info []byte) { info[10] |= 0x04 },
+			wantReason: "smart_card_pin_not_supported", wantStage: "client_info_validation",
+		},
+		{
+			name: "unsupported security flags", username: "alice", password: "rdp-password", security: 0xc0,
+			wantReason: "unsupported_security_flags", wantStage: "client_info_validation",
+		},
+		{
+			name: "invalid field length", username: "alice", password: "rdp-password", security: 0x40,
+			mutate:     func(info []byte) { info[14]++ },
+			wantReason: "invalid_field_length", wantStage: "client_info_validation",
+		},
+		{
+			name: "missing required channel", username: "alice", password: "rdp-password", security: 0x40,
+			channels:   []uint16{1001, 1004},
+			wantReason: "missing_required_channels", wantStage: "client_info_validation",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			var backendReceived atomic.Bool
+			endpoint := startTestBackend(t, func(conn net.Conn) bool {
+				return passwordBackendHandshake(conn, &backendReceived)
+			})
+			var authCalls atomic.Int32
+			auth := testAuthenticator(func(_ context.Context, username, password string) (string, error) {
+				authCalls.Add(1)
+				if username == "alice" && password == "rdp-password" {
+					return "alice", nil
+				}
+
+				return "", ErrAuthentication
+			})
+			s, _, cert, raw, _ := startGatewayWithAuthenticator(t, endpoint, auth)
+			key, _, _ := s.store.session(raw, "127.0.0.1")
+			token, err := s.store.grant(key, "mine")
+			if err != nil {
+				t.Fatal(err)
+			}
+			packet := clientInfoPacket(test.username, test.password, true)
+			info, err := clientInfoData(packet[7:])
+			if err != nil {
+				t.Fatal(err)
+			}
+			binary.LittleEndian.PutUint32(info[:4], test.security)
+			if test.mutate != nil {
+				test.mutate(info)
+			}
+			front := dialFrontRDP(t, s, cert, token)
+			if err := passwordClientHandshakePacket(front, packet, test.channels...); err != nil {
+				t.Fatal(err)
+			}
+			if test.accepted {
+				payload := []byte("private-desktop-content")
+				if err := writePacket(front, payload); err != nil {
+					t.Fatal(err)
+				}
+				echo := make([]byte, len(payload))
+				if _, err := io.ReadFull(front, echo); err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(echo, payload) {
+					t.Fatal("compatible header prevented session traffic")
+				}
+				_ = front.NetConn().Close()
+			}
+			events := awaitRDPDiagnosticCompletion(t, s)
+			last := events[len(events)-1]
+			if last.Stage != test.wantStage || last.Reason != test.wantReason {
+				t.Fatalf("last diagnostic stage/reason = %q/%q, want %q/%q",
+					last.Stage, last.Reason, test.wantStage, test.wantReason)
+			}
+			if test.accepted {
+				if last.Outcome != "closed" || last.Error != "" {
+					t.Fatalf("successful connection reported %q/%q", last.Outcome, last.Error)
+				}
+			} else if last.Outcome != "failed" || last.Error != "authentication failed" {
+				t.Fatalf("rejected connection reported %q/%q", last.Outcome, last.Error)
+			}
+			if calls := authCalls.Load(); calls != test.wantAuthCalls {
+				t.Fatalf("authenticator called %d times, want %d", calls, test.wantAuthCalls)
+			}
+			if backendReceived.Load() != test.accepted {
+				t.Fatal("backend received Client Info without authentication, or a noncanonical packet")
+			}
+			encoded, err := json.Marshal(events)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, secret := range []string{
+				"alice", "rdp-password", "wrong-password", token, raw, endpoint.Address, "private-desktop-content",
+			} {
+				if strings.Contains(string(encoded), secret) {
+					t.Fatal("diagnostic reason leaked private connection data")
 				}
 			}
 		})

@@ -37,6 +37,9 @@ func (s *Server) adminDiagnostics(w http.ResponseWriter, r *http.Request) {
 				"Reproduce the Microsoft Remote Desktop failure, then download this report immediately.",
 			"Events use UTC timestamps and a per-process attemptId. A progress event identifies the next " +
 				"operation; a failed event identifies the last stage reached and a sanitized error category.",
+			"Client Info validation failures include a fixed reason code, such as empty_password or " +
+				"unsupported_security_flags. These reasons describe rejection checks, not credential values. " +
+				"A failure at client_info_validation happens before the password authenticator is called.",
 			"Authenticated means gateway password validation succeeded, not that a desktop was displayed. " +
 				"session_proxy means the gateway is relaying subsequent activation/session traffic; it does not " +
 				"inspect that traffic or diagnose guest desktop failures.",

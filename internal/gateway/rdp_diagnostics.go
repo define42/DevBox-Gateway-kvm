@@ -23,6 +23,7 @@ type rdpDiagnosticEvent struct {
 	Outcome            string    `json:"outcome"`
 	Message            string    `json:"message"`
 	Error              string    `json:"error,omitempty"`
+	Reason             string    `json:"reason,omitempty"`
 	VMID               string    `json:"vmId,omitempty"`
 	RequestedProtocols *uint32   `json:"requestedProtocols,omitempty"`
 	SelectedProtocol   *uint32   `json:"selectedProtocol,omitempty"`
@@ -72,6 +73,7 @@ func (a *rdpDiagnosticAttempt) stage(stage string) {
 	a.event.Outcome = "progress"
 	a.event.Message = message
 	a.event.Error = ""
+	a.event.Reason = ""
 	a.emit()
 }
 
@@ -81,6 +83,7 @@ func (a *rdpDiagnosticAttempt) record(outcome string) {
 	}
 	a.event.Stage, _ = rdpDiagnosticStage(a.event.Stage)
 	a.event.Error = ""
+	a.event.Reason = ""
 	switch outcome {
 	case "authenticated":
 		a.event.Outcome = "authenticated"
@@ -103,10 +106,12 @@ func (a *rdpDiagnosticAttempt) finish(err error) {
 		a.event.Outcome = "closed"
 		a.event.Message = "The RDP connection closed."
 		a.event.Error = ""
+		a.event.Reason = ""
 	} else {
 		a.event.Outcome = "failed"
 		a.event.Message = "The RDP connection attempt failed."
 		a.event.Error = rdpDiagnosticError(err)
+		a.event.Reason = rdpClientInfoReason(err)
 	}
 	a.emit()
 }

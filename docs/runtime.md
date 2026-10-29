@@ -625,6 +625,11 @@ user or VM. Each event has a UTC timestamp, per-process attempt ID, protocol
 stage and outcome, plus a sanitized error category on failure; raw error text
 and credentials are not recorded.
 
+When Client Info validation fails, an optional fixed `reason` can distinguish an
+empty username or password, an unsupported smart-card PIN, and invalid security
+headers, lengths, or packet framing. The reason does not contain submitted
+values, raw flags, or packet lengths.
+
 The log is a rolling in-memory buffer of the last 512 events, not 512 complete
 attempts. It resets when `devbox-kvm` restarts, so download the report
 immediately after reproducing the problem. Its application block identifies the

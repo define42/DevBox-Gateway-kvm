@@ -76,7 +76,7 @@ func verifyRDPClientWithTrace(
 		if mcs[0] == 0x64 {
 			gate.stage(rdpStageClientInfoValidation)
 			if !joined[1001] || !joined[1003] {
-				return ErrAuthentication
+				return rdpClientInfoMissingChannels
 			}
 			sanitized, err := authenticatedClientInfoWithTrace(ctx, mcs, authenticate, trace)
 			if err != nil {
@@ -269,7 +269,7 @@ func parseClientInfo(mcs []byte) (rdpCredentials, []byte, error) {
 	}
 	flags := binary.LittleEndian.Uint32(info[8:12])
 	if flags&0x00040000 != 0 { // INFO_PASSWORD_IS_SC_PIN
-		return rdpCredentials{}, nil, ErrAuthentication
+		return rdpCredentials{}, nil, rdpClientInfoSmartCardPIN
 	}
 	width := 1
 	if flags&0x10 != 0 { // INFO_UNICODE
@@ -281,7 +281,7 @@ func parseClientInfo(mcs []byte) (rdpCredentials, []byte, error) {
 	for field := range fields {
 		n := int(binary.LittleEndian.Uint16(info[12+2*field : 14+2*field]))
 		if n%width != 0 || n+width > len(info)-off {
-			return rdpCredentials{}, nil, ErrAuthentication
+			return rdpCredentials{}, nil, rdpClientInfoFieldLength
 		}
 		fields[field] = info[off : off+n]
 		if field == 2 {
@@ -290,7 +290,7 @@ func parseClientInfo(mcs []byte) (rdpCredentials, []byte, error) {
 		off += n
 		for _, b := range info[off : off+width] {
 			if b != 0 {
-				return rdpCredentials{}, nil, ErrAuthentication
+				return rdpCredentials{}, nil, rdpClientInfoFieldTerminator
 			}
 		}
 		off += width
@@ -302,8 +302,11 @@ func parseClientInfo(mcs []byte) (rdpCredentials, []byte, error) {
 			return rdpCredentials{}, nil, err
 		}
 	}
-	if values[1] == "" || values[2] == "" {
-		return rdpCredentials{}, nil, ErrAuthentication
+	if values[1] == "" {
+		return rdpCredentials{}, nil, rdpClientInfoEmptyUsername
+	}
+	if values[2] == "" {
+		return rdpCredentials{}, nil, rdpClientInfoEmptyPassword
 	}
 	credentials := rdpCredentials{Domain: values[0], Username: values[1], Password: values[2]}
 	sanitized := stripClientInfoPassword(mcs, info, passwordOffset, len(fields[2]))
@@ -315,29 +318,48 @@ func parseClientInfo(mcs []byte) (rdpCredentials, []byte, error) {
 func clientInfoData(mcs []byte) ([]byte, error) {
 	if len(mcs) < 7 || mcs[0] != 0x64 || binary.BigEndian.Uint16(mcs[1:3]) != 0 ||
 		binary.BigEndian.Uint16(mcs[3:5]) != 1003 || mcs[5] != 0x70 {
-		return nil, ErrAuthentication
+		return nil, rdpClientInfoMCSHeader
 	}
 	n, off := int(mcs[6]), 7
 	if n&0x80 != 0 {
 		if len(mcs) < 8 {
-			return nil, ErrAuthentication
+			return nil, rdpClientInfoPacketLength
 		}
 		n, off = (n&0x7f)<<8|int(mcs[7]), 8
 	}
 	if n != len(mcs)-off {
-		return nil, ErrAuthentication
+		return nil, rdpClientInfoPacketLength
 	}
 	info := mcs[off:]
-	if len(info) < 22 || binary.LittleEndian.Uint32(info[:4]) != 0x40 {
-		return nil, ErrAuthentication
+	if len(info) < 22 {
+		return nil, rdpClientInfoPacketLength
+	}
+	if !validTLSClientInfoSecurityFlags(binary.LittleEndian.Uint16(info[:2])) {
+		return nil, rdpClientInfoSecurityFlags
 	}
 
 	return info, nil
 }
 
+// validTLSClientInfoSecurityFlags is only for Client Info carried inside the
+// established TLS connection, never a Standard RDP Security packet. Under
+// MS-RDPBCGR 3.3.5.3.11, SEC_ENCRYPT is ignored at ENCRYPTION_LEVEL_NONE.
+// Section 2.2.8.1.1.2.1 also requires ignoring RESET_SEQNO, IGNORE_SEQNO and
+// the currently unused flagsHi field. Other PDU types and security modes
+// remain rejected; the entire Client Info structure and credentials are still
+// validated before any data is forwarded to the backend.
+func validTLSClientInfoSecurityFlags(flags uint16) bool {
+	const (
+		infoPacket = 0x0040
+		ignored    = 0x0008 | 0x0010 | 0x0020 | 0x8000 // ENCRYPT, RESET_SEQNO, IGNORE_SEQNO, FLAGSHI_VALID
+	)
+
+	return flags&infoPacket != 0 && flags&^uint16(infoPacket|ignored) == 0
+}
+
 func decodeRDPCredential(encoded []byte, width, limit int) (string, error) {
 	if len(encoded) > limit*width {
-		return "", ErrAuthentication
+		return "", rdpClientInfoCredentialLength
 	}
 	decoded := make([]byte, 0, len(encoded))
 	for off := 0; off < len(encoded); {
@@ -347,11 +369,11 @@ func decodeRDPCredential(encoded []byte, width, limit int) (string, error) {
 		}
 		off += n
 		if r == 0 {
-			return "", ErrAuthentication
+			return "", rdpClientInfoCredentialEncoding
 		}
 		decoded = utf8.AppendRune(decoded, r)
 		if len(decoded) > limit {
-			return "", ErrAuthentication
+			return "", rdpClientInfoCredentialLength
 		}
 	}
 
@@ -361,7 +383,7 @@ func decodeRDPCredential(encoded []byte, width, limit int) (string, error) {
 func rdpCredentialRune(encoded []byte, width int) (rune, int, error) {
 	if width == 1 {
 		if encoded[0] >= utf8.RuneSelf {
-			return 0, 0, ErrAuthentication
+			return 0, 0, rdpClientInfoCredentialEncoding
 		}
 
 		return rune(encoded[0]), 1, nil
@@ -371,11 +393,11 @@ func rdpCredentialRune(encoded []byte, width int) (rune, int, error) {
 		return r, 2, nil
 	}
 	if r > 0xdbff || len(encoded) < 4 {
-		return 0, 0, ErrAuthentication
+		return 0, 0, rdpClientInfoCredentialEncoding
 	}
 	low := rune(binary.LittleEndian.Uint16(encoded[2:4]))
 	if low < 0xdc00 || low > 0xdfff {
-		return 0, 0, ErrAuthentication
+		return 0, 0, rdpClientInfoCredentialEncoding
 	}
 
 	return utf16.DecodeRune(r, low), 4, nil
@@ -385,6 +407,9 @@ func stripClientInfoPassword(mcs, info []byte, passwordOffset, passwordLength in
 	cleanInfo := make([]byte, len(info)-passwordLength)
 	copy(cleanInfo, info[:passwordOffset])
 	copy(cleanInfo[passwordOffset:], info[passwordOffset+passwordLength:])
+	// Both gateway hops use TLS. Do not propagate ignored security flags or
+	// uninitialized flagsHi bytes to the VM; send a canonical Basic header.
+	binary.LittleEndian.PutUint32(cleanInfo[:4], 0x0040)
 	binary.LittleEndian.PutUint16(cleanInfo[16:18], 0)
 	flags := binary.LittleEndian.Uint32(cleanInfo[8:12])
 	flags &^= 0x8 | 0x00100000 // INFO_AUTOLOGON | INFO_USING_SAVED_CREDS

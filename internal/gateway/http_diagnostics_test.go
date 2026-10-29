@@ -187,12 +187,14 @@ func TestAdminDiagnosticsSchemaAndPrivacy(t *testing.T) {
 	attempt.event.CipherSuite = "TLS_AES_128_GCM_SHA256"
 	attempt.stage("frontend_tls")
 	attempt.finish(fmt.Errorf(
-		"diagnostic-raw-password routing-token-marker 203.0.113.9 @private-backend: %w", ErrAuthentication,
+		"diagnostic-raw-password routing-token-marker 203.0.113.9 @private-backend: %w",
+		rdpClientInfoSmartCardPIN,
 	))
 
 	w := webRequest(s, http.MethodGet, "/admin/diagnostics", adminSession, nil)
 	report := decodeAdminDiagnosticReport(t, w)
 	if len(report.RDPLoginEvents) != 2 || report.RDPLoginEvents[1].Error != "authentication failed" ||
+		report.RDPLoginEvents[1].Reason != "smart_card_pin_not_supported" ||
 		report.RDPLoginEvents[1].RequestedProtocols == nil ||
 		*report.RDPLoginEvents[1].RequestedProtocols != requested ||
 		report.RDPLoginEvents[1].SelectedProtocol == nil ||
@@ -212,7 +214,7 @@ func TestAdminDiagnosticsSchemaAndPrivacy(t *testing.T) {
 		checkDiagnosticJSONFields(t, event,
 			[]string{"timestamp", "attemptId", "stage", "outcome", "message"},
 			[]string{
-				"timestamp", "attemptId", "stage", "outcome", "message", "error", "vmId",
+				"timestamp", "attemptId", "stage", "outcome", "message", "error", "reason", "vmId",
 				"requestedProtocols", "selectedProtocol", "tlsVersion", "cipherSuite",
 			})
 	}

@@ -150,5 +150,8 @@ func performanceReportNotes() []string {
 			"Failures before a grant is identified are visible only in the administrator diagnostic download. " +
 			"The rolling log holds at most 512 events across all connections and resets on gateway restart. " +
 			"Credentials, routing tokens, client addresses, raw packets and raw error text are never included.",
+		"Client Info validation failures include a fixed reason code, such as empty_password or " +
+			"unsupported_security_flags. A failure at client_info_validation is a rejection before the " +
+			"password authenticator is called, not evidence that a directory password check failed.",
 	}
 }

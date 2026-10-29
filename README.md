@@ -199,6 +199,11 @@ or VM. The rolling log keeps the last 512 events in process memory, resets when
 the gateway restarts, and is most useful when downloaded immediately after the
 failure.
 
+Client Info validation failures can also include a fixed, optional `reason` that
+distinguishes empty credentials, an unsupported smart-card PIN, and invalid
+security headers or packet framing. These reasons never contain submitted
+values, raw flags, or packet lengths.
+
 The report identifies the running `devbox-kvm` version and includes commit and
 build-date metadata when the binary contains it; unversioned development builds
 report `devel`. The **Download diagnostics** action on **My DevBoxes** remains
