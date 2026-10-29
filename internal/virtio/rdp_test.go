@@ -143,35 +143,63 @@ func TestRDPDisplayRequiresGatewayTransport(t *testing.T) {
 
 func TestRDPDisplayRetiresListenerWhenGatewayParentChanges(t *testing.T) {
 	t.Parallel()
-	listener := newRDPTestListener(t)
-	options := authenticatedRDPTestConfig(listener)
-	var parentPID atomic.Int64
-	parentPID.Store(int64(options.GatewayPID))
-	options.getParentPID = func() int { return int(parentPID.Load()) }
-	display, err := NewRDPDisplayWithConfig(options)
-	if err != nil {
-		_ = listener.Close()
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = display.Close() })
+	for _, test := range []struct {
+		name      string
+		duplicate bool
+	}{
+		{name: "exclusive listener"},
+		{name: "inherited duplicate", duplicate: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			listener := newRDPTestListener(t)
+			t.Cleanup(func() { _ = listener.Close() })
+			if test.duplicate {
+				// Model a concurrent fork retaining the socket until exec. The
+				// display must retire its own listener even while this copy lives.
+				file, err := listener.File()
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = file.Close() })
+			}
+			options := authenticatedRDPTestConfig(listener)
+			var parentPID atomic.Int64
+			parentPID.Store(int64(options.GatewayPID))
+			options.getParentPID = func() int { return int(parentPID.Load()) }
+			display, err := NewRDPDisplayWithConfig(options)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = display.Close() })
 
-	parentPID.Store(int64(options.GatewayPID + 1))
-	conn, err := net.DialTimeout("unix", display.Addr(), time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertRDPConnectionClosed(t, conn)
-	select {
-	case <-display.done:
-	case <-time.After(time.Second):
-		t.Fatal("display remained active after its gateway parent changed")
-	}
-	if conn, err := net.DialTimeout("unix", display.Addr(), 50*time.Millisecond); err == nil {
-		_ = conn.Close()
-		t.Fatal("listener still accepted connections after its gateway parent changed")
-	}
-	if err := display.Close(); err != nil {
-		t.Fatalf("closing retired display: %v", err)
+			parentPID.Store(int64(options.GatewayPID + 1))
+			conn, err := net.DialTimeout("unix", display.Addr(), time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = conn.Close() })
+			assertRDPConnectionClosed(t, conn)
+			select {
+			case <-display.done:
+			case <-time.After(time.Second):
+				t.Fatal("display remained active after its gateway parent changed")
+			}
+			// Check the display-owned listener, not whether the kernel still
+			// allows connects through a duplicate held by a concurrent fork.
+			if err := listener.SetDeadline(time.Now().Add(time.Second)); err != nil && !errors.Is(err, net.ErrClosed) {
+				t.Fatalf("set retired listener deadline: %v", err)
+			}
+			if conn, err := listener.Accept(); !errors.Is(err, net.ErrClosed) {
+				if conn != nil {
+					_ = conn.Close()
+				}
+				t.Fatalf("listener after gateway parent changed: %v, want net.ErrClosed", err)
+			}
+			if err := display.Close(); err != nil {
+				t.Fatalf("closing retired display: %v", err)
+			}
+		})
 	}
 }
 
