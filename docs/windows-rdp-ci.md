@@ -86,8 +86,11 @@ deliberately sends only two frames per second at 1024 × 768. Use the separate
 visible progress, input response times, and resource use under continuous load.
 
 `Test.ps1` runs offline checks before the live tests. The client harnesses'
-`--self-test` checks cover profile validation, fixture pixel logic, and keyboard
-submission helpers; PowerShell tests cover client selection and orchestration.
+`--self-test` checks cover profile validation, fixture pixel logic, keyboard
+submission helpers, and mstsc file-consent decisions. Consent cases include
+static labels and read-only address fields, mismatched destinations, selected
+redirections, ambiguous buttons, and credential/certificate prompts. PowerShell
+tests cover client selection and orchestration.
 These checks do not start a live `mstsc.exe` session. On Windows, the ActiveX
 harness's `--check-control` initializes and disposes the real Microsoft ActiveX control without calling `Connect` or
 using credentials. This component check catches activation failures earlier;
@@ -131,9 +134,12 @@ The executable harness handles only the known English first-launch and local
 file-consent dialogs described in [Microsoft's RDP security warning guide](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/remotepc/understanding-security-warnings).
 It checks the owning process and exact loopback destination, leaves resource
 redirection disabled, and fails on other dialogs, including certificate or
-credential prompts. A Windows job object terminates the launched client even
-if its observer times out. Actual dialog labels and window geometry still need
-to be confirmed by the first live Windows run.
+credential prompts. The destination may be a static label or a labeled,
+read-only UI Automation field; writable and password fields cannot authorize
+consent. Each recognized dialog is accepted at most once per session. A Windows
+job object terminates the launched client even if its observer times out.
+Offline checks do not confirm live dialog behavior or window geometry; those
+require successful Windows runs.
 
 Neither workflow validates audio playback: the fixture disables audio. They also
 do not test Linux KVM, VM boot, virtio framebuffer capture, the gateway's HTTPS
@@ -162,6 +168,10 @@ mistaken for ActiveX results:
   an ActiveX disconnect also includes Microsoft's `GetErrorDescription` result
   when available, limited to 1024 characters. The executable harness records
   process/window and rendering/input checks instead of ActiveX control events.
+  Its `mstsc_dialog_rejected` entries identify the rejection reason and bounded
+  control metadata, including ownership, visibility, toggle state, and read-only
+  status. Only recognized labels are retained; unknown text and field values
+  are omitted or redacted.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
   numeric error/reason fields from either `EventData` or `UserData`. A malformed
   record is marked individually so later records can still be exported.

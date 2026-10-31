@@ -186,29 +186,11 @@ func TestMstscExecutableWorkflowRunsBothModesAndRetainsEvidence(t *testing.T) {
 			t.Errorf("missing %s trigger", trigger)
 		}
 	}
-	const modeMatrix = `${{ fromJSON(inputs.mode == 'both' && '["h264","bitmap"]' || inputs.mode == 'h264' && '["h264"]' || '["bitmap"]') }}`
+	const modeMatrix = `${{ fromJSON(inputs.mode == 'both' && '["h264","bitmap"]' || ` +
+		`inputs.mode == 'h264' && '["h264"]' || '["bitmap"]') }}`
 	var liveSteps, evidenceSteps int
 	for id, job := range live.Jobs {
 		for _, step := range job.Steps {
-			if strings.TrimSpace(step.Run) == "./scripts/rdp-windows/RunLocal.ps1" {
-				liveSteps++
-				if step.Env["RDP_TEST_CLIENT"] != "mstsc" {
-					t.Errorf("%s: live executable test must select mstsc.exe", id)
-				}
-				if job.Strategy.Matrix["mode"] != modeMatrix || step.Env["RDP_TEST_MODE"] != "${{ matrix.mode }}" {
-					t.Errorf("%s: mstsc.exe must run the selected H.264 and bitmap modes independently", id)
-				}
-				if step.Env["RDP_TEST_ALLOW_MACHINE_TRUST"] != "1" {
-					t.Errorf("%s: temporary hosted-runner certificate trust requires explicit opt-in", id)
-				}
-				if step.Env["RDP_TEST_OUTPUT"] != "${{ runner.temp }}/rdp-mstsc-exe-results" {
-					t.Errorf("%s: mstsc.exe evidence must be separate from ActiveX evidence", id)
-				}
-				if job.If != "" || (job.ContinueOnError != nil && job.ContinueOnError != false) ||
-					step.If != "" || (step.ContinueOnError != nil && step.ContinueOnError != false) {
-					t.Errorf("%s: live mstsc.exe checks must not be skipped or allowed to fail", id)
-				}
-			}
 			if strings.HasPrefix(step.Uses, "actions/upload-artifact@") && step.If == "always()" {
 				evidenceSteps++
 				if !strings.HasPrefix(step.With["name"], "windows-only-rdp-mstsc-exe-") ||
@@ -223,6 +205,26 @@ func TestMstscExecutableWorkflowRunsBothModesAndRetainsEvidence(t *testing.T) {
 						t.Errorf("%s: missing mstsc.exe evidence path %s", id, pattern)
 					}
 				}
+			}
+			if strings.TrimSpace(step.Run) != "./scripts/rdp-windows/RunLocal.ps1" {
+				continue
+			}
+			liveSteps++
+			if step.Env["RDP_TEST_CLIENT"] != "mstsc" {
+				t.Errorf("%s: live executable test must select mstsc.exe", id)
+			}
+			if job.Strategy.Matrix["mode"] != modeMatrix || step.Env["RDP_TEST_MODE"] != "${{ matrix.mode }}" {
+				t.Errorf("%s: mstsc.exe must run the selected H.264 and bitmap modes independently", id)
+			}
+			if step.Env["RDP_TEST_ALLOW_MACHINE_TRUST"] != "1" {
+				t.Errorf("%s: temporary hosted-runner certificate trust requires explicit opt-in", id)
+			}
+			if step.Env["RDP_TEST_OUTPUT"] != "${{ runner.temp }}/rdp-mstsc-exe-results" {
+				t.Errorf("%s: mstsc.exe evidence must be separate from ActiveX evidence", id)
+			}
+			if job.If != "" || (job.ContinueOnError != nil && job.ContinueOnError != false) ||
+				step.If != "" || (step.ContinueOnError != nil && step.ContinueOnError != false) {
+				t.Errorf("%s: live mstsc.exe checks must not be skipped or allowed to fail", id)
 			}
 		}
 	}

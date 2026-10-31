@@ -216,82 +216,469 @@ namespace DevBox.RdpSmoke
         }
     }
 
-    internal static class MstscDialogs
+    // Kept free of UI Automation types so the consent policy can be tested offline.
+    internal sealed class MstscDialogControl
     {
-        private const string EducationalCheck = "I understand and allow RDP files to open on this device for my account";
+        internal string Kind, Name, Label, Value;
+        internal bool Owned, Enabled, Visible, Password, ReadOnly, CanInvoke;
+        internal int Toggle = -1;
+    }
 
-        internal static bool HasEndpoint(IList<string> names, string address)
+    internal sealed class MstscDialogDecision
+    {
+        internal string Kind, Reason;
+        internal int Button = -1, Check = -1;
+        internal bool Allowed { get { return Reason == null; } }
+    }
+
+    internal static class MstscDialogPolicy
+    {
+        internal const string Education = "Opening Remote Desktop Connection";
+        internal const string EducationalCheck = "I understand and allow RDP files to open on this device for my account";
+        internal const string Warning = "Caution: Unknown remote connection";
+        internal const string LegacyWarning = "The publisher of this remote connection can't be identified. Do you want to connect anyway?";
+
+        // Accelerators belong to labels, never to the remote address itself.
+        internal static string Label(string text)
         {
-            foreach (string name in names)
-                if (name == address || name == "Remote computer: " + address) return true;
+            return String.Join(" ", (text ?? "").Replace("&", "").Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        internal static bool Field(string label, string expected)
+        {
+            return Label(label).TrimEnd(':') == expected;
+        }
+
+        private static bool HasText(IList<MstscDialogControl> controls, string text)
+        {
+            foreach (MstscDialogControl control in controls)
+                if (control.Owned && control.Visible && !control.Password && control.Kind == "Text" && Label(control.Name) == text)
+                    return true;
             return false;
         }
 
-        internal static bool Handle(IntPtr window, uint processId, string address, Report report)
+        internal static string Kind(string title, IList<MstscDialogControl> controls)
         {
-            // A connection-progress dialog can disappear between enumeration
-            // and UIA inspection. No action was authorized by that stale handle.
+            if (Label(title) == "Remote Desktop Connection" && HasText(controls, Education)) return "education";
+            if (Label(title) == "Remote Desktop Connection security warning" && HasText(controls, Warning)) return "consent";
+            if (Label(title) == "Remote Desktop Connection" && HasText(controls, LegacyWarning)) return "consent";
+            return null;
+        }
+
+        internal static MstscDialogDecision Evaluate(string title, IList<MstscDialogControl> controls, string address)
+        {
+            var result = new MstscDialogDecision { Kind = Kind(title, controls), Reason = "unrecognized_dialog" };
+            if (result.Kind == null) return result;
+            bool endpoint = false, publisher = HasText(controls, "Unknown publisher");
+            int checkCount = 0, buttonCount = 0;
+            for (int i = 0; i < controls.Count; i++)
+            {
+                MstscDialogControl control = controls[i];
+                if (control.Visible && control.Password)
+                { result.Reason = "credential_field_present"; return result; }
+                if (control.Kind == "CheckBox")
+                {
+                    checkCount++;
+                    if (!control.Owned || control.Toggle < 0 || control.Toggle > 1)
+                    { result.Reason = "checkbox_state_unavailable"; return result; }
+                    if (result.Kind == "education")
+                    {
+                        if (Label(control.Name) != EducationalCheck || !control.Enabled || !control.Visible)
+                        { result.Reason = "unexpected_education_checkbox"; return result; }
+                        result.Check = i;
+                    }
+                    else if (control.Toggle != 0)
+                    { result.Reason = "resource_redirection_selected"; return result; }
+                }
+                if (control.Kind == "Button" && Label(control.Name) == (result.Kind == "education" ? "OK" : "Connect"))
+                {
+                    buttonCount++;
+                    if (!control.Owned || !control.Enabled || !control.Visible || !control.CanInvoke)
+                    { result.Reason = "consent_button_unavailable"; return result; }
+                    result.Button = i;
+                }
+                if (!control.Owned || !control.Visible || control.Password) continue;
+                if (control.Kind == "Text")
+                {
+                    string name = (control.Name ?? "").Trim();
+                    if (name == address) endpoint = true;
+                    foreach (string prefix in new[] { "Remote computer:", "&Remote computer:" })
+                    {
+                        if (!name.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                        string value = name.Substring(prefix.Length).Trim();
+                        if (value.Length == 0) continue; // Separate static label and value.
+                        if (value != address) { result.Reason = "remote_address_mismatch"; return result; }
+                        endpoint = true;
+                    }
+                }
+                // UIA Edit.Name is a label. The text of a read-only field lives
+                // in ValuePattern, unlike a static Text control's Name property.
+                if (control.Kind == "Edit" && control.ReadOnly && control.Value != null)
+                {
+                    if (Field(control.Label, "Remote computer"))
+                    {
+                        if (control.Value.Trim() != address) { result.Reason = "remote_address_mismatch"; return result; }
+                        endpoint = true;
+                    }
+                    if (Field(control.Label, "Publisher") && control.Value.Trim() == "Unknown publisher") publisher = true;
+                }
+            }
+            if (buttonCount != 1) { result.Reason = "consent_button_ambiguous_or_missing"; return result; }
+            if (result.Kind == "education" && checkCount != 1)
+            { result.Reason = "education_checkbox_ambiguous_or_missing"; return result; }
+            if (result.Kind == "consent")
+            {
+                if (!endpoint) { result.Reason = "expected_remote_address_missing"; return result; }
+                if (Label(title) == "Remote Desktop Connection security warning" && !publisher)
+                { result.Reason = "unknown_publisher_missing"; return result; }
+            }
+            result.Reason = null;
+            return result;
+        }
+
+        internal static string DiagnosticText(string text, string address)
+        {
+            string label = Label(text);
+            foreach (string known in new[] { "Remote Desktop Connection", "Remote Desktop Connection security warning",
+                "Windows Security", Education, EducationalCheck, Warning, LegacyWarning, "Unknown publisher",
+                "Remote computer:", "Publisher:", "Connect", "OK", "Cancel", "Yes", "No", "Show Details", "Hide Details",
+                "Clipboard", "Printers", "Drives", "Smart cards", "Ports", "Devices", "WebAuthn" })
+                if (label == known) return known;
+            if ((text ?? "").Trim() == address) return "<expected-loopback-address>";
+            return String.IsNullOrEmpty(text) ? "" : "<redacted>";
+        }
+    }
+
+    internal sealed class MstscDialogs
+    {
+        private sealed class Accepted
+        {
+            internal IntPtr Window;
+            internal readonly Stopwatch Age = Stopwatch.StartNew();
+        }
+        private readonly Dictionary<string, Accepted> accepted = new Dictionary<string, Accepted>();
+        private readonly HashSet<string> reported = new HashSet<string>();
+
+        internal bool Handle(IntPtr window, uint processId, string address, Report report)
+        {
+            // A progress dialog can disappear during enumeration. A stale UIA
+            // reference never authorizes a click.
             try { return HandlePresent(window, processId, address, report); }
             catch (ElementNotAvailableException) { return false; }
         }
 
-        private static bool HandlePresent(IntPtr window, uint processId, string address, Report report)
+        private bool HandlePresent(IntPtr window, uint processId, string address, Report report)
         {
             AutomationElement root = AutomationElement.FromHandle(window);
-            if (root == null || root.Current.ProcessId != processId) return false;
+            if (root == null || root.Current.ProcessId != processId || MstscWindows.Owner(window) != processId) return false;
+            string title = root.Current.Name;
             AutomationElementCollection elements = root.FindAll(TreeScope.Descendants, Condition.TrueCondition);
-            var names = new List<string>();
-            var checks = new List<AutomationElement>();
-            AutomationElement connect = null, okay = null;
+            if (elements.Count > 256)
+            {
+                if (reported.Add("control_limit")) report.Add("client", "recorded", "mstsc_dialog_rejected", new { reason = "control_limit" });
+                return false;
+            }
+            var controls = new List<MstscDialogControl>();
             foreach (AutomationElement element in elements)
             {
-                if (element.Current.ProcessId != processId) return false;
-                string name = element.Current.Name;
-                names.Add(name);
-                if (element.Current.ControlType == ControlType.CheckBox) checks.Add(element);
-                if (element.Current.ControlType == ControlType.Button)
+                AutomationElement.AutomationElementInformation info = element.Current;
+                string kind = info.ControlType.ProgrammaticName.Replace("ControlType.", "");
+                var control = new MstscDialogControl { Kind = kind, Name = info.IsPassword ? "" : info.Name,
+                    Owned = Owned(element, processId) || (info.ProcessId == 0 && kind == "Text"),
+                    Enabled = info.IsEnabled, Visible = !info.IsOffscreen, Password = info.IsPassword };
+                object pattern;
+                control.CanInvoke = element.TryGetCurrentPattern(InvokePattern.Pattern, out pattern);
+                if (kind == "CheckBox" && element.TryGetCurrentPattern(TogglePattern.Pattern, out pattern))
+                    control.Toggle = (int)((TogglePattern)pattern).Current.ToggleState;
+                controls.Add(control);
+            }
+            // Read values only inside a recognized file-consent dialog, and only
+            // from owned, non-password, read-only endpoint/publisher fields.
+            if (MstscDialogPolicy.Kind(title, controls) == "consent")
+            {
+                for (int i = 0; i < controls.Count; i++)
                 {
-                    if (name == "Connect" || name == "&Connect") connect = element;
-                    if (name == "OK" || name == "&OK") okay = element;
+                    MstscDialogControl control = controls[i];
+                    if (control.Kind != "Edit" || !control.Owned || !control.Visible || control.Password) continue;
+                    control.Label = control.Name;
+                    AutomationElement label = elements[i].Current.LabeledBy;
+                    if (label != null && (Owned(label, processId) || label.Current.ProcessId == 0) && !label.Current.IsPassword)
+                        control.Label = label.Current.Name;
+                    if (!MstscDialogPolicy.Field(control.Label, "Remote computer") && !MstscDialogPolicy.Field(control.Label, "Publisher")) continue;
+                    object pattern;
+                    if (!elements[i].TryGetCurrentPattern(ValuePattern.Pattern, out pattern)) continue;
+                    var value = (ValuePattern)pattern;
+                    control.ReadOnly = value.Current.IsReadOnly;
+                    if (control.ReadOnly) control.Value = value.Current.Value;
                 }
             }
-            // These exact English labels come from Microsoft's documented April
-            // 2026 RDP-file warnings. A different dialog is a failure, never a
-            // generic Yes/Enter click. No certificate or credential UI is accepted.
-            // https://learn.microsoft.com/windows-server/remote/remote-desktop-services/remotepc/understanding-security-warnings
-            if (root.Current.Name == "Remote Desktop Connection" && names.Contains("Opening Remote Desktop Connection") &&
-                checks.Count == 1 && checks[0].Current.Name == EducationalCheck && okay != null)
+            MstscDialogDecision decision = MstscDialogPolicy.Evaluate(title, controls, address);
+            if (!decision.Allowed) return Rejected(title, controls, address, decision.Reason, report);
+            Accepted previous;
+            if (accepted.TryGetValue(decision.Kind, out previous))
             {
-                object toggleObject;
-                if (!checks[0].TryGetCurrentPattern(TogglePattern.Pattern, out toggleObject)) return false;
-                var toggle = (TogglePattern)toggleObject;
-                if (toggle.Current.ToggleState == ToggleState.Off) toggle.Toggle();
-                if (toggle.Current.ToggleState != ToggleState.On || !Invoke(okay)) return false;
-                report.Add("client", "progress", "mstsc_rdp_file_education_accepted", null);
+                if (previous.Window != window) return Rejected(title, controls, address, "repeated_consent_dialog", report);
+                if (previous.Age.Elapsed.TotalSeconds > 5) return Rejected(title, controls, address, "accepted_dialog_did_not_close", report);
                 return true;
             }
-            bool modern = root.Current.Name == "Remote Desktop Connection security warning" &&
-                names.Contains("Caution: Unknown remote connection") && names.Contains("Unknown publisher");
-            bool legacy = root.Current.Name == "Remote Desktop Connection" &&
-                names.Contains("The publisher of this remote connection can't be identified. Do you want to connect anyway?");
-            if ((!modern && !legacy) || !HasEndpoint(names, address) || connect == null) return false;
-            foreach (AutomationElement check in checks)
+            if (decision.Check >= 0)
             {
+                AutomationElement check = elements[decision.Check];
                 object pattern;
-                if (!check.TryGetCurrentPattern(TogglePattern.Pattern, out pattern) ||
-                    ((TogglePattern)pattern).Current.ToggleState != ToggleState.Off) return false;
+                if (!Owned(check, processId) || !check.Current.IsEnabled || check.Current.IsOffscreen ||
+                    !check.TryGetCurrentPattern(TogglePattern.Pattern, out pattern))
+                    return Rejected(title, controls, address, "education_checkbox_changed", report);
+                var toggle = (TogglePattern)pattern;
+                if (toggle.Current.ToggleState == ToggleState.Off) toggle.Toggle();
+                if (toggle.Current.ToggleState != ToggleState.On) return false;
             }
-            if (!Invoke(connect)) return false;
-            report.Add("client", "progress", "mstsc_loopback_profile_consent_accepted", new { localFixture = true });
+            if (!Invoke(elements[decision.Button], processId))
+                return Rejected(title, controls, address, "consent_button_changed", report);
+            accepted.Add(decision.Kind, new Accepted { Window = window });
+            report.Add("client", "progress", decision.Kind == "education" ? "mstsc_rdp_file_education_accepted" :
+                "mstsc_loopback_profile_consent_accepted", new { localFixture = true });
             return true;
         }
 
-        private static bool Invoke(AutomationElement button)
+        private bool Rejected(string title, IList<MstscDialogControl> controls, string address, string reason, Report report)
+        {
+            if (reported.Count >= 16 || !reported.Add(reason)) return false;
+            var diagnostics = new List<object>();
+            foreach (MstscDialogControl control in controls)
+                diagnostics.Add(new { kind = control.Kind, name = MstscDialogPolicy.DiagnosticText(control.Name, address),
+                    label = MstscDialogPolicy.DiagnosticText(control.Label, address), owned = control.Owned,
+                    enabled = control.Enabled, visible = control.Visible, password = control.Password,
+                    readOnly = control.ReadOnly, hasValue = control.Value != null, expectedAddress = control.Value == address,
+                    toggle = control.Toggle, canInvoke = control.CanInvoke });
+            report.Add("client", "recorded", "mstsc_dialog_rejected", new {
+                reason = reason, title = MstscDialogPolicy.DiagnosticText(title, address), controls = diagnostics });
+            return false;
+        }
+
+        private static bool Owned(AutomationElement element, uint processId)
+        {
+            if (element.Current.ProcessId == processId) return true;
+            int handle = element.Current.NativeWindowHandle;
+            return element.Current.ProcessId == 0 && handle != 0 && MstscWindows.Owner(new IntPtr(handle)) == processId;
+        }
+
+        private static bool Invoke(AutomationElement button, uint processId)
         {
             object pattern;
-            if (!button.Current.IsEnabled || !button.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) return false;
+            if (!Owned(button, processId) || !button.Current.IsEnabled || button.Current.IsOffscreen ||
+                !button.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) return false;
             ((InvokePattern)pattern).Invoke();
             return true;
+        }
+    }
+
+    internal static class MstscDialogTests
+    {
+        private const string Address = "127.0.0.1:3390";
+        private const string ModernTitle = "Remote Desktop Connection security warning";
+        private const string LegacyTitle = "Remote Desktop Connection";
+
+        internal static void Run()
+        {
+            Accept("modern static text", ModernTitle, Consent(false), "consent", 3, -1);
+            var legacy = Consent(false);
+            legacy[0].Name = MstscDialogPolicy.LegacyWarning;
+            legacy.RemoveAt(2);
+            Accept("legacy static text without publisher field", LegacyTitle, legacy, "consent", 2, -1);
+            var combined = Consent(false);
+            combined[1].Name = "Remote computer: " + Address;
+            Accept("combined static label and endpoint", ModernTitle, combined, "consent", 3, -1);
+            var separate = Consent(false);
+            separate.Add(Control("Text", "Remote computer:"));
+            Accept("separate static label and endpoint", ModernTitle, separate, "consent", 3, -1);
+            Accept("read-only endpoint and publisher values", ModernTitle, Consent(true), "consent", 3, -1);
+            var accelerators = Consent(true);
+            accelerators[1].Label = " &Remote computer: ";
+            accelerators[2].Label = "Pub&lisher:";
+            accelerators[3].Name = "&Connect";
+            Accept("label accelerators", ModernTitle, accelerators, "consent", 3, -1);
+            var redirectionOff = Consent(true);
+            redirectionOff.Add(Checkbox("Clipboard", 0));
+            Accept("redirection explicitly off", ModernTitle, redirectionOff, "consent", 3, -1);
+            var hiddenRedirectionOff = Consent(true);
+            var hiddenCheckbox = Checkbox("Clipboard", 0);
+            hiddenCheckbox.Visible = false;
+            hiddenRedirectionOff.Add(hiddenCheckbox);
+            Accept("collapsed redirection explicitly off", ModernTitle, hiddenRedirectionOff, "consent", 3, -1);
+
+            foreach (string wrong in new[] { "127.0.0.1:3391", "example.invalid:3390", Address + ".example.invalid", "127.0.0.&1:3390" })
+            {
+                var edit = Consent(true);
+                edit[1].Value = wrong;
+                Reject("read-only endpoint mismatch " + wrong, ModernTitle, edit, "remote_address_mismatch");
+                var text = Consent(false);
+                text[1].Name = "Remote computer: " + wrong;
+                Reject("combined static endpoint mismatch " + wrong, ModernTitle, text, "remote_address_mismatch");
+                var bare = Consent(false);
+                bare[1].Name = wrong;
+                Reject("bare static endpoint mismatch " + wrong, ModernTitle, bare, "expected_remote_address_missing");
+            }
+            RejectConsent("writable endpoint", delegate(List<MstscDialogControl> controls) { controls[1].ReadOnly = false; },
+                "expected_remote_address_missing");
+            RejectConsent("password endpoint", delegate(List<MstscDialogControl> controls) { controls[1].Password = true; },
+                "credential_field_present");
+            RejectConsent("password field in otherwise valid consent", delegate(List<MstscDialogControl> controls) {
+                var password = Control("Edit", "Password");
+                password.Password = true;
+                controls.Add(password);
+            }, "credential_field_present");
+            RejectConsent("unowned endpoint", delegate(List<MstscDialogControl> controls) { controls[1].Owned = false; },
+                "expected_remote_address_missing");
+            RejectConsent("hidden endpoint", delegate(List<MstscDialogControl> controls) { controls[1].Visible = false; },
+                "expected_remote_address_missing");
+            RejectConsent("unrelated value", delegate(List<MstscDialogControl> controls) { controls[1].Label = "Username:"; },
+                "expected_remote_address_missing");
+            RejectConsent("label is not endpoint value", delegate(List<MstscDialogControl> controls) {
+                controls[1].Name = Address; controls[1].Value = null;
+            }, "expected_remote_address_missing");
+            RejectConsent("missing banner", delegate(List<MstscDialogControl> controls) { controls.RemoveAt(0); },
+                "unrecognized_dialog");
+            RejectConsent("unowned banner", delegate(List<MstscDialogControl> controls) { controls[0].Owned = false; },
+                "unrecognized_dialog");
+            RejectConsent("missing publisher", delegate(List<MstscDialogControl> controls) { controls.RemoveAt(2); },
+                "unknown_publisher_missing");
+            RejectConsent("writable publisher", delegate(List<MstscDialogControl> controls) { controls[2].ReadOnly = false; },
+                "unknown_publisher_missing");
+            RejectConsent("wrong publisher", delegate(List<MstscDialogControl> controls) { controls[2].Value = "Example Publisher"; },
+                "unknown_publisher_missing");
+            RejectConsent("missing Connect", delegate(List<MstscDialogControl> controls) { controls.RemoveAt(3); },
+                "consent_button_ambiguous_or_missing");
+            RejectConsent("disabled Connect", delegate(List<MstscDialogControl> controls) { controls[3].Enabled = false; },
+                "consent_button_unavailable");
+            RejectConsent("hidden Connect", delegate(List<MstscDialogControl> controls) { controls[3].Visible = false; },
+                "consent_button_unavailable");
+            RejectConsent("unowned Connect", delegate(List<MstscDialogControl> controls) { controls[3].Owned = false; },
+                "consent_button_unavailable");
+            RejectConsent("non-invokable Connect", delegate(List<MstscDialogControl> controls) { controls[3].CanInvoke = false; },
+                "consent_button_unavailable");
+            RejectConsent("duplicate Connect", delegate(List<MstscDialogControl> controls) { controls.Add(Control("Button", "Connect")); },
+                "consent_button_ambiguous_or_missing");
+            foreach (int state in new[] { 1, 2, -1 })
+            {
+                var controls = Consent(true);
+                controls.Add(Checkbox("Clipboard", state));
+                Reject("redirection toggle " + state, ModernTitle, controls,
+                    state == 1 ? "resource_redirection_selected" : "checkbox_state_unavailable");
+            }
+            RejectConsent("collapsed redirection selected", delegate(List<MstscDialogControl> controls) {
+                var checkbox = Checkbox("Clipboard", 1);
+                checkbox.Visible = false;
+                controls.Add(checkbox);
+            }, "resource_redirection_selected");
+            var certificate = Consent(false);
+            certificate[0].Name = "The identity of the remote computer cannot be verified. Do you want to connect anyway?";
+            certificate[3].Name = "Yes";
+            Reject("certificate warning", LegacyTitle, certificate, "unrecognized_dialog");
+            var credential = Consent(true);
+            credential[0].Name = "Enter your credentials";
+            credential.Add(new MstscDialogControl { Kind = "Edit", Name = "Password", Password = true, Owned = true });
+            Reject("credentials prompt", "Windows Security", credential, "unrecognized_dialog");
+
+            Accept("education initially unchecked", LegacyTitle, Education(), "education", 2, 1);
+            var checkedEducation = Education();
+            checkedEducation[1].Toggle = 1;
+            Accept("education already checked", LegacyTitle, checkedEducation, "education", 2, 1);
+            RejectEducation("education missing checkbox", delegate(List<MstscDialogControl> controls) { controls.RemoveAt(1); },
+                "education_checkbox_ambiguous_or_missing");
+            RejectEducation("education duplicate checkbox", delegate(List<MstscDialogControl> controls) {
+                controls.Add(Checkbox(MstscDialogPolicy.EducationalCheck, 0));
+            }, "education_checkbox_ambiguous_or_missing");
+            RejectEducation("education unrelated checkbox", delegate(List<MstscDialogControl> controls) { controls[1].Name = "Remember me"; },
+                "unexpected_education_checkbox");
+            RejectEducation("education disabled checkbox", delegate(List<MstscDialogControl> controls) { controls[1].Enabled = false; },
+                "unexpected_education_checkbox");
+            RejectEducation("education hidden checkbox", delegate(List<MstscDialogControl> controls) { controls[1].Visible = false; },
+                "unexpected_education_checkbox");
+            foreach (int state in new[] { 2, -1 })
+            {
+                var controls = Education();
+                controls[1].Toggle = state;
+                Reject("education unavailable toggle " + state, LegacyTitle, controls, "checkbox_state_unavailable");
+            }
+
+            foreach (string secret in new[] { "secret-password", "DOMAIN\\private-user", "private.example.invalid:3389",
+                "Remote computer: " + Address, "Publisher: private-person", "Connect secret-password", "127.0.0.&1:3390" })
+                Check("diagnostics redact " + secret, MstscDialogPolicy.DiagnosticText(secret, Address) == "<redacted>");
+            Check("diagnostics identify expected endpoint without exposing it",
+                MstscDialogPolicy.DiagnosticText(Address, Address) == "<expected-loopback-address>");
+            Check("diagnostics retain known label", MstscDialogPolicy.DiagnosticText("&Connect", Address) == "Connect");
+            Check("diagnostics handle absent text", MstscDialogPolicy.DiagnosticText(null, Address) == "");
+        }
+
+        private static MstscDialogControl Control(string kind, string name)
+        {
+            return new MstscDialogControl { Kind = kind, Name = name, Owned = true, Enabled = true,
+                Visible = true, CanInvoke = kind == "Button" };
+        }
+
+        private static MstscDialogControl Checkbox(string name, int state)
+        {
+            MstscDialogControl control = Control("CheckBox", name);
+            control.Toggle = state;
+            return control;
+        }
+
+        private static List<MstscDialogControl> Consent(bool edits)
+        {
+            var controls = new List<MstscDialogControl> { Control("Text", MstscDialogPolicy.Warning),
+                Control("Text", Address), Control("Text", "Unknown publisher"), Control("Button", "Connect") };
+            if (edits)
+            {
+                controls[1] = Control("Edit", "Remote computer:");
+                controls[1].Label = "Remote computer:";
+                controls[1].Value = Address;
+                controls[1].ReadOnly = true;
+                controls[2] = Control("Edit", "Publisher:");
+                controls[2].Label = "Publisher:";
+                controls[2].Value = "Unknown publisher";
+                controls[2].ReadOnly = true;
+            }
+            return controls;
+        }
+
+        private static List<MstscDialogControl> Education()
+        {
+            return new List<MstscDialogControl> { Control("Text", MstscDialogPolicy.Education),
+                Checkbox(MstscDialogPolicy.EducationalCheck, 0), Control("Button", "OK") };
+        }
+
+        private static void RejectConsent(string name, Action<List<MstscDialogControl>> change, string reason)
+        {
+            var controls = Consent(true);
+            change(controls);
+            Reject(name, ModernTitle, controls, reason);
+        }
+
+        private static void RejectEducation(string name, Action<List<MstscDialogControl>> change, string reason)
+        {
+            var controls = Education();
+            change(controls);
+            Reject(name, LegacyTitle, controls, reason);
+        }
+
+        private static void Accept(string name, string title, IList<MstscDialogControl> controls, string kind, int button, int check)
+        {
+            MstscDialogDecision result = MstscDialogPolicy.Evaluate(title, controls, Address);
+            Check(name + " accepted: " + result.Reason, result.Allowed);
+            Check(name + " recognized kind", result.Kind == kind);
+            Check(name + " selected action", result.Button == button && result.Check == check);
+        }
+
+        private static void Reject(string name, string title, IList<MstscDialogControl> controls, string reason)
+        {
+            MstscDialogDecision result = MstscDialogPolicy.Evaluate(title, controls, Address);
+            Check(name + " rejected", !result.Allowed);
+            Check(name + " rejection reason: " + result.Reason, result.Reason == reason);
+        }
+
+        private static void Check(string name, bool condition)
+        {
+            if (!condition) throw new InvalidOperationException("mstsc_dialog_self_test_failed: " + name);
         }
     }
 
@@ -460,9 +847,9 @@ namespace DevBox.RdpSmoke
         {
             var clock = Stopwatch.StartNew();
             var state = new MstscObservation();
+            var dialogs = new MstscDialogs();
             IntPtr positioned = IntPtr.Zero;
             double unknownDialogAt = -1;
-            int handledDialogs = 0;
             while (clock.Elapsed.TotalSeconds < 90)
             {
                 if (!client.Running) throw new SmokeFailure("connection", "mstsc_process_exited_early");
@@ -475,9 +862,8 @@ namespace DevBox.RdpSmoke
                     if (name == "TscShellContainerClass") { root = window; continue; }
                     if (name == "#32770")
                     {
-                        if (state.InitialLayout >= 0 || handledDialogs >= 2 || !MstscDialogs.Handle(window, client.Id, address, report))
+                        if (state.InitialLayout >= 0 || !dialogs.Handle(window, client.Id, address, report))
                             unknownDialog = true;
-                        else handledDialogs++;
                     }
                 }
                 double now = clock.Elapsed.TotalSeconds;
@@ -564,8 +950,7 @@ namespace DevBox.RdpSmoke
                 Reject(delegate { MstscProfile.Parse(bad); });
             Check(MstscProcess.Quote("C:\\some directory\\client.rdp") == "\"C:\\some directory\\client.rdp\"");
             Reject(delegate { MstscProcess.Quote("bad\" /v:elsewhere"); });
-            Check(MstscDialogs.HasEndpoint(new[] { "Remote computer:", "127.0.0.1:3390" }, "127.0.0.1:3390"));
-            Check(!MstscDialogs.HasEndpoint(new[] { "127.0.0.1:33900" }, "127.0.0.1:3390"));
+            MstscDialogTests.Run();
             Check(MstscWindows.FocusAllowed(5, 5, 5, true, "UIInputClass"));
             Check(!MstscWindows.FocusAllowed(5, 6, 5, true, "UIInputClass"));
             Check(!MstscWindows.FocusAllowed(5, 5, 6, true, "UIInputClass"));
