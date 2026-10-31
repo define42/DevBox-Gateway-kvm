@@ -293,7 +293,11 @@ namespace DevBox.RdpSmoke
                 if (control.Kind == "Button" && Label(control.Name) == (result.Kind == "education" ? "OK" : "Connect"))
                 {
                     buttonCount++;
-                    if (!control.Owned || !control.Enabled || !control.Visible || !control.CanInvoke)
+                    // Education enables OK only after its checkbox is selected.
+                    // Invoke rechecks the live button state after that selection.
+                    // The connection-consent button must already be enabled.
+                    if (!control.Owned || !control.Visible || !control.CanInvoke ||
+                        (!control.Enabled && result.Kind != "education"))
                     { result.Reason = "consent_button_unavailable"; return result; }
                     result.Button = i;
                 }
@@ -580,6 +584,21 @@ namespace DevBox.RdpSmoke
             Reject("credentials prompt", "Windows Security", credential, "unrecognized_dialog");
 
             Accept("education initially unchecked", LegacyTitle, Education(), "education", 2, 1);
+            // Windows Server 2022 CI exposes OK as disabled until this checkbox
+            // is selected. Selection must be allowed before OK can be invoked.
+            var gatedEducation = Education();
+            gatedEducation[2].Enabled = false;
+            Accept("education unchecked with disabled OK", LegacyTitle, gatedEducation, "education", 2, 1);
+            var enablingEducation = Education();
+            enablingEducation[1].Toggle = 1;
+            enablingEducation[2].Enabled = false;
+            Accept("education awaiting OK enablement", LegacyTitle, enablingEducation, "education", 2, 1);
+            RejectEducation("education hidden OK", delegate(List<MstscDialogControl> controls) { controls[2].Visible = false; },
+                "consent_button_unavailable");
+            RejectEducation("education unowned OK", delegate(List<MstscDialogControl> controls) { controls[2].Owned = false; },
+                "consent_button_unavailable");
+            RejectEducation("education non-invokable OK", delegate(List<MstscDialogControl> controls) { controls[2].CanInvoke = false; },
+                "consent_button_unavailable");
             var checkedEducation = Education();
             checkedEducation[1].Toggle = 1;
             Accept("education already checked", LegacyTitle, checkedEducation, "education", 2, 1);
