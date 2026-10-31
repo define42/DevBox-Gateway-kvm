@@ -62,34 +62,90 @@ namespace DevBox.RdpSmoke
 
     internal sealed class MstscObservation
     {
-        private int candidate = -1, samples;
-        internal int InitialLayout = -1;
-        internal bool InputConfirmed;
+        private int candidate = -1, samples, expectedLayout = -1;
+        private double inputSubmittedAt;
+        private bool correctLayout;
+        internal int InitialLayout = -1, Phase, LayoutBefore = -1;
+        internal bool InputSubmitted, InputConfirmed;
         internal double FirstFrameAt, LastGoodAt;
         internal readonly HeartbeatMonitor Heartbeat = new HeartbeatMonitor();
+        internal HeartbeatMonitor PhaseHeartbeat = new HeartbeatMonitor();
 
+        internal string PhaseName { get { return Phase == 0 ? "initial" : Phase == 1 ? "shrink" : "restore"; } }
+        internal bool ReadyForInput { get { return LayoutBefore >= 0 && correctLayout && !InputSubmitted; } }
+
+        internal void SubmittedInput(double now)
+        {
+            if (!ReadyForInput) throw new SmokeFailure("input", "unexpected_mstsc_input");
+            InputSubmitted = true;
+            inputSubmittedAt = now;
+        }
+
+        internal bool PhaseVerified(double now)
+        {
+            return InputConfirmed && correctLayout && PhaseHeartbeat.Verified(now);
+        }
+
+        internal void BeginResize(double now)
+        {
+            if (Phase >= 2 || !PhaseVerified(now)) throw new SmokeFailure("resize", "unexpected_mstsc_resize");
+            Phase++;
+            LayoutBefore = candidate = -1;
+            samples = 0;
+            InputSubmitted = InputConfirmed = false;
+            PhaseHeartbeat = new HeartbeatMonitor();
+        }
+
+        // Call with an invalid layout until the measured window has the exact
+        // requested dimensions. Three stable frames precede each new F8 probe.
         internal bool Observe(int layout, int marker, double now)
         {
-            if (InitialLayout < 0)
+            if (LayoutBefore < 0)
             {
-                if (layout < 0) { candidate = -1; samples = 0; }
+                if (layout < 0 || (InitialLayout >= 0 && layout != expectedLayout)) { candidate = -1; samples = 0; }
                 else if (candidate != layout) { candidate = layout; samples = 1; }
                 else samples++;
-                if (samples < 3)
+                if (samples >= 3)
+                {
+                    LayoutBefore = expectedLayout = layout;
+                    if (InitialLayout < 0)
+                    {
+                        InitialLayout = layout;
+                        FirstFrameAt = LastGoodAt = now;
+                    }
+                }
+                if (InitialLayout < 0)
                 {
                     if (now > 45) throw new SmokeFailure("render", "fixture_not_visible");
                     return false;
                 }
-                InitialLayout = layout;
-                FirstFrameAt = LastGoodAt = now;
             }
             Heartbeat.Observe(marker, now);
+            if (LayoutBefore >= 0) PhaseHeartbeat.Observe(marker, now);
             if (Heartbeat.Stalled(now, FirstFrameAt)) throw new SmokeFailure("render", "heartbeat_stalled");
-            if (layout == 1 - InitialLayout) InputConfirmed = true;
-            if (!InputConfirmed && now - FirstFrameAt > 10) throw new SmokeFailure("input", "fixture_did_not_change");
-            if (layout == (InputConfirmed ? 1 - InitialLayout : InitialLayout)) LastGoodAt = now;
+            if (InputSubmitted && layout == 1 - LayoutBefore)
+            {
+                InputConfirmed = true;
+                expectedLayout = layout;
+            }
+            if (InputSubmitted && !InputConfirmed && now - inputSubmittedAt > 10)
+                throw new SmokeFailure("input", "fixture_did_not_change");
+            correctLayout = layout == expectedLayout;
+            if (correctLayout) LastGoodAt = now;
             if (now - LastGoodAt > 3) throw new SmokeFailure("render", "fixture_lost");
-            return InputConfirmed && layout == 1 - InitialLayout && now - FirstFrameAt >= 30 && Heartbeat.Verified(now);
+            return Phase == 2 && PhaseVerified(now) && layout == expectedLayout &&
+                now - FirstFrameAt >= 30 && Heartbeat.Verified(now);
+        }
+    }
+
+    internal static class MstscResize
+    {
+        internal static Size Smaller(Size original)
+        {
+            var result = new Size(Math.Min(800, original.Width - 80), Math.Min(600, original.Height - 60));
+            if (result.Width < 700 || result.Height < 540)
+                throw new SmokeFailure("infrastructure", "desktop_too_small_for_resize");
+            return result;
         }
     }
 
@@ -885,10 +941,11 @@ namespace DevBox.RdpSmoke
 
         internal static object WindowDiagnostic(IntPtr window)
         {
-            Rectangle rect = ClientBounds(window);
+            Rectangle rect = ClientBounds(window), outer = WindowBounds(window);
             return new { windowClass = Class(window), visible = MstscNative.IsWindowVisible(window),
                 x = rect.X, y = rect.Y, width = rect.Width, height = rect.Height,
-                onScreen = Screen.PrimaryScreen.Bounds.Contains(rect) };
+                outerX = outer.X, outerY = outer.Y, outerWidth = outer.Width, outerHeight = outer.Height,
+                maximized = MstscNative.IsZoomed(window), onScreen = Screen.PrimaryScreen.Bounds.Contains(rect) };
         }
 
         internal static void RecordWindows(uint processId, IntPtr root, string output, Report report)
@@ -914,12 +971,14 @@ namespace DevBox.RdpSmoke
         {
             IntPtr result = IntPtr.Zero;
             int best = -1;
+            Rectangle viewport = ClientBounds(root);
             MstscNative.EnumChildWindows(root, delegate(IntPtr window, IntPtr ignored) {
                 if (Owner(window) != processId || !MstscNative.IsWindowVisible(window)) return true;
                 string name = Class(window);
                 int rank = name == "UIOutputClass" ? 3 : name == "UIContainerClass" ? 2 : name == "TscShellAxHostClass" ? 1 : -1;
                 Rectangle bounds = ClientBounds(window);
-                if (rank > best && bounds.Width >= 640 && bounds.Height >= 480 && Screen.PrimaryScreen.Bounds.Contains(bounds))
+                if (rank > best && bounds.Width >= 640 && bounds.Height >= 480 &&
+                    viewport.Contains(bounds) && Screen.PrimaryScreen.Bounds.Contains(bounds))
                 { result = window; best = rank; }
                 return true;
             }, IntPtr.Zero);
@@ -932,6 +991,34 @@ namespace DevBox.RdpSmoke
             var point = new MstscNative.Point();
             if (!MstscNative.GetClientRect(window, out rect) || !MstscNative.ClientToScreen(window, ref point)) return Rectangle.Empty;
             return new Rectangle(point.X, point.Y, rect.Right - rect.Left, rect.Bottom - rect.Top);
+        }
+
+        internal static Rectangle WindowBounds(IntPtr window)
+        {
+            MstscNative.Rect rect;
+            if (!MstscNative.GetWindowRect(window, out rect))
+                throw new SmokeFailure("resize", "mstsc_window_bounds_unavailable");
+            return Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom);
+        }
+
+        internal static void Resize(IntPtr window, uint processId, Rectangle bounds, string phase, Report report)
+        {
+            if (Owner(window) != processId || Class(window) != "TscShellContainerClass" ||
+                !Screen.PrimaryScreen.WorkingArea.Contains(bounds))
+                throw new SmokeFailure("resize", "invalid_mstsc_resize_target");
+            bool maximized = MstscNative.IsZoomed(window);
+            // Restore maximized mstsc before sizing its outer window. The return
+            // value indicates previous visibility, so later observations verify
+            // the result using the measured bounds, not ShowWindow's return.
+            // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-showwindow
+            if (maximized) MstscNative.ShowWindow(window, 9); // SW_RESTORE
+            if (!MstscNative.SetWindowPos(window, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height, 0x0044))
+                throw new SmokeFailure("resize", "mstsc_window_resize_failed");
+            MstscNative.SetForegroundWindow(window);
+            Rectangle actual = WindowBounds(window);
+            report.Add("resize", "progress", "mstsc_window_placement", new { phase = phase, wasMaximized = maximized,
+                requestedWidth = bounds.Width, requestedHeight = bounds.Height,
+                x = actual.X, y = actual.Y, windowWidth = actual.Width, windowHeight = actual.Height });
         }
 
         internal static Bitmap Capture(IntPtr window)
@@ -1057,8 +1144,10 @@ namespace DevBox.RdpSmoke
             var state = new MstscObservation();
             var dialogs = new MstscDialogs();
             IntPtr positioned = IntPtr.Zero;
-            bool diagnosed = false;
-            double unknownDialogAt = -1;
+            Rectangle original = Rectangle.Empty, desired = Rectangle.Empty, beforeResize = Rectangle.Empty;
+            int reportedResize = 0;
+            bool diagnosed = false, initialPlacementRetried = false;
+            double unknownDialogAt = -1, resizeRequestedAt = 0;
             while (clock.Elapsed.TotalSeconds < 90)
             {
                 if (!client.Running) throw new SmokeFailure("connection", "mstsc_process_exited_early");
@@ -1083,19 +1172,37 @@ namespace DevBox.RdpSmoke
                 }
                 else unknownDialogAt = -1;
                 bool previouslyVisible = state.InitialLayout >= 0, previouslyConfirmed = state.InputConfirmed;
-                int layout = -1, marker = -1;
+                bool observed = false;
                 if (root != IntPtr.Zero && !unknownDialog)
                 {
-                    if (positioned != root)
+                    if (positioned == IntPtr.Zero)
                     {
                         Rectangle area = Screen.PrimaryScreen.WorkingArea;
-                        if (!MstscNative.SetWindowPos(root, IntPtr.Zero, area.Left, area.Top,
-                            Math.Min(area.Width, 1100), Math.Min(area.Height, 850), 0x0040))
-                            throw new SmokeFailure("infrastructure", "mstsc_window_placement_failed");
-                        MstscNative.SetForegroundWindow(root);
+                        original = desired = new Rectangle(area.Location, new Size(Math.Min(area.Width, 1100), Math.Min(area.Height, 850)));
+                        MstscResize.Smaller(original.Size);
+                        MstscWindows.Resize(root, client.Id, desired, "initial", report);
+                        resizeRequestedAt = now;
                         positioned = root;
                     }
-                    IntPtr render = MstscWindows.RenderWindow(root, client.Id);
+                    if (positioned != root) throw new SmokeFailure("connection", "mstsc_window_replaced");
+                    Rectangle actual = MstscWindows.WindowBounds(root);
+                    // mstsc can apply its saved maximized state when connecting,
+                    // after the shell first becomes visible. Correct that once,
+                    // before any verified frames or input belong to the session.
+                    if (actual != desired && state.InitialLayout < 0 && !initialPlacementRetried &&
+                        now - resizeRequestedAt >= 1 && MstscWindows.RenderWindow(root, client.Id) != IntPtr.Zero)
+                    {
+                        MstscWindows.Resize(root, client.Id, desired, "initial", report);
+                        actual = MstscWindows.WindowBounds(root);
+                        initialPlacementRetried = true;
+                        resizeRequestedAt = now;
+                    }
+                    if (actual != desired && (state.Phase > 0 || initialPlacementRetried) && now - resizeRequestedAt > 3)
+                    {
+                        MstscWindows.RecordWindows(client.Id, root, output, report);
+                        throw new SmokeFailure("resize", "mstsc_window_size_not_applied");
+                    }
+                    IntPtr render = actual == desired ? MstscWindows.RenderWindow(root, client.Id) : IntPtr.Zero;
                     if (render != IntPtr.Zero)
                     {
                         using (Bitmap capture = MstscWindows.Capture(render))
@@ -1105,22 +1212,39 @@ namespace DevBox.RdpSmoke
                             {
                                 using (Bitmap image = MstscPixels.Normalize(capture, bounds))
                                 {
-                                    layout = Fixture.Match(Fixture.Samples(image));
-                                    marker = Fixture.Heartbeat(image);
+                                    int layout = Fixture.Match(Fixture.Samples(image));
+                                    int marker = Fixture.Heartbeat(image);
                                     bool complete = state.Observe(layout, marker, now);
+                                    observed = true;
                                     if (!previouslyVisible && state.InitialLayout >= 0)
                                     {
                                         image.Save(Path.Combine(output, "before-input.png"), ImageFormat.Png);
                                         report.Add("render", "passed", "fixture_visible", new { layout = layout,
                                             renderClass = MstscWindows.Class(render), visibleWidth = bounds.Width, visibleHeight = bounds.Height });
+                                    }
+                                    if (state.ReadyForInput)
+                                    {
                                         MstscWindows.SendF8(root, client.Id, report);
-                                        report.Add("input", "progress", "f8_submitted", new {
+                                        state.SubmittedInput(now);
+                                        report.Add("input", "progress", "f8_submitted", new { phase = state.PhaseName,
                                             method = "SendInput", keyEncoding = "scan_code", controlFocused = true });
                                     }
-                                    if (!previouslyConfirmed && state.InputConfirmed)
+                                    if (state.Phase == 0 && !previouslyConfirmed && state.InputConfirmed)
                                     {
                                         image.Save(Path.Combine(output, "after-input.png"), ImageFormat.Png);
                                         report.Add("input", "passed", "fixture_changed", new { layout = layout });
+                                    }
+                                    if (state.Phase > reportedResize && state.PhaseVerified(now))
+                                    {
+                                        capture.Save(Path.Combine(output, "resize-" + state.PhaseName + ".png"), ImageFormat.Png);
+                                        report.Add("resize", "passed", "window_resize_verified", new {
+                                            phase = state.PhaseName, beforeWidth = beforeResize.Width, beforeHeight = beforeResize.Height,
+                                            windowWidth = actual.Width, windowHeight = actual.Height,
+                                            visibleWidth = bounds.Width, visibleHeight = bounds.Height,
+                                            layoutBefore = state.LayoutBefore, layoutAfter = layout,
+                                            heartbeatChanges = state.PhaseHeartbeat.Changes,
+                                            lastChangeAgeSeconds = now - state.PhaseHeartbeat.LastChangeAt });
+                                        reportedResize = state.Phase;
                                     }
                                     if (complete)
                                     {
@@ -1130,6 +1254,17 @@ namespace DevBox.RdpSmoke
                                         report.Add("session", "passed", "render_input_and_duration_verified", new {
                                             visibleSeconds = now - state.FirstFrameAt, requiredSeconds = 30 });
                                         return;
+                                    }
+                                    if (state.Phase < 2 && state.PhaseVerified(now))
+                                    {
+                                        beforeResize = actual;
+                                        desired = state.Phase == 0 ? new Rectangle(original.Location, MstscResize.Smaller(original.Size)) : original;
+                                        MstscWindows.Resize(root, client.Id, desired, state.Phase == 0 ? "shrink" : "restore", report);
+                                        state.BeginResize(now);
+                                        resizeRequestedAt = now;
+                                        report.Add("resize", "progress", "window_resize_requested", new {
+                                            phase = state.PhaseName, beforeWidth = actual.Width, beforeHeight = actual.Height,
+                                            requestedWidth = desired.Width, requestedHeight = desired.Height });
                                     }
                                 }
                             }
@@ -1141,7 +1276,7 @@ namespace DevBox.RdpSmoke
                     MstscWindows.RecordWindows(client.Id, root, output, report);
                     diagnosed = true;
                 }
-                if (layout < 0) state.Observe(-1, -1, now);
+                if (!observed) state.Observe(-1, -1, now);
                 Thread.Sleep(250);
             }
             throw new SmokeFailure("session", "mstsc_session_timeout");
@@ -1174,22 +1309,12 @@ namespace DevBox.RdpSmoke
             Check(!MstscWindows.FocusAllowed(5, 5, 6, true, "UIInputClass"));
             Check(!MstscWindows.FocusAllowed(5, 5, 5, false, "UIInputClass"));
             Check(!MstscWindows.FocusAllowed(5, 5, 5, true, "Edit"));
-            var state = new MstscObservation();
-            state.Observe(0, 0, 0); state.Observe(0, 0, 0.25); state.Observe(-1, -1, 0.5);
-            state.Observe(0, 0, 0.75); state.Observe(1, 0, 1); state.Observe(1, 0, 1.25);
-            Check(state.InitialLayout < 0);
-            state.Observe(1, 0, 1.5);
-            Check(state.InitialLayout == 1 && !state.InputConfirmed);
-            for (int i = 2; i <= 31; i++) Check(!state.Observe(0, i % 2, i));
-            Check(state.InputConfirmed && state.Observe(0, 0, 32));
-            var stalled = new MstscObservation();
-            stalled.Observe(0, 0, 0); stalled.Observe(0, 0, 0.25); stalled.Observe(0, 0, 0.5);
-            Reject(delegate { stalled.Observe(1, 0, 6); });
-            var lost = new MstscObservation();
-            lost.Observe(0, 0, 0); lost.Observe(0, 0, 0.25); lost.Observe(0, 0, 0.5);
-            Reject(delegate { lost.Observe(-1, 1, 4); });
-            Reject(delegate { new MstscObservation().Observe(-1, -1, 46); });
-            foreach (Size size in new[] { new Size(1024, 768), new Size(1024, 705), new Size(960, 720), new Size(800, 600) })
+            ObservationTests();
+            Check(MstscResize.Smaller(new Size(1024, 728)) == new Size(800, 600));
+            Check(MstscResize.Smaller(new Size(800, 600)) == new Size(720, 540));
+            Reject(delegate { MstscResize.Smaller(new Size(700, 540)); });
+            foreach (Size size in new[] { new Size(1024, 768), new Size(1024, 705), new Size(960, 720), new Size(800, 600),
+                new Size(800, 577), new Size(720, 517) })
             foreach (int layout in new[] { 0, 1 })
             foreach (int marker in new[] { 0, 1 })
             using (var image = new Bitmap(size.Width + 24, size.Height + 12))
@@ -1222,6 +1347,82 @@ namespace DevBox.RdpSmoke
             Check(Marshal.SizeOf(typeof(MstscNative.Input)) == (IntPtr.Size == 8 ? 40 : 28));
             Console.WriteLine("mstsc.exe harness self-tests passed");
             return 0;
+        }
+
+        private static void ObservationTests()
+        {
+            var state = new MstscObservation();
+            state.Observe(0, 0, 0); state.Observe(0, 0, 0.25); state.Observe(-1, -1, 0.5);
+            state.Observe(0, 0, 0.75); state.Observe(1, 0, 1); state.Observe(1, 0, 1.25);
+            Check(state.InitialLayout < 0 && !state.ReadyForInput);
+            state.Observe(1, 0, 1.5);
+            Check(state.InitialLayout == 1 && state.ReadyForInput && !state.InputConfirmed);
+            state.Observe(0, 0, 1.75);
+            Check(!state.InputConfirmed && !state.ReadyForInput); // A layout alone cannot stand in for submitted input.
+            Reject(delegate { state.SubmittedInput(1.75); });
+            state.Observe(1, 0, 1.9);
+            state.SubmittedInput(1.9);
+            Reject(delegate { state.SubmittedInput(1.9); });
+            for (int i = 2; i <= 35; i++) Check(!state.Observe(0, i % 2, i));
+            Check(state.InputConfirmed && state.PhaseVerified(35)); // Duration without both resizes cannot pass.
+            state.BeginResize(35);
+            Check(!state.ReadyForInput && !state.InputConfirmed && state.PhaseHeartbeat.Changes == 0);
+            Reject(delegate { state.BeginResize(35); });
+            Reject(delegate { state.SubmittedInput(35); });
+            state.Observe(-1, -1, 35.25); // Wrong window geometry is an invalid observation.
+            state.Observe(0, 0, 35.5); state.Observe(0, 0, 35.75); state.Observe(0, 0, 36);
+            Check(state.ReadyForInput && !state.PhaseVerified(36));
+            state.SubmittedInput(36);
+            state.Observe(0, 1, 36.25);
+            Check(!state.InputConfirmed); // The old input confirmation must not survive a resize.
+            state.Observe(1, 0, 36.5);
+            Check(state.InputConfirmed && !state.PhaseVerified(36.5)); // Fresh heartbeat changes are also required.
+            for (int i = 37; i <= 39; i++) Check(!state.Observe(1, i % 2, i));
+            Check(state.Phase == 1 && state.PhaseVerified(39));
+            state.BeginResize(39);
+            state.Observe(1, 0, 39.25); state.Observe(1, 0, 39.5); state.Observe(1, 0, 39.75);
+            Check(state.ReadyForInput && !state.InputConfirmed && state.PhaseHeartbeat.Changes == 0);
+            state.SubmittedInput(39.75);
+            for (int i = 40; i < 44; i++) Check(!state.Observe(0, i % 2, i));
+            Check(state.Observe(0, 0, 44));
+            Check(!state.Observe(-1, -1, 44.25)); // A stale successful phase cannot complete on a missing frame.
+            Reject(delegate { state.BeginResize(44.25); });
+
+            var early = VisibleObservation();
+            early.SubmittedInput(0.5);
+            for (int i = 1; i <= 5; i++) Check(!early.Observe(1, i % 2, i));
+            early.BeginResize(5);
+            early.Observe(1, 0, 5.25); early.Observe(1, 0, 5.5); early.Observe(1, 0, 5.75);
+            early.SubmittedInput(5.75);
+            for (int i = 6; i <= 10; i++) Check(!early.Observe(0, i % 2, i));
+            early.BeginResize(10);
+            early.Observe(0, 0, 10.25); early.Observe(0, 0, 10.5); early.Observe(0, 0, 10.75);
+            early.SubmittedInput(10.75);
+            for (int i = 11; i <= 30; i++) Check(!early.Observe(1, i % 2, i));
+            Check(early.Observe(1, 1, 30.5)); // Successful resizes cannot shorten the visible session.
+
+            var stalled = VisibleObservation();
+            stalled.SubmittedInput(0.5);
+            Reject(delegate { stalled.Observe(1, 0, 6); });
+            var lost = VisibleObservation();
+            Reject(delegate { lost.Observe(-1, 1, 4); });
+            var noInput = VisibleObservation();
+            noInput.SubmittedInput(0.5);
+            for (int i = 1; i <= 10; i++) noInput.Observe(0, i % 2, i);
+            Reject(delegate { noInput.Observe(0, 1, 11); });
+            var resizedLost = VisibleObservation();
+            resizedLost.SubmittedInput(0.5);
+            for (int i = 1; i <= 5; i++) resizedLost.Observe(1, i % 2, i);
+            resizedLost.BeginResize(5);
+            Reject(delegate { resizedLost.Observe(-1, -1, 8.25); });
+            Reject(delegate { new MstscObservation().Observe(-1, -1, 46); });
+        }
+
+        private static MstscObservation VisibleObservation()
+        {
+            var state = new MstscObservation();
+            state.Observe(0, 0, 0); state.Observe(0, 0, 0.25); state.Observe(0, 0, 0.5);
+            return state;
         }
 
         private static void Check(bool value) { if (!value) throw new InvalidOperationException("mstsc_self_test_failed"); }
@@ -1296,6 +1497,9 @@ namespace DevBox.RdpSmoke
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] internal static extern int GetClassName(IntPtr window, StringBuilder value, int maximum);
         [DllImport("user32.dll")] internal static extern bool GetClientRect(IntPtr window, out Rect rectangle);
         [DllImport("user32.dll")] internal static extern bool ClientToScreen(IntPtr window, ref Point point);
+        [DllImport("user32.dll")] internal static extern bool GetWindowRect(IntPtr window, out Rect rect);
+        [DllImport("user32.dll")] internal static extern bool IsZoomed(IntPtr window);
+        [DllImport("user32.dll")] internal static extern bool ShowWindow(IntPtr window, int command);
         [DllImport("user32.dll")] internal static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
         [DllImport("user32.dll")] internal static extern bool SetForegroundWindow(IntPtr window);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
