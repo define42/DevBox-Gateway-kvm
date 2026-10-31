@@ -870,6 +870,33 @@ namespace DevBox.RdpSmoke
             return value.ToString();
         }
 
+        internal static object WindowDiagnostic(IntPtr window)
+        {
+            Rectangle rect = ClientBounds(window);
+            return new { windowClass = Class(window), visible = MstscNative.IsWindowVisible(window),
+                x = rect.X, y = rect.Y, width = rect.Width, height = rect.Height,
+                onScreen = Screen.PrimaryScreen.Bounds.Contains(rect) };
+        }
+
+        internal static void RecordWindows(uint processId, IntPtr root, string output, Report report)
+        {
+            var records = new List<object>();
+            foreach (IntPtr window in TopLevels(processId))
+            {
+                records.Add(WindowDiagnostic(window));
+                MstscNative.EnumChildWindows(window, delegate(IntPtr child, IntPtr ignored) {
+                    if (Owner(child) == processId && records.Count < 64) records.Add(WindowDiagnostic(child));
+                    return true;
+                }, IntPtr.Zero);
+            }
+            report.Add("render", "recorded", "mstsc_window_diagnostics", new { foundRoot = root != IntPtr.Zero, windows = records });
+            if (root != IntPtr.Zero)
+            {
+                try { using (Bitmap capture = Capture(root)) capture.Save(Path.Combine(output, "mstsc-window.png"), ImageFormat.Png); }
+                catch (SmokeFailure error) { report.Add("render", "recorded", error.Reason, null); }
+            }
+        }
+
         internal static IntPtr RenderWindow(IntPtr root, uint processId)
         {
             IntPtr result = IntPtr.Zero;
@@ -1011,6 +1038,7 @@ namespace DevBox.RdpSmoke
             var state = new MstscObservation();
             var dialogs = new MstscDialogs();
             IntPtr positioned = IntPtr.Zero;
+            bool diagnosed = false;
             double unknownDialogAt = -1;
             while (clock.Elapsed.TotalSeconds < 90)
             {
@@ -1088,6 +1116,11 @@ namespace DevBox.RdpSmoke
                             }
                         }
                     }
+                }
+                if (!diagnosed && now >= 10 && state.InitialLayout < 0)
+                {
+                    MstscWindows.RecordWindows(client.Id, root, output, report);
+                    diagnosed = true;
                 }
                 if (layout < 0) state.Observe(-1, -1, now);
                 Thread.Sleep(250);
