@@ -941,10 +941,11 @@ namespace DevBox.RdpSmoke
 
         internal static object WindowDiagnostic(IntPtr window)
         {
-            Rectangle rect = ClientBounds(window);
+            Rectangle rect = ClientBounds(window), outer = WindowBounds(window);
             return new { windowClass = Class(window), visible = MstscNative.IsWindowVisible(window),
                 x = rect.X, y = rect.Y, width = rect.Width, height = rect.Height,
-                onScreen = Screen.PrimaryScreen.Bounds.Contains(rect) };
+                outerX = outer.X, outerY = outer.Y, outerWidth = outer.Width, outerHeight = outer.Height,
+                maximized = MstscNative.IsZoomed(window), onScreen = Screen.PrimaryScreen.Bounds.Contains(rect) };
         }
 
         internal static void RecordWindows(uint processId, IntPtr root, string output, Report report)
@@ -1000,14 +1001,24 @@ namespace DevBox.RdpSmoke
             return Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom);
         }
 
-        internal static void Resize(IntPtr window, uint processId, Rectangle bounds)
+        internal static void Resize(IntPtr window, uint processId, Rectangle bounds, string phase, Report report)
         {
             if (Owner(window) != processId || Class(window) != "TscShellContainerClass" ||
                 !Screen.PrimaryScreen.WorkingArea.Contains(bounds))
                 throw new SmokeFailure("resize", "invalid_mstsc_resize_target");
+            bool maximized = MstscNative.IsZoomed(window);
+            // Restore maximized mstsc before sizing its outer window. The return
+            // value indicates previous visibility, so later observations verify
+            // the result using the measured bounds, not ShowWindow's return.
+            // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-showwindow
+            if (maximized) MstscNative.ShowWindow(window, 9); // SW_RESTORE
             if (!MstscNative.SetWindowPos(window, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height, 0x0044))
                 throw new SmokeFailure("resize", "mstsc_window_resize_failed");
             MstscNative.SetForegroundWindow(window);
+            Rectangle actual = WindowBounds(window);
+            report.Add("resize", "progress", "mstsc_window_placement", new { phase = phase, wasMaximized = maximized,
+                requestedWidth = bounds.Width, requestedHeight = bounds.Height,
+                x = actual.X, y = actual.Y, windowWidth = actual.Width, windowHeight = actual.Height });
         }
 
         internal static Bitmap Capture(IntPtr window)
@@ -1135,7 +1146,7 @@ namespace DevBox.RdpSmoke
             IntPtr positioned = IntPtr.Zero;
             Rectangle original = Rectangle.Empty, desired = Rectangle.Empty, beforeResize = Rectangle.Empty;
             int reportedResize = 0;
-            bool diagnosed = false;
+            bool diagnosed = false, initialPlacementRetried = false;
             double unknownDialogAt = -1, resizeRequestedAt = 0;
             while (clock.Elapsed.TotalSeconds < 90)
             {
@@ -1169,12 +1180,24 @@ namespace DevBox.RdpSmoke
                         Rectangle area = Screen.PrimaryScreen.WorkingArea;
                         original = desired = new Rectangle(area.Location, new Size(Math.Min(area.Width, 1100), Math.Min(area.Height, 850)));
                         MstscResize.Smaller(original.Size);
-                        MstscWindows.Resize(root, client.Id, desired);
+                        MstscWindows.Resize(root, client.Id, desired, "initial", report);
+                        resizeRequestedAt = now;
                         positioned = root;
                     }
                     if (positioned != root) throw new SmokeFailure("connection", "mstsc_window_replaced");
                     Rectangle actual = MstscWindows.WindowBounds(root);
-                    if (actual != desired && state.Phase > 0 && now - resizeRequestedAt > 3)
+                    // mstsc can apply its saved maximized state when connecting,
+                    // after the shell first becomes visible. Correct that once,
+                    // before any verified frames or input belong to the session.
+                    if (actual != desired && state.InitialLayout < 0 && !initialPlacementRetried &&
+                        now - resizeRequestedAt >= 1 && MstscWindows.RenderWindow(root, client.Id) != IntPtr.Zero)
+                    {
+                        MstscWindows.Resize(root, client.Id, desired, "initial", report);
+                        actual = MstscWindows.WindowBounds(root);
+                        initialPlacementRetried = true;
+                        resizeRequestedAt = now;
+                    }
+                    if (actual != desired && (state.Phase > 0 || initialPlacementRetried) && now - resizeRequestedAt > 3)
                     {
                         MstscWindows.RecordWindows(client.Id, root, output, report);
                         throw new SmokeFailure("resize", "mstsc_window_size_not_applied");
@@ -1236,7 +1259,7 @@ namespace DevBox.RdpSmoke
                                     {
                                         beforeResize = actual;
                                         desired = state.Phase == 0 ? new Rectangle(original.Location, MstscResize.Smaller(original.Size)) : original;
-                                        MstscWindows.Resize(root, client.Id, desired);
+                                        MstscWindows.Resize(root, client.Id, desired, state.Phase == 0 ? "shrink" : "restore", report);
                                         state.BeginResize(now);
                                         resizeRequestedAt = now;
                                         report.Add("resize", "progress", "window_resize_requested", new {
@@ -1475,6 +1498,8 @@ namespace DevBox.RdpSmoke
         [DllImport("user32.dll")] internal static extern bool GetClientRect(IntPtr window, out Rect rectangle);
         [DllImport("user32.dll")] internal static extern bool ClientToScreen(IntPtr window, ref Point point);
         [DllImport("user32.dll")] internal static extern bool GetWindowRect(IntPtr window, out Rect rect);
+        [DllImport("user32.dll")] internal static extern bool IsZoomed(IntPtr window);
+        [DllImport("user32.dll")] internal static extern bool ShowWindow(IntPtr window, int command);
         [DllImport("user32.dll")] internal static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
         [DllImport("user32.dll")] internal static extern bool SetForegroundWindow(IntPtr window);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
