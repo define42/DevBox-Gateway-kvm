@@ -257,10 +257,47 @@ namespace DevBox.RdpSmoke
             return false;
         }
 
+        private static string StaticField(IList<MstscDialogControl> controls, int index, string label)
+        {
+            if (index + 1 >= controls.Count) return null;
+            MstscDialogControl name = controls[index], value = controls[index + 1];
+            if (name.Kind != "Text" || !name.Owned || !name.Visible || name.Password || !Field(name.Name, label) ||
+                value.Kind != "Text" || !value.Owned || !value.Visible || value.Password) return null;
+            return (value.Name ?? "").Trim();
+        }
+
+        private static bool StructuredConsent(string title, IList<MstscDialogControl> controls)
+        {
+            if (Label(title) != "Remote Desktop Connection security warning") return false;
+            bool publisher = false, type = false, remote = false;
+            for (int i = 0; i < controls.Count; i++)
+            {
+                if (StaticField(controls, i, "Publisher") == "Unknown publisher") publisher = true;
+                if (StaticField(controls, i, "Type") == "Remote Desktop Connection") type = true;
+                if (StaticField(controls, i, "Remote computer") != null) remote = true;
+            }
+            return publisher && type && remote;
+        }
+
+        private static bool StructuredAddress(string displayed, string address)
+        {
+            if (displayed == address) return true;
+            // Server 2022's file-consent UI displays the host without its port.
+            // The exact schema-validated launch profile supplies that port; live
+            // success still requires evidence from the launched fixture server.
+            const string prefix = "127.0.0.1:";
+            if (displayed != "127.0.0.1" || !address.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            string portText = address.Substring(prefix.Length);
+            int port;
+            return Int32.TryParse(portText, NumberStyles.None, CultureInfo.InvariantCulture, out port) &&
+                port > 0 && port <= 65535 && port.ToString(CultureInfo.InvariantCulture) == portText;
+        }
+
         internal static string Kind(string title, IList<MstscDialogControl> controls)
         {
             if (Label(title) == "Remote Desktop Connection" && HasText(controls, Education)) return "education";
-            if (Label(title) == "Remote Desktop Connection security warning" && HasText(controls, Warning)) return "consent";
+            if (StructuredConsent(title, controls) ||
+                (Label(title) == "Remote Desktop Connection security warning" && HasText(controls, Warning))) return "consent";
             if (Label(title) == "Remote Desktop Connection" && HasText(controls, LegacyWarning)) return "consent";
             return null;
         }
@@ -270,6 +307,7 @@ namespace DevBox.RdpSmoke
             var result = new MstscDialogDecision { Kind = Kind(title, controls), Reason = "unrecognized_dialog" };
             if (result.Kind == null) return result;
             bool endpoint = false, publisher = HasText(controls, "Unknown publisher");
+            bool structured = StructuredConsent(title, controls);
             int checkCount = 0, buttonCount = 0;
             for (int i = 0; i < controls.Count; i++)
             {
@@ -305,7 +343,14 @@ namespace DevBox.RdpSmoke
                 if (control.Kind == "Text")
                 {
                     string name = (control.Name ?? "").Trim();
-                    if (name == address) endpoint = true;
+                    if (!structured && name == address) endpoint = true;
+                    if (structured && Field(name, "Remote computer"))
+                    {
+                        string displayed = StaticField(controls, i, "Remote computer");
+                        if (displayed == null || !StructuredAddress(displayed, address))
+                        { result.Reason = "remote_address_mismatch"; return result; }
+                        endpoint = true;
+                    }
                     foreach (string prefix in new[] { "Remote computer:", "&Remote computer:" })
                     {
                         if (!name.StartsWith(prefix, StringComparison.Ordinal)) continue;
@@ -345,10 +390,11 @@ namespace DevBox.RdpSmoke
             string label = Label(text);
             foreach (string known in new[] { "Remote Desktop Connection", "Remote Desktop Connection security warning",
                 "Windows Security", Education, EducationalCheck, Warning, LegacyWarning, "Unknown publisher",
-                "Remote computer:", "Publisher:", "Connect", "OK", "Cancel", "Yes", "No", "Show Details", "Hide Details",
+                "Remote computer:", "Publisher:", "Type:", "Connect", "OK", "Cancel", "Yes", "No", "Show Details", "Hide Details",
                 "Clipboard", "Printers", "Drives", "Smart cards", "Ports", "Devices", "WebAuthn" })
                 if (label == known) return known;
             if ((text ?? "").Trim() == address) return "<expected-loopback-address>";
+            if ((text ?? "").Trim() == "127.0.0.1") return "<loopback-host>";
             return String.IsNullOrEmpty(text) ? "" : "<redacted>";
         }
     }
@@ -451,9 +497,6 @@ namespace DevBox.RdpSmoke
             foreach (MstscDialogControl control in controls)
                 diagnostics.Add(new { kind = control.Kind, name = MstscDialogPolicy.DiagnosticText(control.Name, address),
                     label = MstscDialogPolicy.DiagnosticText(control.Label, address), owned = control.Owned,
-                    localStaticText = title == "Remote Desktop Connection security warning" && control.Owned &&
-                        control.Kind == "Text" && !control.Password ?
-                        (control.Name ?? "").Substring(0, Math.Min(512, (control.Name ?? "").Length)) : null,
                     enabled = control.Enabled, visible = control.Visible, password = control.Password,
                     readOnly = control.ReadOnly, hasValue = control.Value != null, expectedAddress = control.Value == address,
                     toggle = control.Toggle, canInvoke = control.CanInvoke });
@@ -586,6 +629,85 @@ namespace DevBox.RdpSmoke
             credential.Add(new MstscDialogControl { Kind = "Edit", Name = "Password", Password = true, Owned = true });
             Reject("credentials prompt", "Windows Security", credential, "unrecognized_dialog");
 
+            // Windows Server 2022 exposes the file-consent identity as static
+            // fields, omits the banner from Text controls, and shows only the
+            // host in Remote computer even when the profile includes a port.
+            Accept("observed structured consent with host only", ModernTitle,
+                ModernStructuredConsent(), "consent", 8, -1);
+            var structuredAddress = ModernStructuredConsent();
+            structuredAddress[5].Name = Address;
+            structuredAddress[6].Name = Address;
+            Accept("structured consent with full address", ModernTitle, structuredAddress, "consent", 8, -1);
+            foreach (string wrong in new[] { "127.0.0.2", "127.0.0.1:3391", "127.0.0.1.example.invalid",
+                Address + ".example.invalid", "localhost", "127.0.0.&1" })
+            {
+                var controls = ModernStructuredConsent();
+                controls[5].Name = wrong;
+                controls[6].Name = wrong;
+                Check("structured remote mismatch " + wrong,
+                    !MstscDialogPolicy.Evaluate(ModernTitle, controls, Address).Allowed);
+            }
+            RejectStructuredConsent("missing remote label", delegate(List<MstscDialogControl> controls) {
+                controls.RemoveAt(4);
+            });
+            RejectStructuredConsent("missing type label", delegate(List<MstscDialogControl> controls) {
+                controls.RemoveAt(2);
+            });
+            RejectStructuredConsent("wrong type", delegate(List<MstscDialogControl> controls) {
+                controls[3].Name = "Other connection";
+            });
+            RejectStructuredConsent("missing publisher label", delegate(List<MstscDialogControl> controls) {
+                controls.RemoveAt(0);
+            });
+            RejectStructuredConsent("missing publisher value", delegate(List<MstscDialogControl> controls) {
+                controls.RemoveAt(1);
+            });
+            RejectStructuredConsent("wrong publisher", delegate(List<MstscDialogControl> controls) {
+                controls[1].Name = "Example Publisher";
+            });
+            RejectStructuredConsent("unrelated correct loopback text", delegate(List<MstscDialogControl> controls) {
+                controls[5].Name = "127.0.0.2";
+                controls[6].Name = "127.0.0.2";
+                controls.Add(Control("Text", "127.0.0.1"));
+                controls.Add(Control("Text", Address));
+            });
+            RejectStructuredConsent("conflicting remote fields", delegate(List<MstscDialogControl> controls) {
+                controls.Add(Control("Text", "Remote computer:"));
+                controls.Add(Control("Text", "127.0.0.1:3391"));
+            });
+            RejectStructuredConsent("hidden remote value", delegate(List<MstscDialogControl> controls) {
+                controls[5].Visible = false;
+            });
+            RejectStructuredConsent("unowned remote value", delegate(List<MstscDialogControl> controls) {
+                controls[5].Owned = false;
+            });
+            RejectStructuredConsent("hidden remote label", delegate(List<MstscDialogControl> controls) {
+                controls[4].Visible = false;
+            });
+            RejectStructuredConsent("unowned remote label", delegate(List<MstscDialogControl> controls) {
+                controls[4].Owned = false;
+            });
+            RejectStructuredConsent("password field", delegate(List<MstscDialogControl> controls) {
+                var password = Control("Edit", "Password");
+                password.Password = true;
+                controls.Add(password);
+            });
+            RejectStructuredConsent("writable remote field", delegate(List<MstscDialogControl> controls) {
+                controls[5] = Control("Edit", "Remote computer:");
+                controls[5].Label = "Remote computer:";
+                controls[5].Value = "127.0.0.1";
+                controls[5].ReadOnly = false;
+            });
+            RejectStructuredConsent("missing Connect", delegate(List<MstscDialogControl> controls) {
+                controls.RemoveAt(8);
+            });
+            RejectStructuredConsent("disabled Connect", delegate(List<MstscDialogControl> controls) {
+                controls[8].Enabled = false;
+            });
+            RejectStructuredConsent("selected resource", delegate(List<MstscDialogControl> controls) {
+                controls[7].Toggle = 1;
+            });
+
             Accept("education initially unchecked", LegacyTitle, Education(), "education", 2, 1);
             // Windows Server 2022 CI exposes OK as disabled until this checkbox
             // is selected. Selection must be allowed before OK can be invoked.
@@ -661,6 +783,24 @@ namespace DevBox.RdpSmoke
                 controls[2].ReadOnly = true;
             }
             return controls;
+        }
+
+        private static List<MstscDialogControl> ModernStructuredConsent()
+        {
+            return new List<MstscDialogControl> {
+                Control("Text", "Publisher:"), Control("Text", "Unknown publisher"),
+                Control("Text", "Type:"), Control("Text", "Remote Desktop Connection"),
+                Control("Text", "Remote computer:"), Control("Text", "127.0.0.1"),
+                Control("Text", "127.0.0.1"), Checkbox("Clipboard", 0),
+                Control("Button", "Connect"), Control("Button", "Cancel") };
+        }
+
+        private static void RejectStructuredConsent(string name, Action<List<MstscDialogControl>> change)
+        {
+            var controls = ModernStructuredConsent();
+            change(controls);
+            Check("structured consent rejects " + name,
+                !MstscDialogPolicy.Evaluate(ModernTitle, controls, Address).Allowed);
         }
 
         private static List<MstscDialogControl> Education()
