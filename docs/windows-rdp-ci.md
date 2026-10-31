@@ -176,7 +176,9 @@ mistaken for ActiveX results:
   Its `mstsc_dialog_rejected` entries identify the rejection reason and bounded
   control metadata, including ownership, visibility, toggle state, and read-only
   status. Only recognized labels are retained; unknown text and field values
-  are omitted or redacted.
+  are omitted or redacted. If the fixture is not recognized after ten seconds,
+  it also records native window classes and bounds and captures `mstsc-window.png`.
+  Input diagnostics record the focused control class and verify process ownership.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
   numeric error/reason fields from either `EventData` or `UserData`. A malformed
   record is marked individually so later records can still be exported.

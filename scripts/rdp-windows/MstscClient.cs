@@ -95,10 +95,10 @@ namespace DevBox.RdpSmoke
 
     internal static class MstscPixels
     {
-        // Smart sizing can letterbox a 1024x768 session on the hosted 1024x768
-        // desktop, where window chrome consumes space. Locate the fixture's four
-        // color edges inside the owned render surface, then normalize only that
-        // rectangle. The marker still represents displayed screen pixels.
+        // Smart sizing can stretch a 1024x768 session to fit the available
+        // client area, or letterbox it. Locate the fixture's four color edges,
+        // verify that both quadrant seams remain centered, then normalize only
+        // that rectangle. The marker still represents displayed screen pixels.
         internal static Rectangle Bounds(Bitmap image)
         {
             if (image.Width < 640 || image.Height < 480) return Rectangle.Empty;
@@ -113,8 +113,21 @@ namespace DevBox.RdpSmoke
             while (top < image.Height / 2 && !Fixture.Near(image.GetPixel(image.Width / 4, top), topLeft, 40)) top++;
             while (bottom > image.Height / 2 && !Fixture.Near(image.GetPixel(image.Width / 4, bottom), bottomLeft, 40)) bottom--;
             var result = Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
-            if (result.Width < 640 || result.Height < 480 || Math.Abs(result.Width * 3 - result.Height * 4) > 16)
-                return Rectangle.Empty;
+            if (result.Width < 640 || result.Height < 480) return Rectangle.Empty;
+            int centerX = result.Left + result.Width / 2, centerY = result.Top + result.Height / 2;
+            // Complete nonuniform scaling keeps each quadrant boundary centered.
+            // Cropping the desktop instead shifts a seam relative to these edges.
+            // Stay clear of the seam itself to tolerate scaling and codec filters.
+            for (int i = 0; i < 4; i++)
+            {
+                bool rightHalf = i % 2 != 0, bottomHalf = i >= 2;
+                int sampleX = result.Left + result.Width * (rightHalf ? 3 : 1) / 4;
+                int sampleY = result.Top + result.Height * (bottomHalf ? 3 : 1) / 4;
+                Color expected = Fixture.Colors[Fixture.Layouts[layout][i]];
+                if (!Fixture.Near(image.GetPixel(centerX + (rightHalf ? 4 : -4), sampleY), expected, 40) ||
+                    !Fixture.Near(image.GetPixel(sampleX, centerY + (bottomHalf ? 4 : -4)), expected, 40))
+                    return Rectangle.Empty;
+            }
             return result;
         }
 
@@ -938,10 +951,11 @@ namespace DevBox.RdpSmoke
 
         internal static bool FocusAllowed(uint expected, uint foreground, uint focused, bool sameRoot, string focusedClass)
         {
-            return expected != 0 && foreground == expected && focused == expected && sameRoot && focusedClass == "UIInputClass";
+            return expected != 0 && foreground == expected && focused == expected && sameRoot &&
+                (focusedClass == "UIInputClass" || focusedClass == "IHWindowClass");
         }
 
-        internal static void SendF8(IntPtr root, uint processId)
+        internal static void SendF8(IntPtr root, uint processId, Report report)
         {
             Native.RequireInteractiveDesktop();
             MstscNative.SetForegroundWindow(root);
@@ -950,8 +964,13 @@ namespace DevBox.RdpSmoke
             uint thread = MstscNative.GetWindowThreadProcessId(foreground, out ignored);
             var info = new MstscNative.GuiThreadInfo();
             info.Size = Marshal.SizeOf(info);
-            if (!MstscNative.GetGUIThreadInfo(thread, ref info) || !FocusAllowed(processId, Owner(foreground), Owner(info.Focus),
-                MstscNative.GetAncestor(foreground, 2) == root && MstscNative.GetAncestor(info.Focus, 2) == root, Class(info.Focus)))
+            bool queried = MstscNative.GetGUIThreadInfo(thread, ref info);
+            bool sameRoot = MstscNative.GetAncestor(foreground, 2) == root && MstscNative.GetAncestor(info.Focus, 2) == root;
+            string focusedClass = Class(info.Focus);
+            report.Add("input", "recorded", "mstsc_input_focus", new { queried = queried,
+                foregroundOwned = Owner(foreground) == processId, focusedOwned = Owner(info.Focus) == processId,
+                sameRoot = sameRoot, focusedClass = focusedClass });
+            if (!queried || !FocusAllowed(processId, Owner(foreground), Owner(info.Focus), sameRoot, focusedClass))
                 throw new SmokeFailure("infrastructure", "mstsc_render_control_not_focused");
             // Scan-code input goes through the actual foreground Windows client.
             // Send both edges in one atomic insertion; never type credentials.
@@ -1094,7 +1113,7 @@ namespace DevBox.RdpSmoke
                                         image.Save(Path.Combine(output, "before-input.png"), ImageFormat.Png);
                                         report.Add("render", "passed", "fixture_visible", new { layout = layout,
                                             renderClass = MstscWindows.Class(render), visibleWidth = bounds.Width, visibleHeight = bounds.Height });
-                                        MstscWindows.SendF8(root, client.Id);
+                                        MstscWindows.SendF8(root, client.Id, report);
                                         report.Add("input", "progress", "f8_submitted", new {
                                             method = "SendInput", keyEncoding = "scan_code", controlFocused = true });
                                     }
@@ -1147,6 +1166,10 @@ namespace DevBox.RdpSmoke
             Reject(delegate { MstscProcess.Quote("bad\" /v:elsewhere"); });
             MstscDialogTests.Run();
             Check(MstscWindows.FocusAllowed(5, 5, 5, true, "UIInputClass"));
+            Check(MstscWindows.FocusAllowed(5, 5, 5, true, "IHWindowClass"));
+            Check(!MstscWindows.FocusAllowed(5, 6, 5, true, "IHWindowClass"));
+            Check(!MstscWindows.FocusAllowed(5, 5, 6, true, "IHWindowClass"));
+            Check(!MstscWindows.FocusAllowed(5, 5, 5, false, "IHWindowClass"));
             Check(!MstscWindows.FocusAllowed(5, 6, 5, true, "UIInputClass"));
             Check(!MstscWindows.FocusAllowed(5, 5, 6, true, "UIInputClass"));
             Check(!MstscWindows.FocusAllowed(5, 5, 5, false, "UIInputClass"));
@@ -1166,7 +1189,7 @@ namespace DevBox.RdpSmoke
             lost.Observe(0, 0, 0); lost.Observe(0, 0, 0.25); lost.Observe(0, 0, 0.5);
             Reject(delegate { lost.Observe(-1, 1, 4); });
             Reject(delegate { new MstscObservation().Observe(-1, -1, 46); });
-            foreach (Size size in new[] { new Size(1024, 768), new Size(960, 720), new Size(800, 600) })
+            foreach (Size size in new[] { new Size(1024, 768), new Size(1024, 705), new Size(960, 720), new Size(800, 600) })
             foreach (int layout in new[] { 0, 1 })
             foreach (int marker in new[] { 0, 1 })
             using (var image = new Bitmap(size.Width + 24, size.Height + 12))
@@ -1175,13 +1198,25 @@ namespace DevBox.RdpSmoke
                 {
                     graphics.Clear(Color.Black);
                     for (int i = 0; i < 4; i++) using (var brush = new SolidBrush(Fixture.Colors[Fixture.Layouts[layout][i]]))
-                        graphics.FillRectangle(brush, 12 + i % 2 * size.Width / 2, 6 + i / 2 * size.Height / 2, size.Width / 2, size.Height / 2);
+                    {
+                        int x = i % 2 * size.Width / 2, y = i / 2 * size.Height / 2;
+                        int width = i % 2 == 0 ? size.Width / 2 : size.Width - size.Width / 2;
+                        int height = i < 2 ? size.Height / 2 : size.Height - size.Height / 2;
+                        graphics.FillRectangle(brush, 12 + x, 6 + y, width, height);
+                    }
                     graphics.FillRectangle(marker == 0 ? Brushes.Black : Brushes.Red, 12, 6, size.Width / 64, size.Height / 48);
                 }
                 Rectangle bounds = MstscPixels.Bounds(image);
                 Check(bounds == new Rectangle(12, 6, size.Width, size.Height));
                 using (Bitmap normalized = MstscPixels.Normalize(image, bounds))
                 { Check(Fixture.Match(Fixture.Samples(normalized)) == layout); Check(Fixture.Heartbeat(normalized) == marker); }
+                if (size == new Size(1024, 768))
+                {
+                    foreach (Size croppedSize in new[] { new Size(1024, 705), new Size(960, 768) })
+                    using (Bitmap cropped = image.Clone(new Rectangle(12, 6, croppedSize.Width, croppedSize.Height),
+                        PixelFormat.Format24bppRgb))
+                        Check(MstscPixels.Bounds(cropped).IsEmpty);
+                }
             }
             using (var empty = new Bitmap(1024, 768)) Check(MstscPixels.Bounds(empty).IsEmpty);
             Check(Marshal.SizeOf(typeof(MstscNative.Input)) == (IntPtr.Size == 8 ? 40 : 28));
