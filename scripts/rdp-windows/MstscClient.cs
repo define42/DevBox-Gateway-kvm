@@ -451,6 +451,9 @@ namespace DevBox.RdpSmoke
             foreach (MstscDialogControl control in controls)
                 diagnostics.Add(new { kind = control.Kind, name = MstscDialogPolicy.DiagnosticText(control.Name, address),
                     label = MstscDialogPolicy.DiagnosticText(control.Label, address), owned = control.Owned,
+                    localStaticText = title == "Remote Desktop Connection security warning" && control.Owned &&
+                        control.Kind == "Text" && !control.Password ?
+                        (control.Name ?? "").Substring(0, Math.Min(512, (control.Name ?? "").Length)) : null,
                     enabled = control.Enabled, visible = control.Visible, password = control.Password,
                     readOnly = control.ReadOnly, hasValue = control.Value != null, expectedAddress = control.Value == address,
                     toggle = control.Toggle, canInvoke = control.CanInvoke });
