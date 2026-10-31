@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -180,6 +181,42 @@ func TestSoundPlaybackClockAndOwnership(t *testing.T) {
 	if !bytes.Equal(sink.data, pcm) || len(sink.sizes) != 2 || sink.sizes[0] != 1920 || sink.sizes[1] != 1920 {
 		t.Fatalf("unexpected sink chunks: %v", sink.sizes)
 	}
+}
+
+func TestSoundWorkerFollowsSampleClock(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		s, sink := newTestSound(t)
+		soundConfigure(t, s, 3840, 7680) // Two 20 ms periods.
+		q := soundTestQueue()
+		pcm := bytes.Repeat([]byte{1, 2, 3, 4}, 960)
+		response := soundPublish(s, q, 0, 4096, append(soundRequest(0), pcm...), 8)
+		s.control(soundRequest(soundStart, 0), 4)
+		s.QueueReady(soundTXQueue, q)
+		go s.IOThreadEntry()
+		// Without a polling ticker, the worker itself must wake at each chunk
+		// deadline and complete the period on time.
+		check := func(after time.Duration, played int, used uint16) {
+			t.Helper()
+			time.Sleep(after)
+			synctest.Wait()
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			if len(sink.data) != played || q.Used.Idx != used {
+				t.Fatalf("after %v: played=%d used=%d, want %d/%d", after, len(sink.data), q.Used.Idx, played, used)
+			}
+		}
+		check(0, 1920, 0)
+		check(10*time.Millisecond-time.Nanosecond, 1920, 0)
+		check(time.Nanosecond, 3840, 0)
+		check(10*time.Millisecond-time.Nanosecond, 3840, 0)
+		check(time.Nanosecond, 3840, 1)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if !bytes.Equal(sink.data, pcm) || binary.LittleEndian.Uint32(response) != soundOK {
+			t.Fatalf("worker playback corrupted PCM or status %x", response)
+		}
+	})
 }
 
 func TestSoundPauseReleaseAndReconnect(t *testing.T) {

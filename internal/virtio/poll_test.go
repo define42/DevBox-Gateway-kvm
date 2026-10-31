@@ -94,6 +94,18 @@ func newPollTestDevice(t *testing.T, kind string) pollTestDevice {
 			v.mu.Unlock()
 		}
 		d.interval = 16 * time.Millisecond
+	case "sound":
+		v := NewSound(13, func() error { return nil }, mem, nil)
+		copy(mem, soundRequest(soundPCMInfo, 0, 1, 32))
+		q.Desc[0] = SplitDesc{Len: 16, Flags: descFNext, Next: 1}
+		q.Desc[1] = SplitDesc{Addr: 256, Len: 36, Flags: descFWrite}
+		d.transport, d.run, d.close = v.ModernTransport, v.IOThreadEntry, v.Close
+		d.ready = func() { v.QueueReady(soundControlQueue, q) }
+		d.post = func() {
+			v.mu.Lock()
+			q.Avail.Idx++
+			v.mu.Unlock()
+		}
 	default:
 		t.Fatalf("unknown device %q", kind)
 	}
@@ -119,7 +131,7 @@ func startPollTestDevice(t *testing.T, d pollTestDevice) {
 
 func TestDeviceWorkersRecoverPendingInterrupt(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"block", "network", "tablet", "gpu"} {
+	for _, kind := range []string{"block", "network", "tablet", "gpu", "sound"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			synctest.Test(t, func(t *testing.T) {
@@ -188,7 +200,7 @@ func TestDeviceWorkersRecoverPendingInterrupt(t *testing.T) {
 
 func TestDeviceWorkersProcessQueueReadyWithoutGuestKick(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"block", "network", "tablet", "gpu"} {
+	for _, kind := range []string{"block", "network", "tablet", "gpu", "sound"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			synctest.Test(t, func(t *testing.T) {
@@ -213,7 +225,7 @@ func TestDeviceWorkersProcessQueueReadyWithoutGuestKick(t *testing.T) {
 
 func TestDeviceWatchdogRecoversMissedKick(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"block", "network", "tablet", "gpu"} {
+	for _, kind := range []string{"block", "network", "tablet", "gpu", "sound"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			synctest.Test(t, func(t *testing.T) {
@@ -235,7 +247,7 @@ func TestDeviceWatchdogRecoversMissedKick(t *testing.T) {
 
 func TestDeviceWorkersCoalesceInterruptBurst(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"block", "network", "tablet", "gpu"} {
+	for _, kind := range []string{"block", "network", "tablet", "gpu", "sound"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			synctest.Test(t, func(t *testing.T) {

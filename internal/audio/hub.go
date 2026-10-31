@@ -32,8 +32,7 @@ type Hub struct {
 	pending   []byte
 	stamp     time.Duration
 	lastWrite time.Time
-	done      chan struct{}
-	stopped   chan struct{}
+	tail      *time.Timer // Flushes a partial packet once the source goes idle.
 }
 
 type Subscription struct {
@@ -42,28 +41,14 @@ type Subscription struct {
 	hub     *Hub
 }
 
+// NewHub returns a hub with no background polling: each write that leaves a
+// partial packet postpones a single tail flush until tailIdle after it.
 func NewHub() *Hub {
-	h := &Hub{
-		listeners: make(map[*Subscription]struct{}), started: time.Now(),
-		done: make(chan struct{}), stopped: make(chan struct{}),
-	}
-	go h.flushLoop()
+	h := &Hub{listeners: make(map[*Subscription]struct{}), started: time.Now()}
+	h.tail = time.AfterFunc(tailIdle, func() { h.flush(time.Now()) })
+	h.tail.Stop()
 
 	return h
-}
-
-func (h *Hub) flushLoop() {
-	defer close(h.stopped)
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-h.done:
-			return
-		case now := <-ticker.C:
-			h.flush(now)
-		}
-	}
 }
 
 func (h *Hub) Subscribe() *Subscription {
@@ -133,6 +118,10 @@ func (h *Hub) writePCMAt(pcm []byte, now time.Time) {
 		pcm = pcm[n:]
 		offset += n
 	}
+	if len(h.pending) != 0 {
+		// The flush rechecks the deadline, so a stale run is harmless.
+		h.tail.Reset(tailIdle)
+	}
 }
 
 func (h *Hub) flush(now time.Time) {
@@ -170,17 +159,18 @@ func (h *Hub) publishPending() {
 	}
 }
 
+// Close stops the tail flush. A flush already waiting for the mutex observes
+// the closed hub and publishes nothing.
 func (h *Hub) Close() {
 	h.mu.Lock()
+	defer h.mu.Unlock()
 	if !h.closed {
 		h.closed = true
 		h.pending = nil
-		close(h.done)
+		h.tail.Stop()
 		for listener := range h.listeners {
 			close(listener.queue)
 			delete(h.listeners, listener)
 		}
 	}
-	h.mu.Unlock()
-	<-h.stopped
 }

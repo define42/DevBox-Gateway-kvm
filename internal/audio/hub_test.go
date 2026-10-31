@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -140,7 +141,7 @@ func TestHubPendingTimestampAndIdleBoundary(t *testing.T) {
 	}
 }
 
-func TestHubDisconnectClearsPartialAndCloseStopsWorker(t *testing.T) {
+func TestHubDisconnectClearsPartialAndCloseStopsTail(t *testing.T) {
 	t.Parallel()
 	h := NewHub()
 	start := h.started.Add(time.Hour)
@@ -162,10 +163,8 @@ func TestHubDisconnectClearsPartialAndCloseStopsWorker(t *testing.T) {
 	h.writePCMAt(bytes.Repeat([]byte{4}, 512), start.Add(time.Second))
 	h.Close()
 	h.Close()
-	select {
-	case <-h.stopped:
-	default:
-		t.Fatal("hub closed before its worker stopped")
+	if h.tail.Stop() {
+		t.Fatal("closed hub kept its tail flush scheduled")
 	}
 	if len(h.pending) != 0 {
 		t.Fatal("closed hub retained a partial packet")
@@ -176,6 +175,40 @@ func TestHubDisconnectClearsPartialAndCloseStopsWorker(t *testing.T) {
 	h.writePCMAt(make([]byte, PacketBytes), start.Add(2*time.Second))
 	h.flush(start.Add(3 * time.Second))
 	fresh.Close()
+}
+
+func TestHubFlushesIdleTailWithoutPolling(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		h := NewHub()
+		defer h.Close()
+		s := h.Subscribe()
+		defer s.Close()
+		// Each write postpones the tail flush; ongoing playback is never cut.
+		h.WritePCM(bytes.Repeat([]byte{1}, 512))
+		time.Sleep(tailIdle / 2)
+		h.WritePCM(bytes.Repeat([]byte{2}, 512))
+		time.Sleep(tailIdle - time.Nanosecond)
+		synctest.Wait()
+		if len(s.queue) != 0 {
+			t.Fatal("tail flushed before the source was idle")
+		}
+		time.Sleep(time.Nanosecond)
+		synctest.Wait()
+		if len(s.queue) != 1 {
+			t.Fatalf("idle tail published %d packets, want 1", len(s.queue))
+		}
+		packet := <-s.Packets
+		want := append(bytes.Repeat([]byte{1}, 512), bytes.Repeat([]byte{2}, 512)...)
+		if !bytes.Equal(packet.PCM[:1024], want) || !bytes.Equal(packet.PCM[1024:], make([]byte, PacketBytes-1024)) {
+			t.Fatal("idle tail lost samples or zero padding")
+		}
+		time.Sleep(time.Second)
+		synctest.Wait()
+		if len(s.queue) != 0 {
+			t.Fatal("idle hub published again without new samples")
+		}
+	})
 }
 
 func drainHubPCM(t *testing.T, s *Subscription) []byte {

@@ -33,6 +33,14 @@ func (p *devicePoll) reset(active bool) {
 	p.timer.Reset(p.delay)
 }
 
+// wakeBy brings the next wake forward to a device's own deadline, such as a
+// playing stream's sample clock, after reset. The backoff state is unchanged.
+func (p *devicePoll) wakeBy(delay time.Duration) {
+	if delay < p.delay {
+		p.timer.Reset(max(delay, 0))
+	}
+}
+
 // interruptWake is only needed after backing off. While the timer is already
 // fast, leave IRQ transitions coalesced in the buffered channel instead of
 // scheduling the worker once more for every acknowledged receive packet.

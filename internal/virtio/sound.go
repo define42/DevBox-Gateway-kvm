@@ -188,26 +188,38 @@ func (s *Sound) Close() error {
 	return nil
 }
 
+// IOThreadEntry wakes for guest kicks and the shared idle watchdog. Only a
+// playing stream adds wakes, at its sample-clock deadlines; an idle or paused
+// card must not poll at millisecond frequency.
 func (s *Sound) IOThreadEntry() {
-	ticker := time.NewTicker(time.Millisecond)
-	defer ticker.Stop()
+	poll := newDevicePoll(time.Millisecond)
+	defer poll.timer.Stop()
 
 	for {
+		active := true
 		select {
 		case <-s.done:
 			return
 		case <-s.kick:
-		case <-ticker.C:
+		case <-poll.interruptWake(s.ModernTransport):
+		case <-poll.timer.C:
+			active = false
 		}
-		s.process(time.Now())
+		next := s.process(time.Now())
+		poll.reset(active || s.interruptPending())
+		if !next.IsZero() {
+			poll.wakeBy(time.Until(next))
+		}
 	}
 }
 
-func (s *Sound) process(now time.Time) {
+// process returns the next sample-clock deadline, or the zero time when no
+// stream is playing queued samples.
+func (s *Sound) process(now time.Time) time.Time {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
-		return
+		return time.Time{}
 	}
 
 	s.processControl()
@@ -217,6 +229,11 @@ func (s *Sound) process(now time.Time) {
 	if err := s.ReinjectIfPending(); err != nil {
 		log.Printf("virtio-snd: interrupt: %v", err)
 	}
+	if s.state != soundRunning || len(s.pending) == 0 {
+		return time.Time{}
+	}
+
+	return s.next
 }
 
 func (s *Sound) pop(idx int) (uint16, bool) {
