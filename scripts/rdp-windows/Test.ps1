@@ -13,7 +13,7 @@ function Assert-Rejected([scriptblock] $Action, [string] $Label) {
 
 foreach ($file in @('Build.ps1', 'Gateway.ps1', 'Run.ps1', 'Local.ps1', 'RunLocal.ps1', 'Test.ps1',
                     'CertificateTrust.ps1', 'TestCertificateTrust.ps1', 'TestLocalProcess.ps1',
-                    'Performance.ps1', 'TestPerformance.ps1')) {
+                    'Performance.ps1', 'TestPerformance.ps1', 'Mstsc.ps1', 'TestMstsc.ps1')) {
     $tokens = $null
     $errors = $null
     $null = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $file), [ref]$tokens, [ref]$errors)
@@ -23,6 +23,7 @@ foreach ($file in @('Build.ps1', 'Gateway.ps1', 'Run.ps1', 'Local.ps1', 'RunLoca
 . (Join-Path $PSScriptRoot 'TestCertificateTrust.ps1')
 . (Join-Path $PSScriptRoot 'TestLocalProcess.ps1')
 . (Join-Path $PSScriptRoot 'TestPerformance.ps1')
+. (Join-Path $PSScriptRoot 'TestMstsc.ps1')
 
 # Re-running with stale output must not overwrite previous evidence, even in
 # failure cleanup. This check never starts a server or changes certificate trust.
@@ -275,5 +276,13 @@ if ($IsWindows) {
     if ($LASTEXITCODE -ne 0) { throw 'Client parser/pixel self-tests failed.' }
     & (Join-Path $env:RUNNER_TEMP 'rdp-client.exe') --check-control
     if ($LASTEXITCODE -ne 0) { throw 'Microsoft RDP ActiveX component preflight failed.' }
+    & (Join-Path $env:RUNNER_TEMP 'mstsc-client.exe') --self-test
+    if ($LASTEXITCODE -ne 0) { throw 'mstsc.exe harness self-tests failed.' }
+    $mstscProfilePath = Join-Path $env:RUNNER_TEMP ('mstsc-profile-' + [guid]::NewGuid().ToString('N') + '.rdp')
+    try {
+        [IO.File]::WriteAllText($mstscProfilePath, $mstscProfile)
+        & (Join-Path $env:RUNNER_TEMP 'mstsc-client.exe') --check-profile $mstscProfilePath
+        if ($LASTEXITCODE -ne 0) { throw 'Generated mstsc profile failed client validation.' }
+    } finally { [IO.File]::Delete($mstscProfilePath) }
 }
 Write-Host 'RDP Windows orchestration tests passed.'

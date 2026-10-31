@@ -24,10 +24,16 @@ type workflowJob struct {
 	ContinueOnError any               `yaml:"continue-on-error"`
 	Secrets         any               `yaml:"secrets"`
 	Steps           []workflowStep    `yaml:"steps"`
+	Strategy        workflowStrategy  `yaml:"strategy"`
+}
+
+type workflowStrategy struct {
+	Matrix map[string]any `yaml:"matrix"`
 }
 
 //nolint:tagliatelle // GitHub Actions uses kebab-case keys in its workflow schema.
 type workflowStep struct {
+	With            map[string]string `yaml:"with"`
 	Uses            string            `yaml:"uses"`
 	Run             string            `yaml:"run"`
 	If              string            `yaml:"if"`
@@ -145,5 +151,82 @@ func TestCIRunsSeparateRDPPerformanceBaseline(t *testing.T) {
 	}
 	if measurements != 1 || artifacts != 1 {
 		t.Errorf("want one benchmark invocation and one always-upload step, got %d and %d", measurements, artifacts)
+	}
+}
+
+func TestCIRunsSeparateMstscExecutable(t *testing.T) {
+	t.Parallel()
+	ci := readWorkflow(t, "ci.yml")
+	var callers int
+	for id, job := range ci.Jobs {
+		if job.Uses != "./.github/workflows/rdp-mstsc-windows.yml" {
+			continue
+		}
+		callers++
+		if job.With["mode"] != "both" || job.With["runner"] != "windows-2022" {
+			t.Errorf("%s: mstsc.exe must exercise both graphics modes on Windows", id)
+		}
+		if job.If != "" || (job.ContinueOnError != nil && job.ContinueOnError != false) {
+			t.Errorf("%s: mstsc.exe compatibility must not be optional or allowed to fail", id)
+		}
+		if job.Secrets != nil {
+			t.Errorf("%s: loopback mstsc.exe tests must not receive repository secrets", id)
+		}
+	}
+	if callers != 1 {
+		t.Fatalf("want one separate mstsc.exe workflow call, got %d", callers)
+	}
+}
+
+func TestMstscExecutableWorkflowRunsBothModesAndRetainsEvidence(t *testing.T) {
+	t.Parallel()
+	live := readWorkflow(t, "rdp-mstsc-windows.yml")
+	for _, trigger := range []string{"workflow_call", "workflow_dispatch"} {
+		if _, ok := live.On[trigger]; !ok {
+			t.Errorf("missing %s trigger", trigger)
+		}
+	}
+	const modeMatrix = `${{ fromJSON(inputs.mode == 'both' && '["h264","bitmap"]' || inputs.mode == 'h264' && '["h264"]' || '["bitmap"]') }}`
+	var liveSteps, evidenceSteps int
+	for id, job := range live.Jobs {
+		for _, step := range job.Steps {
+			if strings.TrimSpace(step.Run) == "./scripts/rdp-windows/RunLocal.ps1" {
+				liveSteps++
+				if step.Env["RDP_TEST_CLIENT"] != "mstsc" {
+					t.Errorf("%s: live executable test must select mstsc.exe", id)
+				}
+				if job.Strategy.Matrix["mode"] != modeMatrix || step.Env["RDP_TEST_MODE"] != "${{ matrix.mode }}" {
+					t.Errorf("%s: mstsc.exe must run the selected H.264 and bitmap modes independently", id)
+				}
+				if step.Env["RDP_TEST_ALLOW_MACHINE_TRUST"] != "1" {
+					t.Errorf("%s: temporary hosted-runner certificate trust requires explicit opt-in", id)
+				}
+				if step.Env["RDP_TEST_OUTPUT"] != "${{ runner.temp }}/rdp-mstsc-exe-results" {
+					t.Errorf("%s: mstsc.exe evidence must be separate from ActiveX evidence", id)
+				}
+				if job.If != "" || (job.ContinueOnError != nil && job.ContinueOnError != false) ||
+					step.If != "" || (step.ContinueOnError != nil && step.ContinueOnError != false) {
+					t.Errorf("%s: live mstsc.exe checks must not be skipped or allowed to fail", id)
+				}
+			}
+			if strings.HasPrefix(step.Uses, "actions/upload-artifact@") && step.If == "always()" {
+				evidenceSteps++
+				if !strings.HasPrefix(step.With["name"], "windows-only-rdp-mstsc-exe-") ||
+					!strings.Contains(step.With["name"], "${{ matrix.mode }}") {
+					t.Errorf("%s: artifacts must identify mstsc.exe and the graphics mode", id)
+				}
+				for _, pattern := range []string{
+					"${{ runner.temp }}/rdp-mstsc-exe-results/*.json",
+					"${{ runner.temp }}/rdp-mstsc-exe-results/*.png",
+				} {
+					if !strings.Contains(step.With["path"], pattern) {
+						t.Errorf("%s: missing mstsc.exe evidence path %s", id, pattern)
+					}
+				}
+			}
+		}
+	}
+	if liveSteps != 1 || evidenceSteps != 1 {
+		t.Errorf("want one live mstsc.exe step and one always-upload step, got %d and %d", liveSteps, evidenceSteps)
 	}
 }

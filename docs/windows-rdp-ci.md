@@ -1,9 +1,12 @@
 # Windows-only RDP compatibility CI
 
 The [October 29 compatibility run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40938912570)
-passed with Microsoft's client. The separate
+passed with Microsoft's ActiveX client. The separate
 [performance benchmark](windows-rdp-performance.md) still needs its first live
 Windows baseline; compatibility success does not establish desktop throughput.
+The new [mstsc.exe workflow](../.github/workflows/rdp-mstsc-windows.yml) adds a
+separate test of the actual Windows Remote Desktop application. Its first live
+Windows run is still pending; the earlier ActiveX result does not validate it.
 
 The [Windows-only RDP workflow](../.github/workflows/rdp-windows.yml)
 runs automatically as part of [CI](../.github/workflows/ci.yml), and can also be
@@ -17,18 +20,26 @@ generated desktop replacing the VM framebuffer. Unlike a test against a
 predeployed gateway, it exercises the RDP code in the selected commit directly.
 The fixture server lives in [scripts/rdp-windows/server](../scripts/rdp-windows/server/)
 and [RunLocal.ps1](../scripts/rdp-windows/RunLocal.ps1) manages the local session.
+The mstsc.exe workflow uses the same fixture with `RDP_TEST_CLIENT=mstsc` and
+launches the system `mstsc.exe` through a separate process harness. Both live
+workflows are integration tests. The offline harness self-tests are unit tests
+and cannot establish that the application connects or renders correctly.
 
 ## Run the test
 
 CI runs the live test on pushes to `main`, pull requests targeting `main`, and
 the nightly schedule. Look for **Microsoft RDP live picture and input**, with
 separate **Live Microsoft RDP (h264)** and **Live Microsoft RDP (bitmap)** jobs
-on `windows-2022`. Both must pass for the CI workflow to succeed. The separately
+on `windows-2022`. **mstsc.exe live picture and input** independently runs
+**Live mstsc.exe (h264)** and **Live mstsc.exe (bitmap)** against the same fixture.
+All live jobs must pass for the CI workflow to succeed. The separately
 named **Check Windows RDP test harness (offline)** job only checks the tools;
 its green result alone is not a live RDP compatibility result.
 
 To rerun the same live test manually, in **Actions**, select
-**Windows-only RDP compatibility** and choose **Run workflow**:
+**Windows-only RDP compatibility** for the ActiveX client or
+**Windows mstsc.exe compatibility** for the executable, then choose
+**Run workflow**:
 
 1. Select the branch containing the code to test.
 2. Select **windows-2022** (the default) or **windows-2025**.
@@ -50,7 +61,8 @@ a Windows 11 workstation. See GitHub's
 The server generates a 1024 × 768 image with four colored quadrants. The test
 connects using the
 [Microsoft RDP ActiveX client component](https://learn.microsoft.com/en-us/windows/win32/termserv/remote-desktop-activex-control)
-and requires all of the following:
+in the original workflow, or the real `mstsc.exe` window in the executable
+workflow. Both require all of the following:
 
 - The expected pattern appears in the rendered client window.
 - Sending F8 through the client changes the pattern on the server and the new
@@ -64,20 +76,22 @@ An authenticated/connected event alone cannot pass the test. Neither can an
 empty or black window. The fixture needs no browser, guest operating system, or
 manually focused desktop page.
 
-The live harness requires an interactive graphical desktop and fails if one is
-unavailable; it does not skip rendering checks or substitute an offline test.
+Both live harnesses require an interactive graphical desktop and fail if one is
+unavailable; neither skips rendering checks or substitutes an offline test.
 The [October 29 run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40938912570)
-passed the complete compatibility test in both modes, including rendering,
+passed the ActiveX compatibility test in both modes, including rendering,
 F8 input, the changing heartbeat, session duration, and cleanup. This fixture
 deliberately sends only two frames per second at 1024 × 768. Use the separate
 [1080p performance baseline](windows-rdp-performance.md) to measure scrolling,
 visible progress, input response times, and resource use under continuous load.
 
-`Test.ps1` runs two client checks before the live test. `--self-test` checks the
-profile parser, fixture pixel logic, and keyboard submission contract. On Windows, `--check-control` initializes
-and disposes the real Microsoft ActiveX control without calling `Connect` or
+`Test.ps1` runs offline checks before the live tests. The client harnesses'
+`--self-test` checks cover profile validation, fixture pixel logic, and keyboard
+submission helpers; PowerShell tests cover client selection and orchestration.
+These checks do not start a live `mstsc.exe` session. On Windows, the ActiveX
+harness's `--check-control` initializes and disposes the real Microsoft ActiveX control without calling `Connect` or
 using credentials. This component check catches activation failures earlier;
-both it and the full live connection test must pass.
+both it and the live connection checks must pass.
 
 ## Scope and security
 
@@ -104,9 +118,25 @@ exercise the RDP protocol and display/input paths; it is **not an authentication
 server** and must not be exposed outside loopback or reused as a production
 endpoint.
 
-This tests the Microsoft ActiveX component, not the `mstsc.exe` or Windows App
-user interface, saved credential behavior, or password prompts. It also does
-**not** test Linux KVM, VM boot, virtio framebuffer capture, the gateway's HTTPS
+The original workflow tests the Microsoft ActiveX component. The separate
+mstsc.exe workflow launches the Windows application, captures its rendered
+fixture, sends F8 through its window, and checks the changing heartbeat during
+a 30-second session. It uses a generated loopback profile with certificate
+verification enabled. It does not test Windows App, saved credential behavior,
+or interactive password prompts. The fixture profile disables CredSSP because
+the local server has no credential authentication; TLS server authentication
+remains required. It never stores a password or connects to an external host.
+
+The executable harness handles only the known English first-launch and local
+file-consent dialogs described in [Microsoft's RDP security warning guide](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/remotepc/understanding-security-warnings).
+It checks the owning process and exact loopback destination, leaves resource
+redirection disabled, and fails on other dialogs, including certificate or
+credential prompts. A Windows job object terminates the launched client even
+if its observer times out. Actual dialog labels and window geometry still need
+to be confirmed by the first live Windows run.
+
+Neither workflow validates audio playback: the fixture disables audio. They also
+do not test Linux KVM, VM boot, virtio framebuffer capture, the gateway's HTTPS
 login/routing grants/TLS proxy, LDAP validation, or a real guest desktop.
 
 For that additional full-path coverage, the separate
@@ -117,16 +147,21 @@ test.
 
 ## Evidence and troubleshooting
 
-Each mode uploads test evidence as an Actions artifact retained for **7 days**:
+Each mode uploads test evidence as an Actions artifact retained for **7 days**.
+The executable workflow uses the `windows-only-rdp-mstsc-exe-` artifact prefix
+and a separate `rdp-mstsc-exe-results` directory, so its results cannot be
+mistaken for ActiveX results:
 
 - `result.json`: overall stage and outcome, plus `cleanupErrors` if cleanup fails.
 - `progress.json`: the latest stage, written atomically before each stage starts,
   so evidence is available even if the job is cancelled before producing a result.
 - `server.json`: local server diagnostics and graphics-mode evidence.
-- `client-events.json`: Microsoft client events, version metadata, attempted
-  control class IDs, numeric activation HRESULTs, and disconnect reasons. For
-  the generated loopback fixture only, a disconnect also includes Microsoft's
-  `GetErrorDescription` result when available, limited to 1024 characters.
+- `client-events.json`: harness events and client evidence. The ActiveX harness
+  includes version metadata, attempted control class IDs, numeric activation
+  HRESULTs, and disconnect reasons. For the generated loopback fixture only,
+  an ActiveX disconnect also includes Microsoft's `GetErrorDescription` result
+  when available, limited to 1024 characters. The executable harness records
+  process/window and rendering/input checks instead of ActiveX control events.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
   numeric error/reason fields from either `EventData` or `UserData`. A malformed
   record is marked individually so later records can still be exported.
@@ -173,8 +208,8 @@ as smaller row strips. Tests check independent wire lengths, pixel coverage,
 and retry after a partially sent tile. The latest Windows run above confirms
 bitmap rendering with this correction and no longer reports `0x1304`.
 
-Before submitting F8, the harness explicitly focuses the hosted RDP control and
-records the numeric `SendKeys` HRESULT in `f8_submitted`. This event records API
+Before submitting F8, the ActiveX harness explicitly focuses the hosted RDP
+control and records the numeric `SendKeys` HRESULT in `f8_submitted`. This event records API
 submission only; `fixture_changed` remains the evidence of remote delivery.
 The [earlier run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40937321486)
 confirmed focus and successful API submission, but still timed out waiting for
@@ -201,8 +236,8 @@ The guarded machine-store import avoids that user consent path, and the child
 deadlines prevent trust setup from hanging the whole test. The October 29 run
 linked above confirms that this setup and cleanup now complete on Windows.
 
-If client events report `microsoft_rdp_control_unavailable`, the client has not
-yet reached the RDP server. The earlier discovery code treated COM class names
+If ActiveX client events report `microsoft_rdp_control_unavailable`, the client
+has not yet reached the RDP server. The earlier discovery code treated COM class names
 as registered ProgIDs. The harness now attempts actual `AxHost` activation using
 Microsoft's documented class IDs for
 [MsRdpClient10NotSafeForScripting](https://learn.microsoft.com/en-us/windows/win32/termserv/imsrdpclient10),
@@ -217,7 +252,7 @@ server displays only generated fixture colors, not a user's desktop. Review
 artifacts before sharing and avoid adding raw packets or unrestricted logs to
 the artifact directory while investigating a failure.
 
-Regular CI also compiles, self-tests, and checks control activation in the
-explicitly offline harness job. Those checks make no RDP connection and do not
-establish Microsoft RDP compatibility. Only the separate live jobs' render,
+Regular CI also compiles and self-tests both harnesses, and checks ActiveX
+control activation in the explicitly offline harness job. Those checks make no
+RDP connection and do not establish Microsoft RDP compatibility. Only the separate live jobs' render,
 input, heartbeat, and stability passes provide that evidence.

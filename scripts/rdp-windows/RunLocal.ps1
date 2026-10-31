@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Local.ps1')
 . (Join-Path $PSScriptRoot 'CertificateTrust.ps1')
 . (Join-Path $PSScriptRoot 'Performance.ps1')
+. (Join-Path $PSScriptRoot 'Mstsc.ps1')
 
 $stage = 'configuration'
 $reason = $null
@@ -14,6 +15,7 @@ $trustHelperStopped = $true
 $cleanupErrors = [Collections.Generic.List[string]]::new()
 $statePath = $null
 $workload = 'smoke'
+$clientKind = 'activex'
 $performance = $null
 $outputPath = $env:RDP_TEST_OUTPUT
 if ([string]::IsNullOrWhiteSpace($outputPath)) { throw 'RDP_TEST_OUTPUT is required.' }
@@ -25,12 +27,14 @@ if (@(Get-ChildItem -LiteralPath $outputPath -Force).Count -ne 0) { throw 'outpu
 try {
     Write-LocalProgress $outputPath $stage
     $workload = Get-LocalWorkload $env:RDP_TEST_WORKLOAD
+    $clientKind = Get-LocalClient $env:RDP_TEST_CLIENT $workload
     if ($workload -ceq 'performance') { $performance = New-ProcessPerformance }
     if (-not $IsWindows -or $env:RDP_TEST_MODE -cnotin @('bitmap', 'h264') -or
         [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'invalid_local_configuration' }
     Assert-FixtureTrustEnvironment
     $serverExe = Join-Path $env:RUNNER_TEMP 'rdp-server.exe'
-    $clientExe = Join-Path $env:RUNNER_TEMP 'rdp-client.exe'
+    $clientName = if ($clientKind -ceq 'mstsc') { 'mstsc-client.exe' } else { 'rdp-client.exe' }
+    $clientExe = Join-Path $env:RUNNER_TEMP $clientName
     if (-not (Test-Path $serverExe) -or -not (Test-Path $clientExe)) { throw 'executables_not_built' }
     $statePath = Join-Path $env:RUNNER_TEMP ('rdp-local-' + [guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($statePath)
@@ -57,14 +61,15 @@ try {
     Write-LocalProgress $outputPath $stage
     Invoke-LocalCertificateTrust 'Install' $statePath
     $profilePath = Join-Path $statePath 'desktop.rdp'
-    [IO.File]::WriteAllText($profilePath, (New-LocalProfile $ready))
+    $profile = if ($clientKind -ceq 'mstsc') { New-MstscProfile $ready } else { New-LocalProfile $ready }
+    [IO.File]::WriteAllText($profilePath, $profile)
 
     $stage = 'microsoft_client'
     Write-LocalProgress $outputPath $stage
     $launch = [Diagnostics.ProcessStartInfo]::new($clientExe)
     $launch.UseShellExecute = $false
     $launch.Environment['RDP_SMOKE_PROFILE'] = $profilePath
-    $launch.Environment['RDP_SMOKE_PASSWORD'] = 'unused-local-fixture-password'
+    if ($clientKind -ceq 'activex') { $launch.Environment['RDP_SMOKE_PASSWORD'] = 'unused-local-fixture-password' }
     $launch.Environment['RDP_SMOKE_OUTPUT'] = $outputPath
     $launch.Environment['RDP_SMOKE_DURATION_SECONDS'] = '30'
     $launch.Environment['RDP_SMOKE_LOCAL'] = '1'
@@ -100,13 +105,16 @@ try {
     if ($workload -ceq 'performance') {
         $clientPerformance = Get-Content -Raw -LiteralPath (Join-Path $outputPath 'client-performance.json') | ConvertFrom-Json -AsHashtable
         Assert-PerformanceEvidence $serverReport $clientReport $clientPerformance (Get-ProcessPerformanceReport $performance) $env:RDP_TEST_MODE
+    } elseif ($clientKind -ceq 'mstsc') {
+        Assert-MstscEvidence $serverReport $clientReport $env:RDP_TEST_MODE
     } else {
         Assert-LocalEvidence $serverReport $clientReport $env:RDP_TEST_MODE
     }
     $outcome = 'passed'
 } catch {
     $reason = 'operation_failed'
-    $allowed = @('invalid_local_configuration', 'executables_not_built',
+    $allowed = @('invalid_local_configuration', 'invalid_local_client', 'invalid_mstsc_fixture',
+        'mstsc_evidence_failed', 'executables_not_built',
         'server_start_failed', 'server_ready_timeout', 'invalid_local_endpoint', 'invalid_fixture_certificate',
         'fixture_certificate_already_present', 'fixture_trust_not_authorized', 'fixture_trust_requires_administrator',
         'fixture_certificate_timeout', 'fixture_certificate_install_failed', 'fixture_certificate_operation_failed',
@@ -155,7 +163,8 @@ try {
     }
     @{
         schema = 1; testKind = 'windows-local-rdp'; outcome = $outcome; stage = $stage; reason = $reason
-        mode = $env:RDP_TEST_MODE; workload = $workload; startedAt = $started.ToString('o'); finishedAt = [datetime]::UtcNow.ToString('o')
+        mode = $env:RDP_TEST_MODE; workload = $workload; client = $clientKind
+        startedAt = $started.ToString('o'); finishedAt = [datetime]::UtcNow.ToString('o')
         harnessCommit = $env:GITHUB_SHA; testsKVM = $false; testsGatewayAuthentication = $false
         cleanupErrors = @($cleanupErrors.ToArray())
     } | ConvertTo-Json | Set-Content (Join-Path $outputPath 'result.json') -Encoding utf8

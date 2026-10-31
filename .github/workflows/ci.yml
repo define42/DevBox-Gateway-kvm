@@ -212,6 +212,16 @@ jobs:
       runner: windows-2022
       mode: both
 
+  test-windows-mstsc:
+    name: mstsc.exe live picture and input
+    permissions:
+      contents: read
+    # Exercise the real Windows application separately from the ActiveX harness.
+    uses: ./.github/workflows/rdp-mstsc-windows.yml
+    with:
+      runner: windows-2022
+      mode: both
+
   rdp-performance:
     name: Microsoft RDP performance baseline
     permissions:
