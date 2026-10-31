@@ -2,11 +2,12 @@
 
 The [October 29 compatibility run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/40938912570)
 passed with Microsoft's ActiveX client. The separate
-[performance benchmark](windows-rdp-performance.md) still needs its first live
-Windows baseline; compatibility success does not establish desktop throughput.
-The new [mstsc.exe workflow](../.github/workflows/rdp-mstsc-windows.yml) adds a
-separate test of the actual Windows Remote Desktop application. Its first live
-Windows run is still pending; the earlier ActiveX result does not validate it.
+[performance benchmark](windows-rdp-performance.md) measures desktop throughput.
+The [mstsc.exe workflow](../.github/workflows/rdp-mstsc-windows.yml) tests the actual
+Windows Remote Desktop application. The
+[October 31 validation run](https://github.com/define42/DevBox-Gateway-kvm/actions/runs/41228309144)
+passed both bitmap and H.264 on Windows Server 2022 at commit `68ae3fc`, including
+rendering, F8 input, a changing heartbeat for at least 30 seconds, and cleanup.
 
 The [Windows-only RDP workflow](../.github/workflows/rdp-windows.yml)
 runs automatically as part of [CI](../.github/workflows/ci.yml), and can also be
@@ -136,7 +137,12 @@ It checks the owning process and exact loopback destination, leaves resource
 redirection disabled, and fails on other dialogs, including certificate or
 credential prompts. The destination may be a static label or a labeled,
 read-only UI Automation field; writable and password fields cannot authorize
-consent. Each recognized dialog is accepted at most once per session. A Windows
+consent. Server 2022's file warning exposes publisher, connection type, and
+remote-computer fields but omits the port from its displayed address. For that
+observed structure, the harness accepts the labeled `127.0.0.1` host and uses the
+validated launch profile for the exact port. A displayed host and port must
+still match exactly, and overall success requires evidence from the launched
+fixture server. Each recognized dialog is accepted at most once per session. A Windows
 job object terminates the launched client even if its observer times out.
 Offline checks do not confirm live dialog behavior or window geometry; those
 require successful Windows runs.
@@ -171,7 +177,9 @@ mistaken for ActiveX results:
   Its `mstsc_dialog_rejected` entries identify the rejection reason and bounded
   control metadata, including ownership, visibility, toggle state, and read-only
   status. Only recognized labels are retained; unknown text and field values
-  are omitted or redacted.
+  are omitted or redacted. If the fixture is not recognized after ten seconds,
+  it also records native window classes and bounds and captures `mstsc-window.png`.
+  Input diagnostics record the focused control class and verify process ownership.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
   numeric error/reason fields from either `EventData` or `UserData`. A malformed
   record is marked individually so later records can still be exported.
