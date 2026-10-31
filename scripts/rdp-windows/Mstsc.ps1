@@ -43,4 +43,52 @@ function Assert-MstscEvidence($Server, $Client, [string] $Mode) {
         $started[0].details.processId -le 0 -or $exited[0].details.processId -ne $started[0].details.processId) {
         throw 'mstsc_evidence_failed'
     }
+    $inputs = @($Client.events | Where-Object {
+        $_.stage -ceq 'input' -and $_.outcome -ceq 'progress' -and $_.reason -ceq 'f8_submitted'
+    })
+    if ($inputs.Count -ne 3 -or $inputs[0].details.phase -cne 'initial' -or
+        $inputs[1].details.phase -cne 'shrink' -or $inputs[2].details.phase -cne 'restore' -or
+        ($Server.inputTransitions -isnot [int] -and $Server.inputTransitions -isnot [long]) -or
+        $Server.inputTransitions -lt 3) { throw 'mstsc_resize_input_evidence_failed' }
+
+    $resizes = @($Client.events | Where-Object {
+        $_.stage -ceq 'resize' -and $_.reason -ceq 'window_resize_verified'
+    })
+    if ($resizes.Count -ne 2) { throw 'mstsc_resize_evidence_failed' }
+    for ($i = 0; $i -lt 2; $i++) {
+        $event = $resizes[$i]
+        $details = $event.details
+        if ($event.outcome -cne 'passed' -or $event.reason -cne 'window_resize_verified' -or
+            $details.phase -cne @('shrink', 'restore')[$i]) { throw 'mstsc_resize_evidence_failed' }
+        foreach ($field in @('beforeWidth', 'beforeHeight', 'windowWidth', 'windowHeight',
+                             'visibleWidth', 'visibleHeight', 'heartbeatChanges')) {
+            $value = $details.$field
+            if (($value -isnot [int] -and $value -isnot [long]) -or $value -le 0) {
+                throw 'mstsc_resize_evidence_failed'
+            }
+        }
+        foreach ($field in @('layoutBefore', 'layoutAfter')) {
+            $value = $details.$field
+            if (($value -isnot [int] -and $value -isnot [long]) -or $value -notin @(0, 1)) {
+                throw 'mstsc_resize_evidence_failed'
+            }
+        }
+        $age = $details.lastChangeAgeSeconds
+        if (($age -isnot [int] -and $age -isnot [long] -and $age -isnot [double] -and $age -isnot [decimal]) -or
+            [double]::IsNaN($age) -or [double]::IsInfinity($age) -or $age -lt 0 -or $age -gt 5 -or
+            $details.heartbeatChanges -lt 4 -or $details.layoutAfter -ne (1 - $details.layoutBefore) -or
+            $details.visibleWidth -lt 640 -or $details.visibleHeight -lt 480 -or
+            $details.visibleWidth -gt $details.windowWidth -or $details.visibleHeight -gt $details.windowHeight) {
+            throw 'mstsc_resize_evidence_failed'
+        }
+    }
+    $shrink = $resizes[0].details
+    $restore = $resizes[1].details
+    if ($shrink.windowWidth -ge $shrink.beforeWidth -or $shrink.windowHeight -ge $shrink.beforeHeight -or
+        $restore.beforeWidth -ne $shrink.windowWidth -or $restore.beforeHeight -ne $shrink.windowHeight -or
+        $restore.windowWidth -ne $shrink.beforeWidth -or $restore.windowHeight -ne $shrink.beforeHeight -or
+        $restore.layoutBefore -ne $shrink.layoutAfter -or
+        $restore.visibleWidth -le $shrink.visibleWidth -or $restore.visibleHeight -le $shrink.visibleHeight) {
+        throw 'mstsc_resize_evidence_failed'
+    }
 }

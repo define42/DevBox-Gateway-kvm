@@ -73,6 +73,16 @@ workflow. Both require all of the following:
 - Server evidence confirms the intended active encoder. An H.264 connection
   that falls back to bitmap does not count as H.264 coverage.
 
+The executable test also shrinks the connected window and restores its original
+size. On a 1024 × 768 runner desktop, this changes the outer window from
+1024 × 728 to 800 × 600 and back; smaller desktops use a smaller target that
+still leaves the fixture visible. At each size, the harness checks the measured
+window bounds, waits for three stable fixture frames, sends a new F8, and
+requires the resulting layout change plus at least four fresh heartbeat changes.
+The server must record at least three input transitions in the same session.
+The remote desktop stays at 1024 × 768 with smart sizing enabled and dynamic
+resolution disabled; this checks client window resizing and scaled rendering.
+
 An authenticated/connected event alone cannot pass the test. Neither can an
 empty or black window. The fixture needs no browser, guest operating system, or
 manually focused desktop page.
@@ -91,7 +101,9 @@ visible progress, input response times, and resource use under continuous load.
 submission helpers, and mstsc file-consent decisions. Consent cases include
 static labels and read-only address fields, mismatched destinations, selected
 redirections, ambiguous buttons, and credential/certificate prompts. PowerShell
-tests cover client selection and orchestration.
+tests cover client selection, orchestration, and rejection of missing or invalid
+resize evidence. State tests require both resizes with fresh input and heartbeat
+confirmation before a session can pass.
 These checks do not start a live `mstsc.exe` session. On Windows, the ActiveX
 harness's `--check-control` initializes and disposes the real Microsoft ActiveX control without calling `Connect` or
 using credentials. This component check catches activation failures earlier;
@@ -124,8 +136,8 @@ endpoint.
 
 The original workflow tests the Microsoft ActiveX component. The separate
 mstsc.exe workflow launches the Windows application, captures its rendered
-fixture, sends F8 through its window, and checks the changing heartbeat during
-a 30-second session. It uses a generated loopback profile with certificate
+fixture, shrinks and restores the window, sends F8 at each size, and checks the
+changing heartbeat during a 30-second session. It uses a generated loopback profile with certificate
 verification enabled. It does not test Windows App, saved credential behavior,
 or interactive password prompts. The fixture profile disables CredSSP because
 the local server has no credential authentication; TLS server authentication
@@ -180,6 +192,10 @@ mistaken for ActiveX results:
   are omitted or redacted. If the fixture is not recognized after ten seconds,
   it also records native window classes and bounds and captures `mstsc-window.png`.
   Input diagnostics record the focused control class and verify process ownership.
+  Each `window_resize_verified` entry records the shrink or restore phase,
+  measured outer window and rendered fixture dimensions, before/after layouts,
+  and fresh heartbeat evidence. `resize-shrink.png` and `resize-restore.png`
+  preserve the rendered viewport at its actual captured size.
 - `windows-events.json`: selected Windows RDP event identifiers, timestamps, and
   numeric error/reason fields from either `EventData` or `UserData`. A malformed
   record is marked individually so later records can still be exported.
